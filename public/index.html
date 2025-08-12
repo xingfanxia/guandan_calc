@@ -446,6 +446,8 @@ details+details{margin-top:8px}
       touchClone.style.left = (touch.clientX - tile.offsetWidth/2) + 'px';
       touchClone.style.top = (touch.clientY - tile.offsetHeight/2) + 'px';
       
+      // Hide the original tile while dragging
+      tile.style.opacity = '0.3';
       tile.classList.add('dragging');
       
       // Add haptic feedback if available
@@ -507,8 +509,15 @@ details+details{margin-top:8px}
     }
     touchStartPos = null;
     
-    // If we haven't started dragging, don't prevent default
-    if (!touchClone || !draggedPlayer) return;
+    // If we haven't started dragging, restore opacity and return
+    if (!touchClone || !draggedPlayer) {
+      if (touchDraggedElement) {
+        touchDraggedElement.style.opacity = '';
+        touchDraggedElement.classList.remove('dragging');
+        touchDraggedElement = null;
+      }
+      return;
+    }
     
     e.preventDefault();
     
@@ -542,6 +551,7 @@ details+details{margin-top:8px}
     
     if (touchDraggedElement) {
       touchDraggedElement.classList.remove('dragging');
+      touchDraggedElement.style.opacity = ''; // Restore original opacity
       touchDraggedElement = null;
     }
     
@@ -728,6 +738,8 @@ details+details{margin-top:8px}
     tile.addEventListener('touchmove', handleTouchMove, { passive: false });
     
     tile.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
     
     return tile;
   }
@@ -948,6 +960,8 @@ details+details{margin-top:8px}
     tile.addEventListener('touchmove', handleTouchMove, { passive: false });
     
     tile.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
     
     return tile;
   }
