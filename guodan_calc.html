@@ -636,19 +636,26 @@ details+details{margin-top:8px}
     }
     
     // For mobile, we need to directly set the input based on ranked players
-    // The input expects the player IDs in rank order
-    var rankedPlayers = [];
+    // The input expects the player NAMES in rank order
+    var rankedPlayerIds = [];
+    var rankedPlayerNames = [];
     for (var rank = 1; rank <= mode; rank++) {
       if (currentRanking[rank]) {
-        rankedPlayers.push(currentRanking[rank]);
+        var playerId = currentRanking[rank];
+        var player = players.find(function(p) { return p.id === playerId; });
+        if (player) {
+          rankedPlayerIds.push(playerId);
+          rankedPlayerNames.push(player.name);
+        }
       }
     }
     
-    console.log('Ranked players:', rankedPlayers);
+    console.log('Ranked player IDs:', rankedPlayerIds);
+    console.log('Ranked player names:', rankedPlayerNames);
     
-    // Set input to player IDs in order
-    input.value = rankedPlayers.join(' ');
-    selected = rankedPlayers.slice();
+    // Set input to player NAMES in order (not IDs!)
+    input.value = rankedPlayerNames.join(' ');
+    selected = rankedPlayerNames.slice();
     console.log('Setting input.value to:', input.value);
     console.log('Setting selected to:', selected);
     
