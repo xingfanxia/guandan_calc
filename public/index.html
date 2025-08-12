@@ -619,6 +619,15 @@ details+details{margin-top:8px}
       }
     }
     
+    // Verify we have the correct number of players per team
+    var expectedPerTeam = mode / 2;
+    if (teamAPositions.length !== expectedPerTeam || teamBPositions.length !== expectedPerTeam) {
+      // Teams not properly balanced
+      input.value = '';
+      calc();
+      return;
+    }
+    
     // Determine winning team (lower total rank wins)
     var teamAScore = teamAPositions.reduce(function(sum, pos) { return sum + pos; }, 0);
     var teamBScore = teamBPositions.reduce(function(sum, pos) { return sum + pos; }, 0);
@@ -637,6 +646,7 @@ details+details{margin-top:8px}
     // Update the input with winner positions
     input.value = winnerPositions.join(' ');
     selected = winnerPositions.slice();
+    console.log('UpdateRankingInput: mode=' + mode + ', winner=' + winner + ', positions=' + winnerPositions.join(' '));
     calc(); // Trigger calculation
   }
   
