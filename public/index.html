@@ -39,7 +39,7 @@ details+details{margin-top:8px}
 .toggle{display:inline-flex;align-items:center;gap:6px}
 
 /* Player System Styles */
-.player-tile{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:#1f2229;border:2px solid var(--stroke);border-radius:10px;cursor:move;user-select:none;transition:all .2s;margin:4px}
+.player-tile{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:#1f2229;border:2px solid var(--stroke);border-radius:10px;cursor:move;user-select:none;-webkit-user-select:none;touch-action:none;transition:all .2s;margin:4px}
 .player-tile:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
 .player-tile.dragging{opacity:.5;transform:scale(0.95)}
 .player-tile .emoji{font-size:20px}
@@ -52,6 +52,21 @@ details+details{margin-top:8px}
 
 .rank-slot{display:inline-flex;align-items:center;justify-content:center;min-width:150px;min-height:60px;background:#1f2229;border:2px solid var(--stroke);border-radius:12px;margin:8px;padding:8px;transition:all .2s;position:relative}
 .rank-slot.drag-over{border-color:var(--accent);background:rgba(230,184,0,.1)}
+
+/* Touch-specific styles for better mobile UX */
+@media (hover: none) and (pointer: coarse) {
+  .player-tile, .ranking-player-tile {
+    padding: 10px 14px;
+    min-height: 44px; /* iOS touch target size */
+  }
+  .rank-slot {
+    min-height: 70px;
+    min-width: 170px;
+  }
+  .team-drop-zone {
+    min-height: 100px;
+  }
+}
 .rank-slot .rank-number{position:absolute;top:4px;left:8px;font-size:18px;font-weight:bold;color:var(--accent)}
 .rank-slot.filled{background:#24262c}
 
@@ -73,7 +88,7 @@ details+details{margin-top:8px}
 .player-pool .player-tile:active{cursor:grabbing}
 
 /* Simplified player tiles for ranking */
-.ranking-player-tile{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#1f2229;border:2px solid var(--stroke);border-radius:8px;cursor:move;user-select:none;transition:all .2s;font-size:14px}
+.ranking-player-tile{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:#1f2229;border:2px solid var(--stroke);border-radius:8px;cursor:move;user-select:none;-webkit-user-select:none;touch-action:none;transition:all .2s;font-size:14px}
 .ranking-player-tile:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.2)}
 .ranking-player-tile.dragging{opacity:.5;transform:scale(0.95)}
 .ranking-player-tile .emoji{font-size:16px}
@@ -379,7 +394,161 @@ details+details{margin-top:8px}
   var playerStats = {};
   var currentRanking = {};
   var draggedPlayer = null;
+  var touchDraggedElement = null; // For touch dragging
+  var touchClone = null; // Clone element for visual feedback during touch
   var animalEmojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈'];
+  
+  // Touch event helper functions
+  function handleTouchStart(e, player) {
+    e.preventDefault();
+    var touch = e.touches[0];
+    var tile = e.currentTarget;
+    
+    draggedPlayer = player;
+    touchDraggedElement = tile;
+    
+    // Create clone for visual feedback
+    touchClone = tile.cloneNode(true);
+    touchClone.style.position = 'fixed';
+    touchClone.style.zIndex = '1000';
+    touchClone.style.opacity = '0.8';
+    touchClone.style.pointerEvents = 'none';
+    touchClone.style.transform = 'scale(1.1)';
+    touchClone.classList.add('dragging');
+    document.body.appendChild(touchClone);
+    
+    // Position clone at touch point
+    touchClone.style.left = (touch.clientX - tile.offsetWidth/2) + 'px';
+    touchClone.style.top = (touch.clientY - tile.offsetHeight/2) + 'px';
+    
+    tile.classList.add('dragging');
+  }
+  
+  function handleTouchMove(e) {
+    e.preventDefault();
+    if (!touchClone) return;
+    
+    var touch = e.touches[0];
+    
+    // Update clone position
+    touchClone.style.left = (touch.clientX - touchClone.offsetWidth/2) + 'px';
+    touchClone.style.top = (touch.clientY - touchClone.offsetHeight/2) + 'px';
+    
+    // Find element under touch point (excluding the clone)
+    touchClone.style.display = 'none';
+    var elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    touchClone.style.display = 'block';
+    
+    // Highlight drop zones
+    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool');
+    dropZones.forEach(function(zone) {
+      zone.classList.remove('drag-over');
+    });
+    
+    if (elementBelow) {
+      var dropZone = elementBelow.closest('.rank-slot, .team-drop-zone, #playerPool');
+      if (dropZone) {
+        dropZone.classList.add('drag-over');
+      }
+    }
+  }
+  
+  function handleTouchEnd(e) {
+    e.preventDefault();
+    if (!touchClone || !draggedPlayer) return;
+    
+    var touch = e.changedTouches[0];
+    
+    // Find element under touch point
+    touchClone.style.display = 'none';
+    var elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+    touchClone.style.display = 'block';
+    
+    // Handle drop
+    if (elementBelow) {
+      var rankSlot = elementBelow.closest('.rank-slot');
+      var teamZone = elementBelow.closest('.team-drop-zone');
+      var pool = elementBelow.closest('#playerPool');
+      
+      if (rankSlot) {
+        handleRankDrop(rankSlot, draggedPlayer);
+      } else if (teamZone) {
+        handleTeamDrop(teamZone, draggedPlayer);
+      } else if (pool) {
+        handlePoolDrop(draggedPlayer);
+      }
+    }
+    
+    // Clean up
+    if (touchClone) {
+      document.body.removeChild(touchClone);
+      touchClone = null;
+    }
+    
+    if (touchDraggedElement) {
+      touchDraggedElement.classList.remove('dragging');
+      touchDraggedElement = null;
+    }
+    
+    draggedPlayer = null;
+    
+    // Clear all highlights
+    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool');
+    dropZones.forEach(function(zone) {
+      zone.classList.remove('drag-over');
+    });
+  }
+  
+  function handleRankDrop(slot, player) {
+    var rank = parseInt(slot.dataset.rank);
+    if (!rank) return;
+    
+    // Remove player from any existing rank
+    for (var r in currentRanking) {
+      if (currentRanking[r] === player.id) {
+        delete currentRanking[r];
+      }
+    }
+    
+    // Remove any existing player from this rank
+    if (currentRanking[rank]) {
+      var oldPlayer = players.find(function(p) { return p.id === currentRanking[rank]; });
+      if (oldPlayer) {
+        // Return old player to pool
+        var poolTile = createPlayerTileForRanking(oldPlayer);
+        $('playerPool').appendChild(poolTile);
+      }
+    }
+    
+    // Add player to new rank
+    currentRanking[rank] = player.id;
+    renderRankingSlots();
+    updateRankingInput();
+    calc();
+  }
+  
+  function handleTeamDrop(zone, player) {
+    var team = zone.dataset.team;
+    if (team === '1') {
+      player.team = 'A';
+    } else if (team === '2') {
+      player.team = 'B';
+    }
+    setupDropZones();
+    renderRankingArea();
+  }
+  
+  function handlePoolDrop(player) {
+    // Remove from ranking
+    for (var r in currentRanking) {
+      if (currentRanking[r] === player.id) {
+        delete currentRanking[r];
+      }
+    }
+    renderRankingSlots();
+    updateRankingInput();
+    calc();
+  }
   
   // Player System Functions
   function generatePlayers() {
@@ -495,6 +664,15 @@ details+details{margin-top:8px}
       tile.classList.remove('dragging');
       draggedPlayer = null;
     };
+    
+    // Touch events for mobile
+    tile.addEventListener('touchstart', function(e) {
+      handleTouchStart(e, player);
+    }, { passive: false });
+    
+    tile.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    tile.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     return tile;
   }
@@ -706,6 +884,15 @@ details+details{margin-top:8px}
       tile.classList.remove('dragging');
       draggedPlayer = null;
     };
+    
+    // Touch events for mobile
+    tile.addEventListener('touchstart', function(e) {
+      handleTouchStart(e, player);
+    }, { passive: false });
+    
+    tile.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    tile.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     return tile;
   }
