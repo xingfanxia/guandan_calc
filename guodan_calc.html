@@ -44,7 +44,7 @@ details+details{margin-top:8px}
 .player-tile.dragging{opacity:.5;transform:scale(0.95)}
 .player-tile .emoji{font-size:20px}
 .player-tile .name{font-size:14px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.player-tile input{background:transparent;border:none;color:var(--ink);font-size:14px;width:80px;padding:0}
+.player-tile input{background:transparent;border:none;color:var(--ink);font-size:14px;width:80px;padding:0;touch-action:auto;user-select:text;-webkit-user-select:text}
 
 .team-drop-zone{min-height:80px;background:#0f1115;border:2px dashed var(--stroke);border-radius:12px;padding:12px;margin:8px 0;display:flex;flex-wrap:wrap;gap:8px;transition:all .2s}
 .team-drop-zone.drag-over{border-color:var(--accent);background:rgba(230,184,0,.05)}
@@ -58,6 +58,7 @@ details+details{margin-top:8px}
   .player-tile, .ranking-player-tile {
     padding: 10px 14px;
     min-height: 44px; /* iOS touch target size */
+    position: relative;
   }
   .rank-slot {
     min-height: 70px;
@@ -65,6 +66,17 @@ details+details{margin-top:8px}
   }
   .team-drop-zone {
     min-height: 100px;
+  }
+  /* Visual hint for long press */
+  .player-tile::after, .ranking-player-tile::after {
+    content: '⋮⋮';
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 10px;
+    opacity: 0.5;
   }
 }
 .rank-slot .rank-number{position:absolute;top:4px;left:8px;font-size:18px;font-weight:bold;color:var(--accent)}
@@ -396,39 +408,73 @@ details+details{margin-top:8px}
   var draggedPlayer = null;
   var touchDraggedElement = null; // For touch dragging
   var touchClone = null; // Clone element for visual feedback during touch
+  var touchStartTimer = null; // Timer for delayed drag start
+  var touchStartPos = null; // Initial touch position
   var animalEmojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈'];
   
   // Touch event helper functions
   function handleTouchStart(e, player) {
-    e.preventDefault();
+    // Don't start drag if touching an input field
+    if (e.target.tagName === 'INPUT') {
+      return; // Allow normal input interaction
+    }
+    
     var touch = e.touches[0];
     var tile = e.currentTarget;
     
-    draggedPlayer = player;
-    touchDraggedElement = tile;
+    // Store initial touch position
+    touchStartPos = { x: touch.clientX, y: touch.clientY };
     
-    // Create clone for visual feedback
-    touchClone = tile.cloneNode(true);
-    touchClone.style.position = 'fixed';
-    touchClone.style.zIndex = '1000';
-    touchClone.style.opacity = '0.8';
-    touchClone.style.pointerEvents = 'none';
-    touchClone.style.transform = 'scale(1.1)';
-    touchClone.classList.add('dragging');
-    document.body.appendChild(touchClone);
-    
-    // Position clone at touch point
-    touchClone.style.left = (touch.clientX - tile.offsetWidth/2) + 'px';
-    touchClone.style.top = (touch.clientY - tile.offsetHeight/2) + 'px';
-    
-    tile.classList.add('dragging');
+    // Set up delayed drag start (long press)
+    touchStartTimer = setTimeout(function() {
+      // Start drag after delay
+      e.preventDefault();
+      draggedPlayer = player;
+      touchDraggedElement = tile;
+      
+      // Create clone for visual feedback
+      touchClone = tile.cloneNode(true);
+      touchClone.style.position = 'fixed';
+      touchClone.style.zIndex = '1000';
+      touchClone.style.opacity = '0.8';
+      touchClone.style.pointerEvents = 'none';
+      touchClone.style.transform = 'scale(1.1)';
+      touchClone.classList.add('dragging');
+      document.body.appendChild(touchClone);
+      
+      // Position clone at touch point
+      touchClone.style.left = (touch.clientX - tile.offsetWidth/2) + 'px';
+      touchClone.style.top = (touch.clientY - tile.offsetHeight/2) + 'px';
+      
+      tile.classList.add('dragging');
+      
+      // Add haptic feedback if available
+      if (navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+    }, 200); // 200ms delay for long press
   }
   
   function handleTouchMove(e) {
-    e.preventDefault();
-    if (!touchClone) return;
-    
     var touch = e.touches[0];
+    
+    // If we haven't started dragging yet, check for movement
+    if (!touchClone && touchStartTimer && touchStartPos) {
+      var dx = Math.abs(touch.clientX - touchStartPos.x);
+      var dy = Math.abs(touch.clientY - touchStartPos.y);
+      
+      // Cancel drag start if user moves finger significantly
+      if (dx > 10 || dy > 10) {
+        clearTimeout(touchStartTimer);
+        touchStartTimer = null;
+        touchStartPos = null;
+        return;
+      }
+    }
+    
+    // Only prevent default if we're actually dragging
+    if (!touchClone) return;
+    e.preventDefault();
     
     // Update clone position
     touchClone.style.left = (touch.clientX - touchClone.offsetWidth/2) + 'px';
@@ -454,8 +500,17 @@ details+details{margin-top:8px}
   }
   
   function handleTouchEnd(e) {
-    e.preventDefault();
+    // Clear the timer if it's still running
+    if (touchStartTimer) {
+      clearTimeout(touchStartTimer);
+      touchStartTimer = null;
+    }
+    touchStartPos = null;
+    
+    // If we haven't started dragging, don't prevent default
     if (!touchClone || !draggedPlayer) return;
+    
+    e.preventDefault();
     
     var touch = e.changedTouches[0];
     
