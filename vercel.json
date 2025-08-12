@@ -1,19 +1,5 @@
 {
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/guodan_calc.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600, s-maxage=86400"
-        }
-      ]
-    }
-  ]
+  "buildCommand": "mkdir -p public && cp guodan_calc.html public/index.html",
+  "outputDirectory": "public",
+  "framework": null
 }

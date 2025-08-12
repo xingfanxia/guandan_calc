@@ -2,17 +2,15 @@
   "name": "guandan-calculator",
   "version": "8.0.0",
   "description": "A comprehensive web-based scoring calculator for Guandan (掼蛋) card game",
+  "type": "module",
   "scripts": {
-    "dev": "python3 -m http.server 8000",
-    "build": "echo 'No build needed for static site'"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
   },
   "author": "Xingfan Xia",
-  "license": "MIT",
-  "keywords": [
-    "guandan",
-    "掼蛋",
-    "card-game",
-    "calculator",
-    "scoring"
-  ]
+  "license": "MIT"
 }
