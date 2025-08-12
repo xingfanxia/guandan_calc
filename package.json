@@ -9,8 +9,22 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "vite": "^5.0.0"
+    "html2canvas": "^1.4.1",
+    "vite": "^5.4.19"
   },
   "author": "Xingfan Xia",
-  "license": "MIT"
+  "license": "MIT",
+  "main": "vite.config.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xingfanxia/guandan_calc.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/xingfanxia/guandan_calc/issues"
+  },
+  "homepage": "https://github.com/xingfanxia/guandan_calc#readme"
 }

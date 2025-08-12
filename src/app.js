@@ -1,9 +1,14 @@
-// Main application orchestrator
+/**
+ * Main Application Orchestrator
+ * Coordinates all modules and manages application flow
+ */
+
 import { GameState } from './modules/gameState.js';
 import { Calculator } from './modules/calculator.js';
 import { UIRenderer } from './modules/ui.js';
 import { DragDropHandler } from './modules/dragDrop.js';
 import { ExportHandler } from './modules/export.js';
+import './styles/main.css';
 
 class GuandanApp {
   constructor() {
@@ -16,15 +21,112 @@ class GuandanApp {
     this.init();
   }
 
+  /**
+   * Initialize application
+   */
   init() {
-    // Set up event listeners and initialize the app
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.setup());
+    } else {
+      this.setup();
+    }
+  }
+
+  /**
+   * Setup application
+   */
+  setup() {
+    this.initializeDOM();
+    this.loadSavedState();
     this.setupEventListeners();
-    this.loadGameState();
+    this.setupDragDropHandlers();
     this.render();
   }
 
+  /**
+   * Initialize DOM elements
+   */
+  initializeDOM() {
+    this.ui.setElements({
+      playersContainer: document.getElementById('playerPool'),
+      rankingContainer: document.getElementById('rankingArea'),
+      resultsContainer: document.getElementById('results'),
+      teamContainers: {
+        t1: document.getElementById('team1Container'),
+        t2: document.getElementById('team2Container')
+      },
+      roundLevelSelect: document.getElementById('roundLevel'),
+      modeSelect: document.getElementById('modeSelect'),
+      autoApplyCheckbox: document.getElementById('autoApplyCheckbox')
+    });
+  }
+
+  /**
+   * Load saved state from localStorage
+   */
+  loadSavedState() {
+    const savedState = localStorage.getItem('guandanState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        this.gameState.import(state);
+      } catch (error) {
+        console.error('Failed to load saved state:', error);
+        this.initializeDefaultState();
+      }
+    } else {
+      this.initializeDefaultState();
+    }
+  }
+
+  /**
+   * Initialize with default state
+   */
+  initializeDefaultState() {
+    this.gameState.initDefault();
+  }
+
+  /**
+   * Save state to localStorage
+   */
+  saveState() {
+    const state = this.gameState.export();
+    localStorage.setItem('guandanState', JSON.stringify(state));
+  }
+
+  /**
+   * Setup event listeners
+   */
   setupEventListeners() {
-    // Add Player button
+    // Mode change
+    const modeSelect = document.getElementById('modeSelect');
+    if (modeSelect) {
+      modeSelect.addEventListener('change', (e) => {
+        this.handleModeChange(parseInt(e.target.value));
+      });
+    }
+
+    // Round level change
+    const roundLevel = document.getElementById('roundLevel');
+    if (roundLevel) {
+      roundLevel.addEventListener('change', (e) => {
+        this.gameState.setRoundLevel(parseInt(e.target.value));
+        this.saveState();
+        this.render();
+      });
+    }
+
+    // Auto-apply toggle
+    const autoApply = document.getElementById('autoApplyCheckbox');
+    if (autoApply) {
+      autoApply.addEventListener('change', () => {
+        this.gameState.toggleAutoApply();
+        this.saveState();
+      });
+    }
+
+    // Add player button
     const addPlayerBtn = document.getElementById('addPlayerBtn');
     if (addPlayerBtn) {
       addPlayerBtn.addEventListener('click', () => this.addPlayer());
@@ -36,7 +138,7 @@ class GuandanApp {
       calculateBtn.addEventListener('click', () => this.calculate());
     }
 
-    // Clear All button
+    // Clear all button
     const clearAllBtn = document.getElementById('clearAllBtn');
     if (clearAllBtn) {
       clearAllBtn.addEventListener('click', () => this.clearAll());
@@ -53,306 +155,391 @@ class GuandanApp {
       exportCSVBtn.addEventListener('click', () => this.exportCSV());
     }
 
-    // Round level change
-    const roundLevelSelect = document.getElementById('roundLevel');
-    if (roundLevelSelect) {
-      roundLevelSelect.addEventListener('change', (e) => {
-        this.gameState.setRoundLevel(parseInt(e.target.value));
-        this.saveGameState();
-      });
+    const exportJSONBtn = document.getElementById('exportJSONBtn');
+    if (exportJSONBtn) {
+      exportJSONBtn.addEventListener('click', () => this.exportJSON());
     }
 
-    // Set up drag and drop callbacks
-    this.dragDrop.onDrop = (playerId, rank) => {
-      this.gameState.setPlayerRank(playerId, rank);
-      this.updateRankingInput();
-      this.saveGameState();
+    const shareBtn = document.getElementById('shareBtn');
+    if (shareBtn && navigator.share) {
+      shareBtn.style.display = 'inline-block';
+      shareBtn.addEventListener('click', () => this.share());
+    }
+
+    // Apply result button
+    const applyBtn = document.getElementById('applyResultBtn');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', () => this.applyResult());
+    }
+
+    // Import JSON
+    const importBtn = document.getElementById('importJSONBtn');
+    const importInput = document.getElementById('importJSONInput');
+    if (importBtn && importInput) {
+      importBtn.addEventListener('click', () => importInput.click());
+      importInput.addEventListener('change', (e) => this.importJSON(e.target.files[0]));
+    }
+  }
+
+  /**
+   * Setup drag and drop handlers
+   */
+  setupDragDropHandlers() {
+    this.dragDrop.onDrop = (draggedData, dropData) => {
+      this.handleDrop(draggedData, dropData);
     };
 
-    this.dragDrop.onDragStart = () => {
+    this.dragDrop.onDragStart = (data) => {
       // Optional: Add visual feedback
+      console.log('Drag started:', data);
     };
 
     this.dragDrop.onDragEnd = () => {
       // Optional: Clean up visual feedback
+      console.log('Drag ended');
     };
   }
 
-  loadGameState() {
-    // Load from localStorage
-    const savedState = localStorage.getItem('guandanGameState');
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState);
-        if (state.players) {
-          state.players.forEach(player => {
-            this.gameState.addPlayer(player.name, player.id);
-          });
-        }
-        if (state.roundLevel) {
-          this.gameState.setRoundLevel(state.roundLevel);
-        }
-        if (state.currentRanking) {
-          Object.entries(state.currentRanking).forEach(([rank, playerId]) => {
-            if (playerId) {
-              this.gameState.setPlayerRank(playerId, parseInt(rank));
-            }
-          });
-        }
-      } catch (e) {
-        console.error('Error loading saved state:', e);
-      }
-    } else {
-      // Initialize with default 8 players
-      for (let i = 1; i <= 8; i++) {
-        this.gameState.addPlayer(`玩家${i}`);
-      }
+  /**
+   * Handle drop event
+   */
+  handleDrop(draggedData, dropData) {
+    if (dropData.type === 'rank') {
+      this.gameState.setPlayerRank(draggedData, dropData.rank);
+      this.checkAutoCalculate();
+    } else if (dropData.type === 'team') {
+      this.gameState.setPlayerTeam(draggedData, dropData.team);
+    } else if (dropData.type === 'pool') {
+      this.gameState.removePlayerRank(draggedData);
+    }
+    
+    this.saveState();
+    this.render();
+  }
+
+  /**
+   * Check if should auto-calculate
+   */
+  checkAutoCalculate() {
+    if (this.gameState.isRankingComplete()) {
+      this.calculate();
     }
   }
 
-  saveGameState() {
-    const state = {
-      players: this.gameState.players.map(p => ({ id: p.id, name: p.name })),
-      roundLevel: this.gameState.roundLevel,
-      currentRanking: this.gameState.currentRanking
-    };
-    localStorage.setItem('guandanGameState', JSON.stringify(state));
-  }
-
+  /**
+   * Render the entire UI
+   */
   render() {
-    // Update round level select
-    const roundLevelSelect = document.getElementById('roundLevel');
-    if (roundLevelSelect) {
-      roundLevelSelect.value = this.gameState.roundLevel;
-    }
+    this.renderPlayers();
+    this.renderRanking();
+    this.renderTeams();
+    this.updateUI();
+  }
 
-    // Render players
-    const playersContainer = document.getElementById('playersContainer');
-    if (playersContainer) {
-      playersContainer.innerHTML = '';
-      this.gameState.players.forEach(player => {
-        const tile = this.ui.createPlayerTile(player);
-        
-        // Add event listeners for player name editing
-        const input = tile.querySelector('input');
-        if (input) {
-          input.addEventListener('input', (e) => {
-            this.gameState.updatePlayerName(player.id, e.target.value);
-            this.saveGameState();
-          });
-        }
+  /**
+   * Render players pool
+   */
+  renderPlayers() {
+    this.ui.renderPlayersPool(this.gameState.players, this.gameState.currentRanking);
+    
+    // Initialize drag and drop for player tiles
+    const tiles = document.querySelectorAll('#playerPool .player-tile');
+    tiles.forEach(tile => {
+      const playerId = parseInt(tile.dataset.playerId);
+      this.dragDrop.initializeDraggable(tile, playerId);
+      
+      // Setup name editing
+      const input = tile.querySelector('.player-name-input');
+      if (input) {
+        input.addEventListener('change', (e) => {
+          this.gameState.updatePlayerName(playerId, e.target.value);
+          this.saveState();
+        });
+      }
+      
+      // Setup delete button
+      const deleteBtn = tile.querySelector('.delete-btn');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          this.removePlayer(playerId);
+        });
+      }
+    });
+  }
 
-        // Add delete button listener
-        const deleteBtn = tile.querySelector('.delete-btn');
-        if (deleteBtn) {
-          deleteBtn.addEventListener('click', () => {
-            this.removePlayer(player.id);
-          });
-        }
-
-        // Initialize drag and drop for this tile
-        this.dragDrop.initializeDraggable(tile, player.id);
-        
-        playersContainer.appendChild(tile);
-      });
-    }
-
-    // Initialize rank boxes
+  /**
+   * Render ranking area
+   */
+  renderRanking() {
+    this.ui.renderRankingSlots(this.gameState.mode);
+    this.ui.updateRanking(this.gameState.currentRanking, this.gameState.players);
+    
+    // Initialize drop zones
     const rankBoxes = document.querySelectorAll('.rank-box');
     rankBoxes.forEach(box => {
       this.dragDrop.initializeDropZone(box);
     });
-
-    // Render current ranking
-    this.renderRanking();
     
-    // Update ranking input display
-    this.updateRankingInput();
-  }
-
-  renderRanking() {
-    // Clear all rank boxes first
-    document.querySelectorAll('.rank-box').forEach(box => {
-      const existingTiles = box.querySelectorAll('.player-tile');
-      existingTiles.forEach(tile => tile.remove());
-    });
-
-    // Place ranked players
-    Object.entries(this.gameState.currentRanking).forEach(([rank, playerId]) => {
-      if (playerId) {
-        const player = this.gameState.players.find(p => p.id === playerId);
-        if (player) {
-          const rankBox = document.querySelector(`.rank-box[data-rank="${rank}"]`);
-          if (rankBox) {
-            const tile = this.ui.createRankedTile(player);
-            
-            // Add remove button listener
-            const removeBtn = tile.querySelector('.remove-btn');
-            if (removeBtn) {
-              removeBtn.addEventListener('click', () => {
-                this.gameState.removePlayerRank(player.id);
-                this.render();
-                this.saveGameState();
-              });
-            }
-
-            rankBox.appendChild(tile);
-          }
-        }
+    // Setup remove buttons for ranked tiles
+    const rankedTiles = document.querySelectorAll('.rank-box .player-tile');
+    rankedTiles.forEach(tile => {
+      const removeBtn = tile.querySelector('.remove-btn');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+          const playerId = parseInt(tile.dataset.playerId);
+          this.gameState.removePlayerRank(playerId);
+          this.saveState();
+          this.render();
+        });
       }
     });
   }
 
-  updateRankingInput() {
-    const rankingInput = document.getElementById('rankingInput');
-    if (!rankingInput) return;
-
-    const rankedPlayers = [];
-    for (let i = 1; i <= 8; i++) {
-      const playerId = this.gameState.currentRanking[i];
-      if (playerId) {
-        const player = this.gameState.players.find(p => p.id === playerId);
-        if (player) {
-          rankedPlayers.push(player.name || `玩家${playerId}`);
-        }
-      }
-    }
-
-    if (rankedPlayers.length === this.gameState.players.length) {
-      rankingInput.value = rankedPlayers.join(' ');
-      rankingInput.style.color = '#4CAF50';
-    } else {
-      rankingInput.value = '等待排名完成';
-      rankingInput.style.color = '#ff6b6b';
-    }
+  /**
+   * Render teams
+   */
+  renderTeams() {
+    this.ui.renderTeams(
+      this.gameState.players,
+      this.gameState.roundLevel,
+      this.calculator.roundLevels
+    );
   }
 
+  /**
+   * Update UI elements
+   */
+  updateUI() {
+    this.ui.updateModeDisplay(this.gameState.mode);
+    this.ui.updateRoundLevelDisplay(this.gameState.roundLevel);
+    this.ui.updateAutoApplyDisplay(this.gameState.autoApply);
+  }
+
+  /**
+   * Handle mode change
+   */
+  handleModeChange(newMode) {
+    this.gameState.setMode(newMode);
+    
+    // Adjust player count if needed
+    while (this.gameState.players.length < newMode) {
+      this.gameState.addPlayer(`玩家${this.gameState.players.length + 1}`);
+    }
+    
+    while (this.gameState.players.length > newMode) {
+      this.gameState.removePlayer(this.gameState.players[this.gameState.players.length - 1].id);
+    }
+    
+    this.gameState.assignTeams();
+    this.saveState();
+    this.render();
+  }
+
+  /**
+   * Add a player
+   */
   addPlayer() {
-    const playerCount = this.gameState.players.length;
-    if (playerCount >= 12) {
-      alert('最多支持12个玩家');
+    if (this.gameState.players.length >= 12) {
+      this.ui.showMessage('最多支持12个玩家', 'warning');
       return;
     }
     
-    const newPlayer = this.gameState.addPlayer(`玩家${playerCount + 1}`);
+    const player = this.gameState.addPlayer(`玩家${this.gameState.players.length + 1}`);
+    this.gameState.assignTeams();
+    this.saveState();
     this.render();
-    this.saveGameState();
   }
 
+  /**
+   * Remove a player
+   */
   removePlayer(playerId) {
     if (this.gameState.players.length <= 4) {
-      alert('至少需要4个玩家');
+      this.ui.showMessage('至少需要4个玩家', 'warning');
       return;
     }
     
     this.gameState.removePlayer(playerId);
+    this.gameState.assignTeams();
+    this.saveState();
     this.render();
-    this.saveGameState();
   }
 
+  /**
+   * Calculate results
+   */
   calculate() {
-    // Get ranking from state
-    const ranking = [];
-    for (let i = 1; i <= this.gameState.players.length; i++) {
+    if (!this.gameState.isRankingComplete()) {
+      this.ui.showMessage('请完成所有玩家的排名', 'warning');
+      return;
+    }
+    
+    // Get full ranking
+    const fullRanking = [];
+    for (let i = 1; i <= this.gameState.mode; i++) {
       const playerId = this.gameState.currentRanking[i];
-      if (playerId) {
-        const player = this.gameState.players.find(p => p.id === playerId);
-        if (player) {
-          ranking.push(player.name);
-        }
+      const player = this.gameState.getPlayer(playerId);
+      if (player) {
+        fullRanking.push(player.name);
       }
     }
-
-    if (ranking.length !== this.gameState.players.length) {
-      alert('请完成所有玩家的排名');
-      return;
-    }
-
-    // Calculate scores
-    const result = this.calculator.calculate(
-      ranking,
-      this.gameState.roundLevel,
-      this.gameState.players.length
+    
+    // Calculate team-based result
+    const result = this.calculator.calculateTeamBased(
+      fullRanking,
+      this.gameState.players,
+      this.gameState.roundLevel
     );
+    
+    if (result.success) {
+      this.lastResult = result;
+      const html = this.ui.renderResults(result);
+      this.ui.showResults(html);
+      
+      // Update player stats
+      for (let i = 1; i <= this.gameState.mode; i++) {
+        const playerId = this.gameState.currentRanking[i];
+        this.gameState.updatePlayerStats(playerId, i);
+      }
+      
+      // Auto-apply if enabled
+      if (this.gameState.autoApply) {
+        this.applyResult();
+      }
+      
+      this.saveState();
+    } else {
+      this.ui.showMessage(result.error, 'error');
+    }
+  }
 
-    if (!result.success) {
-      alert(result.error || '计算失败');
+  /**
+   * Apply calculation result
+   */
+  applyResult() {
+    if (!this.lastResult || !this.lastResult.success) {
+      this.ui.showMessage('请先计算结果', 'warning');
       return;
     }
-
-    // Display results
-    this.displayResults(result);
+    
+    // Update round level
+    this.gameState.setRoundLevel(this.lastResult.upgrade.newLevel);
+    
+    // Clear ranking
+    this.gameState.currentRanking = {};
+    
+    // Save and re-render
+    this.saveState();
+    this.render();
+    this.ui.clearResults();
+    
+    this.ui.showMessage('结果已应用，级别已更新', 'success');
   }
 
-  displayResults(result) {
-    const resultsDiv = document.getElementById('results');
-    if (!resultsDiv) return;
-
-    resultsDiv.innerHTML = this.ui.renderResults(result);
-    resultsDiv.style.display = 'block';
-  }
-
+  /**
+   * Clear all data
+   */
   clearAll() {
     if (confirm('确定要清除所有数据吗？')) {
       this.gameState.reset();
-      
-      // Reset to 8 default players
-      for (let i = 1; i <= 8; i++) {
-        this.gameState.addPlayer(`玩家${i}`);
-      }
-      
+      this.initializeDefaultState();
+      this.saveState();
       this.render();
-      this.saveGameState();
-      
-      // Clear results
-      const resultsDiv = document.getElementById('results');
-      if (resultsDiv) {
-        resultsDiv.style.display = 'none';
-        resultsDiv.innerHTML = '';
-      }
+      this.ui.clearResults();
+      this.ui.showMessage('数据已清除', 'info');
     }
   }
 
-  exportPNG() {
-    const resultsDiv = document.getElementById('results');
-    if (!resultsDiv || resultsDiv.style.display === 'none') {
-      alert('请先计算结果');
+  /**
+   * Export as PNG
+   */
+  async exportPNG() {
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl || !this.lastResult) {
+      this.ui.showMessage('请先计算结果', 'warning');
       return;
     }
-
-    this.exportHandler.exportAsPNG(resultsDiv);
-  }
-
-  exportCSV() {
-    const resultsDiv = document.getElementById('results');
-    if (!resultsDiv || resultsDiv.style.display === 'none') {
-      alert('请先计算结果');
-      return;
-    }
-
-    // Get the current result data from the display
-    const rankingInput = document.getElementById('rankingInput').value;
-    const ranking = rankingInput.split(/\s+/);
     
-    const result = this.calculator.calculate(
-      ranking,
-      this.gameState.roundLevel,
-      this.gameState.players.length
-    );
-
+    const result = await this.exportHandler.exportAsPNG(resultsEl);
     if (result.success) {
-      this.exportHandler.exportAsCSV(result);
+      this.ui.showMessage('图片已导出', 'success');
+    } else {
+      this.ui.showMessage('导出失败: ' + result.error, 'error');
+    }
+  }
+
+  /**
+   * Export as CSV
+   */
+  exportCSV() {
+    if (!this.lastResult) {
+      this.ui.showMessage('请先计算结果', 'warning');
+      return;
+    }
+    
+    const result = this.exportHandler.exportAsCSV(this.lastResult);
+    if (result.success) {
+      this.ui.showMessage('CSV已导出', 'success');
+    } else {
+      this.ui.showMessage('导出失败: ' + result.error, 'error');
+    }
+  }
+
+  /**
+   * Export as JSON
+   */
+  exportJSON() {
+    const result = this.exportHandler.exportAsJSON(
+      this.gameState.export(),
+      this.lastResult
+    );
+    
+    if (result.success) {
+      this.ui.showMessage('游戏数据已导出', 'success');
+    } else {
+      this.ui.showMessage('导出失败: ' + result.error, 'error');
+    }
+  }
+
+  /**
+   * Import from JSON
+   */
+  async importJSON(file) {
+    if (!file) return;
+    
+    try {
+      const result = await this.exportHandler.importFromJSON(file);
+      if (result.success) {
+        this.gameState.import(result.data.gameState);
+        this.saveState();
+        this.render();
+        this.ui.showMessage('游戏数据已导入', 'success');
+      }
+    } catch (error) {
+      this.ui.showMessage('导入失败: ' + error.error, 'error');
+    }
+  }
+
+  /**
+   * Share results
+   */
+  async share() {
+    if (!this.lastResult) {
+      this.ui.showMessage('请先计算结果', 'warning');
+      return;
+    }
+    
+    const result = await this.exportHandler.shareResults(this.lastResult);
+    if (!result.success && result.error !== 'User cancelled') {
+      this.ui.showMessage('分享失败: ' + result.error, 'error');
     }
   }
 }
 
-// Initialize app when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    window.guandanApp = new GuandanApp();
-  });
-} else {
-  window.guandanApp = new GuandanApp();
-}
+// Initialize app
+const app = new GuandanApp();
+
+// Export for debugging
+window.guandanApp = app;
 
 export default GuandanApp;
