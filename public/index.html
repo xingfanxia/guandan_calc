@@ -358,7 +358,7 @@ details+details{margin-top:8px}
   if(!S.t8){ S.t8={g3:11,g2:6,g1:1}; }
   if(!S.p8){ S.p8={1:7,2:6,3:5,4:4,5:3,6:2,7:1,8:0}; }
   if(typeof S.must1==='undefined'){ S.must1=true; }
-  if(typeof S.autoNext==='undefined'){ S.autoNext=false; }
+  if(typeof S.autoNext==='undefined'){ S.autoNext=true; } // Default to auto-advance
   if(typeof S.autoApply==='undefined'){ S.autoApply=true; } // Default to true for better UX
   if(typeof S.strictA==='undefined'){ S.strictA=true; } // Default to strict mode
   if(!S.t1){ S.t1={name:'蓝队', color:'#3b82f6'}; }
@@ -1084,6 +1084,7 @@ details+details{margin-top:8px}
       roundTeamName = ' (' + S.t2.name + ')';
     }
     curRoundLvl.textContent = ST.roundLevel + roundTeamName;
+    console.log('renderTeams: displaying roundLevel =', ST.roundLevel, 'with team name =', roundTeamName);
     
     // Show next round preview with team name
     var nextRound = ST.nextRoundBase || ST.roundLevel || '-';
@@ -1270,10 +1271,12 @@ details+details{margin-top:8px}
     if(S.autoNext || finalWin){ 
       ST.roundLevel = String(nextBaseByRule); // Move to next round (winner's new level)
       ST.nextRoundBase=null; 
+      console.log('Auto advancing: roundLevel set to', ST.roundLevel, 'from', thisRound);
     }
     else { 
       ST.roundLevel = String(thisRound); // Stay at current round
       ST.nextRoundBase = String(nextBaseByRule); // But preview shows what next round would be
+      console.log('Manual mode: roundLevel stays at', ST.roundLevel, 'next would be', ST.nextRoundBase);
     }
     // Build player ranking details for history
     var playerRankings = {};
