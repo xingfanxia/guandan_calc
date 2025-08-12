@@ -738,6 +738,15 @@ details+details{margin-top:8px}
     var savedPlayers = load('gd_players', []);
     if (savedPlayers.length === num) {
       players = savedPlayers;
+      // Ensure saved players have proper IDs and teams
+      players.forEach(function(player, index) {
+        if (!player.id || typeof player.id === 'string') {
+          player.id = index + 1;
+        }
+        if (!player.team) {
+          player.team = index % 2 === 0 ? 'A' : 'B';
+        }
+      });
     } else {
       players = [];
       
@@ -746,10 +755,10 @@ details+details{margin-top:8px}
       
       for (var i = 0; i < num; i++) {
         var player = {
-          id: 'player_' + i,
+          id: i + 1,  // Use numeric IDs for easier matching
           name: '玩家' + (i + 1),
           emoji: shuffledEmojis[i % shuffledEmojis.length],
-          team: null
+          team: i % 2 === 0 ? 'A' : 'B'  // Alternate teams: 1,3,5,7 -> A; 2,4,6,8 -> B
         };
         players.push(player);
       }
