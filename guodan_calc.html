@@ -584,8 +584,16 @@ details+details{margin-top:8px}
   }
   
   function updateRankingInput() {
-    // Convert currentRanking to the format expected by calc()
+    // Mobile-specific function to update ranking
+    // For desktop, the original mechanism handles it differently
+    
     var mode = parseInt(modeSel.value);
+    var isMobile = 'ontouchstart' in window;
+    
+    if (!isMobile) {
+      // Let desktop handle it the original way
+      return;
+    }
     
     // Check if all positions are filled
     var allFilled = true;
@@ -597,56 +605,22 @@ details+details{margin-top:8px}
     }
     
     if (!allFilled) {
-      input.value = '';
-      calc();
       return;
     }
     
-    // Determine the winning team based on rankings
-    var teamAPositions = [];
-    var teamBPositions = [];
-    
+    // For mobile, we need to directly set the input based on ranked players
+    // The input expects the player IDs in rank order
+    var rankedPlayers = [];
     for (var rank = 1; rank <= mode; rank++) {
-      var playerId = currentRanking[rank];
-      var player = players.find(function(p) { return p.id === playerId; });
-      
-      if (player) {
-        if (player.team === 'A') {
-          teamAPositions.push(rank);
-        } else {
-          teamBPositions.push(rank);
-        }
+      if (currentRanking[rank]) {
+        rankedPlayers.push(currentRanking[rank]);
       }
     }
     
-    // Verify we have the correct number of players per team
-    var expectedPerTeam = mode / 2;
-    if (teamAPositions.length !== expectedPerTeam || teamBPositions.length !== expectedPerTeam) {
-      // Teams not properly balanced
-      input.value = '';
-      calc();
-      return;
-    }
-    
-    // Determine winning team (lower total rank wins)
-    var teamAScore = teamAPositions.reduce(function(sum, pos) { return sum + pos; }, 0);
-    var teamBScore = teamBPositions.reduce(function(sum, pos) { return sum + pos; }, 0);
-    
-    var winnerPositions;
-    if (teamAScore < teamBScore) {
-      // Team A wins
-      winner = 't1';
-      winnerPositions = teamAPositions.sort(function(a, b) { return a - b; });
-    } else {
-      // Team B wins
-      winner = 't2';
-      winnerPositions = teamBPositions.sort(function(a, b) { return a - b; });
-    }
-    
-    // Update the input with winner positions
-    input.value = winnerPositions.join(' ');
-    selected = winnerPositions.slice();
-    console.log('UpdateRankingInput: mode=' + mode + ', winner=' + winner + ', positions=' + winnerPositions.join(' '));
+    // Set input to player IDs in order
+    input.value = rankedPlayers.join(' ');
+    selected = rankedPlayers.slice();
+    console.log('Mobile UpdateRankingInput: input=' + input.value);
     calc(); // Trigger calculation
   }
   
@@ -755,10 +729,10 @@ details+details{margin-top:8px}
       
       for (var i = 0; i < num; i++) {
         var player = {
-          id: i + 1,  // Use numeric IDs for easier matching
+          id: i + 1,  // Numeric ID matching player number
           name: '玩家' + (i + 1),
           emoji: shuffledEmojis[i % shuffledEmojis.length],
-          team: i % 2 === 0 ? 'A' : 'B'  // Alternate teams: 1,3,5,7 -> A; 2,4,6,8 -> B
+          team: (i + 1)  // Store team as the player number for desktop compatibility
         };
         players.push(player);
       }
