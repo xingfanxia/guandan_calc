@@ -1078,9 +1078,9 @@ details+details{margin-top:8px}
     
     // Show which team's level we're playing at
     var roundTeamName = '';
-    if (ST.roundLevel === ST.t1.lvl && ST.roundLevel !== ST.t2.lvl) {
+    if (String(ST.roundLevel) === String(ST.t1.lvl) && String(ST.roundLevel) !== String(ST.t2.lvl)) {
       roundTeamName = ' (' + S.t1.name + ')';
-    } else if (ST.roundLevel === ST.t2.lvl && ST.roundLevel !== ST.t1.lvl) {
+    } else if (String(ST.roundLevel) === String(ST.t2.lvl) && String(ST.roundLevel) !== String(ST.t1.lvl)) {
       roundTeamName = ' (' + S.t2.name + ')';
     }
     curRoundLvl.textContent = ST.roundLevel + roundTeamName;
@@ -1268,12 +1268,12 @@ details+details{margin-top:8px}
     ST[win].lvl=winNew; ST[lose].lvl=loseNew;
     // 决定并保存"下局级牌"
     if(S.autoNext || finalWin){ 
-      ST.roundLevel = nextBaseByRule; // Move to next round (winner's new level)
+      ST.roundLevel = String(nextBaseByRule); // Move to next round (winner's new level)
       ST.nextRoundBase=null; 
     }
     else { 
-      ST.roundLevel = thisRound; // Stay at current round
-      ST.nextRoundBase = nextBaseByRule; // But preview shows what next round would be
+      ST.roundLevel = String(thisRound); // Stay at current round
+      ST.nextRoundBase = String(nextBaseByRule); // But preview shows what next round would be
     }
     // Build player ranking details for history
     var playerRankings = {};
