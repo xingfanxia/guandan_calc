@@ -543,11 +543,23 @@ details+details{margin-top:8px}
       }
     }
     
-    // Clean up
+    // Clean up - ensure clone is removed
     if (touchClone) {
-      document.body.removeChild(touchClone);
+      if (touchClone.parentNode) {
+        touchClone.parentNode.removeChild(touchClone);
+      }
       touchClone = null;
     }
+    
+    // Also clean up any other floating clones that might exist
+    var floatingClones = document.querySelectorAll('.dragging');
+    floatingClones.forEach(function(clone) {
+      if (clone.style.position === 'fixed' && clone !== touchDraggedElement) {
+        if (clone.parentNode) {
+          clone.parentNode.removeChild(clone);
+        }
+      }
+    });
     
     if (touchDraggedElement) {
       touchDraggedElement.classList.remove('dragging');
@@ -574,6 +586,14 @@ details+details{margin-top:8px}
   function handleRankDrop(slot, player) {
     var rank = parseInt(slot.dataset.rank);
     if (!rank) return;
+    
+    // Clean up any floating clones immediately
+    var existingClones = document.querySelectorAll('.dragging');
+    existingClones.forEach(function(clone) {
+      if (clone.style.position === 'fixed') {
+        clone.remove();
+      }
+    });
     
     // Remove player from any existing rank
     for (var r in currentRanking) {
@@ -603,6 +623,14 @@ details+details{margin-top:8px}
   }
   
   function handleTeamDrop(zone, player) {
+    // Clean up any floating clones
+    var existingClones = document.querySelectorAll('.dragging');
+    existingClones.forEach(function(clone) {
+      if (clone.style.position === 'fixed') {
+        clone.remove();
+      }
+    });
+    
     var team = zone.dataset.team;
     if (team === '1') {
       player.team = 'A';
@@ -614,6 +642,14 @@ details+details{margin-top:8px}
   }
   
   function handlePoolDrop(player) {
+    // Clean up any floating clones
+    var existingClones = document.querySelectorAll('.dragging');
+    existingClones.forEach(function(clone) {
+      if (clone.style.position === 'fixed') {
+        clone.remove();
+      }
+    });
+    
     // Remove from ranking
     for (var r in currentRanking) {
       if (currentRanking[r] === player.id) {
