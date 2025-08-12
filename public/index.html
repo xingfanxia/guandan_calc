@@ -685,8 +685,15 @@ details+details{margin-top:8px}
     console.log('Setting input.value to:', input.value);
     console.log('Setting selected to:', selected);
     
-    calc(); // Trigger calculation
-    console.log('Called calc()');
+    // Calculate and check for auto-apply
+    var result = calc();
+    console.log('Called calc(), result:', result);
+    
+    // Auto-apply if enabled and calculation successful
+    if (S.autoApply && result && result.ok) {
+      console.log('Auto-applying result');
+      applyResult();
+    }
   }
   
   function handleRankDrop(slot, player) {
