@@ -635,27 +635,53 @@ details+details{margin-top:8px}
       return;
     }
     
-    // For mobile, we need to directly set the input based on ranked players
-    // The input expects the player NAMES in rank order
-    var rankedPlayerIds = [];
-    var rankedPlayerNames = [];
+    // For mobile, match desktop's calculateFromRanking logic
+    // First determine the winner based on who has rank 1
+    var firstPlacePlayerId = currentRanking[1];
+    var firstPlacePlayer = players.find(function(p) { return p.id === firstPlacePlayerId; });
+    
+    if (!firstPlacePlayer) {
+      console.log('Error: Could not find first place player');
+      return;
+    }
+    
+    console.log('First place player:', firstPlacePlayer.name, 'Team:', firstPlacePlayer.team);
+    
+    // Set winner based on first place player's team
+    var actualWinner = firstPlacePlayer.team === 1 ? 't1' : 't2';
+    setWinner(actualWinner);
+    console.log('Set winner to:', actualWinner);
+    
+    // Collect ranks for each team
+    var team1Ranks = [];
+    var team2Ranks = [];
+    
     for (var rank = 1; rank <= mode; rank++) {
-      if (currentRanking[rank]) {
-        var playerId = currentRanking[rank];
+      var playerId = currentRanking[rank];
+      if (playerId) {
         var player = players.find(function(p) { return p.id === playerId; });
         if (player) {
-          rankedPlayerIds.push(playerId);
-          rankedPlayerNames.push(player.name);
+          if (player.team === 1) {
+            team1Ranks.push(rank);
+          } else {
+            team2Ranks.push(rank);
+          }
         }
       }
     }
     
-    console.log('Ranked player IDs:', rankedPlayerIds);
-    console.log('Ranked player names:', rankedPlayerNames);
+    console.log('Team 1 ranks:', team1Ranks);
+    console.log('Team 2 ranks:', team2Ranks);
     
-    // Set input to player NAMES in order (not IDs!)
-    input.value = rankedPlayerNames.join(' ');
-    selected = rankedPlayerNames.slice();
+    // Use the winning team's ranks for calculation
+    var winnerRanks = actualWinner === 't1' ? team1Ranks : team2Ranks;
+    winnerRanks.sort(function(a, b) { return a - b; });
+    
+    console.log('Winner ranks (sorted):', winnerRanks);
+    
+    // Set input to winning team's ranks only (not player names!)
+    input.value = winnerRanks.join(' ');
+    selected = winnerRanks.slice();
     console.log('Setting input.value to:', input.value);
     console.log('Setting selected to:', selected);
     
