@@ -583,6 +583,35 @@ details+details{margin-top:8px}
     }, 10);
   }
   
+  function updateRankingInput() {
+    // Convert currentRanking to winner ranks for calculation
+    var mode = parseInt(modeSel.value);
+    var winnerRanks = [];
+    
+    // For each rank position, find which player is there
+    for (var rank = 1; rank <= mode; rank++) {
+      if (currentRanking[rank]) {
+        var playerId = currentRanking[rank];
+        // Find what winner position this player is (1, 2, 3, etc.)
+        // This maps to the player's index + 1
+        winnerRanks.push(playerId);
+      }
+    }
+    
+    // Only update if all ranks are filled
+    if (winnerRanks.length === mode) {
+      // Convert player IDs to their positions for the input
+      // The input expects 1 2 3 4 5 6 for 6-player mode
+      var inputRanks = winnerRanks.map(function(id) {
+        return id; // Use the player ID directly as the rank
+      });
+      
+      input.value = inputRanks.join(' ');
+      selected = inputRanks.slice();
+      calc(); // Trigger calculation
+    }
+  }
+  
   function handleRankDrop(slot, player) {
     var rank = parseInt(slot.dataset.rank);
     if (!rank) return;
