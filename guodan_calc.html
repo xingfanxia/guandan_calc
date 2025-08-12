@@ -552,6 +552,7 @@ details+details{margin-top:8px}
     if (touchDraggedElement) {
       touchDraggedElement.classList.remove('dragging');
       touchDraggedElement.style.opacity = ''; // Restore original opacity
+      touchDraggedElement.style.display = ''; // Ensure visibility is restored
       touchDraggedElement = null;
     }
     
@@ -562,6 +563,12 @@ details+details{margin-top:8px}
     dropZones.forEach(function(zone) {
       zone.classList.remove('drag-over');
     });
+    
+    // Force re-render to clean up any visual artifacts
+    setTimeout(function() {
+      renderPlayerPool();
+      renderRankingSlots();
+    }, 10);
   }
   
   function handleRankDrop(slot, player) {
@@ -580,13 +587,16 @@ details+details{margin-top:8px}
       var oldPlayer = players.find(function(p) { return p.id === currentRanking[rank]; });
       if (oldPlayer) {
         // Return old player to pool
-        var poolTile = createPlayerTileForRanking(oldPlayer);
+        var poolTile = createRankingPlayerTile(oldPlayer);
         $('playerPool').appendChild(poolTile);
       }
     }
     
     // Add player to new rank
     currentRanking[rank] = player.id;
+    
+    // Re-render everything to ensure clean state
+    renderPlayerPool();
     renderRankingSlots();
     updateRankingInput();
     calc();
@@ -610,6 +620,8 @@ details+details{margin-top:8px}
         delete currentRanking[r];
       }
     }
+    // Re-render everything to ensure clean state
+    renderPlayerPool();
     renderRankingSlots();
     updateRankingInput();
     calc();
