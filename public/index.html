@@ -529,18 +529,33 @@ details+details{margin-top:8px}
     touchClone.style.display = 'block';
     
     // Handle drop
+    console.log('Touch end - checking for drop target');
+    console.log('Element below:', elementBelow);
+    console.log('Dragged player:', draggedPlayer);
+    
     if (elementBelow) {
       var rankSlot = elementBelow.closest('.rank-slot');
       var teamZone = elementBelow.closest('.team-drop-zone');
       var pool = elementBelow.closest('#playerPool');
       
+      console.log('Found rankSlot:', rankSlot);
+      console.log('Found teamZone:', teamZone);
+      console.log('Found pool:', pool);
+      
       if (rankSlot) {
+        console.log('Dropping on rank slot');
         handleRankDrop(rankSlot, draggedPlayer);
       } else if (teamZone) {
+        console.log('Dropping on team zone');
         handleTeamDrop(teamZone, draggedPlayer);
       } else if (pool) {
+        console.log('Dropping on pool');
         handlePoolDrop(draggedPlayer);
+      } else {
+        console.log('No valid drop target found');
       }
+    } else {
+      console.log('No element below touch point');
     }
     
     // Clean up - ensure clone is removed
@@ -584,27 +599,39 @@ details+details{margin-top:8px}
   }
   
   function updateRankingInput() {
-    // Mobile-specific function to update ranking
-    // For desktop, the original mechanism handles it differently
+    console.log('=== updateRankingInput called ===');
+    console.log('currentRanking:', JSON.stringify(currentRanking));
+    console.log('players:', players.map(function(p) { return {id: p.id, name: p.name, team: p.team}; }));
     
     var mode = parseInt(modeSel.value);
+    console.log('Mode:', mode);
+    
     var isMobile = 'ontouchstart' in window;
+    console.log('Is Mobile:', isMobile);
     
     if (!isMobile) {
       // Let desktop handle it the original way
+      console.log('Desktop mode - returning');
       return;
     }
     
     // Check if all positions are filled
     var allFilled = true;
+    var filledCount = 0;
     for (var i = 1; i <= mode; i++) {
       if (!currentRanking[i]) {
         allFilled = false;
-        break;
+        console.log('Position ' + i + ' is empty');
+      } else {
+        filledCount++;
+        console.log('Position ' + i + ' has player:', currentRanking[i]);
       }
     }
     
+    console.log('Filled positions:', filledCount + '/' + mode);
+    
     if (!allFilled) {
+      console.log('Not all positions filled - returning');
       return;
     }
     
@@ -617,16 +644,30 @@ details+details{margin-top:8px}
       }
     }
     
+    console.log('Ranked players:', rankedPlayers);
+    
     // Set input to player IDs in order
     input.value = rankedPlayers.join(' ');
     selected = rankedPlayers.slice();
-    console.log('Mobile UpdateRankingInput: input=' + input.value);
+    console.log('Setting input.value to:', input.value);
+    console.log('Setting selected to:', selected);
+    
     calc(); // Trigger calculation
+    console.log('Called calc()');
   }
   
   function handleRankDrop(slot, player) {
+    console.log('=== handleRankDrop called ===');
+    console.log('Slot:', slot);
+    console.log('Player:', player);
+    
     var rank = parseInt(slot.dataset.rank);
-    if (!rank) return;
+    console.log('Rank position:', rank);
+    
+    if (!rank) {
+      console.log('No rank - returning');
+      return;
+    }
     
     // Clean up any floating clones immediately
     var existingClones = document.querySelectorAll('.dragging');
@@ -639,12 +680,14 @@ details+details{margin-top:8px}
     // Remove player from any existing rank
     for (var r in currentRanking) {
       if (currentRanking[r] === player.id) {
+        console.log('Removing player from previous rank:', r);
         delete currentRanking[r];
       }
     }
     
     // Remove any existing player from this rank
     if (currentRanking[rank]) {
+      console.log('Rank ' + rank + ' already has player:', currentRanking[rank]);
       var oldPlayer = players.find(function(p) { return p.id === currentRanking[rank]; });
       if (oldPlayer) {
         // Return old player to pool
@@ -654,7 +697,9 @@ details+details{margin-top:8px}
     }
     
     // Add player to new rank
+    console.log('Adding player', player.id, 'to rank', rank);
     currentRanking[rank] = player.id;
+    console.log('Current ranking after update:', JSON.stringify(currentRanking));
     
     // Re-render everything to ensure clean state
     renderPlayerPool();
