@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>掼蛋积分系统 v8.0</title>
+  <link rel="stylesheet" href="./styles/main.css">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <h1>🎮 掼蛋积分系统 v8.0</h1>
+      <div class="header-controls">
+        <select id="modeSelector" class="mode-selector">
+          <option value="4">4人模式</option>
+          <option value="6">6人模式</option>
+          <option value="8" selected>8人模式</option>
+        </select>
+        <button id="resetGameBtn" class="btn-icon" title="重置整场">🔄</button>
+        <button id="settingsBtn" class="btn-icon" title="设置">⚙️</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Player Management Section -->
+      <section class="player-section">
+        <h2>玩家管理</h2>
+        
+        <!-- Unassigned Players -->
+        <div class="unassigned-section">
+          <h3>未分组玩家</h3>
+          <div id="unassignedArea" class="player-area unassigned-area">
+            <!-- Player tiles will be added here -->
+          </div>
+          <button id="addPlayerBtn" class="btn-add">➕ 添加玩家</button>
+        </div>
+
+        <!-- Team Areas -->
+        <div class="teams-section">
+          <!-- Team 1 -->
+          <div class="team-section">
+            <div class="team-header">
+              <span id="t1NameChip" class="team-chip" style="color: #3b82f6"><b>蓝队</b></span>
+              <span class="team-level">级别: <span id="t1Lvl">2</span></span>
+              <span class="team-a-state">A级: <span id="t1AState">—</span> (失败<span id="t1A">0</span>次)</span>
+            </div>
+            <div id="t1Area" class="player-area team-area">
+              <div class="team-drop-zone" data-team="1" style="border-color: #3b82f6">
+                <div class="label">拖拽玩家到这里分配队伍</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team 2 -->
+          <div class="team-section">
+            <div class="team-header">
+              <span id="t2NameChip" class="team-chip" style="color: #ef4444"><b>红队</b></span>
+              <span class="team-level">级别: <span id="t2Lvl">2</span></span>
+              <span class="team-a-state">A级: <span id="t2AState">—</span> (失败<span id="t2A">0</span>次)</span>
+            </div>
+            <div id="t2Area" class="player-area team-area">
+              <div class="team-drop-zone" data-team="2" style="border-color: #ef4444">
+                <div class="label">拖拽玩家到这里分配队伍</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Ranking Section -->
+      <section class="ranking-section">
+        <h2>本回合排名</h2>
+        
+        <!-- Current Round Info -->
+        <div class="round-info">
+          <div class="round-level">
+            <span>当前级别: </span>
+            <span id="curRoundLvl" class="level-display">2</span>
+          </div>
+          <div class="round-preview">
+            <span>下轮预览: </span>
+            <span id="nextRoundPreview" class="level-preview">2</span>
+          </div>
+        </div>
+
+        <!-- Ranking Pool -->
+        <div class="ranking-pool-section">
+          <h3>待排名玩家</h3>
+          <div id="rankingPool" class="ranking-pool">
+            <!-- Ranking player tiles will be added here -->
+          </div>
+        </div>
+
+        <!-- Ranking Slots -->
+        <div class="ranking-slots-section">
+          <h3>排名位置</h3>
+          <div id="rankingSlots" class="ranking-slots">
+            <!-- Ranking slots will be added here -->
+          </div>
+        </div>
+
+        <!-- Ranking Controls -->
+        <div class="ranking-controls">
+          <button id="calcButton" class="btn-primary" disabled>计算结果</button>
+          <button id="resetRankButton" class="btn-secondary">重置排名</button>
+        </div>
+
+        <!-- Result Display -->
+        <div id="resultDisplay" class="result-display">
+          <!-- Calculation results will be shown here -->
+        </div>
+
+        <!-- Apply Controls -->
+        <div class="apply-controls">
+          <button id="applyButton" class="btn-success" disabled>应用结果</button>
+          <button id="newRoundButton" class="btn-info">新回合</button>
+        </div>
+      </section>
+
+      <!-- History Section -->
+      <section class="history-section">
+        <h2>比赛历史</h2>
+        <div class="history-controls">
+          <button id="undoButton" class="btn-warning">↶ 撤销</button>
+          <button id="clearHistoryBtn" class="btn-danger">清空历史</button>
+        </div>
+        
+        <div class="history-table-wrapper">
+          <table id="histTable" class="history-table">
+            <thead>
+              <tr>
+                <th>回合</th>
+                <th>时间</th>
+                <th>模式</th>
+                <th>组合</th>
+                <th>排名</th>
+                <th>升级</th>
+                <th>获胜</th>
+                <th>队1级</th>
+                <th>队2级</th>
+                <th>本轮级</th>
+                <th>A级</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- History rows will be added here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Statistics Section -->
+      <section class="stats-section">
+        <h2>玩家统计</h2>
+        
+        <div class="stats-table-wrapper">
+          <table id="statsTable" class="stats-table">
+            <thead>
+              <tr>
+                <th>玩家</th>
+                <th>队伍</th>
+                <th>场次</th>
+                <th>平均排名</th>
+                <th>第一名</th>
+                <th>末名</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Stats rows will be added here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Settings Section (initially hidden) -->
+      <section id="settingsPanel" class="settings-panel" style="display: none;">
+        <h2>游戏设置</h2>
+        
+        <!-- Team Settings -->
+        <div class="settings-group">
+          <h3>队伍设置</h3>
+          <div class="settings-row">
+            <label>队伍1名称:</label>
+            <input type="text" id="t1Name" value="蓝队" maxlength="10">
+            <label>颜色:</label>
+            <input type="color" id="t1Color" value="#3b82f6">
+          </div>
+          <div class="settings-row">
+            <label>队伍2名称:</label>
+            <input type="text" id="t2Name" value="红队" maxlength="10">
+            <label>颜色:</label>
+            <input type="color" id="t2Color" value="#ef4444">
+          </div>
+        </div>
+
+        <!-- Game Settings -->
+        <div class="settings-group">
+          <h3>游戏规则</h3>
+          <div class="settings-checkboxes">
+            <label>
+              <input type="checkbox" id="must1" checked>
+              <span>必须有人第一名才能升级</span>
+            </label>
+            <label>
+              <input type="checkbox" id="autoNext" checked>
+              <span>应用结果后自动开始新回合</span>
+            </label>
+            <label>
+              <input type="checkbox" id="autoApply" checked>
+              <span>排名完成后自动应用结果</span>
+            </label>
+            <label>
+              <input type="checkbox" id="strictA" checked>
+              <span>A级严格模式（A3罚三级）</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom Scoring -->
+        <div class="settings-group">
+          <h3>自定义升级规则</h3>
+          <details id="customScoringPanel">
+            <summary>点击展开自定义规则</summary>
+            <!-- Custom scoring inputs will be added here -->
+          </details>
+        </div>
+
+        <div class="settings-actions">
+          <button id="saveSettingsBtn" class="btn-primary">保存设置</button>
+          <button id="closeSettingsBtn" class="btn-secondary">关闭</button>
+        </div>
+      </section>
+
+      <!-- Export/Import Section -->
+      <section class="export-section">
+        <h2>数据管理</h2>
+        
+        <div class="export-buttons">
+          <button id="exportTxt" class="btn-export">📄 导出TXT</button>
+          <button id="exportCsv" class="btn-export">📊 导出CSV</button>
+          <button id="exportPng" class="btn-export">🖼️ 导出截图</button>
+          <button id="exportLongPng" class="btn-export">📜 导出长图</button>
+          <button id="exportJson" class="btn-export">💾 导出JSON</button>
+          <button id="importJson" class="btn-import">📂 导入JSON</button>
+          <input type="file" id="importFile" accept=".json" style="display: none;">
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-info">
+        <span>回合: <span id="roundNumber">0</span></span>
+        <span>|</span>
+        <span>存储使用: <span id="storageUsed">0%</span></span>
+        <span>|</span>
+        <span>© 2024 掼蛋积分系统</span>
+      </div>
+    </footer>
+
+    <!-- Victory Modal (hidden by default) -->
+    <div id="victoryModal" class="victory-modal" style="display: none;">
+      <!-- Victory modal content will be added dynamically -->
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+  </div>
+
+  <!-- Load the app -->
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
