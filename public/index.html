@@ -534,11 +534,11 @@ details+details{margin-top:8px}
     console.log('Element below:', elementBelow);
     console.log('Dragged player:', draggedPlayer);
     
-    if (elementBelow) {
+    if (elementBelow && draggedPlayer) {
       var rankSlot = elementBelow.closest('.rank-slot');
-      var teamZone = elementBelow.closest('.team-drop-zone');
       var pool = elementBelow.closest('#playerPool');
       var unassignedZone = elementBelow.closest('#unassignedPlayers');
+      var teamZone = elementBelow.closest('.team-drop-zone');
       
       console.log('Found rankSlot:', rankSlot);
       console.log('Found teamZone:', teamZone);
@@ -548,24 +548,25 @@ details+details{margin-top:8px}
       if (rankSlot) {
         console.log('Dropping on rank slot');
         handleRankDrop(rankSlot, draggedPlayer);
-      } else if (teamZone) {
-        console.log('Dropping on team zone');
-        handleTeamDrop(teamZone, draggedPlayer);
       } else if (pool) {
-        console.log('Dropping on pool');
+        console.log('Dropping on player pool');
         handlePoolDrop(draggedPlayer);
       } else if (unassignedZone) {
         console.log('Dropping on unassigned zone');
+        console.log('Moving player to unassigned:', draggedPlayer);
         // Move player back to unassigned
         draggedPlayer.team = null;
         save('gd_players', players);
         renderPlayers();
         renderRankingArea();
+      } else if (teamZone) {
+        console.log('Dropping on team zone');
+        handleTeamDrop(teamZone, draggedPlayer);
       } else {
         console.log('No valid drop target found');
       }
     } else {
-      console.log('No element below touch point');
+      console.log('No element below touch point or no dragged player');
     }
     
     // Clean up - ensure clone is removed
@@ -669,7 +670,7 @@ details+details{margin-top:8px}
     for (var rank = 1; rank <= mode; rank++) {
       var playerId = currentRanking[rank];
       if (playerId) {
-        var player = players.find(function(p) { return p.id === playerId; });
+        var player = players.find(function(p) { return p.id === parseInt(playerId); });
         if (player) {
           if (player.team === 1) {
             team1Ranks.push(rank);
@@ -711,6 +712,11 @@ details+details{margin-top:8px}
     console.log('Slot:', slot);
     console.log('Player:', player);
     
+    if (!player || !player.id) {
+      console.log('No player or player.id - returning');
+      return;
+    }
+    
     var rank = parseInt(slot.dataset.rank);
     console.log('Rank position:', rank);
     
@@ -727,22 +733,31 @@ details+details{margin-top:8px}
       }
     });
     
-    // Remove player from any existing rank
-    for (var r in currentRanking) {
-      if (currentRanking[r] === player.id) {
-        console.log('Removing player from previous rank:', r);
-        delete currentRanking[r];
+    // Check if another player was already in this rank
+    var existingPlayerId = currentRanking[rank];
+    if (existingPlayerId && existingPlayerId !== player.id) {
+      // Swap positions if the dragged player is already ranked
+      var draggedRank = null;
+      for (var r in currentRanking) {
+        if (currentRanking[r] === player.id) {
+          draggedRank = r;
+          break;
+        }
+      }
+      if (draggedRank) {
+        // Swap the two players
+        currentRanking[draggedRank] = existingPlayerId;
+      } else {
+        // Move existing player back to pool - don't add to DOM, just remove from ranking
+        delete currentRanking[rank];
       }
     }
     
-    // Remove any existing player from this rank
-    if (currentRanking[rank]) {
-      console.log('Rank ' + rank + ' already has player:', currentRanking[rank]);
-      var oldPlayer = players.find(function(p) { return p.id === currentRanking[rank]; });
-      if (oldPlayer) {
-        // Return old player to pool
-        var poolTile = createRankingPlayerTile(oldPlayer);
-        $('playerPool').appendChild(poolTile);
+    // Remove player from any existing rank (if not swapping)
+    for (var r in currentRanking) {
+      if (currentRanking[r] === player.id && r != rank) {
+        console.log('Removing player from previous rank:', r);
+        delete currentRanking[r];
       }
     }
     
@@ -755,7 +770,7 @@ details+details{margin-top:8px}
     renderPlayerPool();
     renderRankingSlots();
     updateRankingInput();
-    calc();
+    checkAutoCalculate();
   }
   
   function handleTeamDrop(zone, player) {
@@ -1225,7 +1240,7 @@ details+details{margin-top:8px}
       existingTiles.forEach(function(t) { t.remove(); });
       
       if (playerId) {
-        var player = players.find(function(p) { return p.id === playerId; });
+        var player = players.find(function(p) { return p.id === parseInt(playerId); });
         if (player) {
           var tile = createRankingPlayerTile(player);
           slot.appendChild(tile);
@@ -1356,7 +1371,7 @@ details+details{margin-top:8px}
     for (var rank = 1; rank <= num; rank++) {
       var playerId = currentRanking[rank];
       if (playerId) {
-        var player = players.find(function(p) { return p.id === playerId; });
+        var player = players.find(function(p) { return p.id === parseInt(playerId); });
         if (player) {
           if (player.team === 1) {
             team1Ranks.push(rank);
@@ -1391,7 +1406,7 @@ details+details{margin-top:8px}
     for (var rank = 1; rank <= num; rank++) {
       var playerId = currentRanking[rank];
       if (playerId) {
-        var player = players.find(function(p) { return p.id === playerId; });
+        var player = players.find(function(p) { return p.id === parseInt(playerId); });
         if (player) {
           if (!playerStats[playerId]) {
             playerStats[playerId] = {
@@ -2053,7 +2068,7 @@ details+details{margin-top:8px}
       var rank = parseInt(slot.dataset.rank);
       var playerTile = slot.querySelector('.ranking-player-tile');
       if (playerTile) {
-        var playerId = playerTile.dataset.playerId;
+        var playerId = parseInt(playerTile.dataset.playerId);
         if (playerId) {
           newRanking[rank] = playerId;
         }
