@@ -90,7 +90,8 @@ details+details{margin-top:8px}
 .stats-table .emoji{font-size:18px;margin-right:4px}
 
 .player-setup{margin-bottom:16px}
-.unassigned-players{display:flex;flex-wrap:wrap;gap:8px;min-height:50px;padding:12px;background:#0f1115;border-radius:12px;margin:12px 0}
+.unassigned-players{display:flex;flex-wrap:wrap;gap:8px;min-height:50px;padding:12px;background:#0f1115;border-radius:12px;margin:12px 0;border:2px dashed var(--stroke);transition:all .2s}
+.unassigned-players.drag-over{border-color:var(--accent);background:rgba(230,184,0,.05)}
 
 /* Player Pool for Ranking */
 .player-pool-section{margin:16px 0}
@@ -488,13 +489,13 @@ details+details{margin-top:8px}
     touchClone.style.display = 'block';
     
     // Highlight drop zones
-    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool');
+    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
     dropZones.forEach(function(zone) {
       zone.classList.remove('drag-over');
     });
     
     if (elementBelow) {
-      var dropZone = elementBelow.closest('.rank-slot, .team-drop-zone, #playerPool');
+      var dropZone = elementBelow.closest('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
       if (dropZone) {
         dropZone.classList.add('drag-over');
       }
@@ -537,10 +538,12 @@ details+details{margin-top:8px}
       var rankSlot = elementBelow.closest('.rank-slot');
       var teamZone = elementBelow.closest('.team-drop-zone');
       var pool = elementBelow.closest('#playerPool');
+      var unassignedZone = elementBelow.closest('#unassignedPlayers');
       
       console.log('Found rankSlot:', rankSlot);
       console.log('Found teamZone:', teamZone);
       console.log('Found pool:', pool);
+      console.log('Found unassignedZone:', unassignedZone);
       
       if (rankSlot) {
         console.log('Dropping on rank slot');
@@ -551,6 +554,13 @@ details+details{margin-top:8px}
       } else if (pool) {
         console.log('Dropping on pool');
         handlePoolDrop(draggedPlayer);
+      } else if (unassignedZone) {
+        console.log('Dropping on unassigned zone');
+        // Move player back to unassigned
+        draggedPlayer.team = null;
+        save('gd_players', players);
+        renderPlayers();
+        renderRankingArea();
       } else {
         console.log('No valid drop target found');
       }
@@ -586,7 +596,7 @@ details+details{margin-top:8px}
     draggedPlayer = null;
     
     // Clear all highlights
-    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool');
+    var dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
     dropZones.forEach(function(zone) {
       zone.classList.remove('drag-over');
     });
@@ -757,13 +767,26 @@ details+details{margin-top:8px}
       }
     });
     
-    var team = zone.dataset.team;
-    if (team === '1') {
-      player.team = 'A';
-    } else if (team === '2') {
-      player.team = 'B';
+    var team = parseInt(zone.dataset.team);
+    
+    // Check if team is full
+    var teamPlayers = players.filter(function(p) {
+      return p.team === team;
+    });
+    var maxPerTeam = parseInt(modeSel.value) / 2;
+    
+    // Don't allow if team is full (not counting the current player if they're already on this team)
+    if (teamPlayers.length >= maxPerTeam && !teamPlayers.some(function(p) { return p.id === player.id; })) {
+      alert('该队伍已满员！');
+      renderPlayers();
+      renderRankingArea();
+      return;
     }
-    setupDropZones();
+    
+    // Update player's team
+    player.team = team;
+    save('gd_players', players);
+    renderPlayers();
     renderRankingArea();
   }
   
@@ -817,7 +840,7 @@ details+details{margin-top:8px}
           id: i + 1,  // Numeric ID matching player number
           name: '玩家' + (i + 1),
           emoji: shuffledEmojis[i % shuffledEmojis.length],
-          team: (i + 1)  // Store team as the player number for desktop compatibility
+          team: null  // Start with no team assigned
         };
         players.push(player);
       }
@@ -835,10 +858,21 @@ details+details{margin-top:8px}
     var team1Zone = $('team1Zone');
     var team2Zone = $('team2Zone');
     
-    // Clear zones
+    // Clear zones but keep the label
     unassigned.innerHTML = '';
-    team1Zone.innerHTML = '<div class="label">拖拽玩家到这里分配队伍</div>';
-    team2Zone.innerHTML = '<div class="label">拖拽玩家到这里分配队伍</div>';
+    team1Zone.innerHTML = '';
+    team2Zone.innerHTML = '';
+    
+    // Add labels for team zones if they're empty
+    var team1Players = players.filter(function(p) { return p.team === 1; });
+    var team2Players = players.filter(function(p) { return p.team === 2; });
+    
+    if (team1Players.length === 0) {
+      team1Zone.innerHTML = '<div class="label">拖拽玩家到这里分配队伍</div>';
+    }
+    if (team2Players.length === 0) {
+      team2Zone.innerHTML = '<div class="label">拖拽玩家到这里分配队伍</div>';
+    }
     
     players.forEach(function(player) {
       var tile = createPlayerTile(player);
@@ -949,7 +983,23 @@ details+details{margin-top:8px}
         zone.el.classList.remove('drag-over');
         
         if (draggedPlayer) {
+          // Update the team assignment
           draggedPlayer.team = zone.team;
+          
+          // If moving to a team zone, check if that team is already full
+          if (zone.team !== null) {
+            var teamPlayers = players.filter(function(p) {
+              return p.team === zone.team;
+            });
+            var maxPerTeam = parseInt(modeSel.value) / 2;
+            
+            // Don't allow if team is full (not counting the current player if they're already on this team)
+            if (teamPlayers.length >= maxPerTeam && !teamPlayers.some(function(p) { return p.id === draggedPlayer.id; })) {
+              alert('该队伍已满员！');
+              return;
+            }
+          }
+          
           save('gd_players', players);
           renderPlayers();
           renderRankingArea();
@@ -1022,8 +1072,21 @@ details+details{margin-top:8px}
             // Check if another player was already in this rank
             var existingPlayerId = currentRanking[r];
             if (existingPlayerId && existingPlayerId !== draggedPlayer.id) {
-              // Move existing player back to pool
-              delete currentRanking[r];
+              // Swap positions if the dragged player is already ranked
+              var draggedRank = null;
+              for (var rank in currentRanking) {
+                if (currentRanking[rank] === draggedPlayer.id) {
+                  draggedRank = rank;
+                  break;
+                }
+              }
+              if (draggedRank) {
+                // Swap the two players
+                currentRanking[draggedRank] = existingPlayerId;
+              } else {
+                // Move existing player back to pool
+                delete currentRanking[r];
+              }
             }
             
             // Remove from previous rank if any
