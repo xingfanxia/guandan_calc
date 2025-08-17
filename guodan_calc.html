@@ -831,17 +831,28 @@ details+details{margin-top:8px}
   function generatePlayers() {
     var num = parseInt(modeSel.value);
     
+    // Always regenerate if no valid number
+    if (!num || isNaN(num)) {
+      console.log('Invalid player count:', modeSel.value);
+      return;
+    }
+    
     // Try to load saved players first
     var savedPlayers = load('gd_players', []);
-    if (savedPlayers.length === num) {
+    if (savedPlayers && savedPlayers.length === num) {
       players = savedPlayers;
       // Ensure saved players have proper IDs and teams
       players.forEach(function(player, index) {
         if (!player.id || typeof player.id === 'string') {
           player.id = index + 1;
         }
-        if (!player.team) {
-          player.team = index % 2 === 0 ? 'A' : 'B';
+        // Fix team values - convert string 'A'/'B' to numeric 1/2
+        if (player.team === 'A') {
+          player.team = 1;
+        } else if (player.team === 'B') {
+          player.team = 2;
+        } else if (!player.team) {
+          player.team = null;  // Start unassigned
         }
       });
     } else {
@@ -861,8 +872,14 @@ details+details{margin-top:8px}
       }
     }
     
+    // Save the newly generated or loaded players
+    save('gd_players', players);
+    
     // Load saved player stats if available
     playerStats = load('gd_player_stats', {});
+    
+    // Clear current ranking when changing player count
+    currentRanking = {};
     
     renderPlayers();
     renderRankingArea();
