@@ -828,7 +828,7 @@ details+details{margin-top:8px}
   }
   
   // Player System Functions
-  function generatePlayers() {
+  function generatePlayers(forceNew) {
     var num = parseInt(modeSel.value);
     
     // Always regenerate if no valid number
@@ -837,9 +837,9 @@ details+details{margin-top:8px}
       return;
     }
     
-    // Try to load saved players first
+    // Try to load saved players first (unless forcing new generation)
     var savedPlayers = load('gd_players', []);
-    if (savedPlayers && savedPlayers.length === num) {
+    if (!forceNew && savedPlayers && savedPlayers.length === num) {
       players = savedPlayers;
       // Ensure saved players have proper IDs and teams
       players.forEach(function(player, index) {
@@ -856,6 +856,7 @@ details+details{margin-top:8px}
         }
       });
     } else {
+      // Generate new players
       players = [];
       
       // Shuffle emojis
@@ -1874,7 +1875,7 @@ details+details{margin-top:8px}
     calc(); 
     renderStatistics(); 
     renderRankingArea();
-    generatePlayers(); // Regenerate players to ensure clean state
+    generatePlayers(true); // Force regenerate players to ensure clean state
     
     applyTip.textContent='已重置整场比赛';
     
@@ -2064,14 +2065,14 @@ details+details{margin-top:8px}
   }
 
   // Events
-  on(modeSel,'change', function(){ selected=[]; input.value=''; updateRuleHint(); calc(); generatePlayers(); });
+  on(modeSel,'change', function(){ selected=[]; input.value=''; updateRuleHint(); calc(); generatePlayers(false); });
   on(applyBtn,'click', applyResult); on(advanceBtn,'click', doAdvance);
   on($('undo'),'click', undoLast);
   on($('exportTxt'),'click', exportTXT); on($('exportCsv'),'click', exportCSV); on($('exportLongPng'),'click', exportLongPNG);
   on($('resetMatch'),'click', resetAll);
   
   // Player system events
-  on($('generatePlayers'),'click', generatePlayers);
+  on($('generatePlayers'),'click', function() { generatePlayers(true); });
   on($('shuffleTeams'),'click', shuffleTeams);
   on($('clearRanking'),'click', clearRanking);
   on($('randomRanking'),'click', randomizeRanking);
@@ -2108,7 +2109,7 @@ details+details{margin-top:8px}
   function syncSelectedFromInput(){ var need=(modeSel.value==='4'?2:(modeSel.value==='6'?3:4)); var pr=parseRanks(input.value, need); selected=pr.ok?pr.ranks.slice():[]; }
 
   // Init
-  generatePlayers();
+  generatePlayers(false);  // Load saved players on init
   setupDropZones();
   renderStatistics();
   // Set initial state
