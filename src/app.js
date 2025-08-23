@@ -1,61 +1,190 @@
-(function(){
-  function $(id){ return document.getElementById(id); }
-  function on(el,ev,fn){ el.addEventListener?el.addEventListener(ev,fn):el.attachEvent('on'+ev,fn); }
-  function now(){ return new Date().toLocaleString(); }
+(function() {
+  // ================================
+  // Utility Functions
+  // ================================
+  function $(id) { 
+    return document.getElementById(id); 
+  }
+  
+  function on(el, ev, fn) { 
+    el.addEventListener ? el.addEventListener(ev, fn) : el.attachEvent('on' + ev, fn); 
+  }
+  
+  function now() { 
+    return new Date().toLocaleString(); 
+  }
 
-  var modeSel=$('mode'), input = { value: '' }, must1=$('must1'), ruleHint=$('ruleHint');
-  var tip=$('tip');
-  var headline=$('headline'), explain=$('explain'), applyBtn=$('apply'), applyTip=$('applyTip'), advanceBtn=$('advance');
-  var winnerDisplay=$('winnerDisplay');
-  var autoNext=$('autoNext'), autoApply=$('autoApply'), strictA=$('strictA');
-  var t1Lvl=$('t1Lvl'), t2Lvl=$('t2Lvl'), t1A=$('t1A'), t2A=$('t2A'), t1AState=$('t1AState'), t2AState=$('t2AState');
-  var t1NameChip=$('t1NameChip'), t2NameChip=$('t2NameChip');
-  var curRoundLvl=$('curRoundLvl'), nextRoundPreview=$('nextRoundPreview');
-  var hT1=$('hT1'), hT2=$('hT2');
-  var longCnv=$('longCnv'), lctx=longCnv.getContext('2d');
-  var selected=[];
+  // ================================
+  // DOM Element References
+  // ================================
+  
+  // Game controls
+  var modeSel = $('mode');
+  var input = { value: '' };
+  var must1 = $('must1');
+  var ruleHint = $('ruleHint');
+  var tip = $('tip');
+  
+  // Result display elements
+  var headline = $('headline');
+  var explain = $('explain');
+  var applyBtn = $('apply');
+  var applyTip = $('applyTip');
+  var advanceBtn = $('advance');
+  var winnerDisplay = $('winnerDisplay');
+  
+  // Settings checkboxes
+  var autoNext = $('autoNext');
+  var autoApply = $('autoApply');
+  var strictA = $('strictA');
+  
+  // Team status elements
+  var t1Lvl = $('t1Lvl');
+  var t2Lvl = $('t2Lvl');
+  var t1A = $('t1A');
+  var t2A = $('t2A');
+  var t1AState = $('t1AState');
+  var t2AState = $('t2AState');
+  var t1NameChip = $('t1NameChip');
+  var t2NameChip = $('t2NameChip');
+  
+  // Round display elements
+  var curRoundLvl = $('curRoundLvl');
+  var nextRoundPreview = $('nextRoundPreview');
+  var hT1 = $('hT1');
+  var hT2 = $('hT2');
+  
+  // Canvas for export
+  var longCnv = $('longCnv');
+  var lctx = longCnv.getContext('2d');
+  
+  // Game state
+  var selected = [];
 
-  // Storage
-  var KEY_S='gd_v7_5_1_settings', KEY_ST='gd_v7_5_1_state';
-  function load(key, def){ try{ var v=localStorage.getItem(key); return v?JSON.parse(v):def; }catch(e){ return def; } }
-  function save(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){} }
+  // ================================
+  // Storage Management
+  // ================================
+  var KEY_S = 'gd_v7_5_1_settings';
+  var KEY_ST = 'gd_v7_5_1_state';
+  
+  function load(key, def) { 
+    try { 
+      var v = localStorage.getItem(key); 
+      return v ? JSON.parse(v) : def; 
+    } catch(e) { 
+      return def; 
+    } 
+  }
+  
+  function save(key, v) { 
+    try { 
+      localStorage.setItem(key, JSON.stringify(v)); 
+    } catch(e) {} 
+  }
 
-  // Settings
-  var S=load(KEY_S,{});
-  if(!S.c4){ S.c4={'1,2':3,'1,3':2,'1,4':1}; }
-  if(!S.t6){ S.t6={g3:7,g2:4,g1:1}; }
-  if(!S.p6){ S.p6={1:5,2:4,3:3,4:3,5:1,6:0}; }
-  if(!S.t8){ S.t8={g3:11,g2:6,g1:1}; }
-  if(!S.p8){ S.p8={1:7,2:6,3:5,4:4,5:3,6:2,7:1,8:0}; }
-  if(typeof S.must1==='undefined'){ S.must1=true; }
-  if(typeof S.autoNext==='undefined'){ S.autoNext=true; } // Default to auto-advance
-  if(typeof S.autoApply==='undefined'){ S.autoApply=true; } // Default to true for better UX
-  if(typeof S.strictA==='undefined'){ S.strictA=true; } // Default to strict mode
-  if(!S.t1){ S.t1={name:'蓝队', color:'#3b82f6'}; }
-  if(!S.t2){ S.t2={name:'红队', color:'#ef4444'}; }
+  // ================================
+  // Settings Initialization
+  // ================================
+  var S = load(KEY_S, {});
+  
+  // 4-player mode rules
+  if (!S.c4) { 
+    S.c4 = {'1,2': 3, '1,3': 2, '1,4': 1}; 
+  }
+  
+  // 6-player mode thresholds and points
+  if (!S.t6) { 
+    S.t6 = {g3: 7, g2: 4, g1: 1}; 
+  }
+  if (!S.p6) { 
+    S.p6 = {1: 5, 2: 4, 3: 3, 4: 3, 5: 1, 6: 0}; 
+  }
+  
+  // 8-player mode thresholds and points
+  if (!S.t8) { 
+    S.t8 = {g3: 11, g2: 6, g1: 1}; 
+  }
+  if (!S.p8) { 
+    S.p8 = {1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 0}; 
+  }
+  
+  // Game preferences
+  if (typeof S.must1 === 'undefined') { 
+    S.must1 = true; 
+  }
+  if (typeof S.autoNext === 'undefined') { 
+    S.autoNext = true; // Default to auto-advance
+  }
+  if (typeof S.autoApply === 'undefined') { 
+    S.autoApply = true; // Default to true for better UX
+  }
+  if (typeof S.strictA === 'undefined') { 
+    S.strictA = true; // Default to strict mode
+  }
+  
+  // Team settings
+  if (!S.t1) { 
+    S.t1 = {name: '蓝队', color: '#3b82f6'}; 
+  }
+  if (!S.t2) { 
+    S.t2 = {name: '红队', color: '#ef4444'}; 
+  }
 
-  // State
-  var ST=load(KEY_ST,{});
-  if(!ST.t1){ ST.t1={lvl:'2',aFail:0}; }
-  if(!ST.t2){ ST.t2={lvl:'2',aFail:0}; }
-  if(!ST.hist){ ST.hist=[]; }
-  if(!ST.roundLevel){ ST.roundLevel='2'; }
-  if(!ST.nextRoundBase){ ST.nextRoundBase=null; } // 关键：下一局应当打的级牌
+  // ================================
+  // Game State Initialization
+  // ================================
+  var ST = load(KEY_ST, {});
+  
+  // Team states
+  if (!ST.t1) { 
+    ST.t1 = {lvl: '2', aFail: 0}; 
+  }
+  if (!ST.t2) { 
+    ST.t2 = {lvl: '2', aFail: 0}; 
+  }
+  
+  // Game history
+  if (!ST.hist) { 
+    ST.hist = []; 
+  }
+  
+  // Round tracking
+  if (!ST.roundLevel) { 
+    ST.roundLevel = '2'; 
+  }
+  if (!ST.nextRoundBase) { 
+    ST.nextRoundBase = null; // Key: next round's level to play
+  }
+  
+  var winner = 't1';
 
-  var winner='t1';
-
+  // ================================
   // Player System Variables
+  // ================================
   var players = [];
   var playerStats = {};
   var currentRanking = {};
+  
+  // Drag and drop state
   var draggedPlayer = null;
   var touchDraggedElement = null; // For touch dragging
   var touchClone = null; // Clone element for visual feedback during touch
   var touchStartTimer = null; // Timer for delayed drag start
   var touchStartPos = null; // Initial touch position
-  var animalEmojis = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋','🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈'];
   
-  // Touch event helper functions
+  // Animal emoji pool for player avatars
+  var animalEmojis = [
+    '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
+    '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆',
+    '🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🐛','🦋',
+    '🐌','🐞','🐜','🦟','🦗','🕷️','🦂','🐢','🐍','🦎',
+    '🦖','🦕','🐙','🦑','🦐','🦀','🐡','🐠','🐟','🐬',
+    '🐳','🐋','🦈'
+  ];
+  
+  // ================================
+  // Touch Event Handling
+  // ================================
   function handleTouchStart(e, player) {
     // Don't start drag if touching an input field
     if (e.target.tagName === 'INPUT') {
