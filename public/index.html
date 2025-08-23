@@ -1764,14 +1764,21 @@ details+details{margin-top:8px}
     if(ST.t1.lvl==='A' && ST.t2.lvl==='A') aTeam=win; else if(ST.t1.lvl==='A') aTeam='t1'; else if(ST.t2.lvl==='A') aTeam='t2';
     if(aTeam){
       if(aTeam===win){
-        if(winnerHasLast){ // 胜方带末游 -> 不通关，失败+1
-          ST[aTeam].aFail=(ST[aTeam].aFail||0)+1; aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级失败（胜方含末游）→ A'+ST[aTeam].aFail;
-          if(ST[aTeam].aFail>=3){ 
-            winNew='2'; // Reset winner to level 2
-            ST[aTeam].aFail=0; 
-            aNote+='｜累计3次失败，仅该队重置到2'; 
+        if(winnerHasLast){ // 胜方带末游 -> 不通关
+          // Only count as failure if it's their own round
+          if(ST.roundOwner === aTeam) {
+            ST[aTeam].aFail=(ST[aTeam].aFail||0)+1; 
+            aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级失败（在自己的A级胜方含末游）→ A'+ST[aTeam].aFail;
+            if(ST[aTeam].aFail>=3){ 
+              winNew='2'; // Reset winner to level 2
+              ST[aTeam].aFail=0; 
+              aNote+='｜累计3次失败，仅该队重置到2'; 
+            } else {
+              winNew=ST[win].lvl; // 本局不升级
+            }
           } else {
             winNew=ST[win].lvl; // 本局不升级
+            aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' 在对方回合（'+(ST.roundOwner==='t1'?S.t1.name:S.t2.name)+'的级）胜但含末游，不通关但A失败不计';
           }
         }else{
           // Check strict mode - in strict mode, must win at YOUR OWN A level
@@ -1787,16 +1794,23 @@ details+details{margin-top:8px}
           }
         }
       }else{
-        ST[aTeam].aFail=(ST[aTeam].aFail||0)+1; aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级失败（未取胜）→ A'+ST[aTeam].aFail;
-        if(ST[aTeam].aFail>=3){ 
-          // Reset the losing A-team to level 2
-          if(aTeam === win) {
-            winNew = '2';
-          } else {
-            loseNew = '2';
+        // Only increment A-fail counter if it's the A-team's own round
+        // Check if this team owns the current round (their level is being played)
+        if(ST.roundOwner === aTeam) {
+          ST[aTeam].aFail=(ST[aTeam].aFail||0)+1; 
+          aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级失败（在自己的A级未取胜）→ A'+ST[aTeam].aFail;
+          if(ST[aTeam].aFail>=3){ 
+            // Reset the losing A-team to level 2
+            if(aTeam === win) {
+              winNew = '2';
+            } else {
+              loseNew = '2';
+            }
+            ST[aTeam].aFail=0; 
+            aNote+='｜累计3次失败，仅该队重置到2'; 
           }
-          ST[aTeam].aFail=0; 
-          aNote+='｜累计3次失败，仅该队重置到2'; 
+        } else {
+          aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' 在对方回合（'+(ST.roundOwner==='t1'?S.t1.name:S.t2.name)+'的级）未胜，A失败不计';
         }
       }
     }
@@ -1805,13 +1819,15 @@ details+details{margin-top:8px}
     // 决定并保存"下局级牌"
     if(S.autoNext || finalWin){ 
       ST.roundLevel = String(nextBaseByRule); // Move to next round (winner's new level)
+      ST.roundOwner = win; // The winner owns the next round
       ST.nextRoundBase=null; 
-      console.log('Auto advancing: roundLevel set to', ST.roundLevel, 'from', thisRound);
+      console.log('Auto advancing: roundLevel set to', ST.roundLevel, 'from', thisRound, 'owner:', win);
     }
     else { 
       ST.roundLevel = String(thisRound); // Stay at current round
       ST.nextRoundBase = String(nextBaseByRule); // But preview shows what next round would be
-      console.log('Manual mode: roundLevel stays at', ST.roundLevel, 'next would be', ST.nextRoundBase);
+      // Don't change round owner when staying at same round
+      console.log('Manual mode: roundLevel stays at', ST.roundLevel, 'next would be', ST.nextRoundBase, 'owner:', ST.roundOwner);
     }
     // Build player ranking details for history
     var playerRankings = {};
@@ -1851,15 +1867,52 @@ details+details{margin-top:8px}
     }
   }
 
-  function doAdvance(){ if(ST.nextRoundBase){ ST.roundLevel = ST.nextRoundBase; ST.nextRoundBase=null; save(KEY_ST,ST); renderTeams(); calc(); applyTip.textContent='已进入下一局'; } else { applyTip.textContent='没有待进入的下一局（或已自动进入）。'; } }
+  function doAdvance(){ 
+    if(ST.nextRoundBase){ 
+      ST.roundLevel = ST.nextRoundBase; 
+      // Set round owner to the last winner
+      if(ST.hist.length > 0) {
+        ST.roundOwner = ST.hist[ST.hist.length - 1].winKey;
+      }
+      ST.nextRoundBase=null; 
+      save(KEY_ST,ST); 
+      renderTeams(); 
+      calc(); 
+      applyTip.textContent='已进入下一局'; 
+    } else { 
+      applyTip.textContent='没有待进入的下一局（或已自动进入）。'; 
+    } 
+  }
 
   // Rollback/undo/reset
-  function rollbackTo(index){ if(index<0||index>=ST.hist.length) return; var h=ST.hist[index]; if(!confirm('回滚到第 '+(index+1)+' 局之前？')) return; ST.t1.lvl=h.prevT1Lvl; ST.t1.aFail=h.prevT1A||0; ST.t2.lvl=h.prevT2Lvl; ST.t2.aFail=h.prevT2A||0; ST.roundLevel=h.prevRound||'2'; ST.nextRoundBase=null; ST.hist=ST.hist.slice(0,index); save(KEY_ST,ST); renderTeams(); renderHistory(); calc(); applyTip.textContent='已回滚。'; }
+  function rollbackTo(index){ 
+    if(index<0||index>=ST.hist.length) return; 
+    var h=ST.hist[index]; 
+    if(!confirm('回滚到第 '+(index+1)+' 局之前？')) return; 
+    ST.t1.lvl=h.prevT1Lvl; 
+    ST.t1.aFail=h.prevT1A||0; 
+    ST.t2.lvl=h.prevT2Lvl; 
+    ST.t2.aFail=h.prevT2A||0; 
+    ST.roundLevel=h.prevRound||'2'; 
+    // Restore round owner from previous history
+    if(index > 0) {
+      ST.roundOwner = ST.hist[index-1].winKey;
+    } else {
+      ST.roundOwner = null; // First round has no owner
+    }
+    ST.nextRoundBase=null; 
+    ST.hist=ST.hist.slice(0,index); 
+    save(KEY_ST,ST); 
+    renderTeams(); 
+    renderHistory(); 
+    calc(); 
+    applyTip.textContent='已回滚。'; 
+  }
   function undoLast(){ if(!ST.hist.length){ alert('没有可撤销的记录'); return; } rollbackTo(ST.hist.length-1); }
   function resetAll(){ 
     if(!confirm('重置整场？')) return; 
     // Reset state to initial values
-    ST={t1:{lvl:'2',aFail:0},t2:{lvl:'2',aFail:0},hist:[],roundLevel:'2',nextRoundBase:null}; 
+    ST={t1:{lvl:'2',aFail:0},t2:{lvl:'2',aFail:0},hist:[],roundLevel:'2',nextRoundBase:null,roundOwner:null}; 
     save(KEY_ST,ST); 
     
     // Clear player-related state
