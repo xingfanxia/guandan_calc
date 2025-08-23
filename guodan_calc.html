@@ -1782,13 +1782,18 @@ details+details{margin-top:8px}
           }
         }else{
           // Check strict mode - in strict mode, must win at YOUR OWN A level
-          if(S.strictA && ST.roundLevel !== 'A'){
-            // In strict mode, winning at other team's level doesn't count as 通关
-            aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级胜利（但本局级牌为'+ST.roundLevel+'，需在自己的A级获胜才能通关）';
+          if(S.strictA && (ST.roundLevel !== 'A' || ST.roundOwner !== aTeam)){
+            // In strict mode, must be playing at A level AND it must be your own round
+            var roundOwnerName = ST.roundOwner ? (ST.roundOwner==='t1'?S.t1.name:S.t2.name) : '未知';
+            if(ST.roundLevel !== 'A') {
+              aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级胜利（但本局级牌为'+ST.roundLevel+'，需在自己的A级获胜才能通关）';
+            } else {
+              aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级胜利（但在'+roundOwnerName+'的回合，需在自己的A级获胜才能通关）';
+            }
             // Still no upgrade, but no failure count increase
             winNew=ST[win].lvl;
           } else {
-            // Either lenient mode, or strict mode and playing at A level
+            // Either lenient mode, or (strict mode and playing at YOUR OWN A level)
             finalWin=true; 
             aNote=((aTeam==='t1'?S.t1.name:S.t2.name))+' A级通关（胜方无末游'+(S.strictA?'，在自己的A级':'')+')';
           }
