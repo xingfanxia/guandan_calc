@@ -307,6 +307,10 @@ class ExportManager {
     // Draw honor section for mobile
     this.drawMobileHonorSection();
     
+    // Add debug line to see where honor section ends
+    this.lctx.fillStyle = '#444';
+    this.lctx.fillRect(30, this.honorSectionEndY - 2, W - 60, 2);
+    
     // Mobile table
     this.drawMobileTable();
     
@@ -421,13 +425,13 @@ class ExportManager {
     const rowH = 60;
     const n = this.gameState.state.hist.length;
     
-    // Table title - bigger font
-    this.lctx.font = 'bold 24px Arial';
+    // Table title - bigger font  
+    this.lctx.font = 'bold 28px Arial';
     this.lctx.fillStyle = '#e6b800';
-    this.lctx.fillText('📋 比赛历史', 40, tableStartY);
+    this.lctx.fillText('📋 比赛历史', 40, tableStartY + 20);
     
     // Mobile table - vertical layout for each game
-    let currentY = tableStartY + 35;
+    let currentY = tableStartY + 60; // More space after table title
     
     for (let i = 0; i < n; i++) {
       const h = this.gameState.state.hist[i];
