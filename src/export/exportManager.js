@@ -261,7 +261,7 @@ class ExportManager {
       return;
     }
     
-    let W = 720; // Balanced width to prevent cutoff while reducing whitespace
+    let W = 600; // Narrower width for mobile optimization
     const n = this.gameState.state.hist.length;
     
     // Start with much larger height to prevent cutoff
