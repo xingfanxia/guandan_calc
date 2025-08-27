@@ -9,77 +9,79 @@ A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chi
 ### Features
 
 - **🎮 Real-Time Room Sharing** ⭐ **NEW**
-  - Create shareable room codes (e.g., `ROOM-A1B2`)
-  - Live game viewing for remote players
-  - Auto-sync every 10 seconds for hosts
-  - Real-time updates every 5 seconds for viewers
-  - 24-hour room persistence with Vercel KV
+  - Create 6-digit room codes (e.g., `A1B2C3`) for live game sharing
+  - Host mode: Full game control + auto-sync every 10 seconds
+  - Viewer mode: Real-time spectating with 5-second updates
+  - Secure authentication: Host tokens prevent unauthorized control
+  - 24-hour room persistence with global access
 
-- **👥 Player Management System**
-  - 8 customizable players with animal & food emoji avatars
-  - Drag-and-drop team assignment
-  - Bulk name input with space-separated format
-  - Quick start with preset names
+- **👥 Smart Player Management**
+  - 8 customizable players with 77+ animal & food emoji avatars (no insects)
+  - Bulk name input with space-separated format (`John Mike Sara Lisa`)
+  - Quick start: Apply preset names with one click
+  - Drag-and-drop team assignment supporting desktop and mobile touch
+  - Smart reset: Preserve player setup while clearing game data
   
-- **🎯 Game Scoring**
+- **🎯 Game Scoring System**
   - Support for 4, 6, and 8 player modes
-  - Drag-and-drop ranking system for game results
-  - Automatic score calculation based on player positions
-  - Team-based level progression (2→3→4→5→6→7→8→9→10→J→Q→K→A)
+  - Drag-and-drop ranking with automatic upgrade calculation
+  - Team level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
+  - A-level rules: Strict mode (must win at own A-level) vs. Lenient mode
+  - 8-player sweep bonus: Top 4 positions = 4 level upgrade
   
-- **⚖️ Special Rules**
-  - A-level victory conditions (strict/lenient modes)
-  - A-level failure tracking (reset to level 2 after 3 failures)
-  - 8-player sweep bonus (1,2,3,4 positions = 4 level upgrade)
-  - "Must have first place" option for upgrades
+- **🏆 Honor System**
+  - 6 data-driven special honors with Chinese cultural references:
+    - 🥇 **Lü Bu (吕布)**: Most first places (legendary warrior)
+    - 😅 **A Dou (阿斗)**: Most last places (needs protection)
+    - 🗿 **Stone Buddha (石佛)**: Most stable rankings (steady as rock)
+    - 🌊 **Volatility King (波动王)**: Most volatile performance (unpredictable)
+    - 📈 **Struggle King (奋斗王)**: Best improvement trend (getting stronger)
+    - 🛡️ **Support King (辅助王)**: Most team wins while finishing last (selfless dedication)
+  - Team honors: "Very Carry" (strongest) and "Very Noob" (weakest) identification
+  - Variance analysis and trend detection algorithms
   
-- **📊 Statistics & Analytics**
-  - Player performance tracking (average ranking, first/last place counts)
-  - Team MVP and burden identification
-  - Color-coded game history by winning team
-  - Detailed round-by-round progression tracking
+- **📤 Multi-Format Export & Sharing**
+  - Real-time room codes: 6-digit codes for instant viewing sharing
+  - Static snapshots: URL-encoded data for permanent preservation
+  - Mobile PNG: 600px width optimized for phone viewing with large fonts
+  - Desktop PNG: Wide format for comprehensive data display
+  - TXT/CSV export: Data analysis and record keeping
   
-- **📤 Export & Sharing**
-  - Real-time room codes for live viewing
-  - Static snapshot URLs for data sharing
-  - Text export for sharing
-  - CSV export for data analysis
-  - PNG export for visual records
-  
-- **🎨 User Experience**
-  - Modern modular ES6 architecture
-  - Celebration modal for A-level victories
-  - Visual team indicators throughout
-  - Persistent game state (survives page refresh)
-  - Mobile-optimized touch controls
-  - Smart reset (preserves player setup)
+- **🎨 User Experience Optimization**
+  - Modern ES6 modular architecture with fast response
+  - A-level victory celebration with animations and sound effects
+  - Real-time sync notifications and visual feedback
+  - Clickable host banner for instant viewer link sharing
+  - Responsive design perfectly adapted for mobile and desktop
+  - Complete UTF-8 Chinese character support
 
 ### Quick Start
 
 **🚀 Solo Play:**
 1. Visit the live app URL
-2. Click **"生成玩家"** → **"快速开始"** for instant setup
+2. Click **"Generate Players"** → **"Quick Start"** for instant setup
 3. Drag players to assign teams (4 players per team)
 4. Drag players to ranking positions after each round
 5. Game auto-calculates and applies results
-6. Continue until A-level victory!
+6. Continue until A-level victory and check honor rankings!
 
 **📺 Multiplayer Room (NEW):**
-1. **Host:** Click **"📺 创建房间"** → Share room code with friends
-2. **Viewers:** Click **"🔗 加入房间"** → Enter room code  
-3. **Live Sync:** Viewers see real-time game updates as host plays
-4. **Auto-Updates:** Game state syncs automatically every 10 seconds
+1. **Host:** Click **"📺 Create Room"** → Get 6-digit code to share with friends
+2. **Viewers:** Click **"🔗 Join Room"** → Enter code for real-time spectating
+3. **Live Sync:** Viewers see host's game updates in real-time (every 5 seconds)
+4. **One-Click Share:** Host clicks blue banner to copy viewer links instantly
 
-**⚡ Bulk Name Entry:**
-- Use space-separated names: `小 超 豪 姐 哥 帆 夫 达`
-- Quick start buttons provide example names for each mode
+**⚡ Bulk Name Setup:**
+- Use space-separated names: `John Mike Sara Lisa Kate Tom Max Ben` (8-player mode)
+- Quick start buttons provide example names for each mode (4/6/8 players)
 
 ### Game Rules Configuration
 
 The calculator supports customizable scoring rules:
-- **4-player mode**: Configure points for each ranking combination
-- **6/8-player mode**: Configure point thresholds for 1, 2, or 3 level upgrades
-- **A-level rules**: Choose between strict (must win at own A-level) or lenient (can win at any level)
+- **4-player mode**: Configure upgrade points for each ranking combination (1,2), (1,3), (1,4)
+- **6/8-player mode**: Configure point thresholds for 1, 2, or 3 level upgrades based on score differences
+- **A-level rules**: Strict mode (must win at own A-level) vs. Lenient mode (can win at any level)
+- **Special bonuses**: 8-player sweep (positions 1,2,3,4) grants 4-level upgrade
 
 ### Browser Compatibility
 
@@ -161,9 +163,10 @@ The calculator supports customizable scoring rules:
 ### 游戏规则配置
 
 计算器支持自定义计分规则：
-- **4人模式**：配置每个排名组合的分数
-- **6/8人模式**：配置升1、2或3级的分数阈值
-- **A级规则**：选择严格（必须在自己的A级获胜）或宽松（可以在任何级别获胜）
+- **4人模式**：配置排名组合升级分数，如(1,2)、(1,3)、(1,4)对应的升级级数
+- **6/8人模式**：基于分差配置升1、2或3级的分数阈值
+- **A级规则**：严格模式（必须在自己的A级获胜）vs 宽松模式（任何级别都可获胜）
+- **特殊奖励**：8人横扫（占据1,2,3,4名位置）可获得4级升级
 
 ### 浏览器兼容性
 
@@ -174,30 +177,30 @@ The calculator supports customizable scoring rules:
 
 ## Technical Architecture
 
-### Frontend
-- **Modern ES6 Modules**: Modular architecture with 12+ specialized modules
-- **Vite Build System**: Fast development and optimized production builds
+### Frontend Technology
+- **Modern ES6 Modules**: 12 specialized modules with clean dependencies
+- **Vite Build System**: Fast development server and optimized production builds
 - **Vanilla JavaScript**: No framework dependencies, pure web standards
-- **UTF-8 Support**: Full Chinese character support throughout
+- **UTF-8 Support**: Complete Chinese character processing throughout
 
-### Real-Time Backend
+### Real-Time Backend Infrastructure
 - **Vercel KV (Upstash Redis)**: Ultra-fast room data storage (<1ms reads)
-- **Edge Functions**: Serverless API routes for room management
-- **Auto-Sync**: Host games sync every 10 seconds automatically  
-- **Live Polling**: Viewers poll for updates every 5 seconds
-- **TTL Management**: Rooms auto-expire after 24 hours
+- **Edge Functions**: Serverless API routes for global room management
+- **Auto-Synchronization**: Host games sync automatically every 10 seconds
+- **Live Polling**: Viewers poll for updates every 5 seconds with smart change detection
+- **TTL Management**: Automatic 24-hour room expiration and cleanup
 
-### 数据流程
-1. **房间创建**: `POST /api/rooms/create` → 生成6位代码 → 存储到KV
-2. **游戏更新**: 房主操作 → 自动同步到KV → `PUT /api/rooms/{code}`
-3. **实时观看**: 观众轮询 → `GET /api/rooms/{code}` → 检测变化时更新UI
-4. **数据持久**: 本地存储个人数据 + KV存储共享房间
+### Data Flow Architecture
+1. **Room Creation**: `POST /api/rooms/create` → Generate 6-digit code → Store in KV
+2. **Game Updates**: Host actions → Auto-sync to KV → `PUT /api/rooms/{code}`
+3. **Live Viewing**: Viewers poll → `GET /api/rooms/{code}` → Update UI when changed
+4. **Data Persistence**: LocalStorage for individual users + KV for shared rooms
 
-### 性能表现
-- **亚秒同步**: 实时游戏状态更新
-- **全球CDN**: Vercel边缘网络支持全球访问
-- **智能轮询**: 仅在数据实际变化时更新UI
-- **优化构建**: Vite打包和压缩优化
+### Performance Metrics
+- **Sub-second sync**: Real-time game state updates
+- **Global CDN**: Vercel edge network for worldwide low-latency access
+- **Smart polling**: UI updates only when data actually changes
+- **Optimized builds**: Vite bundling and minification for production
 
 ## License
 
