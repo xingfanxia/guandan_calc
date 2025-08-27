@@ -284,7 +284,8 @@ class RoomManager {
       'rankingSection',      // Hide entire ranking section for viewers
       'roomControls',        // Hide room creation controls
       'customRulesSection',  // Hide custom rules configuration
-      'resultsSection'       // Hide results section (waiting for ranking)
+      'resultsSection',      // Hide results section (waiting for ranking)
+      'playerSetupSection'   // Hide player setup section (already configured)
     ];
     
     sectionsToHide.forEach(id => {
