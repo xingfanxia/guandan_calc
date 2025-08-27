@@ -283,7 +283,8 @@ class RoomManager {
     const sectionsToHide = [
       'rankingSection',      // Hide entire ranking section for viewers
       'roomControls',        // Hide room creation controls
-      'customRulesSection'   // Hide custom rules configuration
+      'customRulesSection',  // Hide custom rules configuration
+      'resultsSection'       // Hide results section (waiting for ranking)
     ];
     
     sectionsToHide.forEach(id => {

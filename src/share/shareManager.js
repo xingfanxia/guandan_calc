@@ -189,7 +189,8 @@ class ShareManager {
     const sectionsToHide = [
       'rankingSection',      // Hide ranking section completely
       'roomControls',        // Hide room creation controls
-      'customRulesSection'   // Hide custom rules configuration
+      'customRulesSection',  // Hide custom rules configuration
+      'resultsSection'       // Hide results section (waiting for ranking)
     ];
     
     sectionsToHide.forEach(id => {
