@@ -264,11 +264,11 @@ class ExportManager {
     const W = 800; // Much narrower for mobile
     const n = this.gameState.state.hist.length;
     
-    // Much tighter spacing for mobile
-    const headerH = 240; // Reduced header space
-    const honorEstimateH = 350; // Reduced honor section estimate
-    const historyH = Math.max(100, n * 120); // Each game ~120px instead of 200px
-    const H = headerH + honorEstimateH + historyH + 80; // Less padding
+    // Calculate based on actual content needs
+    const headerH = 200; // Compact header
+    const honorEstimateH = 600; // More space for single-column honors
+    const historyH = Math.max(150, n * 150); // Each game ~150px
+    const H = headerH + honorEstimateH + historyH + 100;
     
     this.longCnv.width = W;
     this.longCnv.height = H;
@@ -293,16 +293,16 @@ class ExportManager {
     ];
     
     subtitleLines.forEach((line, index) => {
-      this.lctx.fillText(line, 40, 100 + index * 24);
+      this.lctx.fillText(line, 40, 110 + index * 26);
     });
     
     // Compact team info  
     const teamInfo = this.gameState.settings.t1.name + ' ' + this.gameState.state.t1.lvl + 
                     ' | ' + this.gameState.settings.t2.name + ' ' + this.gameState.state.t2.lvl;
-    this.lctx.fillText(teamInfo, 40, 150);
+    this.lctx.fillText(teamInfo, 40, 165);
     
-    this.lctx.font = '14px Arial';
-    this.lctx.fillText('时间：' + now(), 40, 170);
+    this.lctx.font = '16px Arial';
+    this.lctx.fillText('时间：' + now(), 40, 185);
     
     // Draw honor section for mobile
     this.drawMobileHonorSection();
@@ -329,7 +329,7 @@ class ExportManager {
     // Get honor data
     const statsManager = window.guandanApp?.statsManager;
     if (!statsManager) {
-      this.honorSectionEndY = currentY + 20;
+      this.honorSectionEndY = currentY + 30;
       return;
     }
     
@@ -339,76 +339,77 @@ class ExportManager {
     const team1Result = statsManager.findMVPAndBurden(team1Players);
     const team2Result = statsManager.findMVPAndBurden(team2Players);
     
-    // Honor section title - much bigger font
-    this.lctx.font = 'bold 32px Arial';
+    // Honor section title - huge font
+    this.lctx.font = 'bold 36px Arial';
     this.lctx.fillStyle = '#f5f6f8';
     this.lctx.fillText('🏆 荣誉提名', 40, currentY);
-    currentY += 40;
+    currentY += 50;
     
-    // Team honors - compact but readable
-    this.lctx.font = 'bold 20px Arial';
+    // Team honors - much bigger fonts, one per line
+    this.lctx.font = 'bold 24px Arial';
     this.lctx.fillStyle = '#3b82f6';
     this.lctx.fillText(this.gameState.settings.t1.name, 40, currentY);
+    currentY += 35;
     
-    this.lctx.font = '18px Arial';
+    this.lctx.font = '20px Arial';
     this.lctx.fillStyle = '#b4b8bf';
-    this.lctx.fillText(' 很C:' + (team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—') + 
-                     ' 很闹:' + (team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'), 120, currentY);
-    currentY += 28;
+    this.lctx.fillText('很C: ' + (team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—'), 60, currentY);
+    currentY += 30;
+    this.lctx.fillText('很闹: ' + (team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'), 60, currentY);
+    currentY += 45;
     
-    this.lctx.font = 'bold 20px Arial';
+    this.lctx.font = 'bold 24px Arial';
     this.lctx.fillStyle = '#ef4444';
     this.lctx.fillText(this.gameState.settings.t2.name, 40, currentY);
+    currentY += 35;
     
-    this.lctx.font = '18px Arial';
+    this.lctx.font = '20px Arial';
     this.lctx.fillStyle = '#b4b8bf';
-    this.lctx.fillText(' 很C:' + (team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—') + 
-                     ' 很闹:' + (team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'), 120, currentY);
-    currentY += 40;
+    this.lctx.fillText('很C: ' + (team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'), 60, currentY);
+    currentY += 30;
+    this.lctx.fillText('很闹: ' + (team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'), 60, currentY);
+    currentY += 50;
     
-    // Special honors - 2 columns, bigger fonts
-    this.lctx.font = 'bold 24px Arial';
+    // Special honors title - huge font
+    this.lctx.font = 'bold 28px Arial';
     this.lctx.fillStyle = '#f5f6f8';
-    this.lctx.fillText('特殊荣誉', 40, currentY);
-    currentY += 40;
+    this.lctx.fillText('🎖️ 特殊荣誉', 40, currentY);
+    currentY += 45;
     
     const honors = [
-      {key: 'lyubu', name: '🥇吕布', desc: '第一名', color: '#d4af37'},
-      {key: 'adou', name: '😅阿斗', desc: '垫底', color: '#8b4513'},
-      {key: 'shifo', name: '🗿石佛', desc: '稳定', color: '#708090'},
-      {key: 'bodongwang', name: '🌊波动王', desc: '波动', color: '#ff4500'},
-      {key: 'fendouwang', name: '📈奋斗王', desc: '进步', color: '#32cd32'},
-      {key: 'fuzhuwang', name: '🛡️辅助王', desc: '牺牲', color: '#4169e1'}
+      {key: 'lyubu', name: '🥇吕布', desc: '最多第一名', color: '#d4af37'},
+      {key: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513'},
+      {key: 'shifo', name: '🗿石佛', desc: '排名最稳定', color: '#708090'},
+      {key: 'bodongwang', name: '🌊波动王', desc: '排名波动最大', color: '#ff4500'},
+      {key: 'fendouwang', name: '📈奋斗王', desc: '排名稳步提升', color: '#32cd32'},
+      {key: 'fuzhuwang', name: '🛡️辅助王', desc: '团队胜利时垫底', color: '#4169e1'}
     ];
     
-    // Arrange in 2 columns - bigger font
-    this.lctx.font = '20px Arial';
-    let col1Y = currentY;
-    let col2Y = currentY;
-    
-    honors.forEach((honor, index) => {
+    // Single column layout with bigger fonts to avoid overlap
+    this.lctx.font = 'bold 22px Arial';
+    honors.forEach((honor) => {
       const winner = specialHonors[honor.key];
       const winnerText = winner ? winner.emoji + winner.name : '—';
       
-      if (index % 2 === 0) {
-        // Left column
-        this.lctx.fillStyle = honor.color;
-        this.lctx.fillText(honor.name + ':', 60, col1Y);
-        this.lctx.fillStyle = '#f5f6f8';
-        this.lctx.fillText(winnerText, 200, col1Y);
-        col1Y += 35;
-      } else {
-        // Right column
-        this.lctx.fillStyle = honor.color;
-        this.lctx.fillText(honor.name + ':', 420, col2Y);
-        this.lctx.fillStyle = '#f5f6f8';
-        this.lctx.fillText(winnerText, 560, col2Y);
-        col2Y += 35;
-      }
+      // Honor name in color
+      this.lctx.fillStyle = honor.color;
+      this.lctx.fillText(honor.name, 60, currentY);
+      
+      // Winner name
+      this.lctx.fillStyle = '#f5f6f8';
+      this.lctx.fillText(winnerText, 200, currentY);
+      
+      // Description
+      this.lctx.fillStyle = '#888';
+      this.lctx.font = '16px Arial';
+      this.lctx.fillText('(' + honor.desc + ')', 350, currentY);
+      
+      this.lctx.font = 'bold 22px Arial';
+      currentY += 40; // More space between honors
     });
     
-    // Store final Y position with more padding
-    this.honorSectionEndY = Math.max(col1Y, col2Y) + 40;
+    // Store final Y position with generous padding
+    this.honorSectionEndY = currentY + 60;
   }
 
   /**
