@@ -264,11 +264,11 @@ class ExportManager {
     const W = 800; // Much narrower for mobile
     const n = this.gameState.state.hist.length;
     
-    // Calculate based on actual content needs
+    // Calculate based on actual content needs - be more generous
     const headerH = 200; // Compact header
-    const honorEstimateH = 600; // More space for single-column honors
-    const historyH = Math.max(150, n * 150); // Each game ~150px
-    const H = headerH + honorEstimateH + historyH + 100;
+    const honorEstimateH = 700; // More space for single-column honors
+    const historyH = Math.max(200, n * 200); // Each game ~200px (was too tight)
+    const H = headerH + honorEstimateH + historyH + 200; // More bottom padding
     
     this.longCnv.width = W;
     this.longCnv.height = H;
@@ -493,6 +493,13 @@ class ExportManager {
       }
       
       currentY += 30; // Space between games
+    }
+    
+    // Adjust canvas height if content is taller than estimated
+    const actualContentHeight = currentY + 50; // Add bottom padding
+    if (actualContentHeight > H) {
+      this.longCnv.height = actualContentHeight;
+      console.log('Adjusted canvas height from', H, 'to', actualContentHeight);
     }
   }
 
