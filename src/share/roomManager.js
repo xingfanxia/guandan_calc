@@ -279,10 +279,24 @@ class RoomManager {
    * Disable controls for viewers
    */
   disableControls() {
+    // Hide sections that viewers don't need
+    const sectionsToHide = [
+      'rankingSection', // Hide entire ranking section for viewers
+      'roomControls'    // Hide room creation controls
+    ];
+    
+    sectionsToHide.forEach(id => {
+      const section = document.getElementById(id);
+      if (section) {
+        section.style.display = 'none';
+      }
+    });
+    
+    // Disable remaining interactive buttons
     const buttonsToDisable = [
       'generatePlayers', 'shuffleTeams', 'applyBulkNames', 'quickStart',
       'clearRanking', 'randomRanking', 'manualCalc', 'apply', 'advance',
-      'undo', 'resetMatch', 'save4', 'save6', 'save8'
+      'undo', 'resetMatch', 'save4', 'save6', 'save8', 'createRoom'
     ];
     
     buttonsToDisable.forEach(id => {

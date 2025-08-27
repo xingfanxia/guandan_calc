@@ -11,6 +11,18 @@
 <div class="wrap">
   <h1>掼蛋升级计算器 v9.0 <span class="badge">玩家系统</span></h1>
 
+  <!-- 房间功能 -->
+  <div class="card" id="roomControls">
+    <h3>🎮 多人房间</h3>
+    <div class="row">
+      <button id="createRoom" style="background:#22c55e;color:white;padding:12px 20px;font-size:16px;">📺 创建房间</button>
+      <button id="joinRoom" style="background:#3b82f6;color:white;padding:12px 20px;font-size:16px;">🔗 加入房间</button>
+      <span class="small muted" style="margin-left:16px;">
+        创建房间与朋友实时共享比赛，或输入房间代码观看他人比赛
+      </span>
+    </div>
+  </div>
+
   <!-- 玩家设置 -->
   <div class="card">
     <h3>玩家设置</h3>
@@ -47,7 +59,7 @@
   </div>
 
   <!-- 本局排名 -->
-  <div class="card">
+  <div class="card" id="rankingSection">
     <h3>本局排名</h3>
     <div class="row">
       <div class="small">仅🈶1方可升级：</div><input type="checkbox" id="must1" checked>
@@ -182,8 +194,6 @@
       <button id="exportTxt">导出 TXT</button>
       <button id="exportCsv">导出 CSV</button>
       <button id="exportLongPng">导出 长图 PNG</button>
-      <button id="createRoom" style="background:#22c55e;color:white;">📺 创建房间</button>
-      <button id="joinRoom" style="background:#3b82f6;color:white;">🔗 加入房间</button>
       <button id="shareGame" style="background:#8b5cf6;color:white;">📤 分享快照</button>
       <button id="resetMatch" style="border-color:#5b1e1e;color:#ffb3b3">重置比赛</button>
       <span id="exportTip" class="small muted" style="grid-column:1/-1"></span>

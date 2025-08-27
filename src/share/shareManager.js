@@ -185,11 +185,24 @@ class ShareManager {
    * Disable interactive controls in read-only mode
    */
   disableInteractiveControls() {
+    // Hide sections that don't make sense for viewers
+    const sectionsToHide = [
+      'rankingSection', // Hide ranking section completely
+      'roomControls'    // Hide room creation controls
+    ];
+    
+    sectionsToHide.forEach(id => {
+      const section = document.getElementById(id);
+      if (section) {
+        section.style.display = 'none';
+      }
+    });
+    
     // Disable buttons that modify game state
     const buttonsToDisable = [
       'generatePlayers', 'shuffleTeams', 'applyBulkNames', 'quickStart',
       'clearRanking', 'randomRanking', 'manualCalc', 'apply', 'advance',
-      'undo', 'resetMatch', 'save4', 'save6', 'save8'
+      'undo', 'resetMatch', 'save4', 'save6', 'save8', 'createRoom'
     ];
     
     buttonsToDisable.forEach(id => {
