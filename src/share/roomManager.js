@@ -241,7 +241,7 @@ class RoomManager {
     // Update title
     const title = document.querySelector('h1');
     if (title) {
-      title.innerHTML = `掼蛋计分器 <span class="badge" style="background:#22c55e;">观看模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
+      title.innerHTML = `闹麻家族掼蛋计分器 <span class="badge" style="background:#22c55e;">观看模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
     }
   }
 
