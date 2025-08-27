@@ -261,7 +261,7 @@ class ExportManager {
       return;
     }
     
-    const W = 800; // Much narrower for mobile
+    let W = 600; // Even narrower for mobile to reduce horizontal whitespace
     const n = this.gameState.state.hist.length;
     
     // Start with minimal height and expand dynamically
@@ -420,10 +420,10 @@ class ExportManager {
       this.lctx.fillStyle = '#f5f6f8';
       this.lctx.fillText(winnerText, 200, currentY);
       
-      // Description
+      // Description (adjusted for narrower width)
       this.lctx.fillStyle = '#888';
       this.lctx.font = '16px Arial';
-      this.lctx.fillText('(' + honor.desc + ')', 350, currentY);
+      this.lctx.fillText('(' + honor.desc + ')', 280, currentY);
       
       this.lctx.font = 'bold 22px Arial';
       currentY += 40; // More space between honors
@@ -488,8 +488,8 @@ class ExportManager {
           }
         }
         
-        // Wrap ranking text - bigger font
-        const wrappedRanking = this.wrapText(rankText, W - 80, '18px Arial');
+        // Wrap ranking text - adjusted for narrower width
+        const wrappedRanking = this.wrapText(rankText, W - 60, '18px Arial');
         this.lctx.font = 'bold 18px Arial';
         this.lctx.fillStyle = '#f5f6f8';
         wrappedRanking.forEach(line => {
@@ -500,7 +500,7 @@ class ExportManager {
       
       // A-level notes - bigger font, better wrapping
       if (h.aNote) {
-        const wrappedNotes = this.wrapText('备注: ' + h.aNote, W - 80, '16px Arial');
+        const wrappedNotes = this.wrapText('备注: ' + h.aNote, W - 60, '16px Arial');
         this.lctx.fillStyle = '#ffd700';
         this.lctx.font = '16px Arial';
         wrappedNotes.forEach(line => {
