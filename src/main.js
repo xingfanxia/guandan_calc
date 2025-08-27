@@ -639,6 +639,26 @@ class GuandanApp {
    * Show create room modal
    */
   async showCreateRoomModal() {
+    // Confirm reset before creating room
+    if (!confirm('创建房间将重置当前比赛数据，确定继续？')) {
+      return;
+    }
+    
+    // Reset game state before creating room
+    gameState.resetAll();
+    
+    // Clear UI state
+    this.selected = [];
+    this.input.value = '';
+    
+    // Re-render everything to ensure clean state
+    this.uiRenderer.renderTeams();
+    this.statsManager.renderHistory();
+    this.calc();
+    this.statsManager.renderStatistics();
+    this.playerSystem.renderRankingArea();
+    
+    // Now create the room with clean data
     const roomCode = await this.roomManager.createRoom();
     if (roomCode) {
       this.showRoomCreatedModal(roomCode);
