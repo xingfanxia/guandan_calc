@@ -22,11 +22,11 @@ class RoomManager {
   checkURLForRoom() {
     const urlParams = new URLSearchParams(window.location.search);
     const roomCode = urlParams.get('room');
-    const isHost = urlParams.get('host') === 'true';
+    const authToken = urlParams.get('auth');
     
     if (roomCode) {
-      if (isHost) {
-        this.joinRoomAsHost(roomCode);
+      if (authToken) {
+        this.joinRoomAsHost(roomCode, authToken);
       } else {
         this.joinRoom(roomCode);
       }
@@ -44,6 +44,19 @@ class RoomManager {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+  }
+
+  /**
+   * Generate authentication token for host protection
+   * @returns {string} Auth token (32 character random string)
+   */
+  generateAuthToken() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
   }
 
   /**
@@ -82,11 +95,16 @@ class RoomManager {
 
   /**
    * Create a new room
-   * @returns {Promise<string|null>} Room code or null if failed
+   * @returns {Promise<Object|null>} Room info with code and auth token, or null if failed
    */
   async createRoom() {
     try {
-      const gameData = this.createGameData();
+      // Generate auth token for host protection
+      const authToken = this.generateAuthToken();
+      const gameData = {
+        ...this.createGameData(),
+        hostAuthToken: authToken // Store auth token with room data
+      };
       
       const response = await fetch('/api/rooms/create', {
         method: 'POST',
@@ -100,10 +118,11 @@ class RoomManager {
       
       if (result.success) {
         this.currentRoomCode = result.roomCode;
+        this.hostAuthToken = authToken;
         this.isHost = true;
         this.isViewer = false;
         this.startAutoSync();
-        return result.roomCode;
+        return { roomCode: result.roomCode, authToken: authToken };
       } else {
         console.error('Failed to create room:', result.error);
         return null;
@@ -115,19 +134,28 @@ class RoomManager {
   }
 
   /**
-   * Join room as host (re-entering own room)
+   * Join room as host (re-entering own room with auth token)
    * @param {string} roomCode - Room code to join as host
+   * @param {string} authToken - Authentication token
    * @returns {Promise<boolean>} Success status
    */
-  async joinRoomAsHost(roomCode) {
+  async joinRoomAsHost(roomCode, authToken) {
     try {
       const response = await fetch(`/api/rooms/${roomCode}`);
       const result = await response.json();
       
       if (result.success) {
-        // Load room data
+        // Validate auth token
+        if (result.data.hostAuthToken !== authToken) {
+          alert('无效的房主认证token，只能以观看者身份进入');
+          // Fallback to viewer mode
+          return this.joinRoom(roomCode);
+        }
+        
+        // Valid host - load room data
         this.loadRoomData(result.data);
         this.currentRoomCode = roomCode;
+        this.hostAuthToken = authToken;
         this.isHost = true;
         this.isViewer = false;
         this.startAutoSync();
@@ -190,16 +218,19 @@ class RoomManager {
   }
 
   /**
-   * Update room with current game data
+   * Update room with current game data (includes auth token)
    * @returns {Promise<boolean>} Success status
    */
   async updateRoom() {
-    if (!this.currentRoomCode || !this.isHost) {
+    if (!this.currentRoomCode || !this.isHost || !this.hostAuthToken) {
       return false;
     }
 
     try {
-      const gameData = this.createGameData();
+      const gameData = {
+        ...this.createGameData(),
+        hostAuthToken: this.hostAuthToken // Include auth token in updates
+      };
       
       const response = await fetch(`/api/rooms/${this.currentRoomCode}`, {
         method: 'PUT',

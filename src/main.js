@@ -659,10 +659,10 @@ class GuandanApp {
     this.playerSystem.renderRankingArea();
     
     // Now create the room with clean data
-    const roomCode = await this.roomManager.createRoom();
-    if (roomCode) {
-      // Redirect to room URL as host instead of showing modal
-      const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}&host=true`;
+    const roomInfo = await this.roomManager.createRoom();
+    if (roomInfo) {
+      // Redirect to room URL with auth token for host access
+      const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomInfo.roomCode}&auth=${roomInfo.authToken}`;
       window.location.href = roomURL;
     } else {
       alert('创建房间失败，请稍后重试');
