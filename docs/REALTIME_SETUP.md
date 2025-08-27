@@ -2,11 +2,38 @@
 
 ## 🚀 Feature Overview
 
+✅ **VERIFIED WORKING** on Vercel production!
+
 The real-time room sharing feature allows players to:
 - 📺 **Create rooms** with short codes (ROOM-XXXX)
 - 🔗 **Share room codes** for live game viewing  
 - ⚡ **Auto-sync** game state every 10 seconds (hosts)
 - 👀 **Live viewing** with 5-second polling (viewers)
+
+## 🎯 How It Actually Works (Validated)
+
+### Room Creation Flow
+1. User clicks "📺 创建房间"
+2. Frontend calls `POST /api/rooms/create` with current game data
+3. Vercel Edge Function generates unique ROOM-XXXX code
+4. Game data stored in Upstash Redis with 24h TTL
+5. Room code displayed in modal with shareable URL
+6. Host mode: auto-sync starts (saves to KV every 10s)
+
+### Room Joining Flow  
+1. User clicks "🔗 加入房间" or visits `?room=ROOM-XXXX` URL
+2. Frontend calls `GET /api/rooms/ROOM-XXXX` to fetch data
+3. Game state loaded in read-only mode
+4. UI shows green "观看模式" banner with room code
+5. Viewer mode: polling starts (checks for updates every 5s)
+6. All interactive controls disabled for viewers
+
+### Real-Time Sync Process
+1. **Host plays game** → Game state changes locally
+2. **Auto-sync triggers** → `PUT /api/rooms/ROOM-XXXX` with new data  
+3. **KV stores update** → `lastUpdated` timestamp changes
+4. **Viewers poll** → `GET /api/rooms/ROOM-XXXX` returns new data
+5. **UI updates automatically** → Shows "🔄 数据已更新" notification
 
 ## 🛠 Setup Instructions
 

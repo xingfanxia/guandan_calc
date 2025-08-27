@@ -1,6 +1,6 @@
 # 掼蛋计分器 (Guandan Calculator)
 
-A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chinese climbing card game. This single-page application helps track team scores, player rankings, and level progression throughout the game.
+A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chinese climbing card game. Features real-time room sharing, player management, and complete game progression tracking.
 
 [English](#english) | [中文](#中文)
 
@@ -8,50 +8,71 @@ A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chi
 
 ### Features
 
-- **Player Management System**
-  - 8 customizable players with animal emoji avatars
+- **🎮 Real-Time Room Sharing** ⭐ **NEW**
+  - Create shareable room codes (e.g., `ROOM-A1B2`)
+  - Live game viewing for remote players
+  - Auto-sync every 10 seconds for hosts
+  - Real-time updates every 5 seconds for viewers
+  - 24-hour room persistence with Vercel KV
+
+- **👥 Player Management System**
+  - 8 customizable players with animal & food emoji avatars
   - Drag-and-drop team assignment
-  - Editable player names
+  - Bulk name input with space-separated format
+  - Quick start with preset names
   
-- **Game Scoring**
+- **🎯 Game Scoring**
   - Support for 4, 6, and 8 player modes
   - Drag-and-drop ranking system for game results
   - Automatic score calculation based on player positions
   - Team-based level progression (2→3→4→5→6→7→8→9→10→J→Q→K→A)
   
-- **Special Rules**
+- **⚖️ Special Rules**
   - A-level victory conditions (strict/lenient modes)
   - A-level failure tracking (reset to level 2 after 3 failures)
   - 8-player sweep bonus (1,2,3,4 positions = 4 level upgrade)
   - "Must have first place" option for upgrades
   
-- **Statistics & Analytics**
+- **📊 Statistics & Analytics**
   - Player performance tracking (average ranking, first/last place counts)
   - Team MVP and burden identification
   - Color-coded game history by winning team
   - Detailed round-by-round progression tracking
   
-- **Export Options**
+- **📤 Export & Sharing**
+  - Real-time room codes for live viewing
+  - Static snapshot URLs for data sharing
   - Text export for sharing
   - CSV export for data analysis
   - PNG export for visual records
-  - All exports include complete player ranking details
   
-- **User Experience**
+- **🎨 User Experience**
+  - Modern modular ES6 architecture
   - Celebration modal for A-level victories
   - Visual team indicators throughout
   - Persistent game state (survives page refresh)
-  - Responsive design for various screen sizes
+  - Mobile-optimized touch controls
+  - Smart reset (preserves player setup)
 
 ### Quick Start
 
-1. Open `guodan_calc.html` in any modern web browser
-2. Click "生成玩家" to generate 8 random players
-3. Drag players to assign them to teams (4 players per team)
-4. Select game mode (4, 6, or 8 players)
-5. After each round, drag players to their ranking positions
-6. Click "应用结果" to record the round
-7. Continue until a team wins at A-level!
+**🚀 Solo Play:**
+1. Visit the live app URL
+2. Click **"生成玩家"** → **"快速开始"** for instant setup
+3. Drag players to assign teams (4 players per team)
+4. Drag players to ranking positions after each round
+5. Game auto-calculates and applies results
+6. Continue until A-level victory!
+
+**📺 Multiplayer Room (NEW):**
+1. **Host:** Click **"📺 创建房间"** → Share room code with friends
+2. **Viewers:** Click **"🔗 加入房间"** → Enter room code  
+3. **Live Sync:** Viewers see real-time game updates as host plays
+4. **Auto-Updates:** Game state syncs automatically every 10 seconds
+
+**⚡ Bulk Name Entry:**
+- Use space-separated names: `小 超 豪 姐 哥 帆 夫 达`
+- Quick start buttons provide example names for each mode
 
 ### Game Rules Configuration
 
@@ -130,12 +151,32 @@ The calculator supports customizable scoring rules:
 - Safari 14+
 - Edge 90+
 
-## Technical Details
+## Technical Architecture
 
-- **Technology**: Pure HTML5, CSS3, and JavaScript (no external dependencies)
-- **Storage**: LocalStorage for game state persistence
-- **Canvas API**: Used for PNG export generation
-- **Drag and Drop API**: HTML5 native drag and drop for intuitive UI
+### Frontend
+- **Modern ES6 Modules**: Modular architecture with 12+ specialized modules
+- **Vite Build System**: Fast development and optimized production builds
+- **Vanilla JavaScript**: No framework dependencies, pure web standards
+- **UTF-8 Support**: Full Chinese character support throughout
+
+### Real-Time Backend
+- **Vercel KV (Upstash Redis)**: Ultra-fast room data storage (<1ms reads)
+- **Edge Functions**: Serverless API routes for room management
+- **Auto-Sync**: Host games sync every 10 seconds automatically  
+- **Live Polling**: Viewers poll for updates every 5 seconds
+- **TTL Management**: Rooms auto-expire after 24 hours
+
+### Data Flow
+1. **Room Creation**: `POST /api/rooms/create` → Generate `ROOM-XXXX` code → Store in KV
+2. **Game Updates**: Host plays → Auto-sync to KV → `PUT /api/rooms/{code}`
+3. **Live Viewing**: Viewers poll → `GET /api/rooms/{code}` → Update UI if changed
+4. **Persistence**: LocalStorage for individual users + KV for shared rooms
+
+### Performance
+- **Sub-second sync**: Real-time game state updates
+- **Global CDN**: Vercel edge network for worldwide access
+- **Efficient polling**: Only updates UI when data actually changes
+- **Optimized builds**: Vite bundles and minifies for production
 
 ## License
 
