@@ -652,27 +652,64 @@ class PlayerSystem {
   }
 
   /**
+   * Apply placeholder names for current mode
+   * @returns {boolean} Success status
+   */
+  applyPlaceholderNames() {
+    const mode = parseInt($('mode').value);
+    const placeholderNames = PLACEHOLDER_NAMES[mode];
+    
+    if (!placeholderNames) {
+      alert('当前模式没有预设姓名');
+      return false;
+    }
+    
+    return this.applyBulkNames(placeholderNames);
+  }
+
+  /**
+   * Show success feedback on button
+   * @param {HTMLElement} button - Button element
+   */
+  showSuccessFeedback(button) {
+    if (button) {
+      const originalText = button.textContent;
+      const originalBg = button.style.background;
+      button.textContent = '已应用 ✓';
+      button.style.background = '#22c55e';
+      setTimeout(() => {
+        button.textContent = originalText;
+        button.style.background = originalBg;
+      }, 1000);
+    }
+  }
+
+  /**
    * Setup bulk name input event listeners
    */
   setupBulkNameInput() {
     const applyBtn = $('applyBulkNames');
+    const quickStartBtn = $('quickStart');
     const input = $('bulkNames');
     
     // Set initial placeholder
     this.updatePlaceholder();
     
+    // Apply custom names button
     if (applyBtn) {
       applyBtn.onclick = () => {
         const namesText = input ? input.value : '';
         if (this.applyBulkNames(namesText)) {
-          // Show success feedback
-          const originalText = applyBtn.textContent;
-          applyBtn.textContent = '已应用 ✓';
-          applyBtn.style.background = '#22c55e';
-          setTimeout(() => {
-            applyBtn.textContent = originalText;
-            applyBtn.style.background = '';
-          }, 1000);
+          this.showSuccessFeedback(applyBtn);
+        }
+      };
+    }
+    
+    // Quick start with placeholder names button
+    if (quickStartBtn) {
+      quickStartBtn.onclick = () => {
+        if (this.applyPlaceholderNames()) {
+          this.showSuccessFeedback(quickStartBtn);
         }
       };
     }
@@ -683,17 +720,7 @@ class PlayerSystem {
         if (e.key === 'Enter') {
           e.preventDefault();
           if (this.applyBulkNames(input.value)) {
-            // Show success feedback
-            const applyBtn = $('applyBulkNames');
-            if (applyBtn) {
-              const originalText = applyBtn.textContent;
-              applyBtn.textContent = '已应用 ✓';
-              applyBtn.style.background = '#22c55e';
-              setTimeout(() => {
-                applyBtn.textContent = originalText;
-                applyBtn.style.background = '';
-              }, 1000);
-            }
+            this.showSuccessFeedback(applyBtn);
           }
         }
       };
