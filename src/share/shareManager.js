@@ -148,7 +148,7 @@ class ShareManager {
     // Update title to indicate read-only mode
     const title = document.querySelector('h1');
     if (title) {
-      title.innerHTML = title.innerHTML.replace('v9.0', 'v9.0 <span class="badge" style="background:#f59e0b;">只读模式</span>');
+      title.innerHTML = '掼蛋计分器 <span class="badge" style="background:#f59e0b;">只读模式</span> <span class="badge">开闹</span>';
     }
   }
 
