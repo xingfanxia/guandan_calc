@@ -304,7 +304,7 @@ class ExportManager {
     this.lctx.font = '16px Arial';
     this.lctx.fillText('时间：' + now(), 40, 185);
     
-    // Draw honor section for mobile
+    // Draw honor section for mobile (start much lower)
     this.drawMobileHonorSection();
     
     // Add debug line to see where honor section ends
@@ -327,7 +327,7 @@ class ExportManager {
    * Draw honor section optimized for mobile
    */
   drawMobileHonorSection() {
-    const startY = 190; // Start right after header
+    const startY = 220; // Start much lower to avoid header overlap
     let currentY = startY;
     
     // Get honor data
