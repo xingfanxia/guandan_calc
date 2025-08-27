@@ -1,14 +1,10 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  publicDir: 'public',
   build: {
     outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: 'index.html'
-      }
-    }
+    emptyOutDir: true
   },
   server: {
     port: 3000,

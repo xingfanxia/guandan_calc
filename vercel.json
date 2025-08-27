@@ -1,5 +1,5 @@
 {
-  "buildCommand": "mkdir -p public && cp guodan_calc.html public/index.html",
-  "outputDirectory": "public",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "framework": null
 }
