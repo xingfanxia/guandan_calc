@@ -158,6 +158,74 @@ class ExportManager {
   }
 
   /**
+   * Draw honor section on canvas
+   */
+  drawHonorSection() {
+    const y = 200; // Position after header info
+    
+    // Get honor data (need to access StatsManager's method)
+    const statsManager = window.guandanApp?.statsManager;
+    if (!statsManager) return;
+    
+    const specialHonors = statsManager.findSpecialHonors();
+    const team1Players = this.gameState.players.filter(p => p.team === 1);
+    const team2Players = this.gameState.players.filter(p => p.team === 2);
+    const team1Result = statsManager.findMVPAndBurden(team1Players);
+    const team2Result = statsManager.findMVPAndBurden(team2Players);
+    
+    // Section title
+    this.lctx.font = 'bold 24px Arial';
+    this.lctx.fillStyle = '#f5f6f8';
+    this.lctx.fillText('🏆 荣誉提名', 40, y);
+    
+    // Team honors
+    this.lctx.font = '18px Arial';
+    this.lctx.fillStyle = '#b4b8bf';
+    
+    const teamY = y + 40;
+    this.lctx.fillText(this.gameState.settings.t1.name + ':', 40, teamY);
+    this.lctx.fillText('很C: ' + (team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—'), 120, teamY);
+    this.lctx.fillText('很闹: ' + (team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'), 300, teamY);
+    
+    const team2Y = teamY + 30;
+    this.lctx.fillText(this.gameState.settings.t2.name + ':', 40, team2Y);
+    this.lctx.fillText('很C: ' + (team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'), 120, team2Y);
+    this.lctx.fillText('很闹: ' + (team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'), 300, team2Y);
+    
+    // Special honors
+    const specialY = team2Y + 50;
+    this.lctx.fillText('特殊荣誉:', 40, specialY);
+    
+    const honors = [
+      {key: 'lyubu', name: '吕布', desc: '最多第一名'},
+      {key: 'adou', name: '阿斗', desc: '最多垫底'},
+      {key: 'shifo', name: '石佛', desc: '排名最稳定'},
+      {key: 'bodongwang', name: '波动率的王', desc: '排名波动最大'},
+      {key: 'fendouwang', name: '奋斗之王', desc: '排名稳步提升'},
+      {key: 'fuzhuwang', name: '辅助之王', desc: '团队胜利时垫底'}
+    ];
+    
+    this.lctx.font = '16px Arial';
+    let honorX = 40;
+    let honorY = specialY + 30;
+    
+    honors.forEach((honor, index) => {
+      const winner = specialHonors[honor.key];
+      const text = honor.name + ': ' + (winner ? winner.emoji + winner.name : '—');
+      
+      this.lctx.fillText(text, honorX, honorY);
+      
+      // Arrange in 2 columns
+      if (index % 2 === 0) {
+        honorX = 400;
+      } else {
+        honorX = 40;
+        honorY += 25;
+      }
+    });
+  }
+
+  /**
    * Export game history as long PNG image
    */
   exportLongPNG() {
@@ -168,9 +236,10 @@ class ExportManager {
     
     const W = 2200;
     const headH = 220;
+    const honorSectionH = 200; // Space for honor section
     const rowH = 40;
     const n = this.gameState.state.hist.length;
-    const H = headH + (n + 1) * rowH + 80;
+    const H = headH + honorSectionH + (n + 1) * rowH + 80;
     
     this.longCnv.width = W;
     this.longCnv.height = H;
@@ -204,7 +273,11 @@ class ExportManager {
     
     this.lctx.fillText('生成时间：' + now(), 40, 170);
     
-    // Table headers
+    // Add honor section before table
+    this.drawHonorSection();
+    
+    // Table headers (move down to accommodate honor section)
+    const tableStartY = headH + 200; // Add space for honor section
     const cols = [
       '#', '时间', '人数', '胜方组合', '玩家排名', '升级', '胜队',
       this.gameState.settings.t1.name + '级',
@@ -216,14 +289,14 @@ class ExportManager {
     this.lctx.font = 'bold 20px Arial';
     this.lctx.fillStyle = '#e6b800';
     for (let c = 0; c < cols.length; c++) {
-      this.lctx.fillText(cols[c], xs[c], headH);
+      this.lctx.fillText(cols[c], xs[c], tableStartY);
     }
     
     // Table rows
     this.lctx.font = '14px Arial';
     for (let i = 0; i < n; i++) {
       const h = this.gameState.state.hist[i];
-      const y = headH + (i + 1) * rowH;
+      const y = tableStartY + (i + 1) * rowH;
       
       // Add row background color based on winning team
       const winColor = h.winKey === 't1' ? 
