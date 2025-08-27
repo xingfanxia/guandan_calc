@@ -261,7 +261,7 @@ class ShareManager {
   }
 
   /**
-   * Show share modal with URL and sync options
+   * Show share modal with room and URL options
    */
   showShareModal() {
     const shareURL = this.generateShareURL();

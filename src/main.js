@@ -13,6 +13,7 @@ import VictoryModal from './ui/victoryModal.js';
 import StatsManager from './statistics/statsManager.js';
 import ExportManager from './export/exportManager.js';
 import ShareManager from './share/shareManager.js';
+import RoomManager from './share/roomManager.js';
 
 // Main application class
 class GuandanApp {
@@ -28,6 +29,7 @@ class GuandanApp {
     this.statsManager = new StatsManager(gameState);
     this.exportManager = new ExportManager(gameState);
     this.shareManager = new ShareManager(gameState);
+    this.roomManager = new RoomManager(gameState);
     
     // Setup inter-module communication
     this.setupCallbacks();
@@ -141,7 +143,11 @@ class GuandanApp {
     on($('exportCsv'), 'click', () => this.exportManager.exportCSV());
     on($('exportLongPng'), 'click', () => this.exportManager.exportLongPNG());
     
-    // Share function
+    // Room functions
+    on($('createRoom'), 'click', () => this.showCreateRoomModal());
+    on($('joinRoom'), 'click', () => this.showJoinRoomModal());
+    
+    // Share function (static snapshot)
     on($('shareGame'), 'click', () => this.shareManager.showShareModal());
     
     // Reset
@@ -546,6 +552,11 @@ class GuandanApp {
     if (gameState.settings.autoApply) {
       this.playerSystem.clearRanking();
     }
+    
+    // Sync to room if hosting
+    if (this.roomManager.isHost) {
+      this.roomManager.syncNow();
+    }
   }
 
   /**
@@ -620,6 +631,134 @@ class GuandanApp {
     this.uiRenderer.renderTeams();
     this.statsManager.renderHistory();
     this.calc();
+  }
+
+  /**
+   * Show create room modal
+   */
+  async showCreateRoomModal() {
+    const roomCode = await this.roomManager.createRoom();
+    if (roomCode) {
+      this.showRoomCreatedModal(roomCode);
+    } else {
+      alert('创建房间失败，请稍后重试');
+    }
+  }
+
+  /**
+   * Show room created success modal
+   * @param {string} roomCode - Created room code
+   */
+  showRoomCreatedModal(roomCode) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: #1a1b1c; border-radius: 16px; padding: 32px; max-width: 500px;
+      text-align: center; border: 2px solid #22c55e;
+    `;
+    
+    const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+    
+    content.innerHTML = `
+      <h2 style="color: #fff; margin: 0 0 16px 0;">🎉 房间创建成功！</h2>
+      <div style="background: #22c55e20; padding: 20px; border-radius: 12px; margin: 20px 0;">
+        <div style="color: #22c55e; font-size: 24px; font-weight: bold; margin-bottom: 8px;">房间代码</div>
+        <div style="color: #fff; font-size: 36px; font-weight: bold; letter-spacing: 4px;">${roomCode}</div>
+      </div>
+      <p style="color: #999; margin-bottom: 20px;">分享此代码或链接，其他人可实时观看比赛</p>
+      <textarea readonly style="width: 100%; height: 60px; background: #2a2b2c; color: #fff; border: 1px solid #444;
+        border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; margin-bottom: 20px;">${roomURL}</textarea>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="copyRoomURL" style="padding: 12px 20px; background: #22c55e; color: white; border: none; 
+          border-radius: 8px; cursor: pointer;">📋 复制链接</button>
+        <button id="closeRoomModal" style="padding: 12px 20px; background: #666; color: white; border: none; 
+          border-radius: 8px; cursor: pointer;">开始比赛</button>
+      </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    // Event listeners
+    content.querySelector('#copyRoomURL').onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(roomURL);
+        const btn = content.querySelector('#copyRoomURL');
+        btn.textContent = '已复制 ✓';
+        setTimeout(() => btn.textContent = '📋 复制链接', 2000);
+      } catch (e) {
+        alert('复制失败，请手动复制');
+      }
+    };
+    
+    content.querySelector('#closeRoomModal').onclick = () => {
+      document.body.removeChild(modal);
+    };
+  }
+
+  /**
+   * Show join room modal
+   */
+  showJoinRoomModal() {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: #1a1b1c; border-radius: 16px; padding: 32px; max-width: 400px;
+      text-align: center; border: 2px solid #3b82f6;
+    `;
+    
+    content.innerHTML = `
+      <h2 style="color: #fff; margin: 0 0 16px 0;">🔗 加入房间</h2>
+      <p style="color: #999; margin-bottom: 20px;">输入房间代码观看实时比赛</p>
+      <input type="text" id="roomCodeInput" placeholder="ROOM-XXXX" style="
+        width: 100%; padding: 12px; background: #2a2b2c; color: #fff; border: 1px solid #444;
+        border-radius: 8px; text-align: center; font-size: 18px; font-weight: bold;
+        letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase;" maxlength="9">
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="joinRoomBtn" style="padding: 12px 20px; background: #3b82f6; color: white; border: none; 
+          border-radius: 8px; cursor: pointer;">加入房间</button>
+        <button id="cancelJoin" style="padding: 12px 20px; background: #666; color: white; border: none; 
+          border-radius: 8px; cursor: pointer;">取消</button>
+      </div>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    const input = content.querySelector('#roomCodeInput');
+    input.focus();
+    
+    // Event listeners
+    content.querySelector('#joinRoomBtn').onclick = () => {
+      const code = input.value.trim().toUpperCase();
+      if (code.match(/^ROOM-[A-Z0-9]{4}$/)) {
+        window.location.href = `${window.location.pathname}?room=${code}`;
+      } else {
+        alert('房间代码格式错误，应为：ROOM-XXXX');
+      }
+    };
+    
+    content.querySelector('#cancelJoin').onclick = () => {
+      document.body.removeChild(modal);
+    };
+    
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        content.querySelector('#joinRoomBtn').click();
+      }
+    };
   }
 }
 
