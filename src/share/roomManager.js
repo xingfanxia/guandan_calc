@@ -326,7 +326,7 @@ class RoomManager {
   }
 
   /**
-   * Add host mode banner
+   * Add host mode banner (clickable to copy viewer link)
    */
   addHostBanner() {
     const banner = document.createElement('div');
@@ -342,8 +342,41 @@ class RoomManager {
       font-weight: bold;
       z-index: 1000;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: background 0.2s ease;
     `;
-    banner.innerHTML = `🎮 房主模式 - 房间 ${this.currentRoomCode} | 自动同步中... | 分享代码给朋友观看`;
+    banner.innerHTML = `🎮 房主模式 - 房间 ${this.currentRoomCode} | 自动同步中... | 点击复制观众链接`;
+    
+    // Add click handler to copy viewer link
+    banner.onclick = async () => {
+      const viewerURL = `${window.location.origin}${window.location.pathname}?room=${this.currentRoomCode}`;
+      
+      try {
+        await navigator.clipboard.writeText(viewerURL);
+        
+        // Show success feedback
+        const originalText = banner.innerHTML;
+        banner.innerHTML = `✅ 观众链接已复制 - 房间 ${this.currentRoomCode} | 朋友可直接访问观看`;
+        banner.style.background = 'linear-gradient(45deg, #22c55e, #16a34a)';
+        
+        setTimeout(() => {
+          banner.innerHTML = originalText;
+          banner.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
+        }, 3000);
+      } catch (error) {
+        // Fallback for browsers without clipboard API
+        alert(`观众链接：\n${viewerURL}\n\n请手动复制分享给朋友`);
+      }
+    };
+    
+    // Add hover effect
+    banner.onmouseover = () => {
+      banner.style.background = 'linear-gradient(45deg, #2563eb, #1d4ed8)';
+    };
+    
+    banner.onmouseout = () => {
+      banner.style.background = 'linear-gradient(45deg, #3b82f6, #1e40af)';
+    };
     
     document.body.insertBefore(banner, document.body.firstChild);
     
