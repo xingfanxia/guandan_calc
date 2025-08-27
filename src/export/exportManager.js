@@ -497,9 +497,10 @@ class ExportManager {
     
     // Adjust canvas height if content is taller than estimated
     const actualContentHeight = currentY + 50; // Add bottom padding
-    if (actualContentHeight > H) {
+    const currentCanvasHeight = this.longCnv.height;
+    if (actualContentHeight > currentCanvasHeight) {
       this.longCnv.height = actualContentHeight;
-      console.log('Adjusted canvas height from', H, 'to', actualContentHeight);
+      console.log('Adjusted canvas height from', currentCanvasHeight, 'to', actualContentHeight);
     }
   }
 
