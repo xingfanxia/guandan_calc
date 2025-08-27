@@ -264,11 +264,8 @@ class ExportManager {
     const W = 800; // Much narrower for mobile
     const n = this.gameState.state.hist.length;
     
-    // Calculate based on actual content needs - be more generous
-    const headerH = 200; // Compact header
-    const honorEstimateH = 700; // More space for single-column honors
-    const historyH = Math.max(200, n * 200); // Each game ~200px (was too tight)
-    const H = headerH + honorEstimateH + historyH + 200; // More bottom padding
+    // Start with minimal height and expand dynamically
+    let H = 1000; // Start with reasonable minimum
     
     this.longCnv.width = W;
     this.longCnv.height = H;
@@ -311,14 +308,8 @@ class ExportManager {
     this.lctx.fillStyle = '#444';
     this.lctx.fillRect(30, this.honorSectionEndY - 2, W - 60, 2);
     
-    // Mobile table
+    // Mobile table (handles download internally with precise sizing)
     this.drawMobileTable();
-    
-    // Download
-    const a = document.createElement('a');
-    a.href = this.longCnv.toDataURL('image/png');
-    a.download = '掼蛋战绩_手机版_v9.png';
-    a.click();
     
     this.showExportTip('已导出手机版 PNG');
   }
@@ -495,13 +486,25 @@ class ExportManager {
       currentY += 30; // Space between games
     }
     
-    // Adjust canvas height if content is taller than estimated
-    const actualContentHeight = currentY + 50; // Add bottom padding
-    const currentCanvasHeight = this.longCnv.height;
-    if (actualContentHeight > currentCanvasHeight) {
-      this.longCnv.height = actualContentHeight;
-      console.log('Adjusted canvas height from', currentCanvasHeight, 'to', actualContentHeight);
-    }
+    // Final canvas height adjustment to eliminate empty space
+    const actualContentHeight = currentY + 50; // Minimal bottom padding
+    
+    // Create new canvas with exact height needed
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = W;
+    finalCanvas.height = actualContentHeight;
+    const finalCtx = finalCanvas.getContext('2d');
+    
+    // Copy content to final canvas with exact size
+    finalCtx.drawImage(this.longCnv, 0, 0);
+    
+    // Download the properly sized canvas
+    const a = document.createElement('a');
+    a.href = finalCanvas.toDataURL('image/png');
+    a.download = '掼蛋战绩_手机版_v9.png';
+    a.click();
+    
+    console.log('Final mobile PNG height:', actualContentHeight, 'vs original estimate:', H);
   }
 
   /**
