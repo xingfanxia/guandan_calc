@@ -262,11 +262,13 @@ class ExportManager {
     }
     
     const W = 800; // Much narrower for mobile
-    const headerH = 300; // More space for mobile header
-    const honorSectionH = 400; // More space for honors with wrapping
-    const rowH = 60; // Taller rows for mobile readability
     const n = this.gameState.state.hist.length;
-    const H = headerH + honorSectionH + (n + 1) * rowH + 100;
+    
+    // Calculate height dynamically based on content
+    const headerH = 300; // Header section
+    const honorEstimateH = 500; // Estimate for honor section (will be adjusted)
+    const historyH = Math.max(200, n * 200); // Each game takes ~200px in mobile layout
+    const H = headerH + honorEstimateH + historyH + 100; // Add padding
     
     this.longCnv.width = W;
     this.longCnv.height = H;
@@ -328,6 +330,9 @@ class ExportManager {
   drawMobileHonorSection() {
     const startY = 280;
     let currentY = startY;
+    
+    // Store the final Y position for use by table
+    this.honorSectionEndY = currentY;
     
     // Get honor data
     const statsManager = window.guandanApp?.statsManager;
@@ -403,6 +408,9 @@ class ExportManager {
       this.lctx.font = '16px Arial';
       currentY += 30;
     });
+    
+    // Store final Y position for table positioning
+    this.honorSectionEndY = currentY + 30;
   }
 
   /**
@@ -410,7 +418,7 @@ class ExportManager {
    */
   drawMobileTable() {
     const W = 800; // Mobile width
-    const tableStartY = 280 + 400; // After header + honor section
+    const tableStartY = this.honorSectionEndY || 680; // Use dynamic position after honor section
     const rowH = 60;
     const n = this.gameState.state.hist.length;
     
