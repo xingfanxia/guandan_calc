@@ -308,8 +308,34 @@ class ExportManager {
     this.lctx.fillStyle = '#444';
     this.lctx.fillRect(30, this.honorSectionEndY - 2, W - 60, 2);
     
-    // Mobile table (handles download internally with precise sizing)
+    // Mobile table
     this.drawMobileTable();
+    
+    // Calculate optimal height and create clean final image
+    const optimalHeight = this.finalContentY + 80; // Small bottom padding
+    
+    if (optimalHeight < H) {
+      // Create properly sized canvas
+      const finalCanvas = document.createElement('canvas');
+      finalCanvas.width = W;
+      finalCanvas.height = optimalHeight;
+      const finalCtx = finalCanvas.getContext('2d');
+      
+      // Copy only the needed portion
+      finalCtx.drawImage(this.longCnv, 0, 0, W, optimalHeight, 0, 0, W, optimalHeight);
+      
+      // Download the optimized canvas
+      const a = document.createElement('a');
+      a.href = finalCanvas.toDataURL('image/png');
+      a.download = '掼蛋战绩_手机版_v9.png';
+      a.click();
+    } else {
+      // Use original if content fits well
+      const a = document.createElement('a');
+      a.href = this.longCnv.toDataURL('image/png');
+      a.download = '掼蛋战绩_手机版_v9.png';
+      a.click();
+    }
     
     this.showExportTip('已导出手机版 PNG');
   }
@@ -486,25 +512,8 @@ class ExportManager {
       currentY += 30; // Space between games
     }
     
-    // Final canvas height adjustment to eliminate empty space
-    const actualContentHeight = currentY + 50; // Minimal bottom padding
-    
-    // Create new canvas with exact height needed
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = W;
-    finalCanvas.height = actualContentHeight;
-    const finalCtx = finalCanvas.getContext('2d');
-    
-    // Copy content to final canvas with exact size
-    finalCtx.drawImage(this.longCnv, 0, 0);
-    
-    // Download the properly sized canvas
-    const a = document.createElement('a');
-    a.href = finalCanvas.toDataURL('image/png');
-    a.download = '掼蛋战绩_手机版_v9.png';
-    a.click();
-    
-    console.log('Final mobile PNG height:', actualContentHeight, 'vs original estimate:', H);
+    // Store final content position for better height calculation
+    this.finalContentY = currentY;
   }
 
   /**
