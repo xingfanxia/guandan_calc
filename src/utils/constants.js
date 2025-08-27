@@ -69,3 +69,10 @@ export const DEFAULT_STATE = {
 
 // Game level progression
 export const GAME_LEVELS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+
+// Placeholder names for quick start games
+export const PLACEHOLDER_NAMES = {
+  4: '小 超 豪 姐',
+  6: '豪 姐 哥 帆 夫 塔', 
+  8: '超 豪 姐 哥 帆 夫 塔 小'
+};

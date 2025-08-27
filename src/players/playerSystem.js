@@ -1,7 +1,7 @@
 // Player system management
 // UTF-8 encoding for Chinese characters
 
-import { ANIMAL_EMOJIS } from '../utils/constants.js';
+import { ANIMAL_EMOJIS, PLACEHOLDER_NAMES } from '../utils/constants.js';
 import { $ } from '../utils/dom.js';
 
 class PlayerSystem {
@@ -640,11 +640,26 @@ class PlayerSystem {
   }
 
   /**
+   * Update placeholder text based on current game mode
+   */
+  updatePlaceholder() {
+    const input = $('bulkNames');
+    const mode = parseInt($('mode').value);
+    
+    if (input && PLACEHOLDER_NAMES[mode]) {
+      input.placeholder = PLACEHOLDER_NAMES[mode];
+    }
+  }
+
+  /**
    * Setup bulk name input event listeners
    */
   setupBulkNameInput() {
     const applyBtn = $('applyBulkNames');
     const input = $('bulkNames');
+    
+    // Set initial placeholder
+    this.updatePlaceholder();
     
     if (applyBtn) {
       applyBtn.onclick = () => {

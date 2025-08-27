@@ -106,6 +106,8 @@ class GuandanApp {
       this.uiRenderer.updateRuleHint();
       this.calc();
       this.playerSystem.generatePlayers($('mode').value, false);
+      // Update placeholder text for bulk name input
+      this.playerSystem.updatePlaceholder();
     });
     
     // Game controls
