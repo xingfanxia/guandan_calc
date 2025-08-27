@@ -661,7 +661,9 @@ class GuandanApp {
     // Now create the room with clean data
     const roomCode = await this.roomManager.createRoom();
     if (roomCode) {
-      this.showRoomCreatedModal(roomCode);
+      // Redirect to room URL as host instead of showing modal
+      const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}&host=true`;
+      window.location.href = roomURL;
     } else {
       alert('创建房间失败，请稍后重试');
     }

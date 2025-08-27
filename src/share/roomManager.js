@@ -22,9 +22,14 @@ class RoomManager {
   checkURLForRoom() {
     const urlParams = new URLSearchParams(window.location.search);
     const roomCode = urlParams.get('room');
+    const isHost = urlParams.get('host') === 'true';
     
     if (roomCode) {
-      this.joinRoom(roomCode);
+      if (isHost) {
+        this.joinRoomAsHost(roomCode);
+      } else {
+        this.joinRoom(roomCode);
+      }
     }
   }
 
@@ -110,7 +115,37 @@ class RoomManager {
   }
 
   /**
-   * Join an existing room
+   * Join room as host (re-entering own room)
+   * @param {string} roomCode - Room code to join as host
+   * @returns {Promise<boolean>} Success status
+   */
+  async joinRoomAsHost(roomCode) {
+    try {
+      const response = await fetch(`/api/rooms/${roomCode}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        // Load room data
+        this.loadRoomData(result.data);
+        this.currentRoomCode = roomCode;
+        this.isHost = true;
+        this.isViewer = false;
+        this.startAutoSync();
+        this.applyHostMode();
+        return true;
+      } else {
+        alert('房间不存在或已过期：' + roomCode);
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to join room as host:', error);
+      alert('重新进入房间失败：' + error.message);
+      return false;
+    }
+  }
+
+  /**
+   * Join an existing room as viewer
    * @param {string} roomCode - Room code to join
    * @returns {Promise<boolean>} Success status
    */
@@ -229,6 +264,20 @@ class RoomManager {
   }
 
   /**
+   * Apply host mode UI (full control with room indicator)
+   */
+  applyHostMode() {
+    // Add host banner
+    this.addHostBanner();
+    
+    // Update title to show host status
+    const title = document.querySelector('h1');
+    if (title) {
+      title.innerHTML = `闹麻家族掼蛋计分器 <span class="badge" style="background:#3b82f6;">房主模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
+    }
+  }
+
+  /**
    * Apply viewer mode UI (read-only)
    */
   applyViewerMode() {
@@ -242,6 +291,35 @@ class RoomManager {
     const title = document.querySelector('h1');
     if (title) {
       title.innerHTML = `闹麻家族掼蛋计分器 <span class="badge" style="background:#22c55e;">观看模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
+    }
+  }
+
+  /**
+   * Add host mode banner
+   */
+  addHostBanner() {
+    const banner = document.createElement('div');
+    banner.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(45deg, #3b82f6, #1e40af);
+      color: white;
+      text-align: center;
+      padding: 8px;
+      font-weight: bold;
+      z-index: 1000;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    `;
+    banner.innerHTML = `🎮 房主模式 - 房间 ${this.currentRoomCode} | 自动同步中... | 分享代码给朋友观看`;
+    
+    document.body.insertBefore(banner, document.body.firstChild);
+    
+    // Adjust page content
+    const wrap = document.querySelector('.wrap');
+    if (wrap) {
+      wrap.style.marginTop = '48px';
     }
   }
 
