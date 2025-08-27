@@ -173,9 +173,10 @@ class GameState {
   }
 
   /**
-   * Reset entire game state
+   * Reset game state (preserve player names and team assignments)
    */
   resetAll() {
+    // Reset only game progression data, preserve player setup
     this.state = {
       t1: {lvl: '2', aFail: 0},
       t2: {lvl: '2', aFail: 0},
@@ -185,11 +186,13 @@ class GameState {
       roundOwner: null
     };
     this.selected = [];
-    this.playerStats = {};
-    this.currentRanking = {};
+    this.playerStats = {}; // Clear statistics
+    this.currentRanking = {}; // Clear current ranking
     
+    // Save state and stats, but preserve players (names and teams)
     this.saveState();
     this.savePlayerStats();
+    // Note: deliberately NOT calling this.players = [] or resetting player data
   }
 
   /**

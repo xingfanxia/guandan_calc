@@ -549,10 +549,10 @@ class GuandanApp {
   }
 
   /**
-   * Reset entire game (ported from original resetAll())
+   * Reset game (preserve player names and team assignments)
    */
   resetAll() {
-    if (!confirm('重置整场？')) return;
+    if (!confirm('重置比赛？（保留玩家姓名和队伍分配）')) return;
     
     gameState.resetAll();
     
@@ -560,16 +560,16 @@ class GuandanApp {
     this.selected = [];
     this.input.value = '';
     
-    // Re-render everything
+    // Re-render everything (but preserve players)
     this.uiRenderer.renderTeams();
     this.statsManager.renderHistory();
     this.calc();
     this.statsManager.renderStatistics();
     this.playerSystem.renderRankingArea();
-    this.playerSystem.generatePlayers($('mode').value, true); // Force regenerate players
+    // Note: Don't regenerate players - preserve existing names and team assignments
     
     const applyTip = $('applyTip');
-    if (applyTip) applyTip.textContent = '已重置整场比赛';
+    if (applyTip) applyTip.textContent = '已重置比赛（保留玩家设置）';
     
     // Close victory modal if it's open
     this.victoryModal.closeVictoryModal();
