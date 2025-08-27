@@ -552,6 +552,140 @@ class PlayerSystem {
   }
 
   /**
+   * Parse and validate bulk names input
+   * @param {string} namesText - Space-separated names
+   * @param {number} expectedCount - Expected number of names
+   * @returns {Object} Result with success status and names array or error message
+   */
+  parseBulkNames(namesText, expectedCount) {
+    if (!namesText || typeof namesText !== 'string') {
+      return {ok: false, msg: '请输入玩家姓名'};
+    }
+    
+    // Split by spaces and filter out empty strings
+    const names = namesText.trim().split(/\s+/).filter(name => name.length > 0);
+    
+    if (names.length === 0) {
+      return {ok: false, msg: '请输入至少一个姓名'};
+    }
+    
+    if (names.length !== expectedCount) {
+      return {ok: false, msg: `需要 ${expectedCount} 个姓名，但输入了 ${names.length} 个`};
+    }
+    
+    // Check for duplicate names
+    const nameSet = new Set(names);
+    if (nameSet.size !== names.length) {
+      return {ok: false, msg: '姓名不能重复'};
+    }
+    
+    // Check name length (reasonable limits)
+    for (let i = 0; i < names.length; i++) {
+      if (names[i].length > 10) {
+        return {ok: false, msg: `姓名"${names[i]}"过长（最多10个字符）`};
+      }
+      if (names[i].length === 0) {
+        return {ok: false, msg: '姓名不能为空'};
+      }
+    }
+    
+    return {ok: true, names: names};
+  }
+
+  /**
+   * Apply bulk names to players
+   * @param {string} namesText - Space-separated names
+   * @returns {boolean} Success status
+   */
+  applyBulkNames(namesText) {
+    const mode = $('mode').value;
+    const expectedCount = parseInt(mode);
+    
+    // Ensure players exist
+    if (!this.gameState.players || this.gameState.players.length === 0) {
+      alert('请先生成玩家');
+      return false;
+    }
+    
+    if (this.gameState.players.length !== expectedCount) {
+      alert(`当前${this.gameState.players.length}个玩家，但${mode}人模式需要${expectedCount}个玩家。请先生成玩家。`);
+      return false;
+    }
+    
+    // Parse and validate names
+    const result = this.parseBulkNames(namesText, expectedCount);
+    if (!result.ok) {
+      alert('姓名输入错误：' + result.msg);
+      return false;
+    }
+    
+    // Apply names to players
+    for (let i = 0; i < result.names.length && i < this.gameState.players.length; i++) {
+      this.gameState.players[i].name = result.names[i];
+    }
+    
+    // Save and update UI
+    this.gameState.savePlayers();
+    this.renderPlayers();
+    this.renderRankingArea();
+    this.updatePlayerDisplays();
+    
+    // Clear the input field
+    const bulkNamesInput = $('bulkNames');
+    if (bulkNamesInput) {
+      bulkNamesInput.value = '';
+    }
+    
+    return true;
+  }
+
+  /**
+   * Setup bulk name input event listeners
+   */
+  setupBulkNameInput() {
+    const applyBtn = $('applyBulkNames');
+    const input = $('bulkNames');
+    
+    if (applyBtn) {
+      applyBtn.onclick = () => {
+        const namesText = input ? input.value : '';
+        if (this.applyBulkNames(namesText)) {
+          // Show success feedback
+          const originalText = applyBtn.textContent;
+          applyBtn.textContent = '已应用 ✓';
+          applyBtn.style.background = '#22c55e';
+          setTimeout(() => {
+            applyBtn.textContent = originalText;
+            applyBtn.style.background = '';
+          }, 1000);
+        }
+      };
+    }
+    
+    // Also allow Enter key to apply names
+    if (input) {
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (this.applyBulkNames(input.value)) {
+            // Show success feedback
+            const applyBtn = $('applyBulkNames');
+            if (applyBtn) {
+              const originalText = applyBtn.textContent;
+              applyBtn.textContent = '已应用 ✓';
+              applyBtn.style.background = '#22c55e';
+              setTimeout(() => {
+                applyBtn.textContent = originalText;
+                applyBtn.style.background = '';
+              }, 1000);
+            }
+          }
+        }
+      };
+    }
+  }
+
+  /**
    * Set callback for player updates
    * @param {Function} callback - Callback function
    */

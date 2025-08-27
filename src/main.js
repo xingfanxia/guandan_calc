@@ -128,6 +128,9 @@ class GuandanApp {
       this.playerSystem.renderRankingArea();
     });
     
+    // Setup bulk name input
+    this.playerSystem.setupBulkNameInput();
+    
     on($('shuffleTeams'), 'click', () => {
       this.playerSystem.shuffleTeams($('mode').value);
       this.playerSystem.renderPlayers();
