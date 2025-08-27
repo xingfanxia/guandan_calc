@@ -409,6 +409,7 @@ class ExportManager {
    * Draw table optimized for mobile
    */
   drawMobileTable() {
+    const W = 800; // Mobile width
     const tableStartY = 280 + 400; // After header + honor section
     const rowH = 60;
     const n = this.gameState.state.hist.length;
