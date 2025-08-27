@@ -128,7 +128,7 @@ class StatsManager {
   }
 
   /**
-   * Render team MVP and burden displays
+   * Render team MVP and burden displays + special honors
    */
   renderTeamMVPBurden() {
     const team1Players = this.gameState.players.filter(p => p.team === 1);
@@ -137,6 +137,7 @@ class StatsManager {
     const team1Result = this.findMVPAndBurden(team1Players);
     const team2Result = this.findMVPAndBurden(team2Players);
     
+    // Update team honors
     const team1StatsTitle = $('team1StatsTitle');
     const team2StatsTitle = $('team2StatsTitle');
     const team1MVP = $('team1MVP');
@@ -164,6 +165,172 @@ class StatsManager {
       team2Burden.innerHTML = team2Result.burden ? 
         '<span class="emoji">' + team2Result.burden.emoji + '</span>' + team2Result.burden.name : '—';
     }
+    
+    // Update special honors
+    const specialHonors = this.findSpecialHonors();
+    
+    const honorElements = {
+      lyubu: $('lyubu'),
+      adou: $('adou'), 
+      shifo: $('shifo'),
+      bodongwang: $('bodongwang'),
+      fendouwang: $('fendouwang'),
+      fuzhuwang: $('fuzhuwang')
+    };
+    
+    Object.keys(honorElements).forEach(honorKey => {
+      const element = honorElements[honorKey];
+      const winner = specialHonors[honorKey];
+      
+      if (element) {
+        element.innerHTML = winner ? 
+          '<span class="emoji">' + winner.emoji + '</span>' + winner.name : '—';
+      }
+    });
+  }
+
+  /**
+   * Calculate variance for a player's rankings
+   * @param {Array} rankings - Array of ranking positions
+   * @returns {number} Variance value
+   */
+  calculateVariance(rankings) {
+    if (rankings.length < 2) return 0;
+    
+    const mean = rankings.reduce((sum, rank) => sum + rank, 0) / rankings.length;
+    const squaredDiffs = rankings.map(rank => Math.pow(rank - mean, 2));
+    return squaredDiffs.reduce((sum, diff) => sum + diff, 0) / rankings.length;
+  }
+
+  /**
+   * Calculate improvement trend for a player
+   * @param {Array} rankings - Array of ranking positions in chronological order
+   * @returns {number} Improvement score (positive = improving)
+   */
+  calculateImprovement(rankings) {
+    if (rankings.length < 4) return 0;
+    
+    // Compare first half vs second half average rankings
+    const mid = Math.floor(rankings.length / 2);
+    const firstHalf = rankings.slice(0, mid);
+    const secondHalf = rankings.slice(mid);
+    
+    const firstAvg = firstHalf.reduce((sum, rank) => sum + rank, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, rank) => sum + rank, 0) / secondHalf.length;
+    
+    // Lower rank number = better, so firstAvg - secondAvg = improvement
+    return firstAvg - secondAvg;
+  }
+
+  /**
+   * Count team wins where player finished last
+   * @param {Object} player - Player object
+   * @returns {number} Count of team wins with player finishing last
+   */
+  countSupportWins(player) {
+    if (!this.gameState.state.hist || this.gameState.state.hist.length === 0) {
+      return 0;
+    }
+    
+    let supportWins = 0;
+    const mode = parseInt(document.getElementById('mode')?.value || 8);
+    const lastPlace = mode; // 4, 6, or 8
+    
+    this.gameState.state.hist.forEach(game => {
+      if (game.playerRankings && game.winKey) {
+        // Check if this player's team won
+        const playerTeam = player.team;
+        const gameWinnerTeam = game.winKey; // 't1' or 't2'
+        const winnerTeamNumber = gameWinnerTeam === 't1' ? 1 : 2;
+        
+        if (playerTeam === winnerTeamNumber) {
+          // Team won, check if this player finished last
+          for (const rank in game.playerRankings) {
+            const rankedPlayer = game.playerRankings[rank];
+            if (rankedPlayer.id === player.id && parseInt(rank) === lastPlace) {
+              supportWins++;
+              break;
+            }
+          }
+        }
+      }
+    });
+    
+    return supportWins;
+  }
+
+  /**
+   * Find special honors across all players
+   * @returns {Object} Special honor winners
+   */
+  findSpecialHonors() {
+    const honors = {
+      lyubu: null,        // 吕布 - 最多第一名
+      adou: null,         // 阿斗 - 最多垫底  
+      shifo: null,        // 石佛 - 排名最稳定 (最低方差)
+      bodongwang: null,   // 波动率的王 - 排名波动最大 (最高方差)
+      fendouwang: null,   // 奋斗之王 - 排名稳步提升
+      fuzhuwang: null     // 辅助之王 - 队伍胜利时自己垫底最多
+    };
+    
+    let maxFirstPlace = 0;
+    let maxLastPlace = 0;
+    let minVariance = 999;
+    let maxVariance = 0;
+    let maxImprovement = -999;
+    let maxSupportWins = 0;
+    
+    this.gameState.players.forEach((player) => {
+      const stats = this.gameState.playerStats[player.id];
+      if (stats && stats.games >= 3) { // 至少3局才参与评选
+        // 吕布 - 最多第一名
+        const firstPlaceCount = stats.firstPlaceCount || 0;
+        if (firstPlaceCount > maxFirstPlace) {
+          maxFirstPlace = firstPlaceCount;
+          honors.lyubu = player;
+        }
+        
+        // 阿斗 - 最多垫底
+        const lastPlaceCount = stats.lastPlaceCount || 0;
+        if (lastPlaceCount > maxLastPlace) {
+          maxLastPlace = lastPlaceCount;
+          honors.adou = player;
+        }
+        
+        // 计算方差和进步趋势
+        if (stats.rankings && stats.rankings.length >= 3) {
+          const variance = this.calculateVariance(stats.rankings);
+          
+          // 石佛 - 最稳定 (最小方差)
+          if (variance < minVariance) {
+            minVariance = variance;
+            honors.shifo = player;
+          }
+          
+          // 波动率的王 - 最不稳定 (最大方差)
+          if (variance > maxVariance) {
+            maxVariance = variance;
+            honors.bodongwang = player;
+          }
+          
+          // 奋斗之王 - 排名稳步提升
+          const improvement = this.calculateImprovement(stats.rankings);
+          if (improvement > maxImprovement) {
+            maxImprovement = improvement;
+            honors.fendouwang = player;
+          }
+        }
+        
+        // 辅助之王 - 队伍胜利时自己垫底最多
+        const supportWins = this.countSupportWins(player);
+        if (supportWins > maxSupportWins) {
+          maxSupportWins = supportWins;
+          honors.fuzhuwang = player;
+        }
+      }
+    });
+    
+    return honors;
   }
 
   /**
