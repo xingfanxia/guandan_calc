@@ -187,8 +187,9 @@ class ShareManager {
   disableInteractiveControls() {
     // Hide sections that don't make sense for viewers
     const sectionsToHide = [
-      'rankingSection', // Hide ranking section completely
-      'roomControls'    // Hide room creation controls
+      'rankingSection',      // Hide ranking section completely
+      'roomControls',        // Hide room creation controls
+      'customRulesSection'   // Hide custom rules configuration
     ];
     
     sectionsToHide.forEach(id => {

@@ -281,8 +281,9 @@ class RoomManager {
   disableControls() {
     // Hide sections that viewers don't need
     const sectionsToHide = [
-      'rankingSection', // Hide entire ranking section for viewers
-      'roomControls'    // Hide room creation controls
+      'rankingSection',      // Hide entire ranking section for viewers
+      'roomControls',        // Hide room creation controls
+      'customRulesSection'   // Hide custom rules configuration
     ];
     
     sectionsToHide.forEach(id => {
