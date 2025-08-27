@@ -745,11 +745,11 @@ class GuandanApp {
     
     content.innerHTML = `
       <h2 style="color: #fff; margin: 0 0 16px 0;">🔗 加入房间</h2>
-      <p style="color: #999; margin-bottom: 20px;">输入房间代码观看实时比赛</p>
-      <input type="text" id="roomCodeInput" placeholder="ROOM-XXXX" style="
+      <p style="color: #999; margin-bottom: 20px;">输入6位房间代码观看实时比赛</p>
+      <input type="text" id="roomCodeInput" placeholder="A1B2C3" style="
         width: 100%; padding: 12px; background: #2a2b2c; color: #fff; border: 1px solid #444;
-        border-radius: 8px; text-align: center; font-size: 18px; font-weight: bold;
-        letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase;" maxlength="9">
+        border-radius: 8px; text-align: center; font-size: 20px; font-weight: bold;
+        letter-spacing: 3px; margin-bottom: 20px; text-transform: uppercase;" maxlength="6">
       <div style="display: flex; gap: 12px; justify-content: center;">
         <button id="joinRoomBtn" style="padding: 12px 20px; background: #3b82f6; color: white; border: none; 
           border-radius: 8px; cursor: pointer;">加入房间</button>
@@ -767,10 +767,10 @@ class GuandanApp {
     // Event listeners
     content.querySelector('#joinRoomBtn').onclick = () => {
       const code = input.value.trim().toUpperCase();
-      if (code.match(/^ROOM-[A-Z0-9]{4}$/)) {
+      if (code.match(/^[A-Z0-9]{6}$/)) {
         window.location.href = `${window.location.pathname}?room=${code}`;
       } else {
-        alert('房间代码格式错误，应为：ROOM-XXXX');
+        alert('房间代码格式错误，应为6位字母数字组合，如：A1B2C3');
       }
     };
     

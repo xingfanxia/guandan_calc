@@ -35,12 +35,12 @@ class RoomManager {
 
   /**
    * Generate room code
-   * @returns {string} Room code format: ROOM-XXXX
+   * @returns {string} Room code format: 6-digit alphanumeric (e.g., A1B2C3)
    */
   generateRoomCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = 'ROOM-';
-    for (let i = 0; i < 4; i++) {
+    let result = '';
+    for (let i = 0; i < 6; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;

@@ -7,10 +7,10 @@ export default async function handler(request) {
   const url = new URL(request.url);
   const roomCode = url.pathname.split('/').pop();
 
-  // Validate room code format
-  if (!roomCode || !roomCode.match(/^ROOM-[A-Z0-9]{4}$/)) {
+  // Validate room code format (6-digit alphanumeric)
+  if (!roomCode || !roomCode.match(/^[A-Z0-9]{6}$/)) {
     return new Response(JSON.stringify({ 
-      error: 'Invalid room code format' 
+      error: 'Invalid room code format - should be 6 alphanumeric characters' 
     }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }

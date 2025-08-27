@@ -3,11 +3,11 @@
 
 import { kv } from '@vercel/kv';
 
-// Generate random room code
+// Generate random room code (6-digit alphanumeric)
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = 'ROOM-';
-  for (let i = 0; i < 4; i++) {
+  let result = '';
+  for (let i = 0; i < 6; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
