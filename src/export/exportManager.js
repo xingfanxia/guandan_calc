@@ -261,11 +261,11 @@ class ExportManager {
       return;
     }
     
-    let W = 600; // Even narrower for mobile to reduce horizontal whitespace
+    let W = 720; // Balanced width to prevent cutoff while reducing whitespace
     const n = this.gameState.state.hist.length;
     
-    // Start with minimal height and expand dynamically
-    let H = 1000; // Start with reasonable minimum
+    // Start with much larger height to prevent cutoff
+    let H = 2000 + n * 250; // Dynamic height based on game count
     
     this.longCnv.width = W;
     this.longCnv.height = H;
