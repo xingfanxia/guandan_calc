@@ -142,6 +142,7 @@ class GuandanApp {
     on($('exportTxt'), 'click', () => this.exportManager.exportTXT());
     on($('exportCsv'), 'click', () => this.exportManager.exportCSV());
     on($('exportLongPng'), 'click', () => this.exportManager.exportLongPNG());
+    on($('exportMobilePng'), 'click', () => this.exportManager.exportMobilePNG());
     
     // Room functions
     on($('createRoom'), 'click', () => this.showCreateRoomModal());
@@ -259,6 +260,7 @@ class GuandanApp {
     window.exportTXT = () => this.exportManager.exportTXT();
     window.exportCSV = () => this.exportManager.exportCSV();
     window.exportLongPNG = () => this.exportManager.exportLongPNG();
+    window.exportMobilePNG = () => this.exportManager.exportMobilePNG();
     window.resetAll = () => this.resetAll();
     window.closeVictoryModal = () => this.victoryModal.closeVictoryModal();
   }

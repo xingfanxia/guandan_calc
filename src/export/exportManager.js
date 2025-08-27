@@ -226,7 +226,265 @@ class ExportManager {
   }
 
   /**
-   * Export game history as long PNG image
+   * Wrap text for mobile display
+   * @param {string} text - Text to wrap
+   * @param {number} maxWidth - Maximum width in pixels
+   * @param {string} font - Font style
+   * @returns {Array} Array of text lines
+   */
+  wrapText(text, maxWidth, font) {
+    this.lctx.font = font;
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+    
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i];
+      const width = this.lctx.measureText(currentLine + ' ' + word).width;
+      if (width < maxWidth) {
+        currentLine += ' ' + word;
+      } else {
+        lines.push(currentLine);
+        currentLine = word;
+      }
+    }
+    lines.push(currentLine);
+    return lines;
+  }
+
+  /**
+   * Export mobile-friendly PNG (narrow width for mobile scrolling)
+   */
+  exportMobilePNG() {
+    if (!this.longCnv || !this.lctx) {
+      console.error('Canvas not available for mobile PNG export');
+      return;
+    }
+    
+    const W = 800; // Much narrower for mobile
+    const headerH = 300; // More space for mobile header
+    const honorSectionH = 400; // More space for honors with wrapping
+    const rowH = 60; // Taller rows for mobile readability
+    const n = this.gameState.state.hist.length;
+    const H = headerH + honorSectionH + (n + 1) * rowH + 100;
+    
+    this.longCnv.width = W;
+    this.longCnv.height = H;
+    
+    // Dark background
+    this.lctx.fillStyle = '#0b0b0c';
+    this.lctx.fillRect(0, 0, W, H);
+    
+    // Main title
+    this.lctx.fillStyle = '#f5f6f8';
+    this.lctx.font = 'bold 36px Arial';
+    this.lctx.fillText('掼蛋战绩总览', 40, 50);
+    
+    // Subtitle
+    this.lctx.font = '16px Arial';
+    this.lctx.fillStyle = '#b4b8bf';
+    
+    // Multi-line subtitle for mobile
+    const subtitleLines = [
+      '当前级牌：' + this.gameState.state.roundLevel,
+      '下局预览：' + (this.gameState.state.nextRoundBase || '—'),
+      'A级规则：' + (this.gameState.settings.strictA ? '严格模式' : '宽松模式')
+    ];
+    
+    subtitleLines.forEach((line, index) => {
+      this.lctx.fillText(line, 40, 90 + index * 25);
+    });
+    
+    // Team info on separate lines
+    const teamLines = [
+      this.gameState.settings.t1.name + '：' + this.gameState.state.t1.lvl + '级，A' + (this.gameState.state.t1.aFail || 0) + '/3',
+      this.gameState.settings.t2.name + '：' + this.gameState.state.t2.lvl + '级，A' + (this.gameState.state.t2.aFail || 0) + '/3'
+    ];
+    
+    teamLines.forEach((line, index) => {
+      this.lctx.fillText(line, 40, 170 + index * 25);
+    });
+    
+    this.lctx.fillText('生成时间：' + now(), 40, 220);
+    
+    // Draw honor section for mobile
+    this.drawMobileHonorSection();
+    
+    // Mobile table
+    this.drawMobileTable();
+    
+    // Download
+    const a = document.createElement('a');
+    a.href = this.longCnv.toDataURL('image/png');
+    a.download = '掼蛋战绩_手机版_v9.png';
+    a.click();
+    
+    this.showExportTip('已导出手机版 PNG');
+  }
+
+  /**
+   * Draw honor section optimized for mobile
+   */
+  drawMobileHonorSection() {
+    const startY = 280;
+    let currentY = startY;
+    
+    // Get honor data
+    const statsManager = window.guandanApp?.statsManager;
+    if (!statsManager) return;
+    
+    const specialHonors = statsManager.findSpecialHonors();
+    const team1Players = this.gameState.players.filter(p => p.team === 1);
+    const team2Players = this.gameState.players.filter(p => p.team === 2);
+    const team1Result = statsManager.findMVPAndBurden(team1Players);
+    const team2Result = statsManager.findMVPAndBurden(team2Players);
+    
+    // Honor section title
+    this.lctx.font = 'bold 24px Arial';
+    this.lctx.fillStyle = '#f5f6f8';
+    this.lctx.fillText('🏆 荣誉提名', 40, currentY);
+    currentY += 40;
+    
+    // Team honors - mobile layout
+    this.lctx.font = 'bold 18px Arial';
+    this.lctx.fillStyle = '#3b82f6';
+    this.lctx.fillText(this.gameState.settings.t1.name, 40, currentY);
+    currentY += 25;
+    
+    this.lctx.font = '16px Arial';
+    this.lctx.fillStyle = '#b4b8bf';
+    this.lctx.fillText('很C: ' + (team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—'), 60, currentY);
+    currentY += 20;
+    this.lctx.fillText('很闹: ' + (team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'), 60, currentY);
+    currentY += 35;
+    
+    this.lctx.font = 'bold 18px Arial';
+    this.lctx.fillStyle = '#ef4444';
+    this.lctx.fillText(this.gameState.settings.t2.name, 40, currentY);
+    currentY += 25;
+    
+    this.lctx.font = '16px Arial';
+    this.lctx.fillStyle = '#b4b8bf';
+    this.lctx.fillText('很C: ' + (team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'), 60, currentY);
+    currentY += 20;
+    this.lctx.fillText('很闹: ' + (team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'), 60, currentY);
+    currentY += 40;
+    
+    // Special honors - mobile layout (vertical)
+    this.lctx.font = 'bold 18px Arial';
+    this.lctx.fillStyle = '#f5f6f8';
+    this.lctx.fillText('特殊荣誉', 40, currentY);
+    currentY += 30;
+    
+    const honors = [
+      {key: 'lyubu', name: '🥇 吕布', desc: '最多第一名', color: '#d4af37'},
+      {key: 'adou', name: '😅 阿斗', desc: '最多垫底', color: '#8b4513'},
+      {key: 'shifo', name: '🗿 石佛', desc: '排名最稳定', color: '#708090'},
+      {key: 'bodongwang', name: '🌊 波动率的王', desc: '波动最大', color: '#ff4500'},
+      {key: 'fendouwang', name: '📈 奋斗之王', desc: '稳步提升', color: '#32cd32'},
+      {key: 'fuzhuwang', name: '🛡️ 辅助之王', desc: '胜利垫底', color: '#4169e1'}
+    ];
+    
+    this.lctx.font = '16px Arial';
+    honors.forEach(honor => {
+      const winner = specialHonors[honor.key];
+      
+      this.lctx.fillStyle = honor.color;
+      this.lctx.fillText(honor.name + ':', 60, currentY);
+      
+      this.lctx.fillStyle = '#f5f6f8';
+      const winnerText = winner ? winner.emoji + winner.name : '—';
+      this.lctx.fillText(winnerText, 200, currentY);
+      
+      this.lctx.fillStyle = '#888';
+      this.lctx.font = '12px Arial';
+      this.lctx.fillText('(' + honor.desc + ')', 350, currentY);
+      
+      this.lctx.font = '16px Arial';
+      currentY += 30;
+    });
+  }
+
+  /**
+   * Draw table optimized for mobile
+   */
+  drawMobileTable() {
+    const tableStartY = 280 + 400; // After header + honor section
+    const rowH = 60;
+    const n = this.gameState.state.hist.length;
+    
+    // Table title
+    this.lctx.font = 'bold 20px Arial';
+    this.lctx.fillStyle = '#e6b800';
+    this.lctx.fillText('📋 比赛历史', 40, tableStartY);
+    
+    // Mobile table - vertical layout for each game
+    this.lctx.font = '14px Arial';
+    let currentY = tableStartY + 40;
+    
+    for (let i = 0; i < n; i++) {
+      const h = this.gameState.state.hist[i];
+      
+      // Game number and separator
+      this.lctx.fillStyle = '#f5f6f8';
+      this.lctx.font = 'bold 16px Arial';
+      this.lctx.fillText(`第 ${i + 1} 局`, 40, currentY);
+      currentY += 25;
+      
+      // Game details - mobile friendly layout
+      this.lctx.font = '14px Arial';
+      this.lctx.fillStyle = '#b4b8bf';
+      
+      const gameInfo = [
+        `时间: ${h.ts}`,
+        `模式: ${h.mode}人`,
+        `组合: ${h.combo}`,
+        `胜队: ${h.win}`,
+        `升级: ${h.up ? h.win + ' 升' + h.up + '级' : '不升级'}`,
+        `级牌: ${this.gameState.settings.t1.name}${h.t1} | ${this.gameState.settings.t2.name}${h.t2}`,
+        `本局: ${h.round}`
+      ];
+      
+      gameInfo.forEach(info => {
+        this.lctx.fillText(info, 60, currentY);
+        currentY += 18;
+      });
+      
+      // Player ranking - wrap if too long
+      if (h.playerRankings) {
+        let rankText = '排名: ';
+        for (let r = 1; r <= parseInt(h.mode); r++) {
+          if (h.playerRankings[r]) {
+            const p = h.playerRankings[r];
+            rankText += p.emoji + p.name + ' ';
+          }
+        }
+        
+        // Wrap ranking text if too long
+        const wrappedRanking = this.wrapText(rankText, W - 100, '14px Arial');
+        wrappedRanking.forEach(line => {
+          this.lctx.fillText(line, 60, currentY);
+          currentY += 18;
+        });
+      }
+      
+      // A-level notes - wrap if too long
+      if (h.aNote) {
+        const wrappedNotes = this.wrapText('备注: ' + h.aNote, W - 100, '12px Arial');
+        this.lctx.fillStyle = '#888';
+        this.lctx.font = '12px Arial';
+        wrappedNotes.forEach(line => {
+          this.lctx.fillText(line, 60, currentY);
+          currentY += 16;
+        });
+      }
+      
+      currentY += 20; // Space between games
+    }
+  }
+
+  /**
+   * Export game history as long PNG image (desktop version)
    */
   exportLongPNG() {
     if (!this.longCnv || !this.lctx) {

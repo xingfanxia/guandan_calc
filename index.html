@@ -178,28 +178,6 @@
     </div>
   </div>
 
-  <div class="card">
-    <h3>历史战绩</h3>
-    <div class="table-wrap">
-      <table class="table" id="hist">
-        <thead><tr>
-          <th>#</th><th>时间</th><th>人数</th><th>胜方组合</th><th>玩家排名</th><th>升级情况</th><th>胜队</th>
-          <th><span id="hT1"></span>级牌</th><th><span id="hT2"></span>级牌</th><th>本局级牌</th><th>A说明</th><th>操作</th>
-        </tr></thead>
-        <tbody id="histBody"></tbody>
-      </table>
-    </div>
-    <div class="row btns-grid" style="margin-top:10px;">
-      <button id="undo">撤销上一局</button>
-      <button id="exportTxt">导出 TXT</button>
-      <button id="exportCsv">导出 CSV</button>
-      <button id="exportLongPng">导出 长图 PNG</button>
-      <button id="shareGame" style="background:#8b5cf6;color:white;">📤 分享快照</button>
-      <button id="resetMatch" style="border-color:#5b1e1e;color:#ffb3b3">重置比赛</button>
-      <span id="exportTip" class="small muted" style="grid-column:1/-1"></span>
-    </div>
-  </div>
-
   <!-- 玩家统计 -->
   <div class="grid">
     <div class="card">
@@ -272,6 +250,29 @@
       </div>
     </div>
   </div>
+
+  <div class="card">
+    <h3>历史战绩</h3>
+    <div class="table-wrap">
+      <table class="table" id="hist">
+        <thead><tr>
+          <th>#</th><th>时间</th><th>人数</th><th>胜方组合</th><th>玩家排名</th><th>升级情况</th><th>胜队</th>
+          <th><span id="hT1"></span>级牌</th><th><span id="hT2"></span>级牌</th><th>本局级牌</th><th>A说明</th><th>操作</th>
+        </tr></thead>
+        <tbody id="histBody"></tbody>
+      </table>
+    </div>
+    <div class="row btns-grid" style="margin-top:10px;">
+      <button id="undo">撤销上一局</button>
+      <button id="exportTxt">导出 TXT</button>
+      <button id="exportCsv">导出 CSV</button>
+      <button id="exportLongPng">导出 长图 PNG</button>
+      <button id="exportMobilePng" style="background:#10b981;color:white;">📱 手机版 PNG</button>
+      <button id="shareGame" style="background:#8b5cf6;color:white;">📤 分享快照</button>
+      <button id="resetMatch" style="border-color:#5b1e1e;color:#ffb3b3">重置比赛</button>
+      <span id="exportTip" class="small muted" style="grid-column:1/-1"></span>
+    </div>
+  </div>
 </div>
 
 <canvas id="longCnv" width="1200" height="1600" style="display:none"></canvas>
@@ -292,6 +293,9 @@
       </button>
       <button onclick="exportLongPNG()" style="padding:12px 24px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
         🖼️ 导出长图
+      </button>
+      <button onclick="exportMobilePNG()" style="padding:12px 24px; background:#10b981; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
+        📱 手机版
       </button>
       <button onclick="resetAll()" style="padding:12px 24px; background:#ef4444; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
         🔄 重置整场
