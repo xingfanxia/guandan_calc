@@ -12,6 +12,7 @@ import UIRenderer from './ui/renderer.js';
 import VictoryModal from './ui/victoryModal.js';
 import StatsManager from './statistics/statsManager.js';
 import ExportManager from './export/exportManager.js';
+import ShareManager from './share/shareManager.js';
 
 // Main application class
 class GuandanApp {
@@ -26,6 +27,7 @@ class GuandanApp {
     this.victoryModal = new VictoryModal(gameState);
     this.statsManager = new StatsManager(gameState);
     this.exportManager = new ExportManager(gameState);
+    this.shareManager = new ShareManager(gameState);
     
     // Setup inter-module communication
     this.setupCallbacks();
@@ -77,22 +79,41 @@ class GuandanApp {
    * Initialize the application
    */
   initialize() {
-    // Initialize all subsystems
-    this.uiRenderer.initializeUI();
-    this.victoryModal.init();
-    this.statsManager.initialize();
+    // Check if this is a shared view first
+    const isSharedView = this.shareManager.initialize();
     
-    // Generate initial players
-    this.playerSystem.generatePlayers($('mode').value, false);
-    this.playerSystem.setupDropZones();
-    this.playerSystem.renderPlayers();
-    this.playerSystem.renderRankingArea();
-    
-    // Setup event listeners
-    this.setupEventListeners();
-    
-    // Initial UI state
-    this.updateUI();
+    if (!isSharedView) {
+      // Normal mode initialization
+      // Initialize all subsystems
+      this.uiRenderer.initializeUI();
+      this.victoryModal.init();
+      this.statsManager.initialize();
+      
+      // Generate initial players
+      this.playerSystem.generatePlayers($('mode').value, false);
+      this.playerSystem.setupDropZones();
+      this.playerSystem.renderPlayers();
+      this.playerSystem.renderRankingArea();
+      
+      // Setup event listeners
+      this.setupEventListeners();
+      
+      // Initial UI state
+      this.updateUI();
+    } else {
+      // Shared/read-only mode initialization
+      this.uiRenderer.initializeUI();
+      this.victoryModal.init();
+      this.statsManager.initialize();
+      
+      // Render shared data
+      this.playerSystem.renderPlayers();
+      this.playerSystem.renderRankingArea();
+      this.updateUI();
+      
+      // Setup limited event listeners (no modification events)
+      this.setupReadOnlyEventListeners();
+    }
   }
 
   /**
@@ -119,6 +140,9 @@ class GuandanApp {
     on($('exportTxt'), 'click', () => this.exportManager.exportTXT());
     on($('exportCsv'), 'click', () => this.exportManager.exportCSV());
     on($('exportLongPng'), 'click', () => this.exportManager.exportLongPNG());
+    
+    // Share function
+    on($('shareGame'), 'click', () => this.shareManager.showShareModal());
     
     // Reset
     on($('resetMatch'), 'click', () => this.resetAll());
@@ -205,6 +229,20 @@ class GuandanApp {
     on($('save8'), 'click', () => this.uiRenderer.collectAndSaveRules());
     
     // Make global functions available for HTML onclick handlers
+    this.setupGlobalFunctions();
+  }
+
+  /**
+   * Setup limited event listeners for read-only mode
+   */
+  setupReadOnlyEventListeners() {
+    // Only allow export and share functions in read-only mode
+    on($('exportTxt'), 'click', () => this.exportManager.exportTXT());
+    on($('exportCsv'), 'click', () => this.exportManager.exportCSV());
+    on($('exportLongPng'), 'click', () => this.exportManager.exportLongPNG());
+    on($('shareGame'), 'click', () => this.shareManager.showShareModal());
+    
+    // Make global functions available
     this.setupGlobalFunctions();
   }
 
