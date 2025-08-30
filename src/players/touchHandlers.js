@@ -18,11 +18,12 @@ class TouchHandlers {
    */
   handleTouchStart(e, player) {
     console.log('Touch start detected on player:', player.name);
+    console.log('Touch target:', e.target.tagName, e.target.className);
     
-    // Don't start drag if touching an input field
+    // Allow drag even if touching input field - just prevent editing
     if (e.target.tagName === 'INPUT') {
-      console.log('Touch on input field, skipping drag');
-      return; // Allow normal input interaction
+      console.log('Touch on input field, but allowing drag');
+      e.target.blur(); // Remove focus from input to prevent editing during drag
     }
     
     const touch = e.touches[0];
