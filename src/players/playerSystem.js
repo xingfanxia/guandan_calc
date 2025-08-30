@@ -150,6 +150,11 @@ class PlayerSystem {
       this.draggedPlayer = null;
     };
     
+    // Add touch handlers for mobile support (MISSING IN TEAM TILES!)
+    if (this.touchHandlers) {
+      this.touchHandlers.addTouchListeners(tile, player);
+    }
+    
     return tile;
   }
 
