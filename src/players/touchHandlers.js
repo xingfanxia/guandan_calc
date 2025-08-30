@@ -206,30 +206,23 @@ class TouchHandlers {
   }
 
   /**
-   * Handle team drop for touch
+   * Handle team drop for touch (simplified to match PlayerSystem logic)
    * @param {HTMLElement} zone - Team zone element
    * @param {Object} player - Player object
    */
   handleTeamDropTouch(zone, player) {
+    console.log('handleTeamDropTouch called with zone:', zone, 'player:', player);
+    
     const team = parseInt(zone.dataset.team);
+    console.log('Team from dataset:', team);
     
-    // Check if team is full
-    const teamPlayers = this.playerSystem.gameState.players.filter(p => p.team === team);
-    const maxPerTeam = parseInt(document.getElementById('mode').value) / 2;
+    // Delegate to PlayerSystem's handleTeamDrop method for consistency
+    const zoneInfo = {
+      team: team,
+      el: zone
+    };
     
-    // Don't allow if team is full (not counting the current player if they're already on this team)
-    if (teamPlayers.length >= maxPerTeam && !teamPlayers.some(p => p.id === player.id)) {
-      alert('该队伍已满员！');
-      this.playerSystem.renderPlayers();
-      this.playerSystem.renderRankingArea();
-      return;
-    }
-    
-    // Update player's team
-    player.team = team;
-    this.playerSystem.gameState.savePlayers();
-    this.playerSystem.renderPlayers();
-    this.playerSystem.renderRankingArea();
+    this.playerSystem.handleTeamDrop(zoneInfo, player);
   }
 
   /**
