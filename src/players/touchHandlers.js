@@ -141,25 +141,42 @@ class TouchHandlers {
     this.touchClone.style.display = 'block';
     
     // Handle drop
+    console.log('Touch end - checking for drop target');
+    console.log('Element below:', elementBelow);
+    console.log('Dragged player:', this.draggedPlayer);
+    
     if (elementBelow && this.draggedPlayer) {
       const rankSlot = elementBelow.closest('.rank-slot');
       const pool = elementBelow.closest('#playerPool');
       const unassignedZone = elementBelow.closest('#unassignedPlayers');
       const teamZone = elementBelow.closest('.team-drop-zone');
       
+      console.log('Found rankSlot:', rankSlot);
+      console.log('Found teamZone:', teamZone);
+      console.log('Found pool:', pool);
+      console.log('Found unassignedZone:', unassignedZone);
+      
       if (rankSlot) {
+        console.log('Dropping on rank slot');
         this.handleRankDrop(rankSlot, this.draggedPlayer);
       } else if (pool) {
+        console.log('Dropping on player pool');
         this.handlePoolDrop(this.draggedPlayer);
       } else if (unassignedZone) {
+        console.log('Dropping on unassigned zone');
         // Move player back to unassigned
         this.draggedPlayer.team = null;
         this.playerSystem.gameState.savePlayers();
         this.playerSystem.renderPlayers();
         this.playerSystem.renderRankingArea();
       } else if (teamZone) {
+        console.log('Dropping on team zone');
         this.handleTeamDropTouch(teamZone, this.draggedPlayer);
+      } else {
+        console.log('No valid drop target found');
       }
+    } else {
+      console.log('No element below touch point or no dragged player');
     }
     
     this.cleanup();
