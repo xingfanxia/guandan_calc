@@ -192,6 +192,11 @@ class PlayerSystem {
       this.draggedPlayer = null;
     };
     
+    // Add touch handlers for mobile support (ranking tiles)
+    if (this.touchHandlers) {
+      this.touchHandlers.addTouchListeners(tile, player);
+    }
+    
     return tile;
   }
 

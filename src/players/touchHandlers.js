@@ -33,6 +33,7 @@ class TouchHandlers {
       // Start drag after delay
       e.preventDefault();
       this.draggedPlayer = player;
+      this.playerSystem.draggedPlayer = player; // Also set on playerSystem for compatibility
       this.touchDraggedElement = tile;
       
       // Create clone for visual feedback
@@ -263,6 +264,7 @@ class TouchHandlers {
     }
     
     this.draggedPlayer = null;
+    this.playerSystem.draggedPlayer = null; // Also clear on playerSystem
     
     // Clear all highlights
     const dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
