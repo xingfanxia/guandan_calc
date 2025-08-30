@@ -296,6 +296,9 @@ class PlayerSystem {
       }
     });
     
+    // Re-setup drop zones after rendering (important for maintaining drag functionality)
+    this.setupDropZones();
+    
     this.updateTeamLabels();
   }
 

@@ -158,7 +158,7 @@ class TouchHandlers {
         this.playerSystem.renderPlayers();
         this.playerSystem.renderRankingArea();
       } else if (teamZone) {
-        this.handleTeamDrop(teamZone, this.draggedPlayer);
+        this.handleTeamDropTouch(teamZone, this.draggedPlayer);
       }
     }
     
@@ -193,7 +193,7 @@ class TouchHandlers {
    * @param {HTMLElement} zone - Team zone element
    * @param {Object} player - Player object
    */
-  handleTeamDrop(zone, player) {
+  handleTeamDropTouch(zone, player) {
     const team = parseInt(zone.dataset.team);
     
     // Check if team is full
