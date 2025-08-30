@@ -17,19 +17,13 @@ class TouchHandlers {
    * @param {Object} player - Player object
    */
   handleTouchStart(e, player) {
-    console.log('Touch start detected on player:', player.name);
-    console.log('Touch target:', e.target.tagName, e.target.className);
-    
     // Allow drag even if touching input field - just prevent editing
     if (e.target.tagName === 'INPUT') {
-      console.log('Touch on input field, but allowing drag');
       e.target.blur(); // Remove focus from input to prevent editing during drag
     }
     
     const touch = e.touches[0];
     const tile = e.currentTarget;
-    
-    console.log('Setting up drag timer for player:', player.name);
     
     // Store initial touch position
     this.touchStartPos = { x: touch.clientX, y: touch.clientY };
@@ -37,7 +31,6 @@ class TouchHandlers {
     // Set up delayed drag start (long press)
     this.touchStartTimer = setTimeout(() => {
       // Start drag after delay
-      console.log('Long press timeout reached, starting drag for:', player.name);
       e.preventDefault();
       this.draggedPlayer = player;
       this.playerSystem.draggedPlayer = player; // Also set on playerSystem for compatibility
@@ -148,42 +141,25 @@ class TouchHandlers {
     this.touchClone.style.display = 'block';
     
     // Handle drop
-    console.log('Touch end - checking for drop target');
-    console.log('Element below:', elementBelow);
-    console.log('Dragged player:', this.draggedPlayer);
-    
     if (elementBelow && this.draggedPlayer) {
       const rankSlot = elementBelow.closest('.rank-slot');
       const pool = elementBelow.closest('#playerPool');
       const unassignedZone = elementBelow.closest('#unassignedPlayers');
       const teamZone = elementBelow.closest('.team-drop-zone');
       
-      console.log('Found rankSlot:', rankSlot);
-      console.log('Found teamZone:', teamZone);
-      console.log('Found pool:', pool);
-      console.log('Found unassignedZone:', unassignedZone);
-      
       if (rankSlot) {
-        console.log('Dropping on rank slot');
         this.handleRankDrop(rankSlot, this.draggedPlayer);
       } else if (pool) {
-        console.log('Dropping on player pool');
         this.handlePoolDrop(this.draggedPlayer);
       } else if (unassignedZone) {
-        console.log('Dropping on unassigned zone');
         // Move player back to unassigned
         this.draggedPlayer.team = null;
         this.playerSystem.gameState.savePlayers();
         this.playerSystem.renderPlayers();
         this.playerSystem.renderRankingArea();
       } else if (teamZone) {
-        console.log('Dropping on team zone');
         this.handleTeamDropTouch(teamZone, this.draggedPlayer);
-      } else {
-        console.log('No valid drop target found');
       }
-    } else {
-      console.log('No element below touch point or no dragged player');
     }
     
     this.cleanup();
@@ -218,10 +194,7 @@ class TouchHandlers {
    * @param {Object} player - Player object
    */
   handleTeamDropTouch(zone, player) {
-    console.log('handleTeamDropTouch called with zone:', zone, 'player:', player);
-    
     const team = parseInt(zone.dataset.team);
-    console.log('Team from dataset:', team);
     
     // Delegate to PlayerSystem's handleTeamDrop method for consistency
     const zoneInfo = {
