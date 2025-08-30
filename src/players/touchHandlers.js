@@ -17,13 +17,18 @@ class TouchHandlers {
    * @param {Object} player - Player object
    */
   handleTouchStart(e, player) {
+    console.log('Touch start detected on player:', player.name);
+    
     // Don't start drag if touching an input field
     if (e.target.tagName === 'INPUT') {
+      console.log('Touch on input field, skipping drag');
       return; // Allow normal input interaction
     }
     
     const touch = e.touches[0];
     const tile = e.currentTarget;
+    
+    console.log('Setting up drag timer for player:', player.name);
     
     // Store initial touch position
     this.touchStartPos = { x: touch.clientX, y: touch.clientY };
@@ -31,6 +36,7 @@ class TouchHandlers {
     // Set up delayed drag start (long press)
     this.touchStartTimer = setTimeout(() => {
       // Start drag after delay
+      console.log('Long press timeout reached, starting drag for:', player.name);
       e.preventDefault();
       this.draggedPlayer = player;
       this.playerSystem.draggedPlayer = player; // Also set on playerSystem for compatibility
