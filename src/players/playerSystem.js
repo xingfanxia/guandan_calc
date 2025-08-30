@@ -211,6 +211,7 @@ class PlayerSystem {
     ];
     
     zones.forEach((zone) => {
+      // Desktop drag and drop events
       zone.el.ondragover = (e) => {
         e.preventDefault();
         zone.el.classList.add('drag-over');
@@ -228,6 +229,23 @@ class PlayerSystem {
           this.handleTeamDrop(zone, this.draggedPlayer);
         }
       };
+      
+      // Add touch event listeners for mobile support (MISSING!)
+      if (this.touchHandlers) {
+        zone.el.addEventListener('touchstart', (e) => {
+          // Prevent default to allow drop detection
+          e.preventDefault();
+        }, { passive: false });
+        
+        zone.el.addEventListener('touchmove', (e) => {
+          // Prevent default to allow drop detection  
+          e.preventDefault();
+        }, { passive: false });
+        
+        zone.el.addEventListener('touchend', (e) => {
+          // This will be handled by player touch handlers
+        }, { passive: false });
+      }
     });
   }
 
