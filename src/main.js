@@ -80,42 +80,86 @@ class GuandanApp {
   /**
    * Initialize the application
    */
-  initialize() {
+  async initialize() {
     // Check if this is a shared view first
     const isSharedView = this.shareManager.initialize();
     
-    if (!isSharedView) {
+    // Check for room in URL and reload room state
+    const isRoomView = await this.roomManager.checkURLForRoom();
+    
+    if (!isSharedView && !isRoomView) {
       // Normal mode initialization
-      // Initialize all subsystems
-      this.uiRenderer.initializeUI();
-      this.victoryModal.init();
-      this.statsManager.initialize();
-      
-      // Generate initial players
-      this.playerSystem.generatePlayers($('mode').value, false);
-      this.playerSystem.setupDropZones();
-      this.playerSystem.renderPlayers();
-      this.playerSystem.renderRankingArea();
-      
-      // Setup event listeners
-      this.setupEventListeners();
-      
-      // Initial UI state
-      this.updateUI();
+      this.initializeNormalMode();
+    } else if (isRoomView) {
+      // Room mode initialization (host or viewer)
+      this.initializeRoomMode();
     } else {
-      // Shared/read-only mode initialization
-      this.uiRenderer.initializeUI();
-      this.victoryModal.init();
-      this.statsManager.initialize();
-      
-      // Render shared data
-      this.playerSystem.renderPlayers();
-      this.playerSystem.renderRankingArea();
-      this.updateUI();
-      
-      // Setup limited event listeners (no modification events)
+      // Static shared view initialization
+      this.initializeSharedMode();
+    }
+  }
+
+  /**
+   * Initialize normal (solo) mode
+   */
+  initializeNormalMode() {
+    this.uiRenderer.initializeUI();
+    this.victoryModal.init();
+    this.statsManager.initialize();
+    
+    // Generate initial players
+    this.playerSystem.generatePlayers($('mode').value, false);
+    this.playerSystem.setupDropZones();
+    this.playerSystem.renderPlayers();
+    this.playerSystem.renderRankingArea();
+    
+    // Setup event listeners
+    this.setupEventListeners();
+    
+    // Initial UI state
+    this.updateUI();
+  }
+
+  /**
+   * Initialize room mode (host or viewer)
+   */
+  initializeRoomMode() {
+    this.uiRenderer.initializeUI();
+    this.victoryModal.init();
+    this.statsManager.initialize();
+    
+    // Room data should already be loaded by roomManager
+    // Setup drop zones and render current state
+    if (this.roomManager.isHost) {
+      // Host mode: full functionality
+      this.playerSystem.setupDropZones();
+      this.setupEventListeners();
+    } else {
+      // Viewer mode: limited functionality
       this.setupReadOnlyEventListeners();
     }
+    
+    // Render room data
+    this.playerSystem.renderPlayers();
+    this.playerSystem.renderRankingArea();
+    this.updateUI();
+  }
+
+  /**
+   * Initialize static shared mode
+   */
+  initializeSharedMode() {
+    this.uiRenderer.initializeUI();
+    this.victoryModal.init();
+    this.statsManager.initialize();
+    
+    // Render shared data
+    this.playerSystem.renderPlayers();
+    this.playerSystem.renderRankingArea();
+    this.updateUI();
+    
+    // Setup limited event listeners
+    this.setupReadOnlyEventListeners();
   }
 
   /**

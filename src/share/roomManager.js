@@ -17,20 +17,23 @@ class RoomManager {
   }
 
   /**
-   * Check URL for room parameter
+   * Check URL for room parameter and reload room state
    */
-  checkURLForRoom() {
+  async checkURLForRoom() {
     const urlParams = new URLSearchParams(window.location.search);
     const roomCode = urlParams.get('room');
     const authToken = urlParams.get('auth');
     
     if (roomCode) {
+      console.log('Detected room in URL, reloading room state:', roomCode);
+      
       if (authToken) {
-        this.joinRoomAsHost(roomCode, authToken);
+        return await this.joinRoomAsHost(roomCode, authToken);
       } else {
-        this.joinRoom(roomCode);
+        return await this.joinRoom(roomCode);
       }
     }
+    return false;
   }
 
   /**
