@@ -221,7 +221,7 @@ class VotingManager {
   }
 
   /**
-   * Display voting results for host
+   * Display voting results for host with selection interface
    * @param {Object} results - Voting results
    */
   displayVotingResults(results) {
@@ -230,31 +230,117 @@ class VotingManager {
     
     let resultsHTML = '<div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">';
     
-    // MVP votes
-    resultsHTML += '<div><h5 style="color:#22c55e;">最C投票结果</h5>';
-    const mvpVotes = Object.entries(results.mvp || {}).sort((a, b) => b[1] - a[1]);
-    mvpVotes.forEach(([playerId, votes]) => {
-      const player = this.roomManager.gameState.players.find(p => p.id === parseInt(playerId));
-      if (player) {
-        resultsHTML += `<div style="padding:8px; background:#2a2b2c; border-radius:4px; margin:4px;">
-          ${player.emoji} ${player.name}: ${votes} 票</div>`;
-      }
-    });
-    resultsHTML += '</div>';
+    // MVP selection with voting results
+    resultsHTML += '<div><h5 style="color:#22c55e;">选择最C (参考观众投票)</h5>';
+    resultsHTML += '<div id="hostMvpSelection" style="margin-bottom:10px;">';
     
-    // Burden votes
-    resultsHTML += '<div><h5 style="color:#ef4444;">最闹投票结果</h5>';
-    const burdenVotes = Object.entries(results.burden || {}).sort((a, b) => b[1] - a[1]);
-    burdenVotes.forEach(([playerId, votes]) => {
-      const player = this.roomManager.gameState.players.find(p => p.id === parseInt(playerId));
-      if (player) {
-        resultsHTML += `<div style="padding:8px; background:#2a2b2c; border-radius:4px; margin:4px;">
-          ${player.emoji} ${player.name}: ${votes} 票</div>`;
+    this.roomManager.gameState.players.forEach(player => {
+      if (player.team) {
+        const votes = results.mvp?.[player.id] || 0;
+        const isTopVoted = this.isTopVoted(player.id, results.mvp);
+        resultsHTML += `
+          <div class="host-vote-option" data-player-id="${player.id}" data-type="mvp" 
+               style="padding:8px 12px; margin:4px; background:${isTopVoted ? '#22c55e20' : '#2a2b2c'}; 
+                      border-radius:6px; cursor:pointer; border:2px solid ${isTopVoted ? '#22c55e' : 'transparent'};
+                      display:flex; justify-content:space-between; align-items:center;">
+            <span>${player.emoji} ${player.name}</span>
+            <span style="color:#22c55e; font-weight:bold;">${votes} 票 ${isTopVoted ? '🔥' : ''}</span>
+          </div>
+        `;
       }
     });
     resultsHTML += '</div></div>';
     
+    // Burden selection with voting results
+    resultsHTML += '<div><h5 style="color:#ef4444;">选择最闹 (参考观众投票)</h5>';
+    resultsHTML += '<div id="hostBurdenSelection" style="margin-bottom:10px;">';
+    
+    this.roomManager.gameState.players.forEach(player => {
+      if (player.team) {
+        const votes = results.burden?.[player.id] || 0;
+        const isTopVoted = this.isTopVoted(player.id, results.burden);
+        resultsHTML += `
+          <div class="host-vote-option" data-player-id="${player.id}" data-type="burden"
+               style="padding:8px 12px; margin:4px; background:${isTopVoted ? '#ef444420' : '#2a2b2c'}; 
+                      border-radius:6px; cursor:pointer; border:2px solid ${isTopVoted ? '#ef4444' : 'transparent'};
+                      display:flex; justify-content:space-between; align-items:center;">
+            <span>${player.emoji} ${player.name}</span>
+            <span style="color:#ef4444; font-weight:bold;">${votes} 票 ${isTopVoted ? '🔥' : ''}</span>
+          </div>
+        `;
+      }
+    });
+    resultsHTML += '</div></div>';
+    resultsHTML += '</div>';
+    
     resultsDiv.innerHTML = resultsHTML;
+    
+    // Add click handlers for host selection
+    this.setupHostSelectionHandlers();
+  }
+
+  /**
+   * Check if player has top votes in category
+   * @param {number} playerId - Player ID
+   * @param {Object} votes - Vote counts
+   * @returns {boolean} Is top voted
+   */
+  isTopVoted(playerId, votes) {
+    if (!votes || Object.keys(votes).length === 0) return false;
+    
+    const maxVotes = Math.max(...Object.values(votes));
+    return votes[playerId] === maxVotes && maxVotes > 0;
+  }
+
+  /**
+   * Setup host selection click handlers
+   */
+  setupHostSelectionHandlers() {
+    document.querySelectorAll('.host-vote-option').forEach(option => {
+      option.onclick = () => {
+        const playerId = parseInt(option.dataset.playerId);
+        const type = option.dataset.type;
+        
+        // Clear previous selections of same type
+        document.querySelectorAll(`.host-vote-option[data-type="${type}"]`).forEach(opt => {
+          opt.style.borderColor = opt.style.borderColor === 'transparent' ? 'transparent' : 
+                                  (type === 'mvp' ? '#22c55e' : '#ef4444');
+          opt.style.borderWidth = '1px';
+        });
+        
+        // Highlight selected
+        option.style.borderColor = type === 'mvp' ? '#22c55e' : '#ef4444';
+        option.style.borderWidth = '3px';
+        
+        // Store selection
+        if (type === 'mvp') {
+          this.hostSelectedMvp = playerId;
+        } else {
+          this.hostSelectedBurden = playerId;
+        }
+        
+        this.updateHostConfirmButton();
+      };
+    });
+  }
+
+  /**
+   * Update host confirm button state
+   */
+  updateHostConfirmButton() {
+    const confirmBtn = $('confirmHostSelection');
+    if (confirmBtn) {
+      if (this.hostSelectedMvp && this.hostSelectedBurden && this.hostSelectedMvp !== this.hostSelectedBurden) {
+        confirmBtn.disabled = false;
+        confirmBtn.style.opacity = '1';
+        confirmBtn.textContent = '✅ 确认选择';
+      } else {
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.5';
+        confirmBtn.textContent = this.hostSelectedMvp === this.hostSelectedBurden ? 
+          '❌ 最C和最闹不能是同一人' : '⏳ 请选择最C和最闹';
+      }
+    }
   }
 
   /**
@@ -338,38 +424,30 @@ class VotingManager {
    * Host confirms voting selection
    */
   async confirmHostSelection() {
+    if (!this.hostSelectedMvp || !this.hostSelectedBurden || this.hostSelectedMvp === this.hostSelectedBurden) {
+      alert('请先选择最C和最闹');
+      return;
+    }
+
     try {
-      // Get current voting results
-      const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`);
-      const result = await response.json();
+      const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === this.hostSelectedMvp);
+      const burdenPlayer = this.roomManager.gameState.players.find(p => p.id === this.hostSelectedBurden);
       
-      if (result.success && result.voting.currentRound) {
-        const votingResults = result.voting.currentRound.results;
+      if (confirm(`确认本局最终结果？\n\n最C: ${mvpPlayer.emoji} ${mvpPlayer.name}\n最闹: ${burdenPlayer.emoji} ${burdenPlayer.name}\n\n(将记录到玩家统计和人民的声音)`)) {
+        // Record community vote
+        await this.recordCommunityVote(this.hostSelectedMvp, this.hostSelectedBurden);
         
-        // Get top voted MVP and burden
-        const topMvp = this.getTopVoted(votingResults.mvp);
-        const topBurden = this.getTopVoted(votingResults.burden);
+        // Reset voting for next round
+        await this.resetCurrentVoting();
         
-        if (topMvp && topBurden) {
-          const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === parseInt(topMvp.playerId));
-          const burdenPlayer = this.roomManager.gameState.players.find(p => p.id === parseInt(topBurden.playerId));
-          
-          if (confirm(`确认投票结果？\n\n最C: ${mvpPlayer.emoji} ${mvpPlayer.name} (${topMvp.votes}票)\n最闹: ${burdenPlayer.emoji} ${burdenPlayer.name} (${topBurden.votes}票)`)) {
-            // Update player stats with community vote
-            await this.recordCommunityVote(parseInt(topMvp.playerId), parseInt(topBurden.playerId));
-            
-            // Reset voting for next round
-            await this.resetCurrentVoting();
-            
-            alert('✅ 投票结果已确认并记录到玩家统计中');
-          }
-        } else {
-          alert('暂无足够投票数据');
-        }
+        alert('✅ 本局最C和最闹已确认并记录');
+        
+        // Refresh voting interface
+        this.showHostVoting();
       }
     } catch (error) {
       console.error('Confirm selection failed:', error);
-      alert('确认失败：网络错误');
+      alert('确认失败：' + error.message);
     }
   }
 
