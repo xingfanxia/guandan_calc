@@ -186,7 +186,9 @@ class VotingManager {
     }
 
     try {
-      const roundId = `round_${Date.now()}`;
+      // Use actual game round number from game state
+      const gameRoundNumber = this.roomManager.gameState.state.hist.length + 1;
+      const roundId = `round_${gameRoundNumber}`;
       
       const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`, {
         method: 'POST',
@@ -196,7 +198,8 @@ class VotingManager {
         body: JSON.stringify({
           mvpPlayerId: this.selectedMvp,
           burdenPlayerId: this.selectedBurden,
-          roundId: roundId
+          roundId: roundId,
+          gameRoundNumber: gameRoundNumber
         })
       });
 

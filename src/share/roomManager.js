@@ -94,8 +94,7 @@ class RoomManager {
       currentRanking: this.gameState.currentRanking,
       // CRITICAL: Include voting data to prevent overwrites
       voting: this.votingData || {
-        currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
-        history: [],
+        rounds: {},
         playerStats: {}
       },
       timestamp: now()
@@ -115,8 +114,7 @@ class RoomManager {
         hostAuthToken: authToken, // Store auth token with room data
         // Ensure new rooms start with clean voting data
         voting: {
-          currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
-          history: [],
+          rounds: {},
           playerStats: {}
         }
       };
@@ -176,8 +174,7 @@ class RoomManager {
         this.isFavorite = result.data.isFavorite || false;
         // Initialize clean voting data for host
         this.votingData = result.data.voting || {
-          currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
-          history: [],
+          rounds: {},
           playerStats: {}
         };
         this.startAutoSync();

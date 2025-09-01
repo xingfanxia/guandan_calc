@@ -21,7 +21,7 @@ export default async function handler(request) {
     try {
       // Get vote data
       const voteData = await request.json();
-      const { mvpPlayerId, burdenPlayerId, roundId } = voteData;
+      const { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber } = voteData;
 
       if (!mvpPlayerId || !burdenPlayerId || !roundId) {
         return new Response(JSON.stringify({ 
@@ -60,24 +60,23 @@ export default async function handler(request) {
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
         parsedRoom.voting = {
-          currentRound: {
-            votes: {},
-            results: { mvp: {}, burden: {} }
-          },
-          history: [],
+          rounds: {}, // Store votes by round ID
           playerStats: {}
         };
       }
 
-      // Ensure current round exists
-      if (!parsedRoom.voting.currentRound) {
-        parsedRoom.voting.currentRound = {
+      // Initialize specific round voting if needed
+      if (!parsedRoom.voting.rounds[roundId]) {
+        parsedRoom.voting.rounds[roundId] = {
+          roundId: roundId,
+          gameRoundNumber: gameRoundNumber,
           votes: {},
-          results: { mvp: {}, burden: {} }
+          results: { mvp: {}, burden: {} },
+          createdAt: new Date().toISOString()
         };
       }
 
-      const currentVoting = parsedRoom.voting.currentRound;
+      const currentVoting = parsedRoom.voting.rounds[roundId];
 
       // Check for voting in current 5-minute window
       if (currentVoting.votes[voterHash]) {
@@ -175,7 +174,17 @@ export default async function handler(request) {
       }
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
-      const voting = parsedRoom.voting || { currentRound: null, history: [], playerStats: {} };
+      
+      // Get current round voting data
+      const gameRoundNumber = parsedRoom.state?.hist?.length + 1 || 1;
+      const currentRoundId = `round_${gameRoundNumber}`;
+      const currentRound = parsedRoom.voting?.rounds?.[currentRoundId] || null;
+      
+      const voting = {
+        currentRound: currentRound,
+        allRounds: parsedRoom.voting?.rounds || {},
+        playerStats: parsedRoom.voting?.playerStats || {}
+      };
 
       return new Response(JSON.stringify({
         success: true,
