@@ -48,8 +48,22 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Generate completely unique voter ID for each vote (no restrictions)
-      const voterHash = `vote_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      // Enhanced voter identification: IP + detailed browser fingerprint + 5-min time bucket
+      const voterIP = request.headers.get('CF-Connecting-IP') || 
+                     request.headers.get('X-Forwarded-For') || 
+                     'unknown';
+      const userAgent = request.headers.get('User-Agent') || 'unknown';
+      const acceptLanguage = request.headers.get('Accept-Language') || '';
+      const acceptEncoding = request.headers.get('Accept-Encoding') || '';
+      
+      // Create enhanced browser fingerprint to distinguish users on same IP
+      const browserFingerprint = btoa(userAgent + acceptLanguage + acceptEncoding).substring(0, 12);
+      
+      // 5-minute time bucket for rate limiting
+      const now = Math.floor(Date.now() / 1000);
+      const timeBucket = Math.floor(now / 300); // 5-minute buckets
+      
+      const voterHash = `${voterIP}_${browserFingerprint}_${timeBucket}`;
 
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
@@ -72,7 +86,15 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
-      // No duplicate checking - completely open voting for family/friends
+      // Check for duplicate voting in current 5-minute window
+      if (currentVoting.votes[voterHash]) {
+        return new Response(JSON.stringify({ 
+          error: '您在当前5分钟内已经投过票，请稍后再试' 
+        }), {
+          status: 429, // Too Many Requests
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       // Validate that MVP and burden are different
       if (mvpPlayerId === burdenPlayerId) {
