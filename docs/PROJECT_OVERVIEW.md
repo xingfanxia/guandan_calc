@@ -36,11 +36,17 @@ A comprehensive **real-time multiplayer** Guandan (掼蛋) scoring calculator th
 - **Real-time sync**: 10s host updates + 5s viewer polling
 - **Dual mode URLs**: Host management vs. viewer-only access
 
-#### Phase 5: Mobile-First Export System
-- **Desktop PNG** - Wide format for comprehensive data visualization  
-- **Mobile PNG** - 600px width optimized for phone viewing
-- **Smart sizing** - Dynamic height adjustment to eliminate empty space
-- **Enhanced readability** - Large fonts and proper text wrapping
+#### Phase 5: Advanced Community Features
+- **Room favorites** - Permanent storage for important games
+- **Room browsing** - Curated collection of memorable sessions  
+- **Anonymous voting** - Viewer participation in MVP/burden selection
+- **Mobile PNG optimization** - Perfect phone viewing with 14 honors included
+
+#### Phase 6: UI/UX Refinement
+- **Collapsible interfaces** - Reduced visual clutter after setup
+- **Information hierarchy** - Logical flow from setup to gameplay to results
+- **Cultural branding** - "闹麻家族" gaming community identity
+- **Accessibility** - Enhanced touch controls and mobile optimization
 
 ## 🏆 Core Value Propositions
 

@@ -8,12 +8,12 @@ A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chi
 
 ### Features
 
-- **🎮 Real-Time Room Sharing** ⭐ **NEW**
+- **🎮 Real-Time Room Sharing & Voting** ⭐ **ENHANCED**
   - Create 6-digit room codes (e.g., `A1B2C3`) for live game sharing
-  - Host mode: Full game control + auto-sync every 10 seconds
-  - Viewer mode: Real-time spectating with 5-second updates
-  - Secure authentication: Host tokens prevent unauthorized control
-  - 24-hour room persistence with global access
+  - Host mode: Full game control + auto-sync every 10 seconds + auth token protection
+  - Viewer mode: Real-time spectating + anonymous voting for MVP/burden each round
+  - Room favorites: ⭐ Mark important rooms for permanent storage (1-year default TTL)
+  - Room browsing: 📋 Browse and revisit favorite rooms with detailed preview
 
 - **👥 Smart Player Management**
   - 8 customizable players with 77+ animal & food emoji avatars (no insects)
@@ -29,31 +29,48 @@ A comprehensive web-based scoring calculator for Guandan (掼蛋), a popular Chi
   - A-level rules: Strict mode (must win at own A-level) vs. Lenient mode
   - 8-player sweep bonus: Top 4 positions = 4 level upgrade
   
-- **🏆 Honor System**
-  - 6 data-driven special honors with Chinese cultural references:
-    - 🥇 **Lü Bu (吕布)**: Most first places (legendary warrior)
-    - 😅 **A Dou (阿斗)**: Most last places (needs protection)
-    - 🗿 **Stone Buddha (石佛)**: Most stable rankings (steady as rock)
-    - 🌊 **Volatility King (波动王)**: Most volatile performance (unpredictable)
-    - 📈 **Struggle King (奋斗王)**: Best improvement trend (getting stronger)
-    - 🛡️ **Support King (辅助王)**: Most team wins while finishing last (selfless dedication)
-  - Team honors: "Very Carry" (strongest) and "Very Noob" (weakest) identification
-  - Variance analysis and trend detection algorithms
+- **🏆 Comprehensive Honor System** 
+  - **14 data-driven honors** with sophisticated algorithms and cultural references:
+    - 🥇 **吕布**: First place ratio (quality over quantity) + reliability threshold
+    - 😅 **阿斗**: Last place ratio + consecutive penalty system
+    - 🗿 **石佛**: Excellence + stability (top 25% with low variance)
+    - 🌊 **波动王**: Volatility + extreme range bonus (1st to last swings)
+    - 📈 **奋斗王**: Progressive 3-segment trend analysis 
+    - 🛡️ **辅助王**: Team support score (bottom-half during team wins)
+    - 🎪 **翻车王**: Dramatic drops from top 3 to last place
+    - 🎲 **赌徒**: High risk high reward (high first + high last rates)
+    - 👑 **大满贯**: Experience all ranking positions (completion rate)
+    - 🔥 **连胜王**: Longest consecutive top-half streak
+    - 🧘 **佛系玩家**: Closest to median ranking (middle way)
+    - 🛡️ **守门员**: Protect teammates from last place when team loses
+    - 🐌 **慢热王**: Poor start but strong finish pattern
+    - ⚡ **闪电侠**: Most frequent ranking changes between games
+  - **Clickable explanations**: Each honor shows detailed calculation and statistics
+  - **Mode adaptive**: All algorithms properly scale for 4/6/8 player modes
   
-- **📤 Multi-Format Export & Sharing**
-  - Real-time room codes: 6-digit codes for instant viewing sharing
+- **🗳️ Community Voting System**
+  - Anonymous viewer voting: Select MVP (最C) and burden (最闹) each round
+  - Host confirmation: Review community votes and make final decisions
+  - "人民的声音" panel: Track cumulative community MVP/burden recognition
+  - Real-time voting: Host sees live vote counts with 1-second updates
+  - Round-based organization: Separate voting for each completed game round
+
+- **📤 Advanced Export & Sharing**
+  - Real-time room codes: 6-digit codes with favorite/browsing system
+  - Room management: Favorite important rooms for permanent storage
+  - Mobile PNG: 600px width with player stats + 14 honors + game history
+  - Desktop PNG: Wide format (2200px) with complete data visualization
   - Static snapshots: URL-encoded data for permanent preservation
-  - Mobile PNG: 600px width optimized for phone viewing with large fonts
-  - Desktop PNG: Wide format for comprehensive data display
-  - TXT/CSV export: Data analysis and record keeping
+  - TXT/CSV export: Complete data analysis including honor calculations
   
-- **🎨 User Experience Optimization**
-  - Modern ES6 modular architecture with fast response
-  - A-level victory celebration with animations and sound effects
-  - Real-time sync notifications and visual feedback
-  - Clickable host banner for instant viewer link sharing
-  - Responsive design perfectly adapted for mobile and desktop
-  - Complete UTF-8 Chinese character support
+- **🎨 Enhanced User Experience**
+  - Modern ES6 modular architecture (12 specialized modules)
+  - Collapsible player setup interface for reduced clutter
+  - Optimized information hierarchy: setup → team status → ranking → results
+  - Mobile-first drag & drop with long-press touch support
+  - Clickable host banner for instant viewer link sharing  
+  - Real-time voting updates and visual feedback systems
+  - Complete UTF-8 Chinese character support with cultural gaming terminology
 
 ### Quick Start
 
