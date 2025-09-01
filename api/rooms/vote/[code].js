@@ -45,12 +45,17 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Generate voter ID (IP + User Agent for session identification)
+      // Generate voter ID with 5-minute time bucket for rate limiting
       const voterIP = request.headers.get('CF-Connecting-IP') || 
                      request.headers.get('X-Forwarded-For') || 
                      'unknown';
       const userAgent = request.headers.get('User-Agent') || 'unknown';
-      const voterHash = btoa(voterIP + userAgent).substring(0, 16);
+      
+      // Create 5-minute time bucket (300 seconds)
+      const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+      const timeBucket = Math.floor(now / 300); // 5-minute buckets
+      
+      const voterHash = btoa(voterIP + userAgent + timeBucket).substring(0, 16);
 
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
@@ -74,7 +79,18 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.currentRound;
 
-      // No duplicate checking - trust users in friendly environment
+      // Check for voting in current 5-minute window
+      if (currentVoting.votes[voterHash]) {
+        const lastVoteTime = new Date(currentVoting.votes[voterHash].timestamp);
+        const timeLeft = Math.ceil((lastVoteTime.getTime() + 300000 - Date.now()) / 1000);
+        
+        return new Response(JSON.stringify({ 
+          error: `请等待 ${Math.max(0, timeLeft)} 秒后再投票` 
+        }), {
+          status: 429, // Too Many Requests
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       // Validate that MVP and burden are different
       if (mvpPlayerId === burdenPlayerId) {
