@@ -185,10 +185,10 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
       
-      // Get current round voting data
-      const gameRoundNumber = parsedRoom.state?.hist?.length + 1 || 1;
-      const currentRoundId = `round_${gameRoundNumber}`;
-      const currentRound = parsedRoom.voting?.rounds?.[currentRoundId] || null;
+      // Get voting data for most recent completed round
+      const gameRoundNumber = parsedRoom.state?.hist?.length || 0;
+      const currentRoundId = gameRoundNumber > 0 ? `round_${gameRoundNumber}` : null;
+      const currentRound = currentRoundId ? (parsedRoom.voting?.rounds?.[currentRoundId] || null) : null;
       
       const voting = {
         currentRound: currentRound,

@@ -186,9 +186,15 @@ class VotingManager {
     }
 
     try {
-      // Use actual game round number from game state
-      const gameRoundNumber = this.roomManager.gameState.state.hist.length + 1;
+      // Vote for the most recently completed round (not the next round)
+      const gameRoundNumber = this.roomManager.gameState.state.hist.length;
       const roundId = `round_${gameRoundNumber}`;
+      
+      // Don't allow voting if no rounds completed yet
+      if (gameRoundNumber === 0) {
+        alert('还没有完成的比赛局数可供投票');
+        return;
+      }
       
       const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`, {
         method: 'POST',
