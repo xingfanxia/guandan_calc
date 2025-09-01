@@ -179,7 +179,11 @@ class StatsManager {
       fanchewang: $('fanchewang'),
       dutu: $('dutu'),
       damanguan: $('damanguan'),
-      lianshengewang: $('lianshengewang')
+      lianshengewang: $('lianshengewang'),
+      foxiwanjia: $('foxiwanjia'),
+      shoumenyuan: $('shoumenyuan'),
+      manrewang: $('manrewang'),
+      shandianxia: $('shandianxia')
     };
     
     Object.keys(honorElements).forEach(honorKey => {
@@ -354,7 +358,12 @@ class StatsManager {
       fanchewang: { player: null, score: 0, explanation: '' },
       dutu: { player: null, score: 0, explanation: '' },
       damanguan: { player: null, score: 0, explanation: '' },
-      lianshengewang: { player: null, score: 0, explanation: '' }
+      lianshengewang: { player: null, score: 0, explanation: '' },
+      // 第二批新增称号
+      foxiwanjia: { player: null, score: 0, explanation: '' },
+      shoumenyuan: { player: null, score: 0, explanation: '' },
+      manrewang: { player: null, score: 0, explanation: '' },
+      shandianxia: { player: null, score: 0, explanation: '' }
     };
     
     let bestFirstRatio = 0;
@@ -368,6 +377,11 @@ class StatsManager {
     let bestGambler = 0;
     let bestGrandSlam = 0;
     let longestWinStreak = 0;
+    // 第二批称号最佳值
+    let bestMedianPlayer = 999;
+    let bestProtector = 0;
+    let bestSlowStart = 0;
+    let mostFrequentChange = 0;
     
     this.gameState.players.forEach((player) => {
       const stats = this.gameState.playerStats[player.id];
@@ -501,6 +515,53 @@ class StatsManager {
               player: player,
               score: winStreak,
               explanation: `连续${winStreak}局保持前${topHalf}名，状态持续优秀`
+            };
+          }
+
+          // 第二批新增称号
+          // 佛系玩家 - 总是接近中位数排名
+          const medianDev = this.calculateMedianDeviation(stats.rankings);
+          if (medianDev < bestMedianPlayer && stats.games >= 5) {
+            bestMedianPlayer = medianDev;
+            const mode = this.getCurrentGameMode();
+            const medianRank = (mode + 1) / 2;
+            honors.foxiwanjia = {
+              player: player,
+              score: medianDev,
+              explanation: `${stats.games}场比赛排名很佛系，平均偏离中位数${medianRank.toFixed(1)}名仅${medianDev.toFixed(2)}位`
+            };
+          }
+
+          // 守门员 - 队伍失败时保护队友（避免垫底）
+          const protectionCount = this.countTeammateProtection(player);
+          if (protectionCount > bestProtector && protectionCount > 0) {
+            bestProtector = protectionCount;
+            honors.shoumenyuan = {
+              player: player,
+              score: protectionCount,
+              explanation: `队伍失败时${protectionCount}次避免垫底，成功保护队友`
+            };
+          }
+
+          // 慢热王 - 开局差但后期强
+          const slowStartScore = this.calculateSlowStartImprovement(stats.rankings);
+          if (slowStartScore > bestSlowStart && stats.games >= 6) {
+            bestSlowStart = slowStartScore;
+            honors.manrewang = {
+              player: player,
+              score: slowStartScore,
+              explanation: `典型慢热型选手，前期表现一般但后期发力强劲，改善幅度${slowStartScore.toFixed(2)}`
+            };
+          }
+
+          // 闪电侠 - 排名变化最频繁
+          const changeFreq = this.calculateChangeFrequency(stats.rankings);
+          if (changeFreq > mostFrequentChange && stats.games >= 4) {
+            mostFrequentChange = changeFreq;
+            honors.shandianxia = {
+              player: player,
+              score: changeFreq,
+              explanation: `排名变化极其频繁，场均排名变化${changeFreq.toFixed(2)}位，难以预测`
             };
           }
         }
@@ -665,6 +726,94 @@ class StatsManager {
     });
     
     return maxStreak;
+  }
+
+  /**
+   * Calculate median deviation (how close to middle rankings)
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Average deviation from median rank
+   */
+  calculateMedianDeviation(rankings) {
+    const mode = this.getCurrentGameMode();
+    const medianRank = (mode + 1) / 2; // Middle rank for the mode
+    
+    const deviations = rankings.map(rank => Math.abs(rank - medianRank));
+    return deviations.reduce((sum, dev) => sum + dev, 0) / deviations.length;
+  }
+
+  /**
+   * Count teammate protection (times this player didn't finish last when team lost)
+   * @param {Object} player - Player object
+   * @returns {number} Protection count
+   */
+  countTeammateProtection(player) {
+    if (!this.gameState.state.hist || this.gameState.state.hist.length === 0) {
+      return 0;
+    }
+    
+    let protectionCount = 0;
+    const mode = this.getCurrentGameMode();
+    const lastPlace = mode;
+    
+    this.gameState.state.hist.forEach(game => {
+      if (game.playerRankings && game.winKey) {
+        const playerTeam = player.team;
+        const gameWinnerTeam = game.winKey;
+        const winnerTeamNumber = gameWinnerTeam === 't1' ? 1 : 2;
+        
+        // Only count when this player's team lost
+        if (playerTeam !== winnerTeamNumber) {
+          // Check if this player avoided last place when team lost
+          for (const rank in game.playerRankings) {
+            const rankedPlayer = game.playerRankings[rank];
+            if (rankedPlayer.id === player.id && parseInt(rank) !== lastPlace) {
+              protectionCount++;
+              break;
+            }
+          }
+        }
+      }
+    });
+    
+    return protectionCount;
+  }
+
+  /**
+   * Calculate slow start improvement (poor early, strong late)
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Slow start improvement score
+   */
+  calculateSlowStartImprovement(rankings) {
+    if (rankings.length < 6) return 0;
+    
+    const firstQuarter = rankings.slice(0, Math.floor(rankings.length / 4));
+    const lastQuarter = rankings.slice(-Math.floor(rankings.length / 4));
+    
+    const earlyAvg = firstQuarter.reduce((sum, rank) => sum + rank, 0) / firstQuarter.length;
+    const lateAvg = lastQuarter.reduce((sum, rank) => sum + rank, 0) / lastQuarter.length;
+    
+    // High score = poor start but strong finish
+    const improvement = earlyAvg - lateAvg;
+    const startPenalty = earlyAvg > 5 ? 1.5 : 1; // Bonus for really poor starts
+    
+    return improvement * startPenalty;
+  }
+
+  /**
+   * Calculate ranking change frequency (how often rankings change dramatically)
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Change frequency score
+   */
+  calculateChangeFrequency(rankings) {
+    if (rankings.length < 3) return 0;
+    
+    let totalChanges = 0;
+    for (let i = 1; i < rankings.length; i++) {
+      const change = Math.abs(rankings[i] - rankings[i-1]);
+      totalChanges += change;
+    }
+    
+    return totalChanges / (rankings.length - 1); // Average change per game
   }
 
   /**
@@ -834,7 +983,11 @@ class StatsManager {
       fanchewang: '🎪 翻车王 (戏剧性失误)',
       dutu: '🎲 赌徒 (极端表现)',
       damanguan: '👑 大满贯 (全能体验)',
-      lianshengewang: '🔥 连胜王 (持续优秀)'
+      lianshengewang: '🔥 连胜王 (持续优秀)',
+      foxiwanjia: '🧘 佛系玩家 (中庸之道)',
+      shoumenyuan: '🛡️ 守门员 (保护队友)',
+      manrewang: '🐌 慢热王 (后期发力)',
+      shandianxia: '⚡ 闪电侠 (变化频繁)'
     };
     return titles[honorKey] || honorKey;
   }
