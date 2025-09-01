@@ -45,7 +45,7 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Generate anonymous voter ID (based on IP + user agent hash)
+      // Generate voter ID (IP + User Agent for session identification)
       const voterIP = request.headers.get('CF-Connecting-IP') || 
                      request.headers.get('X-Forwarded-For') || 
                      'unknown';
@@ -74,26 +74,51 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.currentRound;
 
-      // Check if this voter already voted for current session
+      // Check for duplicate voting to maintain data consistency
       if (currentVoting.votes[voterHash]) {
         return new Response(JSON.stringify({ 
-          error: 'Already voted for this session' 
+          error: 'Already voted for this round' 
         }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // Record vote (accumulative)
+      // Validate that MVP and burden are different
+      if (mvpPlayerId === burdenPlayerId) {
+        return new Response(JSON.stringify({ 
+          error: 'MVP and burden cannot be the same player' 
+        }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Record vote atomically (both MVP and burden together)
       currentVoting.votes[voterHash] = {
         mvp: mvpPlayerId,
         burden: burdenPlayerId,
         timestamp: new Date().toISOString()
       };
 
-      // Update vote counts (accumulative)
+      // Update vote counts atomically - BOTH must succeed
       currentVoting.results.mvp[mvpPlayerId] = (currentVoting.results.mvp[mvpPlayerId] || 0) + 1;
       currentVoting.results.burden[burdenPlayerId] = (currentVoting.results.burden[burdenPlayerId] || 0) + 1;
+
+      // Verify consistency: total MVP votes should equal total burden votes
+      const totalMvpVotes = Object.values(currentVoting.results.mvp).reduce((sum, count) => sum + count, 0);
+      const totalBurdenVotes = Object.values(currentVoting.results.burden).reduce((sum, count) => sum + count, 0);
+      
+      if (totalMvpVotes !== totalBurdenVotes) {
+        console.error('Vote count inconsistency detected:', { totalMvpVotes, totalBurdenVotes });
+        // Don't save inconsistent data
+        return new Response(JSON.stringify({ 
+          error: 'Vote count inconsistency detected' 
+        }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
 
       // Update room's lastUpdated timestamp
       parsedRoom.lastUpdated = new Date().toISOString();

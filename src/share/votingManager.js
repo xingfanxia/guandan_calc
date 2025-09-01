@@ -39,10 +39,10 @@ class VotingManager {
    * Start polling for voting updates (host only)
    */
   startVotingPolling() {
-    // Poll for voting updates every 3 seconds
+    // Poll for voting updates every 1 second for real-time feel
     this.votingPollInterval = setInterval(() => {
       this.loadVotingResults();
-    }, 3000);
+    }, 1000);
   }
 
   /**
