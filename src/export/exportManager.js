@@ -442,7 +442,8 @@ class ExportManager {
     // Single column layout with bigger fonts to avoid overlap
     this.lctx.font = 'bold 22px Arial';
     honors.forEach((honor) => {
-      const winner = specialHonors[honor.key];
+      const honorData = specialHonors[honor.key];
+      const winner = honorData && honorData.player ? honorData.player : null;
       const winnerText = winner ? winner.emoji + winner.name : '—';
       
       // Honor name in color
@@ -456,7 +457,7 @@ class ExportManager {
       // Description (adjusted for narrower width)
       this.lctx.fillStyle = '#888';
       this.lctx.font = '16px Arial';
-      this.lctx.fillText('(' + honor.desc + ')', 280, currentY);
+      this.lctx.fillText('(' + honor.desc + ')', 350, currentY);
       
       this.lctx.font = 'bold 22px Arial';
       currentY += 40; // More space between honors
