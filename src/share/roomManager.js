@@ -92,6 +92,12 @@ class RoomManager {
       })),
       playerStats: this.gameState.playerStats,
       currentRanking: this.gameState.currentRanking,
+      // CRITICAL: Include voting data to prevent overwrites
+      voting: this.votingData || {
+        currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
+        history: [],
+        playerStats: {}
+      },
       timestamp: now()
     };
   }
