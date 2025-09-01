@@ -48,7 +48,7 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Enhanced voter identification: IP + detailed browser fingerprint + 5-min time bucket
+      // Create voter fingerprint (without time bucket for duplicate checking)
       const voterIP = request.headers.get('CF-Connecting-IP') || 
                      request.headers.get('X-Forwarded-For') || 
                      'unknown';
@@ -56,14 +56,13 @@ export default async function handler(request) {
       const acceptLanguage = request.headers.get('Accept-Language') || '';
       const acceptEncoding = request.headers.get('Accept-Encoding') || '';
       
-      // Create enhanced browser fingerprint to distinguish users on same IP
+      // Create stable browser fingerprint (same for same browser during round)
       const browserFingerprint = btoa(userAgent + acceptLanguage + acceptEncoding).substring(0, 12);
+      const voterHash = `${voterIP}_${browserFingerprint}`;
       
-      // 5-minute time bucket for rate limiting
-      const now = Math.floor(Date.now() / 1000);
-      const timeBucket = Math.floor(now / 300); // 5-minute buckets
-      
-      const voterHash = `${voterIP}_${browserFingerprint}_${timeBucket}`;
+      // Check 5-minute cooldown separately
+      const now = Date.now();
+      const fiveMinutesAgo = now - 300000;
 
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
@@ -91,14 +90,25 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
-      // Check for duplicate voting in current 5-minute window
-      if (currentVoting.votes[voterHash]) {
-        return new Response(JSON.stringify({ 
-          error: '您在当前5分钟内已经投过票，请稍后再试' 
-        }), {
-          status: 429, // Too Many Requests
-          headers: { 'Content-Type': 'application/json' }
-        });
+      // Check for duplicate voting and 5-minute cooldown
+      const existingVote = currentVoting.votes[voterHash];
+      if (existingVote) {
+        const lastVoteTime = new Date(existingVote.timestamp).getTime();
+        if (now - lastVoteTime < 300000) { // Less than 5 minutes
+          const timeLeft = Math.ceil((300000 - (now - lastVoteTime)) / 1000);
+          return new Response(JSON.stringify({ 
+            error: `您在当前局已投过票，请等待 ${timeLeft} 秒后再投票` 
+          }), {
+            status: 429,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        } else {
+          // More than 5 minutes, allow re-vote but first subtract old vote
+          const oldMvp = existingVote.mvp;
+          const oldBurden = existingVote.burden;
+          currentVoting.results.mvp[oldMvp] = Math.max(0, (currentVoting.results.mvp[oldMvp] || 0) - 1);
+          currentVoting.results.burden[oldBurden] = Math.max(0, (currentVoting.results.burden[oldBurden] || 0) - 1);
+        }
       }
 
       // Validate that MVP and burden are different
