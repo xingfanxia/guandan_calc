@@ -90,25 +90,14 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
-      // Check for duplicate voting and 5-minute cooldown
-      const existingVote = currentVoting.votes[voterHash];
-      if (existingVote) {
-        const lastVoteTime = new Date(existingVote.timestamp).getTime();
-        if (now - lastVoteTime < 300000) { // Less than 5 minutes
-          const timeLeft = Math.ceil((300000 - (now - lastVoteTime)) / 1000);
-          return new Response(JSON.stringify({ 
-            error: `您在当前局已投过票，请等待 ${timeLeft} 秒后再投票` 
-          }), {
-            status: 429,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        } else {
-          // More than 5 minutes, allow re-vote but first subtract old vote
-          const oldMvp = existingVote.mvp;
-          const oldBurden = existingVote.burden;
-          currentVoting.results.mvp[oldMvp] = Math.max(0, (currentVoting.results.mvp[oldMvp] || 0) - 1);
-          currentVoting.results.burden[oldBurden] = Math.max(0, (currentVoting.results.burden[oldBurden] || 0) - 1);
-        }
+      // Simple rule: Each voter can only vote once per round, period.
+      if (currentVoting.votes[voterHash]) {
+        return new Response(JSON.stringify({ 
+          error: `您已经为第${gameRoundNumber}局投过票了` 
+        }), {
+          status: 429,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
 
       // Validate that MVP and burden are different
