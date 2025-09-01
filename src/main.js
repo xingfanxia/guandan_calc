@@ -197,15 +197,17 @@ class GuandanApp {
     on($('createRoom'), 'click', () => this.showCreateRoomModal());
     on($('joinRoom'), 'click', () => this.showJoinRoomModal());
     on($('browseRooms'), 'click', () => this.roomManager.showBrowseRoomsModal());
-    on($('favoriteRoom'), 'click', async () => {
+    // Favorite room buttons (two locations)
+    const favoriteHandler = async () => {
       const success = await this.roomManager.toggleFavorite();
       if (success) {
-        const btn = $('favoriteRoom');
-        const isNowFavorite = this.roomManager.isFavorite;
-        btn.textContent = isNowFavorite ? '⭐ 已收藏' : '⭐ 收藏房间';
-        btn.style.background = isNowFavorite ? '#22c55e' : '#f59e0b';
+        // Update both buttons
+        this.roomManager.updateFavoriteButton();
       }
-    });
+    };
+    
+    on($('favoriteRoom'), 'click', favoriteHandler);
+    on($('favoriteRoomTop'), 'click', favoriteHandler);
     
     // Share function (static snapshot)
     on($('shareGame'), 'click', () => this.shareManager.showShareModal());

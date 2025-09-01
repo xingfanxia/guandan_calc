@@ -561,20 +561,23 @@ class RoomManager {
   }
 
   /**
-   * Update favorite button appearance
+   * Update favorite button appearance (both locations)
    */
   updateFavoriteButton() {
-    const btn = document.getElementById('favoriteRoom');
-    if (btn && this.currentRoomCode) {
-      btn.style.display = 'inline-block';
-      if (this.isFavorite) {
-        btn.innerHTML = '⭐ 已收藏';
-        btn.style.background = '#22c55e';
-      } else {
-        btn.innerHTML = '⭐ 收藏房间';
-        btn.style.background = '#f59e0b';
+    const btns = [document.getElementById('favoriteRoom'), document.getElementById('favoriteRoomTop')];
+    
+    btns.forEach(btn => {
+      if (btn && this.currentRoomCode) {
+        btn.style.display = 'inline-block';
+        if (this.isFavorite) {
+          btn.innerHTML = '⭐ 已收藏';
+          btn.style.background = '#22c55e';
+        } else {
+          btn.innerHTML = '⭐ 收藏房间';
+          btn.style.background = '#f59e0b';
+        }
       }
-    }
+    });
   }
 
   /**
