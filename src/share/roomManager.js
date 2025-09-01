@@ -528,6 +528,131 @@ class RoomManager {
   }
 
   /**
+   * Toggle room favorite status
+   * @returns {Promise<boolean>} Success status
+   */
+  async toggleFavorite() {
+    if (!this.currentRoomCode) return false;
+
+    try {
+      const method = this.isFavorite ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/rooms/favorite/${this.currentRoomCode}`, {
+        method: method
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        this.isFavorite = !this.isFavorite;
+        this.updateFavoriteButton();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update favorite button appearance
+   */
+  updateFavoriteButton() {
+    const btn = document.getElementById('favoriteRoom');
+    if (btn && this.currentRoomCode) {
+      btn.style.display = 'inline-block';
+      if (this.isFavorite) {
+        btn.innerHTML = '⭐ 已收藏';
+        btn.style.background = '#22c55e';
+      } else {
+        btn.innerHTML = '⭐ 收藏房间';
+        btn.style.background = '#f59e0b';
+      }
+    }
+  }
+
+  /**
+   * Show browse rooms modal
+   */
+  async showBrowseRoomsModal() {
+    try {
+      const response = await fetch('/api/rooms/list');
+      const result = await response.json();
+      
+      if (!result.success) {
+        alert('加载房间列表失败');
+        return;
+      }
+
+      this.createBrowseModal(result.favorites);
+    } catch (error) {
+      console.error('Failed to load room list:', error);
+      alert('加载房间列表失败：' + error.message);
+    }
+  }
+
+  /**
+   * Create browse rooms modal
+   * @param {Array} favorites - List of favorite rooms
+   */
+  createBrowseModal(favorites) {
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+    `;
+    
+    const content = document.createElement('div');
+    content.style.cssText = `
+      background: #1a1b1c; border-radius: 16px; padding: 32px; 
+      max-width: 800px; width: 90%; max-height: 80%; overflow-y: auto;
+      text-align: center; border: 2px solid #8b5cf6;
+    `;
+    
+    let roomsHTML = `
+      <h2 style="color: #fff; margin: 0 0 20px 0;">📋 精选房间回顾</h2>
+      <p style="color: #999; margin-bottom: 20px;">浏览收藏的经典比赛</p>
+    `;
+    
+    if (favorites.length === 0) {
+      roomsHTML += '<p style="color: #888;">暂无收藏房间</p>';
+    } else {
+      roomsHTML += '<div style="text-align: left;">';
+      favorites.forEach(room => {
+        const date = new Date(room.createdAt).toLocaleDateString('zh-CN');
+        roomsHTML += `
+          <div style="background: #2a2b2c; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer;"
+               onclick="window.location.href='?room=${room.roomCode}'">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="color: #fff; font-weight: bold;">房间 ${room.roomCode}</div>
+                <div style="color: #999; font-size: 14px;">${room.teamNames.t1} vs ${room.teamNames.t2}</div>
+                <div style="color: #666; font-size: 12px;">${date} | ${room.gameCount}局比赛</div>
+              </div>
+              <div style="color: #f59e0b; font-size: 20px;">⭐</div>
+            </div>
+          </div>
+        `;
+      });
+      roomsHTML += '</div>';
+    }
+    
+    roomsHTML += `
+      <div style="margin-top: 20px;">
+        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                style="padding: 12px 24px; background: #666; color: white; border: none; 
+                       border-radius: 8px; cursor: pointer;">关闭</button>
+      </div>
+    `;
+    
+    content.innerHTML = roomsHTML;
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+  }
+
+  /**
    * Get current room status
    * @returns {Object} Room status info
    */
@@ -536,7 +661,8 @@ class RoomManager {
       roomCode: this.currentRoomCode,
       isHost: this.isHost,
       isViewer: this.isViewer,
-      lastUpdate: this.lastUpdate
+      lastUpdate: this.lastUpdate,
+      isFavorite: this.isFavorite
     };
   }
 

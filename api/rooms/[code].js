@@ -79,8 +79,15 @@ export default async function handler(request) {
         version: 'v9.0'
       };
 
-      // Store updated data without expiration (persistent)
-      await kv.set(`room:${roomCode}`, JSON.stringify(updatedData));
+      // Store updated data - check if favorite for permanent storage
+      const existingData = typeof existingRoom === 'string' ? JSON.parse(existingRoom) : existingRoom;
+      if (existingData.isFavorite) {
+        // Favorite rooms are permanent
+        await kv.set(`room:${roomCode}`, JSON.stringify(updatedData));
+      } else {
+        // Regular rooms have 1-year TTL
+        await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(updatedData));
+      }
 
       return new Response(JSON.stringify({
         success: true,
