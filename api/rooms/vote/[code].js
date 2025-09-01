@@ -68,9 +68,14 @@ export default async function handler(request) {
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
         parsedRoom.voting = {
-          rounds: {}, // Store votes by round ID
+          rounds: {},
           playerStats: {}
         };
+      }
+
+      // Ensure rounds object exists
+      if (!parsedRoom.voting.rounds) {
+        parsedRoom.voting.rounds = {};
       }
 
       // Initialize specific round voting if needed
