@@ -245,8 +245,8 @@ class StatsManager {
     }
     
     let supportScore = 0;
-    const mode = parseInt(document.getElementById('mode')?.value || 8);
-    const bottomHalfThreshold = Math.ceil(mode / 2); // Bottom half threshold (e.g., 5+ for 8-player)
+    const mode = this.getCurrentGameMode();
+    const bottomHalfThreshold = Math.ceil(mode / 2); // Bottom half threshold adaptive to mode
     
     this.gameState.state.hist.forEach(game => {
       if (game.playerRankings && game.winKey) {
@@ -290,6 +290,29 @@ class StatsManager {
   }
 
   /**
+   * Get current game mode
+   * @returns {number} Current game mode (4, 6, or 8)
+   */
+  getCurrentGameMode() {
+    return parseInt(document.getElementById('mode')?.value || 8);
+  }
+
+  /**
+   * Calculate excellence threshold based on game mode
+   * @param {number} mode - Game mode (4, 6, or 8)
+   * @returns {number} Excellence threshold rank
+   */
+  getExcellenceThreshold(mode) {
+    // Top tier for each mode: top 25% of ranks
+    const thresholds = {
+      4: 1.5,  // 4人模式: 平均1.5名以上算优秀
+      6: 2.0,  // 6人模式: 平均2名以上算优秀  
+      8: 3.0   // 8人模式: 平均3名以上算优秀
+    };
+    return thresholds[mode] || 3.0;
+  }
+
+  /**
    * Calculate excellence consistency score (stable + good performance)
    * @param {Object} player - Player object
    * @returns {number} Excellence consistency score (lower = better)
@@ -298,12 +321,14 @@ class StatsManager {
     const stats = this.gameState.playerStats[player.id];
     if (!stats || !stats.rankings || stats.rankings.length < 3) return 999;
     
+    const mode = this.getCurrentGameMode();
+    const excellenceThreshold = this.getExcellenceThreshold(mode);
     const avgRank = stats.totalRank / stats.games;
     const variance = this.calculateVariance(stats.rankings);
     
     // 石佛需要：优秀的平均排名 + 低方差
     // 惩罚平均排名差的玩家，即使他们很稳定
-    const excellencePenalty = Math.max(0, avgRank - 3) * 2; // 平均排名超过3名会有惩罚
+    const excellencePenalty = Math.max(0, avgRank - excellenceThreshold) * 3;
     const gameWeight = Math.min(stats.games / 10, 1); // More games = more reliable
     
     return (variance + excellencePenalty) / gameWeight; // Lower score = excellent stability
@@ -358,17 +383,19 @@ class StatsManager {
           };
         }
         
-        // 石佛 - 改进：优秀的稳定性（好排名 + 低波动）
+        // 石佛 - 改进：优秀的稳定性（模式自适应）
+        const mode = this.getCurrentGameMode();
+        const excellenceThreshold = this.getExcellenceThreshold(mode);
         const excellenceScore = this.calculateExcellenceConsistency(player);
         const avgRank = stats.totalRank / stats.games;
         
-        // 只有平均排名前3名的玩家才能成为石佛
-        if (excellenceScore < bestConsistency && avgRank <= 3.5) {
+        // 只有达到对应模式优秀门槛的玩家才能成为石佛
+        if (excellenceScore < bestConsistency && avgRank <= excellenceThreshold) {
           bestConsistency = excellenceScore;
           honors.shifo = {
             player: player,
             score: excellenceScore,
-            explanation: `${stats.games}场比赛优秀且稳定，平均${avgRank.toFixed(2)}名，始终保持前列`
+            explanation: `${mode}人模式${stats.games}场比赛优秀且稳定，平均${avgRank.toFixed(2)}名，始终保持前${Math.ceil(excellenceThreshold)}名内`
           };
         }
         
@@ -416,12 +443,12 @@ class StatsManager {
   }
 
   /**
-   * Calculate consecutive last place penalty
+   * Calculate consecutive last place penalty (mode-adaptive)
    * @param {Array} rankings - Player rankings
    * @returns {number} Penalty score for consecutive last places
    */
   calculateConsecutiveLastPenalty(rankings) {
-    const mode = parseInt(document.getElementById('mode')?.value || 8);
+    const mode = this.getCurrentGameMode();
     const lastPlace = mode;
     let maxConsecutive = 0;
     let currentConsecutive = 0;
@@ -435,21 +462,31 @@ class StatsManager {
       }
     });
     
-    return maxConsecutive * 0.1; // Penalty for consecutive last places
+    // Scale penalty by mode difficulty
+    const penaltyScale = {4: 0.15, 6: 0.12, 8: 0.1}[mode] || 0.1;
+    return maxConsecutive * penaltyScale;
   }
 
   /**
-   * Calculate bonus for extreme ranking variations
+   * Calculate bonus for extreme ranking variations (mode-adaptive)
    * @param {Array} rankings - Player rankings
    * @returns {number} Bonus score for extreme variations
    */
   calculateExtremeRankingBonus(rankings) {
+    const mode = this.getCurrentGameMode();
     const min = Math.min(...rankings);
     const max = Math.max(...rankings);
     const range = max - min;
     
-    // Bonus for having both very high and very low rankings
-    return range > 4 ? range * 0.5 : 0;
+    // Mode-adaptive extreme range thresholds
+    const extremeThresholds = {
+      4: 2,  // 4人模式: 跨度2以上算极端 (如第1到第3)
+      6: 3,  // 6人模式: 跨度3以上算极端 (如第1到第4)
+      8: 4   // 8人模式: 跨度4以上算极端 (如第1到第5)
+    };
+    
+    const threshold = extremeThresholds[mode] || 4;
+    return range > threshold ? range * 0.5 : 0;
   }
 
   /**
