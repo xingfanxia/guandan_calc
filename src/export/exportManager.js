@@ -192,25 +192,34 @@ class ExportManager {
     this.lctx.fillText('很C: ' + (team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'), 120, team2Y);
     this.lctx.fillText('很闹: ' + (team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'), 300, team2Y);
     
-    // Special honors
+    // Special honors - all 14 categories
     const specialY = team2Y + 50;
     this.lctx.fillText('特殊荣誉:', 40, specialY);
     
-    const honors = [
-      {key: 'lyubu', name: '吕布', desc: '最多第一名'},
-      {key: 'adou', name: '阿斗', desc: '最多垫底'},
-      {key: 'shifo', name: '石佛', desc: '排名最稳定'},
-      {key: 'bodongwang', name: '波动率的王', desc: '排名波动最大'},
-      {key: 'fendouwang', name: '奋斗之王', desc: '排名稳步提升'},
-      {key: 'fuzhuwang', name: '辅助之王', desc: '团队胜利时垫底'}
+    const allHonors = [
+      {key: 'lyubu', name: '🥇吕布'},
+      {key: 'adou', name: '😅阿斗'},
+      {key: 'shifo', name: '🗿石佛'},
+      {key: 'bodongwang', name: '🌊波动王'},
+      {key: 'fendouwang', name: '📈奋斗王'},
+      {key: 'fuzhuwang', name: '🛡️辅助王'},
+      {key: 'fanchewang', name: '🎪翻车王'},
+      {key: 'dutu', name: '🎲赌徒'},
+      {key: 'damanguan', name: '👑大满贯'},
+      {key: 'lianshengewang', name: '🔥连胜王'},
+      {key: 'foxiwanjia', name: '🧘佛系玩家'},
+      {key: 'shoumenyuan', name: '🛡️守门员'},
+      {key: 'manrewang', name: '🐌慢热王'},
+      {key: 'shandianxia', name: '⚡闪电侠'}
     ];
     
     this.lctx.font = '16px Arial';
     let honorX = 40;
     let honorY = specialY + 30;
     
-    honors.forEach((honor, index) => {
-      const winner = specialHonors[honor.key];
+    allHonors.forEach((honor, index) => {
+      const honorData = specialHonors[honor.key];
+      const winner = honorData && honorData.player ? honorData.player : null;
       const text = honor.name + ': ' + (winner ? winner.emoji + winner.name : '—');
       
       this.lctx.fillText(text, honorX, honorY);
@@ -401,12 +410,20 @@ class ExportManager {
     currentY += 45;
     
     const honors = [
-      {key: 'lyubu', name: '🥇吕布', desc: '最多第一名', color: '#d4af37'},
-      {key: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513'},
-      {key: 'shifo', name: '🗿石佛', desc: '排名最稳定', color: '#708090'},
-      {key: 'bodongwang', name: '🌊波动王', desc: '排名波动最大', color: '#ff4500'},
-      {key: 'fendouwang', name: '📈奋斗王', desc: '排名稳步提升', color: '#32cd32'},
-      {key: 'fuzhuwang', name: '🛡️辅助王', desc: '团队胜利时垫底', color: '#4169e1'}
+      {key: 'lyubu', name: '🥇吕布', desc: '最强战力', color: '#d4af37'},
+      {key: 'adou', name: '😅阿斗', desc: '最弱表现', color: '#8b4513'},
+      {key: 'shifo', name: '🗿石佛', desc: '优秀稳定', color: '#708090'},
+      {key: 'bodongwang', name: '🌊波动王', desc: '最不稳定', color: '#ff4500'},
+      {key: 'fendouwang', name: '📈奋斗王', desc: '最大进步', color: '#32cd32'},
+      {key: 'fuzhuwang', name: '🛡️辅助王', desc: '团队奉献', color: '#4169e1'},
+      {key: 'fanchewang', name: '🎪翻车王', desc: '戏剧失误', color: '#dc2626'},
+      {key: 'dutu', name: '🎲赌徒', desc: '极端表现', color: '#7c3aed'},
+      {key: 'damanguan', name: '👑大满贯', desc: '全能体验', color: '#059669'},
+      {key: 'lianshengewang', name: '🔥连胜王', desc: '持续优秀', color: '#ea580c'},
+      {key: 'foxiwanjia', name: '🧘佛系玩家', desc: '中庸之道', color: '#6b7280'},
+      {key: 'shoumenyuan', name: '🛡️守门员', desc: '保护队友', color: '#059669'},
+      {key: 'manrewang', name: '🐌慢热王', desc: '后期发力', color: '#db2777'},
+      {key: 'shandianxia', name: '⚡闪电侠', desc: '变化频繁', color: '#eab308'}
     ];
     
     // Single column layout with bigger fonts to avoid overlap
