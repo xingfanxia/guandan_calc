@@ -27,36 +27,54 @@
 
   <!-- 玩家设置 -->
   <div class="card" id="playerSetupSection">
-    <h3>玩家设置</h3>
-    <div class="row">
-      <label for="mode">人数：</label>
-      <select id="mode"><option value="4">4 人</option><option value="6">6 人</option><option value="8" selected>8 人</option></select>
-      <button id="generatePlayers">生成玩家</button>
-      <button id="shuffleTeams">随机分配队伍</button>
-    </div>
-    <div class="row" style="margin-top:8px;">
-      <label for="bulkNames">批量输入姓名：</label>
-      <input type="text" id="bulkNames" placeholder="超 豪 姐 哥 帆 夫 塔 小" style="flex:1; margin-right:8px;">
-      <button id="applyBulkNames">应用姓名</button>
-      <button id="quickStart" style="background:#4ade80; color:white; margin-left:4px;">快速开始</button>
-    </div>
-    <div class="unassigned-players" id="unassignedPlayers">
-      <div class="small muted" style="width:100%">点击"生成玩家"开始</div>
-    </div>
-    
-    <div class="grid">
-      <div>
-        <h4 id="team1Label">蓝队</h4>
-        <div class="team-drop-zone" id="team1Zone" data-team="1">
-          <div class="label">拖拽玩家到这里分配队伍</div>
+    <details open>
+      <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">👥 玩家设置</summary>
+      <div class="row">
+        <label for="mode">人数：</label>
+        <select id="mode"><option value="4">4 人</option><option value="6">6 人</option><option value="8" selected>8 人</option></select>
+        <button id="generatePlayers">生成玩家</button>
+        <button id="shuffleTeams">随机分配队伍</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <label for="bulkNames">批量输入姓名：</label>
+        <input type="text" id="bulkNames" placeholder="超 豪 姐 哥 帆 夫 塔 小" style="flex:1; margin-right:8px;">
+        <button id="applyBulkNames">应用姓名</button>
+        <button id="quickStart" style="background:#4ade80; color:white; margin-left:4px;">快速开始</button>
+      </div>
+      <div class="unassigned-players" id="unassignedPlayers">
+        <div class="small muted" style="width:100%">点击"生成玩家"开始</div>
+      </div>
+      
+      <div class="grid">
+        <div>
+          <h4 id="team1Label">蓝队</h4>
+          <div class="team-drop-zone" id="team1Zone" data-team="1">
+            <div class="label">拖拽玩家到这里分配队伍</div>
+          </div>
+        </div>
+        <div>
+          <h4 id="team2Label">红队</h4>
+          <div class="team-drop-zone" id="team2Zone" data-team="2">
+            <div class="label">拖拽玩家到这里分配队伍</div>
+          </div>
         </div>
       </div>
-      <div>
-        <h4 id="team2Label">红队</h4>
-        <div class="team-drop-zone" id="team2Zone" data-team="2">
-          <div class="label">拖拽玩家到这里分配队伍</div>
-        </div>
-      </div>
+    </details>
+  </div>
+
+  <!-- 队伍状态 -->
+  <div class="card">
+    <h3>队伍</h3>
+    <div class="team">
+      <span class="chip" id="t1NameChip"><b>蓝队</b></span><span class="chip">级牌：<b id="t1Lvl">2</b></span><span class="chip">A失败：<b id="t1A">0</b>/3</span><span class="chip">A状态：<b id="t1AState">—</b></span>
+    </div>
+    <div class="team">
+      <span class="chip" id="t2NameChip"><b>红队</b></span><span class="chip">级牌：<b id="t2Lvl">2</b></span><span class="chip">A失败：<b id="t2A">0</b>/3</span><span class="chip">A状态：<b id="t2AState">—</b></span>
+    </div>
+    <hr>
+    <div class="team">
+      <span class="chip">本局级牌：<b id="curRoundLvl">2</b></span>
+      <span class="chip">下局级牌（预览）：<b id="nextRoundPreview">-</b></span>
     </div>
   </div>
 
@@ -116,20 +134,6 @@
       <span class="small muted" id="applyTip"></span>
     </div>
 
-    <div class="card">
-      <h3>队伍</h3>
-      <div class="team">
-        <span class="chip" id="t1NameChip"><b>蓝队</b></span><span class="chip">级牌：<b id="t1Lvl">2</b></span><span class="chip">A失败：<b id="t1A">0</b>/3</span><span class="chip">A状态：<b id="t1AState">—</b></span>
-      </div>
-      <div class="team">
-        <span class="chip" id="t2NameChip"><b>红队</b></span><span class="chip">级牌：<b id="t2Lvl">2</b></span><span class="chip">A失败：<b id="t2A">0</b>/3</span><span class="chip">A状态：<b id="t2AState">—</b></span>
-      </div>
-      <hr>
-      <div class="team">
-        <span class="chip">本局级牌：<b id="curRoundLvl">2</b></span>
-        <span class="chip">下局级牌（预览）：<b id="nextRoundPreview">-</b></span>
-      </div>
-    </div>
   </div>
 
   <div class="card" id="customRulesSection">
