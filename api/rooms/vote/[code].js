@@ -24,6 +24,7 @@ export default async function handler(request) {
       const { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber } = voteData;
 
       console.log('Vote submission:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
+      console.log('Voter hash:', voterHash);
 
       if (!mvpPlayerId || !burdenPlayerId || !roundId) {
         console.error('Missing vote data:', voteData);
@@ -60,9 +61,7 @@ export default async function handler(request) {
       const browserFingerprint = btoa(userAgent + acceptLanguage + acceptEncoding).substring(0, 12);
       const voterHash = `${voterIP}_${browserFingerprint}`;
       
-      // Check 5-minute cooldown separately
-      const now = Date.now();
-      const fiveMinutesAgo = now - 300000;
+      // No cooldown needed - just one vote per round per voter
 
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
@@ -91,7 +90,11 @@ export default async function handler(request) {
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
       // Simple rule: Each voter can only vote once per round, period.
+      console.log('Existing votes for this round:', Object.keys(currentVoting.votes));
+      console.log('Checking if voter already voted:', currentVoting.votes[voterHash] ? 'YES' : 'NO');
+      
       if (currentVoting.votes[voterHash]) {
+        console.log('Duplicate vote detected for voter:', voterHash);
         return new Response(JSON.stringify({ 
           error: `您已经为第${gameRoundNumber}局投过票了` 
         }), {
