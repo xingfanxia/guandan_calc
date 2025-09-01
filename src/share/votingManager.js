@@ -27,6 +27,31 @@ class VotingManager {
       }
       
       this.loadVotingStats();
+      
+      // Start real-time voting updates for hosts
+      if (this.roomManager.isHost) {
+        this.startVotingPolling();
+      }
+    }
+  }
+
+  /**
+   * Start polling for voting updates (host only)
+   */
+  startVotingPolling() {
+    // Poll for voting updates every 3 seconds
+    this.votingPollInterval = setInterval(() => {
+      this.loadVotingResults();
+    }, 3000);
+  }
+
+  /**
+   * Stop voting polling
+   */
+  stopVotingPolling() {
+    if (this.votingPollInterval) {
+      clearInterval(this.votingPollInterval);
+      this.votingPollInterval = null;
     }
   }
 
@@ -209,14 +234,29 @@ class VotingManager {
    */
   async loadVotingResults() {
     try {
+      // First try to get from room data if available
+      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
+        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
+      }
+      
+      // Also fetch latest from API
       const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`);
       const result = await response.json();
       
-      if (result.success && result.voting.currentRound) {
-        this.displayVotingResults(result.voting.currentRound.results);
+      if (result.success) {
+        // Update local voting data
+        this.roomManager.votingData = result.voting;
+        
+        if (result.voting.currentRound) {
+          this.displayVotingResults(result.voting.currentRound.results);
+        }
       }
     } catch (error) {
       console.error('Failed to load voting results:', error);
+      // Fallback to local data if available
+      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
+        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
+      }
     }
   }
 

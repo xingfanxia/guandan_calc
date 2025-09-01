@@ -221,6 +221,9 @@ class RoomManager {
     this.gameState.playerStats = roomData.playerStats || {};
     this.gameState.currentRanking = roomData.currentRanking || {};
     
+    // Load voting data if available
+    this.votingData = roomData.voting || { currentRound: null, history: [], playerStats: {} };
+    
     this.lastUpdate = roomData.lastUpdated;
   }
 
