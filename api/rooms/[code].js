@@ -79,8 +79,8 @@ export default async function handler(request) {
         version: 'v9.0'
       };
 
-      // Store updated data with extended expiration (24 hours from now)
-      await kv.setex(`room:${roomCode}`, 86400, JSON.stringify(updatedData));
+      // Store updated data without expiration (persistent)
+      await kv.set(`room:${roomCode}`, JSON.stringify(updatedData));
 
       return new Response(JSON.stringify({
         success: true,

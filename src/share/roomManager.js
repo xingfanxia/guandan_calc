@@ -348,7 +348,7 @@ class RoomManager {
       cursor: pointer;
       transition: background 0.2s ease;
     `;
-    banner.innerHTML = `🎮 房主模式 - 房间 ${this.currentRoomCode} | 自动同步中... | 点击复制观众链接`;
+    banner.innerHTML = `🎮 房主模式 - 房间 ${this.currentRoomCode} | 自动同步中... | 永久房间 | 点击复制观众链接`;
     
     // Add click handler to copy viewer link
     banner.onclick = async () => {

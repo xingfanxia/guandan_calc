@@ -68,14 +68,14 @@ export default async function handler(request) {
       version: 'v9.0'
     };
 
-    // Store in Vercel KV with 24 hour expiration
-    await kv.setex(`room:${roomCode}`, 86400, JSON.stringify(roomData));
+    // Store in Vercel KV without expiration (persistent rooms)
+    await kv.set(`room:${roomCode}`, JSON.stringify(roomData));
 
     // Return room code
     return new Response(JSON.stringify({
       success: true,
       roomCode: roomCode,
-      expiresIn: 86400 // 24 hours
+      expiresIn: 'never' // Persistent rooms
     }), {
       status: 200,
       headers: { 
