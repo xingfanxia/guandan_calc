@@ -338,8 +338,102 @@ class VotingManager {
    * Host confirms voting selection
    */
   async confirmHostSelection() {
-    // Implementation for host selection confirmation
-    alert('房主确认功能开发中...');
+    try {
+      // Get current voting results
+      const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`);
+      const result = await response.json();
+      
+      if (result.success && result.voting.currentRound) {
+        const votingResults = result.voting.currentRound.results;
+        
+        // Get top voted MVP and burden
+        const topMvp = this.getTopVoted(votingResults.mvp);
+        const topBurden = this.getTopVoted(votingResults.burden);
+        
+        if (topMvp && topBurden) {
+          const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === parseInt(topMvp.playerId));
+          const burdenPlayer = this.roomManager.gameState.players.find(p => p.id === parseInt(topBurden.playerId));
+          
+          if (confirm(`确认投票结果？\n\n最C: ${mvpPlayer.emoji} ${mvpPlayer.name} (${topMvp.votes}票)\n最闹: ${burdenPlayer.emoji} ${burdenPlayer.name} (${topBurden.votes}票)`)) {
+            // Update player stats with community vote
+            await this.recordCommunityVote(parseInt(topMvp.playerId), parseInt(topBurden.playerId));
+            
+            // Reset voting for next round
+            await this.resetCurrentVoting();
+            
+            alert('✅ 投票结果已确认并记录到玩家统计中');
+          }
+        } else {
+          alert('暂无足够投票数据');
+        }
+      }
+    } catch (error) {
+      console.error('Confirm selection failed:', error);
+      alert('确认失败：网络错误');
+    }
+  }
+
+  /**
+   * Get top voted player
+   * @param {Object} votes - Vote counts by player ID
+   * @returns {Object|null} Top voted player info
+   */
+  getTopVoted(votes) {
+    const entries = Object.entries(votes || {});
+    if (entries.length === 0) return null;
+    
+    entries.sort((a, b) => b[1] - a[1]); // Sort by vote count descending
+    return {
+      playerId: entries[0][0],
+      votes: entries[0][1]
+    };
+  }
+
+  /**
+   * Record community vote in player statistics
+   * @param {number} mvpPlayerId - MVP player ID  
+   * @param {number} burdenPlayerId - Burden player ID
+   */
+  async recordCommunityVote(mvpPlayerId, burdenPlayerId) {
+    // Update local player stats
+    const playerStats = this.roomManager.gameState.playerStats;
+    
+    // Initialize community vote stats if needed
+    if (!playerStats[mvpPlayerId]) playerStats[mvpPlayerId] = {};
+    if (!playerStats[burdenPlayerId]) playerStats[burdenPlayerId] = {};
+    
+    // Record community MVP and burden votes
+    playerStats[mvpPlayerId].communityMvpCount = (playerStats[mvpPlayerId].communityMvpCount || 0) + 1;
+    playerStats[burdenPlayerId].communityBurdenCount = (playerStats[burdenPlayerId].communityBurdenCount || 0) + 1;
+    
+    // Save to local storage and sync to room
+    this.roomManager.gameState.savePlayerStats();
+    
+    if (this.roomManager.isHost) {
+      await this.roomManager.syncNow();
+    }
+  }
+
+  /**
+   * Reset current voting session
+   */
+  async resetCurrentVoting() {
+    try {
+      // This would require a separate API endpoint to reset voting
+      // For now, we'll just refresh the interface
+      this.hasVoted = false;
+      this.selectedMvp = null;
+      this.selectedBurden = null;
+      
+      // Refresh voting interface
+      if (this.roomManager.isViewer) {
+        this.showViewerVoting();
+      } else {
+        this.showHostVoting();
+      }
+    } catch (error) {
+      console.error('Failed to reset voting:', error);
+    }
   }
 }
 

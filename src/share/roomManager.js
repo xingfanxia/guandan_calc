@@ -629,7 +629,18 @@ class RoomManager {
     } else {
       roomsHTML += '<div style="text-align: left;">';
       favorites.forEach(room => {
-        const date = new Date(room.createdAt).toLocaleDateString('zh-CN');
+        // Fix date parsing
+        let date = 'Unknown Date';
+        try {
+          if (room.createdAt) {
+            date = new Date(room.createdAt).toLocaleDateString('zh-CN');
+          } else {
+            date = '最近创建';
+          }
+        } catch (error) {
+          date = '日期解析错误';
+        }
+        
         roomsHTML += `
           <div style="background: #2a2b2c; border-radius: 8px; padding: 16px; margin-bottom: 12px; cursor: pointer;"
                onclick="window.location.href='?room=${room.roomCode}'">
@@ -637,7 +648,7 @@ class RoomManager {
               <div>
                 <div style="color: #fff; font-weight: bold;">房间 ${room.roomCode}</div>
                 <div style="color: #999; font-size: 14px;">${room.teamNames.t1} vs ${room.teamNames.t2}</div>
-                <div style="color: #666; font-size: 12px;">${date} | ${room.gameCount}局比赛</div>
+                <div style="color: #666; font-size: 12px;">${date} | ${room.gameCount || 0}局比赛</div>
               </div>
               <div style="color: #f59e0b; font-size: 20px;">⭐</div>
             </div>
