@@ -301,14 +301,17 @@ class ExportManager {
     this.lctx.font = '16px Arial';
     this.lctx.fillText('时间：' + now(), 40, 185);
     
-    // Draw honor section for mobile (start much lower)
+    // Draw honor section for mobile
     this.drawMobileHonorSection();
     
-    // Add debug line to see where honor section ends
-    this.lctx.fillStyle = '#444';
-    this.lctx.fillRect(30, this.honorSectionEndY - 2, W - 60, 2);
+    // Draw player statistics table
+    this.drawMobilePlayerStats();
     
-    // Mobile table
+    // Add debug line to see where stats section ends
+    this.lctx.fillStyle = '#444';
+    this.lctx.fillRect(30, this.playerStatsEndY - 2, W - 60, 2);
+    
+    // Mobile game history table
     this.drawMobileTable();
     
     // Calculate optimal height and create clean final image
@@ -434,11 +437,97 @@ class ExportManager {
   }
 
   /**
+   * Draw player statistics table for mobile
+   */
+  drawMobilePlayerStats() {
+    const startY = this.honorSectionEndY;
+    let currentY = startY;
+    
+    // Get stats manager for data
+    const statsManager = window.guandanApp?.statsManager;
+    if (!statsManager) {
+      this.playerStatsEndY = currentY + 20;
+      return;
+    }
+    
+    // Player statistics section title
+    this.lctx.font = 'bold 28px Arial';
+    this.lctx.fillStyle = '#f5f6f8';
+    this.lctx.fillText('📊 玩家排名统计', 40, currentY);
+    currentY += 40;
+    
+    // Collect player data with stats (same logic as web interface)
+    const playerData = [];
+    this.gameState.players.forEach((player) => {
+      const stats = this.gameState.playerStats[player.id];
+      if (stats && stats.games > 0) {
+        const avgRank = stats.totalRank / stats.games;
+        playerData.push({
+          player: player,
+          stats: stats,
+          avgRank: avgRank
+        });
+      }
+    });
+    
+    if (playerData.length === 0) {
+      this.lctx.font = '16px Arial';
+      this.lctx.fillStyle = '#888';
+      this.lctx.fillText('暂无数据', 60, currentY);
+      currentY += 30;
+    } else {
+      // Sort by team first, then by average ranking
+      playerData.sort((a, b) => {
+        if (a.player.team !== b.player.team) {
+          return (a.player.team || 999) - (b.player.team || 999);
+        }
+        return a.avgRank - b.avgRank;
+      });
+      
+      // Draw each player's stats
+      this.lctx.font = '18px Arial';
+      playerData.forEach((data) => {
+        const player = data.player;
+        const stats = data.stats;
+        const avgRankDisplay = data.avgRank.toFixed(2);
+        const teamName = player.team === 1 ? 
+          this.gameState.settings.t1.name : 
+          (player.team === 2 ? this.gameState.settings.t2.name : '未分配');
+        const teamColor = player.team === 1 ? 
+          this.gameState.settings.t1.color : 
+          (player.team === 2 ? this.gameState.settings.t2.color : '#666');
+        
+        // Player name and emoji
+        this.lctx.fillStyle = '#f5f6f8';
+        this.lctx.fillText(player.emoji + player.name, 60, currentY);
+        
+        // Team name in team color
+        this.lctx.fillStyle = teamColor;
+        this.lctx.font = 'bold 16px Arial';
+        this.lctx.fillText(teamName, 180, currentY);
+        
+        // Statistics
+        this.lctx.fillStyle = '#b4b8bf';
+        this.lctx.font = '16px Arial';
+        this.lctx.fillText(`${stats.games}场`, 240, currentY);
+        this.lctx.fillText(`平均${avgRankDisplay}`, 300, currentY);
+        this.lctx.fillText(`第1名×${stats.firstPlaceCount || 0}`, 400, currentY);
+        this.lctx.fillText(`垫底×${stats.lastPlaceCount || 0}`, 500, currentY);
+        
+        this.lctx.font = '18px Arial';
+        currentY += 25;
+      });
+    }
+    
+    this.playerStatsEndY = currentY + 40;
+  }
+
+  /**
    * Draw table optimized for mobile
    */
   drawMobileTable() {
-    const W = 800; // Mobile width
-    const tableStartY = this.honorSectionEndY || 680; // Use dynamic position after honor section
+    const W = 600; // Mobile width
+    const tableStartY = this.playerStatsEndY || 680; // Use dynamic position after player stats section
     const rowH = 60;
     const n = this.gameState.state.hist.length;
     
