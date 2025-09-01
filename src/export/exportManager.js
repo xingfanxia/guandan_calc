@@ -220,16 +220,29 @@ class ExportManager {
     allHonors.forEach((honor, index) => {
       const honorData = specialHonors[honor.key];
       const winner = honorData && honorData.player ? honorData.player : null;
-      const text = honor.name + ': ' + (winner ? winner.emoji + winner.name : '—');
       
+      // Simplify text format for canvas compatibility
+      let text = honor.name + ': ';
+      if (winner) {
+        text += winner.emoji + winner.name;
+      } else {
+        text += '—';
+      }
+      
+      this.lctx.fillStyle = '#f5f6f8';
       this.lctx.fillText(text, honorX, honorY);
       
-      // Arrange in 2 columns
-      if (index % 2 === 0) {
-        honorX = 400;
-      } else {
+      // Arrange in 3 columns for better space usage
+      const columnWidth = 280;
+      const currentColumn = index % 3;
+      
+      if (currentColumn === 2) {
+        // End of row, move to next line
         honorX = 40;
-        honorY += 25;
+        honorY += 22;
+      } else {
+        // Move to next column
+        honorX = 40 + (currentColumn + 1) * columnWidth;
       }
     });
   }
