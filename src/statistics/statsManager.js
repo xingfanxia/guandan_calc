@@ -175,7 +175,11 @@ class StatsManager {
       shifo: $('shifo'),
       bodongwang: $('bodongwang'),
       fendouwang: $('fendouwang'),
-      fuzhuwang: $('fuzhuwang')
+      fuzhuwang: $('fuzhuwang'),
+      fanchewang: $('fanchewang'),
+      dutu: $('dutu'),
+      damanguan: $('damanguan'),
+      lianshengewang: $('lianshengewang')
     };
     
     Object.keys(honorElements).forEach(honorKey => {
@@ -345,7 +349,12 @@ class StatsManager {
       shifo: { player: null, score: 0, explanation: '' },
       bodongwang: { player: null, score: 0, explanation: '' },
       fendouwang: { player: null, score: 0, explanation: '' },
-      fuzhuwang: { player: null, score: 0, explanation: '' }
+      fuzhuwang: { player: null, score: 0, explanation: '' },
+      // 新增称号
+      fanchewang: { player: null, score: 0, explanation: '' },
+      dutu: { player: null, score: 0, explanation: '' },
+      damanguan: { player: null, score: 0, explanation: '' },
+      lianshengewang: { player: null, score: 0, explanation: '' }
     };
     
     let bestFirstRatio = 0;
@@ -354,6 +363,11 @@ class StatsManager {
     let worstConsistency = 0;
     let bestImprovement = -999;
     let bestSupport = 0;
+    // 新增称号的最佳值
+    let mostCrashes = 0;
+    let bestGambler = 0;
+    let bestGrandSlam = 0;
+    let longestWinStreak = 0;
     
     this.gameState.players.forEach((player) => {
       const stats = this.gameState.playerStats[player.id];
@@ -436,6 +450,60 @@ class StatsManager {
             explanation: `团队胜利时经常排名靠后，辅助分数${supportScore}分`
           };
         }
+
+        // 新增称号算法
+        if (stats.rankings && stats.rankings.length >= 3) {
+          // 翻车王 - 从前3掉到垫底次数
+          const crashes = this.calculateCrashCount(stats.rankings);
+          if (crashes > mostCrashes && crashes > 0) {
+            mostCrashes = crashes;
+            honors.fanchewang = {
+              player: player,
+              score: crashes,
+              explanation: `${stats.games}场比赛中发生${crashes}次翻车（从前3名掉到垫底）`
+            };
+          }
+          
+          // 赌徒 - 高风险高回报
+          const gamblerScore = this.calculateGamblerScore(player);
+          if (gamblerScore > bestGambler && stats.games >= 5) {
+            bestGambler = gamblerScore;
+            const firstRatio = ((stats.firstPlaceCount || 0) / stats.games * 100).toFixed(1);
+            const lastRatio = ((stats.lastPlaceCount || 0) / stats.games * 100).toFixed(1);
+            honors.dutu = {
+              player: player,
+              score: gamblerScore,
+              explanation: `高风险高回报，第1名率${firstRatio}%，垫底率${lastRatio}%，极端表现`
+            };
+          }
+          
+          // 大满贯 - 体验所有排名位置
+          const grandSlamInfo = this.checkGrandSlam(stats.rankings);
+          const grandSlamScore = grandSlamInfo.completionRate;
+          if (grandSlamScore > bestGrandSlam) {
+            bestGrandSlam = grandSlamScore;
+            honors.damanguan = {
+              player: player,
+              score: grandSlamScore,
+              explanation: grandSlamInfo.isComplete ? 
+                `大满贯成就！体验过所有${grandSlamInfo.totalRanks}个排名位置` :
+                `已体验${grandSlamInfo.achievedCount}/${grandSlamInfo.totalRanks}个排名位置，完成度${(grandSlamScore*100).toFixed(1)}%`
+            };
+          }
+          
+          // 连胜王 - 连续好排名
+          const winStreak = this.calculateWinStreak(stats.rankings);
+          if (winStreak > longestWinStreak && winStreak >= 3) {
+            longestWinStreak = winStreak;
+            const mode = this.getCurrentGameMode();
+            const topHalf = Math.ceil(mode / 2);
+            honors.lianshengewang = {
+              player: player,
+              score: winStreak,
+              explanation: `连续${winStreak}局保持前${topHalf}名，状态持续优秀`
+            };
+          }
+        }
       }
     });
     
@@ -512,6 +580,91 @@ class StatsManager {
     const trend2 = middleAvg - lastAvg;
     
     return (trend1 + trend2) / 2; // Average improvement across segments
+  }
+
+  /**
+   * Calculate crash count (drops from top 3 to last place)
+   * @param {Array} rankings - Player rankings in chronological order
+   * @returns {number} Number of dramatic drops
+   */
+  calculateCrashCount(rankings) {
+    const mode = this.getCurrentGameMode();
+    const lastPlace = mode;
+    let crashes = 0;
+    
+    for (let i = 1; i < rankings.length; i++) {
+      const prevRank = rankings[i - 1];
+      const currentRank = rankings[i];
+      
+      // Crash: from top 3 to last place
+      if (prevRank <= 3 && currentRank === lastPlace) {
+        crashes++;
+      }
+    }
+    
+    return crashes;
+  }
+
+  /**
+   * Calculate gambler score (high risk high reward pattern)
+   * @param {Object} player - Player object
+   * @returns {number} Gambler score
+   */
+  calculateGamblerScore(player) {
+    const stats = this.gameState.playerStats[player.id];
+    if (!stats || stats.games < 5) return 0;
+    
+    const firstPlaceRatio = (stats.firstPlaceCount || 0) / stats.games;
+    const lastPlaceRatio = (stats.lastPlaceCount || 0) / stats.games;
+    
+    // High gambler score = high first place rate AND high last place rate
+    const riskFactor = firstPlaceRatio * lastPlaceRatio * 100; // Both extremes
+    const volatility = this.calculateVariance(stats.rankings || []);
+    
+    return riskFactor + volatility * 0.1;
+  }
+
+  /**
+   * Check if player achieved grand slam (all ranking positions)
+   * @param {Array} rankings - Player rankings
+   * @returns {Object} Grand slam info
+   */
+  checkGrandSlam(rankings) {
+    const mode = this.getCurrentGameMode();
+    const allRanks = new Set(rankings);
+    const requiredRanks = Array.from({length: mode}, (_, i) => i + 1);
+    const achievedCount = requiredRanks.filter(rank => allRanks.has(rank)).length;
+    
+    return {
+      isComplete: achievedCount === mode,
+      achievedCount: achievedCount,
+      totalRanks: mode,
+      completionRate: achievedCount / mode
+    };
+  }
+
+  /**
+   * Calculate longest winning streak (consecutive good rankings)
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Longest streak of top-half rankings
+   */
+  calculateWinStreak(rankings) {
+    const mode = this.getCurrentGameMode();
+    const topHalfThreshold = Math.ceil(mode / 2); // Top half threshold
+    
+    let maxStreak = 0;
+    let currentStreak = 0;
+    
+    rankings.forEach(rank => {
+      if (rank <= topHalfThreshold) {
+        currentStreak++;
+        maxStreak = Math.max(maxStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    });
+    
+    return maxStreak;
   }
 
   /**
@@ -674,10 +827,14 @@ class StatsManager {
     const titles = {
       lyubu: '🥇 吕布 (最强战力)',
       adou: '😅 阿斗 (最弱表现)',
-      shifo: '🗿 石佛 (最稳定)',
-      bodongwang: '🌊 波动率的王 (最不稳定)',
-      fendouwang: '📈 奋斗之王 (最大进步)',
-      fuzhuwang: '🛡️ 辅助之王 (团队奉献)'
+      shifo: '🗿 石佛 (优秀且稳定)',
+      bodongwang: '🌊 波动王 (最不稳定)',
+      fendouwang: '📈 奋斗王 (最大进步)',
+      fuzhuwang: '🛡️ 辅助王 (团队奉献)',
+      fanchewang: '🎪 翻车王 (戏剧性失误)',
+      dutu: '🎲 赌徒 (极端表现)',
+      damanguan: '👑 大满贯 (全能体验)',
+      lianshengewang: '🔥 连胜王 (持续优秀)'
     };
     return titles[honorKey] || honorKey;
   }
