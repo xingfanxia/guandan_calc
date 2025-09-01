@@ -74,15 +74,7 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.currentRound;
 
-      // Check for duplicate voting to maintain data consistency
-      if (currentVoting.votes[voterHash]) {
-        return new Response(JSON.stringify({ 
-          error: 'Already voted for this round' 
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+      // No duplicate checking - trust users in friendly environment
 
       // Validate that MVP and burden are different
       if (mvpPlayerId === burdenPlayerId) {

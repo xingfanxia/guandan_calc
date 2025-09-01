@@ -112,7 +112,13 @@ class RoomManager {
       const authToken = this.generateAuthToken();
       const gameData = {
         ...this.createGameData(),
-        hostAuthToken: authToken // Store auth token with room data
+        hostAuthToken: authToken, // Store auth token with room data
+        // Ensure new rooms start with clean voting data
+        voting: {
+          currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
+          history: [],
+          playerStats: {}
+        }
       };
       
       const response = await fetch('/api/rooms/create', {
@@ -168,6 +174,12 @@ class RoomManager {
         this.isHost = true;
         this.isViewer = false;
         this.isFavorite = result.data.isFavorite || false;
+        // Initialize clean voting data for host
+        this.votingData = result.data.voting || {
+          currentRound: { votes: {}, results: { mvp: {}, burden: {} } },
+          history: [],
+          playerStats: {}
+        };
         this.startAutoSync();
         this.applyHostMode();
         this.updateFavoriteButton(); // Show favorite button
