@@ -23,7 +23,10 @@ export default async function handler(request) {
       const voteData = await request.json();
       const { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber } = voteData;
 
+      console.log('Vote submission:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
+
       if (!mvpPlayerId || !burdenPlayerId || !roundId) {
+        console.error('Missing vote data:', voteData);
         return new Response(JSON.stringify({ 
           error: 'Missing vote data' 
         }), {
@@ -45,10 +48,8 @@ export default async function handler(request) {
 
       const parsedRoom = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Generate voter ID - use random session ID to allow multiple people same IP
-      const timestamp = Date.now();
-      const random = Math.random().toString(36).substring(2, 8);
-      const voterHash = `voter_${timestamp}_${random}`;
+      // Generate completely unique voter ID for each vote (no restrictions)
+      const voterHash = `vote_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
@@ -71,7 +72,7 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
-      // No duplicate checking for this round - allow multiple votes from same location
+      // No duplicate checking - completely open voting for family/friends
 
       // Validate that MVP and burden are different
       if (mvpPlayerId === burdenPlayerId) {
