@@ -223,18 +223,18 @@ class StatsManager {
   }
 
   /**
-   * Count team wins where player finished last
+   * Count team wins where player finished in bottom half (support play)
    * @param {Object} player - Player object
-   * @returns {number} Count of team wins with player finishing last
+   * @returns {number} Support score based on team wins with low personal ranking
    */
   countSupportWins(player) {
     if (!this.gameState.state.hist || this.gameState.state.hist.length === 0) {
       return 0;
     }
     
-    let supportWins = 0;
+    let supportScore = 0;
     const mode = parseInt(document.getElementById('mode')?.value || 8);
-    const lastPlace = mode; // 4, 6, or 8
+    const bottomHalfThreshold = Math.ceil(mode / 2); // Bottom half threshold (e.g., 5+ for 8-player)
     
     this.gameState.state.hist.forEach(game => {
       if (game.playerRankings && game.winKey) {
@@ -244,11 +244,18 @@ class StatsManager {
         const winnerTeamNumber = gameWinnerTeam === 't1' ? 1 : 2;
         
         if (playerTeam === winnerTeamNumber) {
-          // Team won, check if this player finished last
+          // Team won, check player's ranking
           for (const rank in game.playerRankings) {
             const rankedPlayer = game.playerRankings[rank];
-            if (rankedPlayer.id === player.id && parseInt(rank) === lastPlace) {
-              supportWins++;
+            if (rankedPlayer.id === player.id) {
+              const playerRank = parseInt(rank);
+              
+              // Score support play: higher score for worse ranking during team wins
+              if (playerRank >= bottomHalfThreshold) {
+                // Bottom half gets points, with more points for worse ranking
+                const supportPoints = playerRank - bottomHalfThreshold + 1;
+                supportScore += supportPoints;
+              }
               break;
             }
           }
@@ -256,7 +263,7 @@ class StatsManager {
       }
     });
     
-    return supportWins;
+    return supportScore;
   }
 
   /**
