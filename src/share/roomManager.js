@@ -161,8 +161,10 @@ class RoomManager {
         this.hostAuthToken = authToken;
         this.isHost = true;
         this.isViewer = false;
+        this.isFavorite = result.data.isFavorite || false;
         this.startAutoSync();
         this.applyHostMode();
+        this.updateFavoriteButton(); // Show favorite button
         return true;
       } else {
         alert('房间不存在或已过期：' + roomCode);
@@ -191,8 +193,10 @@ class RoomManager {
         this.currentRoomCode = roomCode;
         this.isHost = false;
         this.isViewer = true;
+        this.isFavorite = result.data.isFavorite || false;
         this.startPolling();
         this.applyViewerMode();
+        this.updateFavoriteButton(); // Show favorite button for viewers too
         return true;
       } else {
         alert('房间不存在或已过期：' + roomCode);
