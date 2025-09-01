@@ -55,16 +55,18 @@ export default async function handler(request) {
       // Initialize voting structure if needed
       if (!parsedRoom.voting) {
         parsedRoom.voting = {
-          currentRound: null,
+          currentRound: {
+            votes: {},
+            results: { mvp: {}, burden: {} }
+          },
           history: [],
           playerStats: {}
         };
       }
 
-      // Initialize current round voting if new round or doesn't exist
+      // Ensure current round exists
       if (!parsedRoom.voting.currentRound) {
         parsedRoom.voting.currentRound = {
-          roundId: null,
           votes: {},
           results: { mvp: {}, burden: {} }
         };
@@ -93,7 +95,10 @@ export default async function handler(request) {
       currentVoting.results.mvp[mvpPlayerId] = (currentVoting.results.mvp[mvpPlayerId] || 0) + 1;
       currentVoting.results.burden[burdenPlayerId] = (currentVoting.results.burden[burdenPlayerId] || 0) + 1;
 
-      // Save updated room data
+      // Update room's lastUpdated timestamp
+      parsedRoom.lastUpdated = new Date().toISOString();
+
+      // Save updated room data with voting information
       if (parsedRoom.isFavorite) {
         await kv.set(`room:${roomCode}`, JSON.stringify(parsedRoom));
       } else {

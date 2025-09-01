@@ -501,6 +501,14 @@ class RoomManager {
       window.guandanApp.uiRenderer.renderTeams();
       window.guandanApp.statsManager.renderStatistics();
       window.guandanApp.statsManager.renderHistory();
+      
+      // Update voting interface if in room mode
+      if (window.guandanApp.votingManager && this.currentRoomCode) {
+        if (this.isHost) {
+          window.guandanApp.votingManager.loadVotingResults();
+        }
+        window.guandanApp.votingManager.loadVotingStats();
+      }
     }
   }
 
