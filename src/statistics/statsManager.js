@@ -180,11 +180,23 @@ class StatsManager {
     
     Object.keys(honorElements).forEach(honorKey => {
       const element = honorElements[honorKey];
-      const winner = specialHonors[honorKey];
+      const honorData = specialHonors[honorKey];
       
       if (element) {
-        element.innerHTML = winner ? 
-          '<span class="emoji">' + winner.emoji + '</span>' + winner.name : '—';
+        if (honorData && honorData.player) {
+          const winner = honorData.player;
+          element.innerHTML = '<span class="emoji">' + winner.emoji + '</span>' + winner.name;
+          
+          // Add click event to show explanation
+          element.style.cursor = 'pointer';
+          element.onclick = () => {
+            alert(`${this.getHonorTitle(honorKey)}\n\n${winner.emoji} ${winner.name}\n\n${honorData.explanation}\n\n点击荣誉称号可查看详细说明`);
+          };
+        } else {
+          element.innerHTML = '—';
+          element.style.cursor = 'default';
+          element.onclick = null;
+        }
       }
     });
   }
@@ -267,77 +279,193 @@ class StatsManager {
   }
 
   /**
-   * Find special honors across all players
-   * @returns {Object} Special honor winners
+   * Calculate first place ratio for quality assessment
+   * @param {Object} player - Player object  
+   * @returns {number} First place ratio (0-1)
+   */
+  calculateFirstPlaceRatio(player) {
+    const stats = this.gameState.playerStats[player.id];
+    if (!stats || stats.games === 0) return 0;
+    return (stats.firstPlaceCount || 0) / stats.games;
+  }
+
+  /**
+   * Calculate consistency score (combination of variance and game count)
+   * @param {Object} player - Player object
+   * @returns {number} Consistency score (lower = more consistent)
+   */
+  calculateConsistencyScore(player) {
+    const stats = this.gameState.playerStats[player.id];
+    if (!stats || !stats.rankings || stats.rankings.length < 3) return 999;
+    
+    const variance = this.calculateVariance(stats.rankings);
+    const gameWeight = Math.min(stats.games / 10, 1); // More games = more reliable
+    return variance / gameWeight; // Lower score = more consistent
+  }
+
+  /**
+   * Find special honors across all players with improved algorithms
+   * @returns {Object} Special honor winners with explanations
    */
   findSpecialHonors() {
     const honors = {
-      lyubu: null,        // 吕布 - 最多第一名
-      adou: null,         // 阿斗 - 最多垫底  
-      shifo: null,        // 石佛 - 排名最稳定 (最低方差)
-      bodongwang: null,   // 波动率的王 - 排名波动最大 (最高方差)
-      fendouwang: null,   // 奋斗之王 - 排名稳步提升
-      fuzhuwang: null     // 辅助之王 - 队伍胜利时自己垫底最多
+      lyubu: { player: null, score: 0, explanation: '' },
+      adou: { player: null, score: 0, explanation: '' },
+      shifo: { player: null, score: 0, explanation: '' },
+      bodongwang: { player: null, score: 0, explanation: '' },
+      fendouwang: { player: null, score: 0, explanation: '' },
+      fuzhuwang: { player: null, score: 0, explanation: '' }
     };
     
-    let maxFirstPlace = 0;
-    let maxLastPlace = 0;
-    let minVariance = 999;
-    let maxVariance = 0;
-    let maxImprovement = -999;
-    let maxSupportWins = 0;
+    let bestFirstRatio = 0;
+    let worstLastRatio = 0;
+    let bestConsistency = 999;
+    let worstConsistency = 0;
+    let bestImprovement = -999;
+    let bestSupport = 0;
     
     this.gameState.players.forEach((player) => {
       const stats = this.gameState.playerStats[player.id];
       if (stats && stats.games >= 3) { // 至少3局才参与评选
-        // 吕布 - 最多第一名
-        const firstPlaceCount = stats.firstPlaceCount || 0;
-        if (firstPlaceCount > maxFirstPlace) {
-          maxFirstPlace = firstPlaceCount;
-          honors.lyubu = player;
+        
+        // 吕布 - 改进：第一名比率 (质量 vs 数量)
+        const firstRatio = this.calculateFirstPlaceRatio(player);
+        if (firstRatio > bestFirstRatio && stats.games >= 5) { // 至少5局确保可靠性
+          bestFirstRatio = firstRatio;
+          honors.lyubu = {
+            player: player,
+            score: firstRatio,
+            explanation: `${stats.games}场比赛中拿${stats.firstPlaceCount}次第一名，胜率${(firstRatio*100).toFixed(1)}%`
+          };
         }
         
-        // 阿斗 - 最多垫底
-        const lastPlaceCount = stats.lastPlaceCount || 0;
-        if (lastPlaceCount > maxLastPlace) {
-          maxLastPlace = lastPlaceCount;
-          honors.adou = player;
+        // 阿斗 - 改进：垫底比率 + 连续垫底惩罚
+        const lastRatio = (stats.lastPlaceCount || 0) / stats.games;
+        const consecutivePenalty = this.calculateConsecutiveLastPenalty(stats.rankings);
+        const adouScore = lastRatio + consecutivePenalty;
+        if (adouScore > worstLastRatio) {
+          worstLastRatio = adouScore;
+          honors.adou = {
+            player: player,
+            score: adouScore,
+            explanation: `${stats.games}场比赛垫底${stats.lastPlaceCount}次，垫底率${(lastRatio*100).toFixed(1)}%`
+          };
         }
         
-        // 计算方差和进步趋势
+        // 石佛 - 改进：一致性分数（方差 + 游戏数权重）
+        const consistencyScore = this.calculateConsistencyScore(player);
+        if (consistencyScore < bestConsistency) {
+          bestConsistency = consistencyScore;
+          honors.shifo = {
+            player: player,
+            score: consistencyScore,
+            explanation: `${stats.games}场比赛排名稳定，平均${(stats.totalRank/stats.games).toFixed(2)}名，波动小`
+          };
+        }
+        
+        // 波动率的王 - 改进：方差 + 极值惩罚
         if (stats.rankings && stats.rankings.length >= 3) {
           const variance = this.calculateVariance(stats.rankings);
+          const extremeBonus = this.calculateExtremeRankingBonus(stats.rankings);
+          const volatilityScore = variance + extremeBonus;
           
-          // 石佛 - 最稳定 (最小方差)
-          if (variance < minVariance) {
-            minVariance = variance;
-            honors.shifo = player;
+          if (volatilityScore > worstConsistency) {
+            worstConsistency = volatilityScore;
+            honors.bodongwang = {
+              player: player,
+              score: volatilityScore,
+              explanation: `排名变化极大，从第${Math.min(...stats.rankings)}名到第${Math.max(...stats.rankings)}名`
+            };
           }
           
-          // 波动率的王 - 最不稳定 (最大方差)
-          if (variance > maxVariance) {
-            maxVariance = variance;
-            honors.bodongwang = player;
-          }
-          
-          // 奋斗之王 - 排名稳步提升
-          const improvement = this.calculateImprovement(stats.rankings);
-          if (improvement > maxImprovement) {
-            maxImprovement = improvement;
-            honors.fendouwang = player;
+          // 奋斗之王 - 改进：多阶段进步检测
+          const improvement = this.calculateProgressiveTrend(stats.rankings);
+          if (improvement > bestImprovement && stats.games >= 5) {
+            bestImprovement = improvement;
+            honors.fendouwang = {
+              player: player,
+              score: improvement,
+              explanation: `${stats.games}场比赛中排名显著提升，进步${improvement.toFixed(2)}名位`
+            };
           }
         }
         
-        // 辅助之王 - 队伍胜利时自己垫底最多
-        const supportWins = this.countSupportWins(player);
-        if (supportWins > maxSupportWins) {
-          maxSupportWins = supportWins;
-          honors.fuzhuwang = player;
+        // 辅助之王 - 已改进的算法
+        const supportScore = this.countSupportWins(player);
+        if (supportScore > bestSupport) {
+          bestSupport = supportScore;
+          honors.fuzhuwang = {
+            player: player,
+            score: supportScore,
+            explanation: `团队胜利时经常排名靠后，辅助分数${supportScore}分`
+          };
         }
       }
     });
     
     return honors;
+  }
+
+  /**
+   * Calculate consecutive last place penalty
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Penalty score for consecutive last places
+   */
+  calculateConsecutiveLastPenalty(rankings) {
+    const mode = parseInt(document.getElementById('mode')?.value || 8);
+    const lastPlace = mode;
+    let maxConsecutive = 0;
+    let currentConsecutive = 0;
+    
+    rankings.forEach(rank => {
+      if (rank === lastPlace) {
+        currentConsecutive++;
+        maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+      } else {
+        currentConsecutive = 0;
+      }
+    });
+    
+    return maxConsecutive * 0.1; // Penalty for consecutive last places
+  }
+
+  /**
+   * Calculate bonus for extreme ranking variations
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Bonus score for extreme variations
+   */
+  calculateExtremeRankingBonus(rankings) {
+    const min = Math.min(...rankings);
+    const max = Math.max(...rankings);
+    const range = max - min;
+    
+    // Bonus for having both very high and very low rankings
+    return range > 4 ? range * 0.5 : 0;
+  }
+
+  /**
+   * Calculate progressive trend improvement
+   * @param {Array} rankings - Player rankings
+   * @returns {number} Progressive improvement score
+   */
+  calculateProgressiveTrend(rankings) {
+    if (rankings.length < 6) return 0;
+    
+    // Compare multiple segments to detect sustained improvement
+    const segmentSize = Math.floor(rankings.length / 3);
+    const firstSegment = rankings.slice(0, segmentSize);
+    const middleSegment = rankings.slice(segmentSize, segmentSize * 2);
+    const lastSegment = rankings.slice(-segmentSize);
+    
+    const firstAvg = firstSegment.reduce((sum, rank) => sum + rank, 0) / firstSegment.length;
+    const middleAvg = middleSegment.reduce((sum, rank) => sum + rank, 0) / middleSegment.length;
+    const lastAvg = lastSegment.reduce((sum, rank) => sum + rank, 0) / lastSegment.length;
+    
+    // Progressive improvement: first > middle > last (lower numbers are better)
+    const trend1 = firstAvg - middleAvg;
+    const trend2 = middleAvg - lastAvg;
+    
+    return (trend1 + trend2) / 2; // Average improvement across segments
   }
 
   /**
@@ -489,6 +617,23 @@ class StatsManager {
     this.renderHistory();
     
     return row;
+  }
+
+  /**
+   * Get honor title in Chinese
+   * @param {string} honorKey - Honor key
+   * @returns {string} Chinese title
+   */
+  getHonorTitle(honorKey) {
+    const titles = {
+      lyubu: '🥇 吕布 (最强战力)',
+      adou: '😅 阿斗 (最弱表现)',
+      shifo: '🗿 石佛 (最稳定)',
+      bodongwang: '🌊 波动率的王 (最不稳定)',
+      fendouwang: '📈 奋斗之王 (最大进步)',
+      fuzhuwang: '🛡️ 辅助之王 (团队奉献)'
+    };
+    return titles[honorKey] || honorKey;
   }
 
   /**
