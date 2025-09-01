@@ -316,6 +316,12 @@ class RoomManager {
     if (title) {
       title.innerHTML = `闹麻家族掼蛋计分器 <span class="badge" style="background:#3b82f6;">房主模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
     }
+    
+    // Show voting section for host
+    const votingSection = document.getElementById('votingSection');
+    if (votingSection) {
+      votingSection.style.display = 'block';
+    }
   }
 
   /**
@@ -332,6 +338,12 @@ class RoomManager {
     const title = document.querySelector('h1');
     if (title) {
       title.innerHTML = `闹麻家族掼蛋计分器 <span class="badge" style="background:#22c55e;">观看模式 - ${this.currentRoomCode}</span> <span class="badge">开闹</span>`;
+    }
+    
+    // Show voting section for viewers too
+    const votingSection = document.getElementById('votingSection');
+    if (votingSection) {
+      votingSection.style.display = 'block';
     }
   }
 
