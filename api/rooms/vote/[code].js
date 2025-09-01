@@ -89,19 +89,10 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.rounds[roundId];
 
-      // Simple rule: Each voter can only vote once per round, period.
-      console.log('Existing votes for this round:', Object.keys(currentVoting.votes));
-      console.log('Checking if voter already voted:', currentVoting.votes[voterHash] ? 'YES' : 'NO');
-      
-      if (currentVoting.votes[voterHash]) {
-        console.log('Duplicate vote detected for voter:', voterHash);
-        return new Response(JSON.stringify({ 
-          error: `您已经为第${gameRoundNumber}局投过票了` 
-        }), {
-          status: 429,
-          headers: { 'Content-Type': 'application/json' }
-        });
-      }
+      // Temporary: No duplicate checking - completely open voting for testing
+      // Generate unique ID for each vote to ensure accumulation
+      const uniqueVoteId = `vote_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      console.log('Allowing open voting with unique ID:', uniqueVoteId);
 
       // Validate that MVP and burden are different
       if (mvpPlayerId === burdenPlayerId) {
@@ -113,8 +104,8 @@ export default async function handler(request) {
         });
       }
 
-      // Record vote atomically (both MVP and burden together)
-      currentVoting.votes[voterHash] = {
+      // Record vote with unique ID (no dedup for testing)
+      currentVoting.votes[uniqueVoteId] = {
         mvp: mvpPlayerId,
         burden: burdenPlayerId,
         timestamp: new Date().toISOString()
