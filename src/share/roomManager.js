@@ -427,13 +427,14 @@ class RoomManager {
    * Disable controls for viewers
    */
   disableControls() {
-    // Hide sections that viewers don't need
+    // Hide sections that viewers don't need (keep votingSection visible)
     const sectionsToHide = [
       'rankingSection',      // Hide entire ranking section for viewers
       'roomControls',        // Hide room creation controls
       'customRulesSection',  // Hide custom rules configuration
       'resultsSection',      // Hide results section (waiting for ranking)
       'playerSetupSection'   // Hide player setup section (already configured)
+      // Note: votingSection stays visible for viewer participation
     ];
     
     sectionsToHide.forEach(id => {

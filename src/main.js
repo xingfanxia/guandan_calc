@@ -14,6 +14,7 @@ import StatsManager from './statistics/statsManager.js';
 import ExportManager from './export/exportManager.js';
 import ShareManager from './share/shareManager.js';
 import RoomManager from './share/roomManager.js';
+import VotingManager from './share/votingManager.js';
 
 // Main application class
 class GuandanApp {
@@ -30,6 +31,7 @@ class GuandanApp {
     this.exportManager = new ExportManager(gameState);
     this.shareManager = new ShareManager(gameState);
     this.roomManager = new RoomManager(gameState);
+    this.votingManager = new VotingManager(this.roomManager);
     
     // Setup inter-module communication
     this.setupCallbacks();
@@ -143,6 +145,9 @@ class GuandanApp {
     this.playerSystem.renderPlayers();
     this.playerSystem.renderRankingArea();
     this.updateUI();
+    
+    // Show voting section for room mode
+    this.votingManager.showVotingSection();
   }
 
   /**
