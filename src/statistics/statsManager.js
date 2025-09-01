@@ -290,17 +290,23 @@ class StatsManager {
   }
 
   /**
-   * Calculate consistency score (combination of variance and game count)
+   * Calculate excellence consistency score (stable + good performance)
    * @param {Object} player - Player object
-   * @returns {number} Consistency score (lower = more consistent)
+   * @returns {number} Excellence consistency score (lower = better)
    */
-  calculateConsistencyScore(player) {
+  calculateExcellenceConsistency(player) {
     const stats = this.gameState.playerStats[player.id];
     if (!stats || !stats.rankings || stats.rankings.length < 3) return 999;
     
+    const avgRank = stats.totalRank / stats.games;
     const variance = this.calculateVariance(stats.rankings);
+    
+    // 石佛需要：优秀的平均排名 + 低方差
+    // 惩罚平均排名差的玩家，即使他们很稳定
+    const excellencePenalty = Math.max(0, avgRank - 3) * 2; // 平均排名超过3名会有惩罚
     const gameWeight = Math.min(stats.games / 10, 1); // More games = more reliable
-    return variance / gameWeight; // Lower score = more consistent
+    
+    return (variance + excellencePenalty) / gameWeight; // Lower score = excellent stability
   }
 
   /**
@@ -352,14 +358,17 @@ class StatsManager {
           };
         }
         
-        // 石佛 - 改进：一致性分数（方差 + 游戏数权重）
-        const consistencyScore = this.calculateConsistencyScore(player);
-        if (consistencyScore < bestConsistency) {
-          bestConsistency = consistencyScore;
+        // 石佛 - 改进：优秀的稳定性（好排名 + 低波动）
+        const excellenceScore = this.calculateExcellenceConsistency(player);
+        const avgRank = stats.totalRank / stats.games;
+        
+        // 只有平均排名前3名的玩家才能成为石佛
+        if (excellenceScore < bestConsistency && avgRank <= 3.5) {
+          bestConsistency = excellenceScore;
           honors.shifo = {
             player: player,
-            score: consistencyScore,
-            explanation: `${stats.games}场比赛排名稳定，平均${(stats.totalRank/stats.games).toFixed(2)}名，波动小`
+            score: excellenceScore,
+            explanation: `${stats.games}场比赛优秀且稳定，平均${avgRank.toFixed(2)}名，始终保持前列`
           };
         }
         
