@@ -537,17 +537,27 @@ class VotingManager {
    */
   async resetCurrentVoting() {
     try {
-      // This would require a separate API endpoint to reset voting
-      // For now, we'll just refresh the interface
-      this.hasVoted = false;
-      this.selectedMvp = null;
-      this.selectedBurden = null;
-      
-      // Refresh voting interface
-      if (this.roomManager.isViewer) {
-        this.showViewerVoting();
+      // Call API to reset voting for new round
+      const response = await fetch(`/api/rooms/reset-vote/${this.roomManager.currentRoomCode}`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        // Clear local voting state
+        this.hasVoted = false;
+        this.selectedMvp = null;
+        this.selectedBurden = null;
+        this.hostSelectedMvp = null;
+        this.hostSelectedBurden = null;
+        
+        // Refresh voting interface
+        if (this.roomManager.isViewer) {
+          this.showViewerVoting();
+        } else {
+          this.showHostVoting();
+        }
       } else {
-        this.showHostVoting();
+        console.error('Failed to reset voting via API');
       }
     } catch (error) {
       console.error('Failed to reset voting:', error);

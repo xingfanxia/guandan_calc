@@ -61,10 +61,10 @@ export default async function handler(request) {
         };
       }
 
-      // Initialize current round voting if new round
-      if (!parsedRoom.voting.currentRound || parsedRoom.voting.currentRound.roundId !== roundId) {
+      // Initialize current round voting if new round or doesn't exist
+      if (!parsedRoom.voting.currentRound) {
         parsedRoom.voting.currentRound = {
-          roundId: roundId,
+          roundId: null,
           votes: {},
           results: { mvp: {}, burden: {} }
         };
@@ -72,24 +72,24 @@ export default async function handler(request) {
 
       const currentVoting = parsedRoom.voting.currentRound;
 
-      // Check if this voter already voted for this round
+      // Check if this voter already voted for current session
       if (currentVoting.votes[voterHash]) {
         return new Response(JSON.stringify({ 
-          error: 'Already voted for this round' 
+          error: 'Already voted for this session' 
         }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // Record vote
+      // Record vote (accumulative)
       currentVoting.votes[voterHash] = {
         mvp: mvpPlayerId,
         burden: burdenPlayerId,
         timestamp: new Date().toISOString()
       };
 
-      // Update vote counts
+      // Update vote counts (accumulative)
       currentVoting.results.mvp[mvpPlayerId] = (currentVoting.results.mvp[mvpPlayerId] || 0) + 1;
       currentVoting.results.burden[burdenPlayerId] = (currentVoting.results.burden[burdenPlayerId] || 0) + 1;
 
