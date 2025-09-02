@@ -26,7 +26,7 @@ class VotingManager {
         this.showHostVoting();
       }
       
-      this.loadVotingStats();
+      this.displayVotingStats(); // Use local stats instead of API
       
       // Start real-time voting updates for hosts
       if (this.roomManager.isHost) {
@@ -62,6 +62,41 @@ class VotingManager {
     const voterInterface = $('voterInterface');
     const hostInterface = $('hostVotingInterface');
     
+    // Check if current round is already confirmed
+    const gameRoundNumber = this.roomManager.gameState.state.hist.length;
+    const roundId = `round_${gameRoundNumber}`;
+    
+    if (gameRoundNumber === 0) {
+      // No rounds completed yet
+      if (voterInterface) {
+        voterInterface.innerHTML = `
+          <div style="text-align:center; padding:40px;">
+            <h3 style="color:#999;">⏳ 等待第一局游戏完成</h3>
+            <p style="color:#666;">游戏开始后即可投票</p>
+          </div>
+        `;
+        voterInterface.style.display = 'block';
+      }
+      if (hostInterface) hostInterface.style.display = 'none';
+      return;
+    }
+    
+    if (this.confirmedRounds && this.confirmedRounds.includes(roundId)) {
+      // This round already confirmed
+      if (voterInterface) {
+        voterInterface.innerHTML = `
+          <div style="text-align:center; padding:40px;">
+            <h3 style="color:#22c55e;">✅ 第${gameRoundNumber}局投票已结束</h3>
+            <p style="color:#999;">等待下一局游戏开始新的投票</p>
+          </div>
+        `;
+        voterInterface.style.display = 'block';
+      }
+      if (hostInterface) hostInterface.style.display = 'none';
+      return;
+    }
+    
+    // Active voting for current round
     if (voterInterface) voterInterface.style.display = 'block';
     if (hostInterface) hostInterface.style.display = 'none';
     
@@ -462,44 +497,52 @@ class VotingManager {
   }
 
   /**
-   * Display voting statistics
-   * @param {Object} playerStats - Player voting statistics
+   * Display voting statistics using local player stats
    */
-  displayVotingStats(playerStats) {
+  displayVotingStats() {
     const mvpTable = $('mvpStatsTable');
     const burdenTable = $('burdenStatsTable');
     
     if (!mvpTable || !burdenTable) return;
     
-    // MVP stats
+    // Get community vote stats from player stats
     const mvpStats = [];
     const burdenStats = [];
     
-    Object.entries(playerStats).forEach(([playerId, stats]) => {
-      const player = this.roomManager.gameState.players.find(p => p.id === parseInt(playerId));
-      if (player) {
-        mvpStats.push({ player, votes: stats.mvpVotes || 0 });
-        burdenStats.push({ player, votes: stats.burdenVotes || 0 });
+    this.roomManager.gameState.players.forEach(player => {
+      const stats = this.roomManager.gameState.playerStats[player.id] || {};
+      const communityMvpCount = stats.communityMvpCount || 0;
+      const communityBurdenCount = stats.communityBurdenCount || 0;
+      
+      if (communityMvpCount > 0) {
+        mvpStats.push({ player, votes: communityMvpCount });
+      }
+      if (communityBurdenCount > 0) {
+        burdenStats.push({ player, votes: communityBurdenCount });
       }
     });
     
-    // Sort and display MVP stats
+    // Sort by votes
     mvpStats.sort((a, b) => b.votes - a.votes);
-    mvpTable.innerHTML = mvpStats.map(stat => 
-      `<div style="display:flex; justify-content:space-between; padding:4px;">
-        <span>${stat.player.emoji} ${stat.player.name}</span>
-        <span style="color:#22c55e;">${stat.votes}次</span>
-      </div>`
-    ).join('');
-    
-    // Sort and display burden stats
     burdenStats.sort((a, b) => b.votes - a.votes);
-    burdenTable.innerHTML = burdenStats.map(stat => 
-      `<div style="display:flex; justify-content:space-between; padding:4px;">
-        <span>${stat.player.emoji} ${stat.player.name}</span>
-        <span style="color:#ef4444;">${stat.votes}次</span>
-      </div>`
-    ).join('');
+    
+    // Display MVP stats
+    mvpTable.innerHTML = mvpStats.length > 0 ? 
+      mvpStats.map(stat => 
+        `<div style="display:flex; justify-content:space-between; padding:4px;">
+          <span>${stat.player.emoji} ${stat.player.name}</span>
+          <span style="color:#22c55e;">${stat.votes}次</span>
+        </div>`
+      ).join('') : '<div style="color:#888; padding:8px;">暂无数据</div>';
+    
+    // Display burden stats  
+    burdenTable.innerHTML = burdenStats.length > 0 ?
+      burdenStats.map(stat => 
+        `<div style="display:flex; justify-content:space-between; padding:4px;">
+          <span>${stat.player.emoji} ${stat.player.name}</span>
+          <span style="color:#ef4444;">${stat.votes}次</span>
+        </div>`
+      ).join('') : '<div style="color:#888; padding:8px;">暂无数据</div>';
   }
 
   /**
@@ -623,6 +666,9 @@ class VotingManager {
     
     // Save to local storage and sync to room
     this.roomManager.gameState.savePlayerStats();
+    
+    // Update voting stats display immediately
+    this.loadVotingStats();
     
     if (this.roomManager.isHost) {
       await this.roomManager.syncNow();
