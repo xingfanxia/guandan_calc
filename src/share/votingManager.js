@@ -582,6 +582,10 @@ class VotingManager {
     const votingData = this.roomManager.votingData || {};
     const roundData = votingData.rounds?.[roundId];
     
+    console.log('Checking confirmation for round:', roundId);
+    console.log('Round data:', roundData);
+    console.log('Already confirmed?', roundData?.confirmed);
+    
     if (roundData && roundData.confirmed) {
       alert(`第${gameRoundNumber}局的最C和最闹已经确认过了`);
       return;
@@ -607,6 +611,8 @@ class VotingManager {
         this.roomManager.votingData.rounds[roundId].confirmedAt = new Date().toISOString();
         this.roomManager.votingData.rounds[roundId].finalMvp = this.hostSelectedMvp;
         this.roomManager.votingData.rounds[roundId].finalBurden = this.hostSelectedBurden;
+        
+        console.log('Marked round as confirmed:', roundId, this.roomManager.votingData.rounds[roundId]);
         
         // Sync confirmation to server immediately
         if (this.roomManager.isHost) {
