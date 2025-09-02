@@ -594,10 +594,9 @@ class RoomManager {
       
       // Update voting interface if in room mode
       if (window.guandanApp.votingManager && this.currentRoomCode) {
-        if (this.isHost) {
-          window.guandanApp.votingManager.loadVotingResults();
-        }
-        window.guandanApp.votingManager.loadVotingStats();
+        console.log('Room data updated, refreshing voting interface');
+        // Refresh entire voting section to check for new rounds
+        window.guandanApp.votingManager.showVotingSection();
       }
     }
   }
