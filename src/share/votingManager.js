@@ -580,6 +580,10 @@ class VotingManager {
     
     // Check in voting data (persistent) instead of local confirmedRounds
     const votingData = this.roomManager.votingData || {};
+    console.log('Full voting data structure:', votingData);
+    console.log('Voting data rounds:', votingData.rounds);
+    console.log('Looking for round ID:', roundId);
+    
     const roundData = votingData.rounds?.[roundId];
     
     console.log('Checking confirmation for round:', roundId);
