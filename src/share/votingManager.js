@@ -582,9 +582,11 @@ class VotingManager {
     const votingData = this.roomManager.votingData || {};
     console.log('Full voting data structure:', votingData);
     console.log('Voting data rounds:', votingData.rounds);
+    console.log('Voting data allRounds:', votingData.allRounds);
     console.log('Looking for round ID:', roundId);
     
-    const roundData = votingData.rounds?.[roundId];
+    // Try both possible data structures
+    const roundData = votingData.rounds?.[roundId] || votingData.allRounds?.[roundId];
     
     console.log('Checking confirmation for round:', roundId);
     console.log('Round data:', roundData);
@@ -603,20 +605,24 @@ class VotingManager {
         // Record community vote
         await this.recordCommunityVote(this.hostSelectedMvp, this.hostSelectedBurden);
         
-        // Mark this round as confirmed in persistent data
-        if (!this.roomManager.votingData.rounds) {
+        // Mark this round as confirmed in persistent data (handle both data structures)
+        if (!this.roomManager.votingData.rounds && !this.roomManager.votingData.allRounds) {
           this.roomManager.votingData.rounds = {};
         }
-        if (!this.roomManager.votingData.rounds[roundId]) {
-          this.roomManager.votingData.rounds[roundId] = { votes: {}, results: { mvp: {}, burden: {} } };
+        
+        // Use allRounds if that's the structure, otherwise use rounds
+        const roundsObject = this.roomManager.votingData.allRounds || this.roomManager.votingData.rounds;
+        
+        if (!roundsObject[roundId]) {
+          roundsObject[roundId] = { votes: {}, results: { mvp: {}, burden: {} } };
         }
         
-        this.roomManager.votingData.rounds[roundId].confirmed = true;
-        this.roomManager.votingData.rounds[roundId].confirmedAt = new Date().toISOString();
-        this.roomManager.votingData.rounds[roundId].finalMvp = this.hostSelectedMvp;
-        this.roomManager.votingData.rounds[roundId].finalBurden = this.hostSelectedBurden;
+        roundsObject[roundId].confirmed = true;
+        roundsObject[roundId].confirmedAt = new Date().toISOString();
+        roundsObject[roundId].finalMvp = this.hostSelectedMvp;
+        roundsObject[roundId].finalBurden = this.hostSelectedBurden;
         
-        console.log('Marked round as confirmed:', roundId, this.roomManager.votingData.rounds[roundId]);
+        console.log('Marked round as confirmed:', roundId, roundsObject[roundId]);
         
         // Sync confirmation to server immediately
         if (this.roomManager.isHost) {
