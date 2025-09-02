@@ -24,7 +24,6 @@ export default async function handler(request) {
       const { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber } = voteData;
 
       console.log('Vote submission:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
-      console.log('Voter hash:', voterHash);
 
       if (!mvpPlayerId || !burdenPlayerId || !roundId) {
         console.error('Missing vote data:', voteData);
