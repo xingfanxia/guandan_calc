@@ -262,13 +262,39 @@ class RoomManager {
     }
 
     try {
-      // First fetch latest room data to get current voting data
-      const currentRoomResponse = await fetch(`/api/rooms/${this.currentRoomCode}`);
-      if (currentRoomResponse.ok) {
-        const currentRoomData = await currentRoomResponse.json();
-        if (currentRoomData.success) {
-          // Update local voting data with latest from server
-          this.votingData = currentRoomData.data.voting || this.votingData;
+      // Don't fetch from server if we're doing a forced sync (confirmation sync)
+      // This prevents overwriting local confirmation data with server data
+      if (!this.forcingSync) {
+        const currentRoomResponse = await fetch(`/api/rooms/${this.currentRoomCode}`);
+        if (currentRoomResponse.ok) {
+          const currentRoomData = await currentRoomResponse.json();
+          if (currentRoomData.success) {
+            // Merge server voting data with local (preserve local confirmations)
+            const serverVoting = currentRoomData.data.voting || {};
+            if (serverVoting.allRounds) {
+              // Merge server rounds with local confirmed rounds
+              const serverRounds = serverVoting.allRounds;
+              const localRounds = this.votingData?.rounds || {};
+              
+              // Preserve local confirmations while getting server vote data
+              Object.keys(serverRounds).forEach(roundId => {
+                if (!localRounds[roundId]) {
+                  localRounds[roundId] = serverRounds[roundId];
+                } else {
+                  // Merge: keep local confirmations but update vote counts
+                  localRounds[roundId] = {
+                    ...serverRounds[roundId],
+                    confirmed: localRounds[roundId].confirmed,
+                    confirmedAt: localRounds[roundId].confirmedAt,
+                    finalMvp: localRounds[roundId].finalMvp,
+                    finalBurden: localRounds[roundId].finalBurden
+                  };
+                }
+              });
+              
+              this.votingData.rounds = localRounds;
+            }
+          }
         }
       }
 

@@ -627,7 +627,9 @@ class VotingManager {
         // Sync confirmation to server immediately (CRITICAL)
         if (this.roomManager.isHost) {
           console.log('Syncing confirmation to server...');
+          this.roomManager.forcingSync = true; // Prevent data fetch during confirmation sync
           const syncResult = await this.roomManager.syncNow(); 
+          this.roomManager.forcingSync = false;
           console.log('Sync result:', syncResult);
           
           // Verify sync worked by re-fetching room data
