@@ -178,8 +178,12 @@ class VotingManager {
     
     // Active voting for current round
     if (voterInterface) voterInterface.style.display = 'none';
-    if (hostInterface) hostInterface.style.display = 'block';
+    if (hostInterface) {
+      console.log('Setting host interface to block');
+      hostInterface.style.display = 'block';
+    }
     
+    console.log('Loading voting results for active round...');
     this.loadVotingResults();
     this.setupHostVotingEvents();
   }
@@ -343,30 +347,32 @@ class VotingManager {
    * Load and display voting results for host
    */
   async loadVotingResults() {
+    console.log('loadVotingResults() called');
+    
     try {
-      // First try to get from room data if available
-      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
-        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
-      }
+      const gameRoundNumber = this.roomManager.gameState.state.hist.length;
+      const roundId = `round_${gameRoundNumber}`;
       
-      // Also fetch latest from API
-      const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`);
-      const result = await response.json();
+      console.log('Loading results for round:', roundId);
       
-      if (result.success) {
-        // Update local voting data
-        this.roomManager.votingData = result.voting;
-        
-        if (result.voting.currentRound) {
-          this.displayVotingResults(result.voting.currentRound.results);
-        }
+      // Get current round data
+      const votingData = this.roomManager.votingData || {};
+      const currentRoundData = votingData.rounds?.[roundId] || votingData.allRounds?.[roundId];
+      
+      console.log('Current round voting data:', currentRoundData);
+      
+      if (currentRoundData && currentRoundData.results) {
+        console.log('Displaying voting results from local data');
+        this.displayVotingResults(currentRoundData.results);
+      } else {
+        console.log('No local voting data, showing empty interface');
+        // Show empty voting interface for new round
+        this.displayVotingResults({ mvp: {}, burden: {} });
       }
     } catch (error) {
       console.error('Failed to load voting results:', error);
-      // Fallback to local data if available
-      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
-        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
-      }
+      // Show empty interface on error
+      this.displayVotingResults({ mvp: {}, burden: {} });
     }
   }
 
