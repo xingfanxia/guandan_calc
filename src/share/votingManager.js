@@ -29,9 +29,13 @@ class VotingManager {
       console.log('Current voting data:', this.roomManager.votingData);
       
       if (this.roomManager.isViewer) {
+        console.log('Calling showViewerVoting...');
         this.showViewerVoting();
       } else if (this.roomManager.isHost) {
+        console.log('Calling showHostVoting...');
         this.showHostVoting();
+      } else {
+        console.log('Not host or viewer, skipping voting interface');
       }
       
       this.displayVotingStats(); // Use local stats instead of API
