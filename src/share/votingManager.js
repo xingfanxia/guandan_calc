@@ -20,6 +20,10 @@ class VotingManager {
     if (votingSection) {
       votingSection.style.display = 'block';
       
+      const gameRoundNumber = this.roomManager.gameState.state.hist.length;
+      console.log('showVotingSection called - current round number:', gameRoundNumber);
+      console.log('Current voting data:', this.roomManager.votingData);
+      
       if (this.roomManager.isViewer) {
         this.showViewerVoting();
       } else if (this.roomManager.isHost) {
@@ -29,7 +33,7 @@ class VotingManager {
       this.displayVotingStats(); // Use local stats instead of API
       
       // Start real-time voting updates for hosts
-      if (this.roomManager.isHost) {
+      if (this.roomManager.isHost && !this.votingPollInterval) {
         this.startVotingPolling();
       }
     }
