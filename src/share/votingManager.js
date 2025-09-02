@@ -148,7 +148,11 @@ class VotingManager {
       return;
     }
     
+    console.log('Host voting - checking if round confirmed. Round data:', roundData);
+    console.log('Round confirmed status:', roundData?.confirmed);
+    
     if (roundData && roundData.confirmed) {
+      console.log('Round already confirmed, showing completion message');
       // This round already confirmed by host
       if (hostInterface) {
         const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === roundData.finalMvp);
@@ -169,6 +173,8 @@ class VotingManager {
       if (voterInterface) voterInterface.style.display = 'none';
       return;
     }
+    
+    console.log('Round not confirmed, showing active voting interface');
     
     // Active voting for current round
     if (voterInterface) voterInterface.style.display = 'none';
