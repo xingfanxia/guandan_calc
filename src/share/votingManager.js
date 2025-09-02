@@ -574,11 +574,15 @@ class VotingManager {
       return;
     }
 
-    // Check if this round has already been confirmed
+    // Check if this round has already been confirmed (using persistent storage)
     const gameRoundNumber = this.roomManager.gameState.state.hist.length;
     const roundId = `round_${gameRoundNumber}`;
     
-    if (this.confirmedRounds && this.confirmedRounds.includes(roundId)) {
+    // Check in voting data (persistent) instead of local confirmedRounds
+    const votingData = this.roomManager.votingData || {};
+    const roundData = votingData.rounds?.[roundId];
+    
+    if (roundData && roundData.confirmed) {
       alert(`第${gameRoundNumber}局的最C和最闹已经确认过了`);
       return;
     }
@@ -591,9 +595,23 @@ class VotingManager {
         // Record community vote
         await this.recordCommunityVote(this.hostSelectedMvp, this.hostSelectedBurden);
         
-        // Mark this round as confirmed
-        if (!this.confirmedRounds) this.confirmedRounds = [];
-        this.confirmedRounds.push(roundId);
+        // Mark this round as confirmed in persistent data
+        if (!this.roomManager.votingData.rounds) {
+          this.roomManager.votingData.rounds = {};
+        }
+        if (!this.roomManager.votingData.rounds[roundId]) {
+          this.roomManager.votingData.rounds[roundId] = { votes: {}, results: { mvp: {}, burden: {} } };
+        }
+        
+        this.roomManager.votingData.rounds[roundId].confirmed = true;
+        this.roomManager.votingData.rounds[roundId].confirmedAt = new Date().toISOString();
+        this.roomManager.votingData.rounds[roundId].finalMvp = this.hostSelectedMvp;
+        this.roomManager.votingData.rounds[roundId].finalBurden = this.hostSelectedBurden;
+        
+        // Sync confirmation to server immediately
+        if (this.roomManager.isHost) {
+          await this.roomManager.syncNow(); // Force immediate sync of confirmation
+        }
         
         // Reset voting for next round
         await this.resetCurrentVoting();
