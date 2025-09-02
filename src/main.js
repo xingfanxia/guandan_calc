@@ -616,6 +616,12 @@ class GuandanApp {
       this.playerSystem.clearRanking();
     }
     
+    // Refresh voting interface for new round if in room mode
+    if (this.roomManager.currentRoomCode && this.votingManager) {
+      console.log('New round started, refreshing voting interface');
+      this.votingManager.showVotingSection();
+    }
+    
     // Sync to room if hosting
     if (this.roomManager.isHost) {
       this.roomManager.syncNow();
@@ -636,6 +642,12 @@ class GuandanApp {
       gameState.saveState();
       this.uiRenderer.renderTeams();
       this.calc();
+      
+      // Refresh voting interface for new round if in room mode
+      if (this.roomManager.currentRoomCode && this.votingManager) {
+        console.log('Advanced to next round, refreshing voting interface');
+        this.votingManager.showVotingSection();
+      }
       
       const applyTip = $('applyTip');
       if (applyTip) applyTip.textContent = '已进入下一局';
