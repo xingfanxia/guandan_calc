@@ -81,7 +81,11 @@ class VotingManager {
       return;
     }
     
-    if (this.confirmedRounds && this.confirmedRounds.includes(roundId)) {
+    // Check if round is confirmed (same logic as host)
+    const votingData = this.roomManager.votingData || {};
+    const roundData = votingData.rounds?.[roundId] || votingData.allRounds?.[roundId];
+    
+    if (roundData && roundData.confirmed) {
       // This round already confirmed
       if (voterInterface) {
         voterInterface.innerHTML = `
@@ -111,6 +115,50 @@ class VotingManager {
     const voterInterface = $('voterInterface');
     const hostInterface = $('hostVotingInterface');
     
+    // Check if current round is already confirmed
+    const gameRoundNumber = this.roomManager.gameState.state.hist.length;
+    const roundId = `round_${gameRoundNumber}`;
+    const votingData = this.roomManager.votingData || {};
+    const roundData = votingData.rounds?.[roundId] || votingData.allRounds?.[roundId];
+    
+    if (gameRoundNumber === 0) {
+      // No rounds completed yet
+      if (hostInterface) {
+        hostInterface.innerHTML = `
+          <div style="text-align:center; padding:40px;">
+            <h3 style="color:#999;">⏳ 等待第一局游戏完成</h3>
+            <p style="color:#666;">游戏开始后即可查看投票</p>
+          </div>
+        `;
+        hostInterface.style.display = 'block';
+      }
+      if (voterInterface) voterInterface.style.display = 'none';
+      return;
+    }
+    
+    if (roundData && roundData.confirmed) {
+      // This round already confirmed by host
+      if (hostInterface) {
+        const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === roundData.finalMvp);
+        const burdenPlayer = this.roomManager.gameState.players.find(p => p.id === roundData.finalBurden);
+        
+        hostInterface.innerHTML = `
+          <div style="text-align:center; padding:40px;">
+            <h3 style="color:#22c55e;">✅ 第${gameRoundNumber}局投票已确认</h3>
+            <div style="margin:20px 0;">
+              <div style="color:#22c55e; margin:8px 0;">最C: ${mvpPlayer?.emoji} ${mvpPlayer?.name}</div>
+              <div style="color:#ef4444; margin:8px 0;">最闹: ${burdenPlayer?.emoji} ${burdenPlayer?.name}</div>
+            </div>
+            <p style="color:#999;">等待下一局游戏开始新的投票</p>
+          </div>
+        `;
+        hostInterface.style.display = 'block';
+      }
+      if (voterInterface) voterInterface.style.display = 'none';
+      return;
+    }
+    
+    // Active voting for current round
     if (voterInterface) voterInterface.style.display = 'none';
     if (hostInterface) hostInterface.style.display = 'block';
     
