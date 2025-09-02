@@ -291,17 +291,41 @@ class RoomManager {
   }
 
   /**
-   * Start auto-sync for hosts (save on every change)
+   * Start auto-sync for hosts (save only when game state actually changes)
    */
   startAutoSync() {
     if (!this.isHost) return;
     
-    // Auto-save every 10 seconds or on significant changes
+    // Store initial game state for comparison
+    this.lastGameStateHash = this.getGameStateHash();
+    
+    // Check for game state changes every 10 seconds (not auto-save)
     this.syncInterval = setInterval(() => {
-      this.updateRoom();
+      const currentHash = this.getGameStateHash();
+      if (currentHash !== this.lastGameStateHash) {
+        console.log('Game state changed, syncing to room');
+        this.updateRoom();
+        this.lastGameStateHash = currentHash;
+      }
     }, 10000);
     
-    console.log('Auto-sync started for room:', this.currentRoomCode);
+    console.log('Smart auto-sync started for room:', this.currentRoomCode);
+  }
+
+  /**
+   * Generate hash of current game state for change detection
+   * @returns {string} Hash of important game state
+   */
+  getGameStateHash() {
+    const importantData = {
+      t1Level: this.gameState.state.t1.lvl,
+      t2Level: this.gameState.state.t2.lvl,
+      roundLevel: this.gameState.state.roundLevel,
+      historyLength: this.gameState.state.hist.length,
+      rankings: JSON.stringify(this.gameState.currentRanking)
+    };
+    
+    return btoa(JSON.stringify(importantData));
   }
 
   /**
