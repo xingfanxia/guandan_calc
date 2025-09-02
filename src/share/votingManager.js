@@ -531,25 +531,60 @@ class VotingManager {
       return;
     }
 
+    // Check if this round has already been confirmed
+    const gameRoundNumber = this.roomManager.gameState.state.hist.length;
+    const roundId = `round_${gameRoundNumber}`;
+    
+    if (this.confirmedRounds && this.confirmedRounds.includes(roundId)) {
+      alert(`第${gameRoundNumber}局的最C和最闹已经确认过了`);
+      return;
+    }
+
     try {
       const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === this.hostSelectedMvp);
       const burdenPlayer = this.roomManager.gameState.players.find(p => p.id === this.hostSelectedBurden);
       
-      if (confirm(`确认本局最终结果？\n\n最C: ${mvpPlayer.emoji} ${mvpPlayer.name}\n最闹: ${burdenPlayer.emoji} ${burdenPlayer.name}\n\n(将记录到玩家统计和人民的声音)`)) {
+      if (confirm(`确认第${gameRoundNumber}局最终结果？\n\n最C: ${mvpPlayer.emoji} ${mvpPlayer.name}\n最闹: ${burdenPlayer.emoji} ${burdenPlayer.name}\n\n(将记录到玩家统计，此局投票将结束)`)) {
         // Record community vote
         await this.recordCommunityVote(this.hostSelectedMvp, this.hostSelectedBurden);
+        
+        // Mark this round as confirmed
+        if (!this.confirmedRounds) this.confirmedRounds = [];
+        this.confirmedRounds.push(roundId);
         
         // Reset voting for next round
         await this.resetCurrentVoting();
         
-        alert('✅ 本局最C和最闹已确认并记录');
+        alert(`✅ 第${gameRoundNumber}局最C和最闹已确认并记录`);
         
-        // Refresh voting interface
-        this.showHostVoting();
+        // Show voting completed message
+        this.showVotingCompleted(gameRoundNumber, mvpPlayer, burdenPlayer);
       }
     } catch (error) {
       console.error('Confirm selection failed:', error);
       alert('确认失败：' + error.message);
+    }
+  }
+
+  /**
+   * Show voting completed interface
+   * @param {number} roundNumber - Round number
+   * @param {Object} mvpPlayer - MVP player
+   * @param {Object} burdenPlayer - Burden player
+   */
+  showVotingCompleted(roundNumber, mvpPlayer, burdenPlayer) {
+    const hostInterface = document.getElementById('hostVotingInterface');
+    if (hostInterface) {
+      hostInterface.innerHTML = `
+        <div style="text-align:center; padding:40px;">
+          <h3 style="color:#22c55e;">✅ 第${roundNumber}局投票已确认</h3>
+          <div style="margin:20px 0;">
+            <div style="color:#22c55e; margin:8px 0;">最C: ${mvpPlayer.emoji} ${mvpPlayer.name}</div>
+            <div style="color:#ef4444; margin:8px 0;">最闹: ${burdenPlayer.emoji} ${burdenPlayer.name}</div>
+          </div>
+          <p style="color:#999;">等待下一局游戏开始新的投票</p>
+        </div>
+      `;
     }
   }
 
