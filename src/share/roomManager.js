@@ -277,6 +277,11 @@ class RoomManager {
         hostAuthToken: this.hostAuthToken // Include auth token in updates
       };
       
+      console.log('Room update data being sent:', {
+        votingRounds: gameData.voting?.rounds,
+        votingKeys: Object.keys(gameData.voting?.rounds || {})
+      });
+      
       const response = await fetch(`/api/rooms/${this.currentRoomCode}`, {
         method: 'PUT',
         headers: {
