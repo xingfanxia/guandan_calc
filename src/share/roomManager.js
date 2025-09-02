@@ -252,6 +252,16 @@ class RoomManager {
     }
 
     try {
+      // First fetch latest room data to get current voting data
+      const currentRoomResponse = await fetch(`/api/rooms/${this.currentRoomCode}`);
+      if (currentRoomResponse.ok) {
+        const currentRoomData = await currentRoomResponse.json();
+        if (currentRoomData.success) {
+          // Update local voting data with latest from server
+          this.votingData = currentRoomData.data.voting || this.votingData;
+        }
+      }
+
       const gameData = {
         ...this.createGameData(),
         hostAuthToken: this.hostAuthToken // Include auth token in updates
