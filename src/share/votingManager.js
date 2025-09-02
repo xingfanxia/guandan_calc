@@ -277,6 +277,9 @@ class VotingManager {
     const resultsDiv = $('votingResults');
     if (!resultsDiv) return;
     
+    // Store results for later use in click handlers
+    this.lastVotingResults = results;
+    
     let resultsHTML = '<div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">';
     
     // MVP selection with voting results
@@ -350,16 +353,33 @@ class VotingManager {
         const playerId = parseInt(option.dataset.playerId);
         const type = option.dataset.type;
         
+        // Get current results for this displayVotingResults call
+        const currentResults = this.lastVotingResults || { mvp: {}, burden: {} };
+        
         // Clear previous selections of same type
         document.querySelectorAll(`.host-vote-option[data-type="${type}"]`).forEach(opt => {
-          opt.style.borderColor = opt.style.borderColor === 'transparent' ? 'transparent' : 
-                                  (type === 'mvp' ? '#22c55e' : '#ef4444');
-          opt.style.borderWidth = '1px';
+          // Reset to original appearance
+          const votes = currentResults[type === 'mvp' ? 'mvp' : 'burden'];
+          const isTopVoted = this.isTopVoted(opt.dataset.playerId, votes);
+          
+          if (isTopVoted) {
+            // Keep top-voted appearance
+            opt.style.borderColor = type === 'mvp' ? '#22c55e' : '#ef4444';
+            opt.style.borderWidth = '2px';
+            opt.style.background = type === 'mvp' ? '#22c55e20' : '#ef444420';
+          } else {
+            // Reset to normal
+            opt.style.borderColor = 'transparent';
+            opt.style.borderWidth = '2px';
+            opt.style.background = '#2a2b2c';
+          }
         });
         
-        // Highlight selected
+        // Highlight host selection with strong visual indicator
         option.style.borderColor = type === 'mvp' ? '#22c55e' : '#ef4444';
-        option.style.borderWidth = '3px';
+        option.style.borderWidth = '4px';
+        option.style.background = type === 'mvp' ? '#22c55e40' : '#ef444440';
+        option.style.boxShadow = `0 0 10px ${type === 'mvp' ? '#22c55e' : '#ef4444'}80`;
         
         // Store selection
         if (type === 'mvp') {
