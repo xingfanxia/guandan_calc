@@ -173,11 +173,14 @@ class RoomManager {
         this.isViewer = false;
         this.isFavorite = result.data.isFavorite || false;
         // Load existing voting data for host (including confirmations)
-        this.votingData = result.data.voting || {
-          rounds: {},
-          playerStats: {}
+        const loadedVoting = result.data.voting || { rounds: {}, playerStats: {} };
+        
+        // Normalize data structure: use allRounds if present, otherwise use rounds
+        this.votingData = {
+          rounds: loadedVoting.allRounds || loadedVoting.rounds || {},
+          playerStats: loadedVoting.playerStats || {}
         };
-        console.log('Loaded voting data for host:', this.votingData);
+        console.log('Loaded and normalized voting data for host:', this.votingData);
         this.startAutoSync();
         this.applyHostMode();
         this.updateFavoriteButton(); // Show favorite button
