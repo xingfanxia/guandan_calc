@@ -280,6 +280,10 @@ class VotingManager {
     // Store results for later use in click handlers
     this.lastVotingResults = results;
     
+    // Remember current selections before re-rendering
+    const previousMvpSelection = this.hostSelectedMvp;
+    const previousBurdenSelection = this.hostSelectedBurden;
+    
     let resultsHTML = '<div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px;">';
     
     // MVP selection with voting results
@@ -329,6 +333,26 @@ class VotingManager {
     
     // Add click handlers for host selection
     this.setupHostSelectionHandlers();
+    
+    // Restore previous selections if they existed
+    if (previousMvpSelection) {
+      const mvpElement = document.querySelector(`.host-vote-option[data-player-id="${previousMvpSelection}"][data-type="mvp"]`);
+      if (mvpElement) {
+        this.highlightHostSelection(mvpElement, 'mvp');
+        this.hostSelectedMvp = previousMvpSelection;
+      }
+    }
+    
+    if (previousBurdenSelection) {
+      const burdenElement = document.querySelector(`.host-vote-option[data-player-id="${previousBurdenSelection}"][data-type="burden"]`);
+      if (burdenElement) {
+        this.highlightHostSelection(burdenElement, 'burden');
+        this.hostSelectedBurden = previousBurdenSelection;
+      }
+    }
+    
+    // Update confirm button state
+    this.updateHostConfirmButton();
   }
 
   /**
@@ -376,10 +400,7 @@ class VotingManager {
         });
         
         // Highlight host selection with strong visual indicator
-        option.style.borderColor = type === 'mvp' ? '#22c55e' : '#ef4444';
-        option.style.borderWidth = '4px';
-        option.style.background = type === 'mvp' ? '#22c55e40' : '#ef444440';
-        option.style.boxShadow = `0 0 10px ${type === 'mvp' ? '#22c55e' : '#ef4444'}80`;
+        this.highlightHostSelection(option, type);
         
         // Store selection
         if (type === 'mvp') {
@@ -391,6 +412,18 @@ class VotingManager {
         this.updateHostConfirmButton();
       };
     });
+  }
+
+  /**
+   * Apply host selection highlighting
+   * @param {HTMLElement} element - Element to highlight
+   * @param {string} type - 'mvp' or 'burden'
+   */
+  highlightHostSelection(element, type) {
+    element.style.borderColor = type === 'mvp' ? '#22c55e' : '#ef4444';
+    element.style.borderWidth = '4px';
+    element.style.background = type === 'mvp' ? '#22c55e40' : '#ef444440';
+    element.style.boxShadow = `0 0 10px ${type === 'mvp' ? '#22c55e' : '#ef4444'}80`;
   }
 
   /**
