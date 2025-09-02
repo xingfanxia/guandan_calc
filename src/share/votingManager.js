@@ -624,13 +624,38 @@ class VotingManager {
         
         console.log('Marked round as confirmed:', roundId, roundsObject[roundId]);
         
-        // Sync confirmation to server immediately (CRITICAL)
+        // Manually update server with confirmation (bypass room sync)
         if (this.roomManager.isHost) {
-          console.log('Syncing confirmation to server...');
-          this.roomManager.forcingSync = true; // Prevent data fetch during confirmation sync
-          const syncResult = await this.roomManager.syncNow(); 
-          this.roomManager.forcingSync = false;
-          console.log('Sync result:', syncResult);
+          console.log('Manually syncing confirmation to server...');
+          
+          // Directly update the voting data on server via API
+          try {
+            const currentServerResponse = await fetch(`/api/rooms/${this.roomManager.currentRoomCode}`);
+            const currentServerData = await currentServerResponse.json();
+            
+            if (currentServerData.success) {
+              const serverRoom = currentServerData.data;
+              
+              // Update server room data with confirmation
+              if (!serverRoom.voting) serverRoom.voting = { rounds: {} };
+              if (!serverRoom.voting.rounds) serverRoom.voting.rounds = {};
+              
+              serverRoom.voting.rounds[roundId] = roundsObject[roundId]; // Include confirmation
+              serverRoom.lastUpdated = new Date().toISOString();
+              
+              // Save updated room with confirmation
+              const updateResponse = await fetch(`/api/rooms/${this.roomManager.currentRoomCode}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(serverRoom)
+              });
+              
+              const updateResult = await updateResponse.json();
+              console.log('Direct confirmation update result:', updateResult.success);
+            }
+          } catch (error) {
+            console.error('Failed to sync confirmation:', error);
+          }
           
           // Verify sync worked by re-fetching room data
           setTimeout(async () => {
