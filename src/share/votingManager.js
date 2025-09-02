@@ -624,9 +624,22 @@ class VotingManager {
         
         console.log('Marked round as confirmed:', roundId, roundsObject[roundId]);
         
-        // Sync confirmation to server immediately
+        // Sync confirmation to server immediately (CRITICAL)
         if (this.roomManager.isHost) {
-          await this.roomManager.syncNow(); // Force immediate sync of confirmation
+          console.log('Syncing confirmation to server...');
+          const syncResult = await this.roomManager.syncNow(); 
+          console.log('Sync result:', syncResult);
+          
+          // Verify sync worked by re-fetching room data
+          setTimeout(async () => {
+            const verifyResponse = await fetch(`/api/rooms/${this.roomManager.currentRoomCode}`);
+            const verifyResult = await verifyResponse.json();
+            if (verifyResult.success) {
+              const confirmedInServer = verifyResult.data.voting?.rounds?.[roundId]?.confirmed || 
+                                      verifyResult.data.voting?.allRounds?.[roundId]?.confirmed;
+              console.log('Server confirmation verification:', confirmedInServer);
+            }
+          }, 1000);
         }
         
         // Reset voting for next round
