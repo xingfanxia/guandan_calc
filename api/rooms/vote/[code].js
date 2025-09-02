@@ -132,12 +132,37 @@ export default async function handler(request) {
 
       // Update room's lastUpdated timestamp
       parsedRoom.lastUpdated = new Date().toISOString();
+      
+      // Check data size before saving
+      const dataSize = JSON.stringify(parsedRoom).length;
+      console.log('Room data size before save:', dataSize, 'characters');
+      
+      if (dataSize > 500000) { // 500KB limit warning
+        console.warn('Room data approaching size limit:', dataSize);
+      }
 
-      // Save updated room data with voting information
-      if (parsedRoom.isFavorite) {
-        await kv.set(`room:${roomCode}`, JSON.stringify(parsedRoom));
-      } else {
-        await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(parsedRoom));
+      // Save updated room data with retry mechanism for ECONNRESET errors
+      let saveSuccess = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!saveSuccess && retryCount < maxRetries) {
+        try {
+          if (parsedRoom.isFavorite) {
+            await kv.set(`room:${roomCode}`, JSON.stringify(parsedRoom));
+          } else {
+            await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(parsedRoom));
+          }
+          saveSuccess = true;
+        } catch (saveError) {
+          retryCount++;
+          console.error(`Save attempt ${retryCount} failed:`, saveError);
+          if (retryCount < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+          } else {
+            throw saveError; // Re-throw after max retries
+          }
+        }
       }
 
       return new Response(JSON.stringify({
