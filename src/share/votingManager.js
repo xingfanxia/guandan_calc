@@ -16,8 +16,12 @@ class VotingManager {
    * Show voting section for room mode
    */
   showVotingSection() {
+    console.log('showVotingSection() called');
     const votingSection = $('votingSection');
+    console.log('Voting section element:', votingSection);
+    
     if (votingSection) {
+      console.log('Voting section found, displaying...');
       votingSection.style.display = 'block';
       
       const gameRoundNumber = this.roomManager.gameState.state.hist.length;
