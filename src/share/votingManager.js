@@ -16,29 +16,17 @@ class VotingManager {
    * Show voting section for room mode
    */
   showVotingSection() {
-    console.log('showVotingSection() called');
     const votingSection = $('votingSection');
-    console.log('Voting section element:', votingSection);
-    
     if (votingSection) {
-      console.log('Voting section found, displaying...');
       votingSection.style.display = 'block';
       
-      const gameRoundNumber = this.roomManager.gameState.state.hist.length;
-      console.log('showVotingSection called - current round number:', gameRoundNumber);
-      console.log('Current voting data:', this.roomManager.votingData);
-      
       if (this.roomManager.isViewer) {
-        console.log('Calling showViewerVoting...');
         this.showViewerVoting();
       } else if (this.roomManager.isHost) {
-        console.log('Calling showHostVoting...');
         this.showHostVoting();
-      } else {
-        console.log('Not host or viewer, skipping voting interface');
       }
       
-      this.displayVotingStats(); // Use local stats instead of API
+      this.displayVotingStats();
       
       // Start real-time voting updates for hosts
       if (this.roomManager.isHost && !this.votingPollInterval) {
@@ -148,11 +136,7 @@ class VotingManager {
       return;
     }
     
-    console.log('Host voting - checking if round confirmed. Round data:', roundData);
-    console.log('Round confirmed status:', roundData?.confirmed);
-    
     if (roundData && roundData.confirmed) {
-      console.log('Round already confirmed, showing completion message');
       // This round already confirmed by host
       if (hostInterface) {
         const mvpPlayer = this.roomManager.gameState.players.find(p => p.id === roundData.finalMvp);
@@ -174,16 +158,10 @@ class VotingManager {
       return;
     }
     
-    console.log('Round not confirmed, showing active voting interface');
-    
     // Active voting for current round
     if (voterInterface) voterInterface.style.display = 'none';
-    if (hostInterface) {
-      console.log('Setting host interface to block');
-      hostInterface.style.display = 'block';
-    }
+    if (hostInterface) hostInterface.style.display = 'block';
     
-    console.log('Loading voting results for active round...');
     this.loadVotingResults();
     this.setupHostVotingEvents();
   }
@@ -347,32 +325,30 @@ class VotingManager {
    * Load and display voting results for host
    */
   async loadVotingResults() {
-    console.log('loadVotingResults() called');
-    
     try {
-      const gameRoundNumber = this.roomManager.gameState.state.hist.length;
-      const roundId = `round_${gameRoundNumber}`;
+      // First try to get from room data if available
+      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
+        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
+      }
       
-      console.log('Loading results for round:', roundId);
+      // Also fetch latest from API
+      const response = await fetch(`/api/rooms/vote/${this.roomManager.currentRoomCode}`);
+      const result = await response.json();
       
-      // Get current round data
-      const votingData = this.roomManager.votingData || {};
-      const currentRoundData = votingData.rounds?.[roundId] || votingData.allRounds?.[roundId];
-      
-      console.log('Current round voting data:', currentRoundData);
-      
-      if (currentRoundData && currentRoundData.results) {
-        console.log('Displaying voting results from local data');
-        this.displayVotingResults(currentRoundData.results);
-      } else {
-        console.log('No local voting data, showing empty interface');
-        // Show empty voting interface for new round
-        this.displayVotingResults({ mvp: {}, burden: {} });
+      if (result.success) {
+        // Update local voting data
+        this.roomManager.votingData = result.voting;
+        
+        if (result.voting.currentRound) {
+          this.displayVotingResults(result.voting.currentRound.results);
+        }
       }
     } catch (error) {
       console.error('Failed to load voting results:', error);
-      // Show empty interface on error
-      this.displayVotingResults({ mvp: {}, burden: {} });
+      // Fallback to local data if available
+      if (this.roomManager.votingData && this.roomManager.votingData.currentRound) {
+        this.displayVotingResults(this.roomManager.votingData.currentRound.results);
+      }
     }
   }
 

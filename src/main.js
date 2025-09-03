@@ -616,11 +616,8 @@ class GuandanApp {
       this.playerSystem.clearRanking();
     }
     
-    // Refresh voting interface for new round if in room mode
-    if (this.roomManager.currentRoomCode && this.votingManager) {
-      console.log('New round started, refreshing voting interface');
-      this.votingManager.showVotingSection();
-    }
+    // Note: Voting interface refresh for new rounds requires manual page refresh
+    // This is a known limitation - automatic refresh has complex state management issues
     
     // Sync to room if hosting
     if (this.roomManager.isHost) {

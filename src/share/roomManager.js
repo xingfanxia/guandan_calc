@@ -592,12 +592,8 @@ class RoomManager {
       window.guandanApp.statsManager.renderStatistics();
       window.guandanApp.statsManager.renderHistory();
       
-      // Update voting interface if in room mode
-      if (window.guandanApp.votingManager && this.currentRoomCode) {
-        console.log('Room data updated, refreshing voting interface');
-        // Refresh entire voting section to check for new rounds
-        window.guandanApp.votingManager.showVotingSection();
-      }
+      // Note: Voting interface auto-refresh disabled due to state management complexity
+      // Users can manually refresh page to see new round voting interfaces
     }
   }
 
