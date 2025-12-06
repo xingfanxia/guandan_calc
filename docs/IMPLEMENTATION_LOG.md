@@ -63,3 +63,57 @@
 - All tests passing (singleton pattern, getters/setters, events, persistence)
 
 **Next Phase**: Phase 2 - Game Logic (calculator, rules, history)
+
+---
+
+## Phase 2: Game Logic
+
+**Goal**: Extract core game calculation and rule application logic
+**Started**: 2025-12-06
+**Status**: Complete ✅
+
+### Implementation Notes
+
+#### Modules Created
+- **game/calculator.js** (6KB): Pure calculation functions
+  - parseRanks(): Input validation with multiple format support
+  - calculateUpgrade(): 4/6/8-player mode calculations
+  - nextLevel(): Level progression logic
+  - Helper functions: sum(), scoreSum(), tier()
+
+- **game/rules.js** (9KB): Game rules and A-level logic
+  - checkALevelRules(): Complex A-level victory/failure conditions
+  - applyGameResult(): Main orchestration for applying results
+  - advanceToNextRound(): Manual round advancement
+  - Proper roundOwner tracking for A-level rules
+
+- **game/history.js** (5KB): History management
+  - renderHistory(): Renders history table with color coding
+  - rollbackTo(): Restore state to any previous point
+  - undoLast(): Quick undo of last entry
+  - resetAll(): Game reset with player preservation option
+
+#### Critical A-Level Logic Verified
+- ✅ Victory only at own A-level round (strict mode)
+- ✅ Failure counting only on own round
+- ✅ Opponent round outcomes don't count toward failures
+- ✅ 3 failures correctly reset team to level 2
+- ✅ Last place detection prevents A-level victory
+- ✅ Lenient mode allows victory at any level
+
+#### Testing
+- 3 individual test files (calculator, rules, history)
+- 1 integration test (phase2-integration.html)
+- All core game logic tests passing
+- A-level edge cases thoroughly tested
+
+**Module Dependencies**:
+```
+calculator.js (pure functions)
+    ↓
+rules.js (depends on: calculator, state, config, events)
+    ↓
+history.js (depends on: state, config, events, utils)
+```
+
+**Next Phase**: Phase 3 - Player System (player manager, renderer, drag/drop, touch)
