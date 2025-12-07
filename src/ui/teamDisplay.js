@@ -166,22 +166,3 @@ export function refreshPreviewOnly() {
     nextRoundPreview.textContent = roundLevel || '-';
   }
 }
-
-/**
- * Update rule hint based on mode
- * @param {string} mode - Game mode ('4', '6', or '8')
- */
-export function updateRuleHint(mode) {
-  const ruleHint = $('ruleHint');
-  if (!ruleHint) return;
-
-  const cfg = config.getAll();
-
-  if (mode === '4') {
-    ruleHint.textContent = `4人：固定表 (${cfg.c4['1,2']},${cfg.c4['1,3']},${cfg.c4['1,4']})`;
-  } else if (mode === '6') {
-    ruleHint.textContent = `6人：分差≥${cfg.t6.g3} 升3；≥${cfg.t6.g2} 升2；≥${cfg.t6.g1} 升1`;
-  } else {
-    ruleHint.textContent = `8人：分差≥${cfg.t8.g3} 升3；≥${cfg.t8.g2} 升2；≥${cfg.t8.g1} 升1`;
-  }
-}

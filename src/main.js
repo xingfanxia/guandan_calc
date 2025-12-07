@@ -57,22 +57,39 @@ import { exportTXT, exportCSV, exportLongPNG } from './export/exportHandlers.js'
  */
 function init() {
   console.log('🎮 Guandan Calculator v9.0 - Modular Edition');
+  console.log('DOM ready state:', document.readyState);
 
-  // Hydrate state and config from localStorage
-  state.hydrate();
-  config.hydrate();
+  try {
+    // Hydrate state and config from localStorage
+    console.log('Hydrating state and config...');
+    state.hydrate();
+    config.hydrate();
+    console.log('✅ State and config hydrated');
 
-  // Setup UI
-  initializeUI();
+    // Setup UI
+    console.log('Initializing UI...');
+    initializeUI();
+    console.log('✅ UI initialized');
 
-  // Setup event handlers
-  setupEventListeners();
-  setupModuleEventHandlers();
+    // Setup event handlers
+    console.log('Setting up event listeners...');
+    setupEventListeners();
+    console.log('✅ Event listeners set up');
 
-  // Initial render
-  renderInitialState();
+    console.log('Setting up module event handlers...');
+    setupModuleEventHandlers();
+    console.log('✅ Module event handlers set up');
 
-  console.log('✅ Application initialized successfully');
+    // Initial render
+    console.log('Rendering initial state...');
+    renderInitialState();
+    console.log('✅ Initial state rendered');
+
+    console.log('✅ Application initialized successfully');
+  } catch (error) {
+    console.error('❌ Initialization failed:', error);
+    console.error('Error stack:', error.stack);
+  }
 }
 
 /**
@@ -150,11 +167,18 @@ function setupEventListeners() {
         renderPlayerPool();
         renderRankingSlots();
         renderStatistics();
+        attachTouchHandlersToAllTiles();
 
         // Show victory modal if final win
         if (applyResult.finalWin) {
           const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
           showVictoryModal(winnerName);
+        }
+      } else {
+        // Show error message
+        const applyTip = $('applyTip');
+        if (applyTip) {
+          applyTip.textContent = result.message || '请先完成排名';
         }
       }
     });
@@ -422,8 +446,56 @@ function setupModuleEventHandlers() {
 
     if (check.shouldCalculate) {
       const result = calculateFromRanking(mode);
-      if (result.ok && config.getPreference('autoApply')) {
-        // Auto-apply will be handled by the apply button logic
+
+      // Update calculation display
+      if (result.ok) {
+        const headline = $('headline');
+        const explain = $('explain');
+        const winnerDisplay = $('winnerDisplay');
+
+        const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+        const winnerColor = result.winner === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+
+        if (headline) {
+          const mode = result.calcResult.mode;
+          const ranks = result.ranks;
+          const upgrade = result.calcResult.upgrade;
+          const roundLevel = state.getRoundLevel();
+          const upgradeLabel = upgrade > 0 ? `${winnerName} 升 ${upgrade} 级` : '不升级';
+
+          headline.textContent = `${mode}人：(${ranks.join(',')}) → ${upgradeLabel}`;
+        }
+
+        if (explain) {
+          explain.textContent = result.calcResult.mode === '4'
+            ? `4人表：(1,2)=${config.get4PlayerRules()['1,2']}；(1,3)=${config.get4PlayerRules()['1,3']}；(1,4)=${config.get4PlayerRules()['1,4']}`
+            : '分差与资格规则已计算';
+        }
+
+        if (winnerDisplay) {
+          winnerDisplay.textContent = winnerName;
+          winnerDisplay.style.color = winnerColor;
+        }
+
+        // Auto-apply if enabled
+        if (config.getPreference('autoApply')) {
+          const playerRankingData = getPlayerRankingData();
+          const applyResult = applyGameResult(result.calcResult, result.winner, playerRankingData);
+
+          updatePlayerStats(parseInt(mode));
+          clearRankingState();
+
+          const applyTip = $('applyTip');
+          if (applyTip) applyTip.textContent = applyResult.message;
+
+          renderTeams();
+          renderHistory();
+          renderStatistics();
+
+          if (applyResult.finalWin) {
+            showVictoryModal(winnerName);
+          }
+        }
       }
     } else {
       // Show progress
