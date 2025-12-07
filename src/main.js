@@ -693,6 +693,74 @@ function lockTeamAssignmentPanel() {
         }
       };
     }
+
+    // Add compact team roster display
+    showCompactTeamRoster();
+  }
+}
+
+/**
+ * Show compact team roster when panel is locked
+ */
+function showCompactTeamRoster() {
+  const playerSetupSection = $('playerSetupSection');
+  if (!playerSetupSection) return;
+
+  // Remove existing roster if present
+  const existingRoster = playerSetupSection.querySelector('.compact-team-roster');
+  if (existingRoster) existingRoster.remove();
+
+  // Create compact roster
+  const roster = document.createElement('div');
+  roster.className = 'compact-team-roster';
+  roster.style.cssText = `
+    padding: 12px;
+    margin-top: 8px;
+    background: #1a1b1c;
+    border-radius: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    font-size: 13px;
+  `;
+
+  const team1Players = getPlayersByTeam(1);
+  const team2Players = getPlayersByTeam(2);
+
+  const t1Color = config.getTeamColor('t1');
+  const t2Color = config.getTeamColor('t2');
+  const t1Name = config.getTeamName('t1');
+  const t2Name = config.getTeamName('t2');
+
+  // Team 1 roster
+  const team1Div = document.createElement('div');
+  team1Div.innerHTML = `
+    <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 6px;">${t1Name}</div>
+    ${team1Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+      <span style="font-size: 16px;">${p.emoji}</span>
+      <span>${p.name}</span>
+    </div>`).join('')}
+  `;
+
+  // Team 2 roster
+  const team2Div = document.createElement('div');
+  team2Div.innerHTML = `
+    <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 6px;">${t2Name}</div>
+    ${team2Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+      <span style="font-size: 16px;">${p.emoji}</span>
+      <span>${p.name}</span>
+    </div>`).join('')}
+  `;
+
+  roster.appendChild(team1Div);
+  roster.appendChild(team2Div);
+
+  // Insert after summary
+  const summary = playerSetupSection.querySelector('summary');
+  if (summary && summary.nextSibling) {
+    playerSetupSection.insertBefore(roster, summary.nextSibling);
+  } else {
+    playerSetupSection.appendChild(roster);
   }
 }
 
@@ -777,6 +845,12 @@ function unlockTeamAssignmentPanel() {
     if (lockIndicator) {
       lockIndicator.remove();
     }
+  }
+
+  // Remove compact roster
+  const compactRoster = playerSetupSection.querySelector('.compact-team-roster');
+  if (compactRoster) {
+    compactRoster.remove();
   }
 }
 
