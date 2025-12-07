@@ -53,16 +53,36 @@ import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
 // Export
 import { exportTXT, exportCSV, exportLongPNG } from './export/exportHandlers.js';
 
+// Share and room features
+import {
+  createRoom,
+  joinRoom,
+  checkURLForRoom,
+  getRoomInfo,
+  syncNow,
+  leaveRoom
+} from './share/roomManager.js';
+import { generateShareURL, loadFromShareURL, showShareModal } from './share/shareManager.js';
+import { showViewerVoting, showHostVoting } from './share/votingManager.js';
+
 /**
  * Initialize application
  */
-function init() {
+async function init() {
   console.log('🎮 Guandan Calculator v9.0 - Modular Edition');
 
   try {
-    // Hydrate state and config from localStorage
-    state.hydrate();
-    config.hydrate();
+    // Check for room in URL first
+    const isRoomMode = await checkURLForRoom();
+
+    // Check for share URL
+    const isSharedMode = loadFromShareURL();
+
+    if (!isRoomMode && !isSharedMode) {
+      // Normal mode - load from localStorage
+      state.hydrate();
+      config.hydrate();
+    }
 
     // Setup UI
     initializeUI();
@@ -73,6 +93,11 @@ function init() {
 
     // Initial render
     renderInitialState();
+
+    // Show room UI if in room mode
+    if (isRoomMode) {
+      showRoomUI();
+    }
 
     console.log('✅ Application initialized successfully');
   } catch (error) {
@@ -292,11 +317,11 @@ function setupEventListeners() {
     });
   }
 
-  // Share game button
+  // Share game button - NOW WORKS!
   const shareGameBtn = $('shareGame');
   if (shareGameBtn) {
     on(shareGameBtn, 'click', () => {
-      alert('分享功能开发中');
+      showShareModal();
     });
   }
 
@@ -308,25 +333,45 @@ function setupEventListeners() {
     });
   }
 
-  // Room buttons (disable for now - not implemented in modular version)
+  // Room buttons - NOW IMPLEMENTED!
   const createRoomBtn = $('createRoom');
   const joinRoomBtn = $('joinRoom');
   const browseRoomsBtn = $('browseRooms');
-  const favoriteRoomBtn = $('favoriteRoomTop');
 
   if (createRoomBtn) {
-    on(createRoomBtn, 'click', () => {
-      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+    on(createRoomBtn, 'click', async () => {
+      if (!confirm('创建房间将重置当前游戏数据，确定继续？')) {
+        return;
+      }
+
+      // Reset game before creating room
+      state.resetAll();
+
+      const roomInfo = await createRoom();
+
+      if (roomInfo) {
+        // Redirect to room URL with auth token
+        const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomInfo.roomCode}&auth=${roomInfo.authToken}`;
+        window.location.href = roomURL;
+      } else {
+        alert('创建房间失败，请稍后重试');
+      }
     });
   }
+
   if (joinRoomBtn) {
     on(joinRoomBtn, 'click', () => {
-      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+      const roomCode = prompt('请输入6位房间代码 (例如: A1B2C3):');
+      if (roomCode && roomCode.trim().length === 6) {
+        const code = roomCode.trim().toUpperCase();
+        window.location.href = `${window.location.pathname}?room=${code}`;
+      }
     });
   }
+
   if (browseRoomsBtn) {
     on(browseRoomsBtn, 'click', () => {
-      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+      alert('浏览收藏房间功能开发中');
     });
   }
 
@@ -648,6 +693,83 @@ function setupModuleEventHandlers() {
       unlockTeamAssignmentPanel();
     }
   });
+}
+
+/**
+ * Show room UI elements (banner, voting section)
+ */
+function showRoomUI() {
+  const roomInfo = getRoomInfo();
+
+  if (roomInfo.isHost) {
+    // Show host banner
+    showHostBanner(roomInfo.roomCode, roomInfo.authToken);
+    // Show host voting interface
+    setTimeout(() => showHostVoting(), 1000);
+  } else if (roomInfo.isViewer) {
+    // Show viewer banner
+    showViewerBanner(roomInfo.roomCode);
+    // Show viewer voting interface
+    setTimeout(() => showViewerVoting(), 1000);
+  }
+}
+
+/**
+ * Show host banner with room code
+ */
+function showHostBanner(roomCode, authToken) {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white; padding: 12px 20px; text-align: center;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    cursor: pointer;
+  `;
+
+  const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+
+  banner.innerHTML = `
+    <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+    | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
+  `;
+
+  banner.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(viewerURL);
+      banner.innerHTML += ' <span style="color: #22c55e;">✅ 已复制</span>';
+      setTimeout(() => {
+        banner.innerHTML = `
+          <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+          | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
+        `;
+      }, 2000);
+    } catch (e) {
+      alert(viewerURL);
+    }
+  };
+
+  document.body.insertBefore(banner, document.body.firstChild);
+}
+
+/**
+ * Show viewer banner
+ */
+function showViewerBanner(roomCode) {
+  const banner = document.createElement('div');
+  banner.style.cssText = `
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white; padding: 12px 20px; text-align: center;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  `;
+
+  banner.innerHTML = `
+    <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+    | <span style="font-size: 12px; opacity: 0.9;">实时观看房主比赛</span>
+  `;
+
+  document.body.insertBefore(banner, document.body.firstChild);
 }
 
 /**
