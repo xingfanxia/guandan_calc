@@ -125,33 +125,37 @@ export function showEndGameVotingForViewers() {
 
   if (!roomInfo.isViewer) return;
 
+  console.log('Showing end-game voting for viewer');
+
   const votingSection = $('votingSection');
   if (!votingSection) return;
 
   votingSection.style.display = 'block';
 
   const players = getPlayers();
-  const history = state.getHistory();
-  const currentRound = history.length + 1;
+  const gameNumber = state.getHistory().length;
 
   const voterInterface = $('voterInterface');
   if (!voterInterface) return;
 
   voterInterface.innerHTML = `
-    <h4>第 ${currentRound} 局投票</h4>
-    <p class="small muted">为本局比赛投票</p>
+    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: white;">
+      <h3 style="margin: 0 0 8px 0;">🎉 游戏结束！</h3>
+      <p style="margin: 0; font-size: 14px; opacity: 0.9;">为本场比赛投票</p>
+    </div>
 
-    <div style="margin: 20px 0;">
-      <h5>谁是最C (MVP)？</h5>
+    <div style="margin-bottom: 25px;">
+      <h4 style="color: #22c55e; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;">
         ${players.map(p => `
-          <button class="vote-btn" data-vote-type="mvp" data-player-id="${p.id}" style="
+          <button class="vote-btn-mvp" data-player-id="${p.id}" style="
             padding: 10px;
             background: #2a2b2c;
             border: 2px solid #444;
             border-radius: 8px;
             color: #fff;
             cursor: pointer;
+            transition: all 0.2s;
           ">
             <div style="font-size: 24px;">${p.emoji}</div>
             <div style="font-size: 11px;">${p.name}</div>
@@ -160,17 +164,18 @@ export function showEndGameVotingForViewers() {
       </div>
     </div>
 
-    <div style="margin: 20px 0;">
-      <h5>谁是最闹 (Burden)？</h5>
+    <div style="margin-bottom: 25px;">
+      <h4 style="color: #ef4444; margin-bottom: 10px;">谁是本场累赘 (最闹)？</h4>
       <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px;">
         ${players.map(p => `
-          <button class="vote-btn" data-vote-type="burden" data-player-id="${p.id}" style="
+          <button class="vote-btn-burden" data-player-id="${p.id}" style="
             padding: 10px;
             background: #2a2b2c;
             border: 2px solid #444;
             border-radius: 8px;
             color: #fff;
             cursor: pointer;
+            transition: all 0.2s;
           ">
             <div style="font-size: 24px;">${p.emoji}</div>
             <div style="font-size: 11px;">${p.name}</div>
@@ -179,33 +184,67 @@ export function showEndGameVotingForViewers() {
       </div>
     </div>
 
-    <div id="voteStatus" style="margin-top: 15px; padding: 10px; background: #1a1b1c; border-radius: 8px; text-align: center; color: #22c55e;">
-      等待投票...
+    <div id="voteStatus" style="margin-top: 15px; padding: 15px; background: #1a1b1c; border-radius: 8px; text-align: center; color: #999; font-size: 14px;">
+      👆 点击上方按钮投票
     </div>
   `;
 
-  // Attach vote handlers
-  const voteButtons = voterInterface.querySelectorAll('.vote-btn');
-  voteButtons.forEach(btn => {
+  // Attach vote handlers for MVP
+  const mvpButtons = voterInterface.querySelectorAll('.vote-btn-mvp');
+  mvpButtons.forEach(btn => {
     btn.onclick = async () => {
-      const voteType = btn.dataset.voteType;
       const playerId = parseInt(btn.dataset.playerId);
-
-      const success = await submitVote(voteType, playerId, currentRound);
+      const success = await submitEndGameVote('mvp', playerId);
 
       if (success) {
         const status = $('voteStatus');
         if (status) {
-          status.textContent = `✅ 已投票: ${voteType === 'mvp' ? '最C' : '最闹'}`;
+          const player = players.find(p => p.id === playerId);
+          status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
           status.style.color = '#22c55e';
         }
 
         // Visual feedback
-        btn.style.borderColor = voteType === 'mvp' ? '#22c55e' : '#ef4444';
+        mvpButtons.forEach(b => b.style.borderColor = '#444');
+        btn.style.borderColor = '#22c55e';
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => btn.style.transform = 'scale(1)', 100);
+      }
+    };
+  });
+
+  // Attach vote handlers for Burden
+  const burdenButtons = voterInterface.querySelectorAll('.vote-btn-burden');
+  burdenButtons.forEach(btn => {
+    btn.onclick = async () => {
+      const playerId = parseInt(btn.dataset.playerId);
+      const success = await submitEndGameVote('burden', playerId);
+
+      if (success) {
+        const status = $('voteStatus');
+        if (status) {
+          const player = players.find(p => p.id === playerId);
+          status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
+          status.style.color = '#ef4444';
+        }
+
+        // Visual feedback
+        burdenButtons.forEach(b => b.style.borderColor = '#444');
+        btn.style.borderColor = '#ef4444';
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => btn.style.transform = 'scale(1)', 100);
       }
     };
   });
 }
+
+// Listen for victory event to show viewer voting
+onEvent('game:victoryForVoting', () => {
+  const roomInfo = getRoomInfo();
+  if (roomInfo.isViewer) {
+    showEndGameVotingForViewers();
+  }
+});
 
 /**
  * Show host voting interface with results
