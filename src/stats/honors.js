@@ -84,13 +84,16 @@ export function calculateHonors(totalPlayers = 8) {
     clutch: null
   };
 
-  // Filter players with minimum games
+  // Filter players with minimum games (lowered to 5 for faster testing)
   const eligible = players.filter(p => {
     const stats = allStats[p.id];
-    return stats && stats.games >= 10;
+    return stats && stats.games >= 5;
   });
 
+  console.log('Eligible players:', eligible.length, 'out of', players.length);
+
   if (eligible.length === 0) {
+    console.log('No players with 5+ games');
     return honors; // No one eligible
   }
 
@@ -118,8 +121,8 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Calculate Stable (low std dev + middle range)
-  const eligibleStable = eligible.filter(p => allStats[p.id].games >= 15);
+  // Calculate Stable (low std dev + middle range) - lowered to 8 games
+  const eligibleStable = eligible.filter(p => allStats[p.id].games >= 8);
   let minStdDev = Infinity;
 
   eligibleStable.forEach(player => {
@@ -149,8 +152,8 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Calculate Comeback (improving trend)
-  const eligibleTrend = eligible.filter(p => allStats[p.id].games >= 20);
+  // Calculate Comeback (improving trend) - lowered to 10 games
+  const eligibleTrend = eligible.filter(p => allStats[p.id].games >= 10);
   let maxImprovement = -Infinity;
 
   eligibleTrend.forEach(player => {
@@ -231,7 +234,7 @@ function updateHonorDisplay(elementId, honorData, honorName) {
     el.style.color = '#22c55e';
   } else {
     el.textContent = '—';
-    el.title = `${honorName}: 暂无数据（需要10+场比赛）`;
+    el.title = `${honorName}: 暂无数据（需要5+场比赛）`;
     el.style.color = '#666';
   }
 }
