@@ -434,7 +434,7 @@ onEvent('voting:submitted', () => {
   setTimeout(updateVoteLeaderboard, 500);
 });
 
-async function updateVoteLeaderboard() {
+export async function updateVoteLeaderboard() {
   console.log('updateVoteLeaderboard called');
 
   const roomInfo = getRoomInfo();
