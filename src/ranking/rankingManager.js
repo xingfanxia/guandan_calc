@@ -98,6 +98,8 @@ export function getRankingProgress(mode) {
  * @param {number} mode - Game mode
  */
 export function randomizeRanking(playerIds, mode) {
+  console.log('randomizeRanking called:', { playerIds, mode });
+
   const num = parseInt(mode);
 
   // Fisher-Yates shuffle
@@ -113,6 +115,9 @@ export function randomizeRanking(playerIds, mode) {
     newRanking[rank] = shuffled[rank - 1];
   }
 
+  console.log('New randomized ranking:', newRanking);
+
   state.setCurrentRanking(newRanking);
   emit('ranking:randomized', { ranking: newRanking });
+  emit('ranking:updated'); // Also emit updated event to trigger UI refresh
 }

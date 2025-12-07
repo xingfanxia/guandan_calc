@@ -256,6 +256,8 @@ function setupEventListeners() {
 
   if (randomRankingBtn) {
     on(randomRankingBtn, 'click', () => {
+      console.log('Random ranking button clicked');
+
       if (!areAllPlayersAssigned()) {
         alert('请先分配所有玩家到队伍');
         return;
@@ -264,6 +266,8 @@ function setupEventListeners() {
       const mode = parseInt($('mode').value);
       const players = getPlayers();
       const playerIds = players.map(p => p.id);
+
+      console.log('Calling randomizeRanking with:', { playerIds, mode });
       randomizeRanking(playerIds, mode);
     });
   }
