@@ -123,9 +123,16 @@ export async function resetVoting(authToken) {
 export function showEndGameVotingForViewers() {
   const roomInfo = getRoomInfo();
 
-  if (!roomInfo.isViewer) return;
+  if (!roomInfo.isViewer) {
+    console.log('Not viewer, skipping');
+    return;
+  }
 
   console.log('Showing end-game voting for viewer');
+
+  // ALWAYS use floating UI for viewers (won't be destroyed by room updates)
+  createFloatingVotingUI();
+  return;
 
   const votingSection = $('votingSection');
   if (!votingSection) return;
