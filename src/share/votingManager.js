@@ -267,57 +267,129 @@ export function unlockViewerVoting() {
     </div>
   `;
 
-  // Attach handlers
+  // Add confirm button at bottom
+  votingCard.innerHTML += `
+    <button id="confirmViewerVote" style="
+      width: 100%;
+      padding: 15px;
+      background: white;
+      color: #22c55e;
+      border: 3px solid white;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 15px;
+    ">
+      ✅ 确认投票
+    </button>
+  `;
+
+  // Track selections
+  let selectedMVP = null;
+  let selectedBurden = null;
+
+  // Attach selection handlers
   setTimeout(() => {
     const mvpBtns = votingCard.querySelectorAll('.vote-mvp-btn');
-    console.log('Attached MVP handlers:', mvpBtns.length);
+    console.log('Attached MVP selection handlers:', mvpBtns.length);
 
     mvpBtns.forEach(btn => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         const playerId = parseInt(btn.dataset.playerId);
-        console.log('Voting for MVP:', playerId);
+        console.log('Selected MVP:', playerId);
 
-        const success = await submitEndGameVote('mvp', playerId);
+        selectedMVP = playerId;
 
-        if (success) {
-          const player = players.find(p => p.id === playerId);
-          const status = document.getElementById('viewerVoteStatus');
-          if (status) {
-            status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
-            status.style.background = 'rgba(34, 197, 94, 0.5)';
-          }
+        // Visual feedback - highlight selected
+        mvpBtns.forEach(b => {
+          b.style.borderColor = 'white';
+          b.style.background = 'white';
+        });
+        btn.style.borderColor = '#22c55e';
+        btn.style.background = 'rgba(34, 197, 94, 0.2)';
+        btn.style.borderWidth = '4px';
 
-          mvpBtns.forEach(b => b.style.borderColor = 'white');
-          btn.style.borderColor = '#22c55e';
-          btn.style.borderWidth = '4px';
-        }
+        updateVoteStatus();
       };
     });
 
     const burdenBtns = votingCard.querySelectorAll('.vote-burden-btn');
-    console.log('Attached burden handlers:', burdenBtns.length);
+    console.log('Attached burden selection handlers:', burdenBtns.length);
 
     burdenBtns.forEach(btn => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         const playerId = parseInt(btn.dataset.playerId);
-        console.log('Voting for burden:', playerId);
+        console.log('Selected burden:', playerId);
 
-        const success = await submitEndGameVote('burden', playerId);
+        selectedBurden = playerId;
 
-        if (success) {
-          const player = players.find(p => p.id === playerId);
-          const status = document.getElementById('viewerVoteStatus');
-          if (status) {
-            status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
-            status.style.background = 'rgba(239, 68, 68, 0.5)';
-          }
+        // Visual feedback - highlight selected
+        burdenBtns.forEach(b => {
+          b.style.borderColor = 'white';
+          b.style.background = 'white';
+        });
+        btn.style.borderColor = '#ef4444';
+        btn.style.background = 'rgba(239, 68, 68, 0.2)';
+        btn.style.borderWidth = '4px';
 
-          burdenBtns.forEach(b => b.style.borderColor = 'white');
-          btn.style.borderColor = '#ef4444';
-          btn.style.borderWidth = '4px';
-        }
+        updateVoteStatus();
       };
     });
+
+    // Confirm button handler
+    const confirmBtn = document.getElementById('confirmViewerVote');
+    if (confirmBtn) {
+      confirmBtn.onclick = async () => {
+        if (!selectedMVP || !selectedBurden) {
+          alert('请先选择 MVP 和累赘');
+          return;
+        }
+
+        console.log('Confirming votes:', { mvp: selectedMVP, burden: selectedBurden });
+
+        // Submit both votes
+        const mvpSuccess = await submitEndGameVote('mvp', selectedMVP);
+        const burdenSuccess = await submitEndGameVote('burden', selectedBurden);
+
+        if (mvpSuccess && burdenSuccess) {
+          const status = document.getElementById('viewerVoteStatus');
+          const mvpPlayer = players.find(p => p.id === selectedMVP);
+          const burdenPlayer = players.find(p => p.id === selectedBurden);
+
+          if (status) {
+            status.innerHTML = `✅ 投票成功！<br>MVP: ${mvpPlayer.emoji}${mvpPlayer.name}<br>最闹: ${burdenPlayer.emoji}${burdenPlayer.name}`;
+            status.style.background = 'rgba(34, 197, 94, 0.5)';
+          }
+
+          confirmBtn.disabled = true;
+          confirmBtn.style.opacity = '0.5';
+          confirmBtn.textContent = '✅ 已投票';
+        } else {
+          alert('投票失败，请重试');
+        }
+      };
+    }
+
+    function updateVoteStatus() {
+      const status = document.getElementById('viewerVoteStatus');
+      if (!status) return;
+
+      let text = '';
+      if (selectedMVP) {
+        const mvpPlayer = players.find(p => p.id === selectedMVP);
+        text += `MVP: ${mvpPlayer.emoji}${mvpPlayer.name}`;
+      }
+      if (selectedBurden) {
+        const burdenPlayer = players.find(p => p.id === selectedBurden);
+        if (text) text += '<br>';
+        text += `最闹: ${burdenPlayer.emoji}${burdenPlayer.name}`;
+      }
+
+      if (text) {
+        status.innerHTML = `已选择：<br>${text}<br><br>👇 点击下方确认按钮提交`;
+      }
+    }
   }, 200);
 }
 
