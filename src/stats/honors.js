@@ -186,8 +186,19 @@ export function calculateHonors(totalPlayers = 8) {
  * Render honors display
  */
 export function renderHonors() {
-  const totalPlayers = getPlayers().length;
+  const players = getPlayers();
+  const totalPlayers = players.length;
+  const allStats = state.getPlayerStats();
+
+  console.log('Rendering honors:', {
+    totalPlayers,
+    playersWithStats: Object.keys(allStats).length,
+    sampleStats: allStats[1]
+  });
+
   const honors = calculateHonors(totalPlayers);
+
+  console.log('Calculated honors:', honors);
 
   // Update honor elements
   updateHonorDisplay('lyubu', honors.mvp, '🥇 MVP王');
@@ -206,14 +217,22 @@ export function renderHonors() {
  */
 function updateHonorDisplay(elementId, honorData, honorName) {
   const el = document.getElementById(elementId);
-  if (!el) return;
+
+  console.log(`Updating ${elementId}:`, { found: !!el, honorData });
+
+  if (!el) {
+    console.warn(`Element #${elementId} not found`);
+    return;
+  }
 
   if (honorData && honorData.player) {
     const p = honorData.player;
     el.innerHTML = `${p.emoji}${p.name} <span style="font-size: 11px; opacity: 0.7;">(${honorData.score})</span>`;
     el.title = `${honorName}: ${p.name} - 得分 ${honorData.score}`;
+    el.style.color = '#22c55e';
   } else {
     el.textContent = '—';
     el.title = `${honorName}: 暂无数据（需要10+场比赛）`;
+    el.style.color = '#666';
   }
 }
