@@ -274,9 +274,6 @@ export function showEndGameVotingForViewers() {
   }, 100);
 }
 
-  const votingSection = $('votingSection');
-  if (!votingSection) return;
-
   votingSection.style.display = 'block';
 
   const players = getPlayers();
