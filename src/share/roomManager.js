@@ -17,8 +17,8 @@ let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
 
-// Development mode check
-const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+// Development mode check (disabled - vercel dev provides API access)
+const isDevelopment = false; // Set to true only if using pure Vite (npm run dev)
 
 /**
  * Create a new room
