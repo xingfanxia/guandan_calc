@@ -9,9 +9,8 @@ import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { now } from '../core/utils.js';
 import { calculateHonors } from '../stats/honors.js';
-import { getRoomInfo } from '../share/roomManager.js';
 
-export async function exportMobilePNG() {
+export function exportMobilePNG() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -235,68 +234,6 @@ export async function exportMobilePNG() {
   });
 
   currentY += 40;
-
-  // === VIEWER VOTES (if any) ===
-  const roomInfo = getRoomInfo();
-  if (roomInfo && roomInfo.roomCode) {
-    try {
-      const voteResponse = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
-      const voteData = await voteResponse.json();
-
-      if (voteData.success && voteData.votes && (Object.keys(voteData.votes.mvp).length > 0 || Object.keys(voteData.votes.burden).length > 0)) {
-        ctx.font = 'bold 28px Arial';
-        ctx.fillStyle = '#f5f6f8';
-        ctx.fillText('🗳️ 观众投票', 40, currentY);
-        currentY += 40;
-
-        // MVP votes
-        const mvpVotes = Object.entries(voteData.votes.mvp || {})
-          .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
-          .filter(v => v.p)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
-
-        if (mvpVotes.length > 0) {
-          ctx.font = '18px Arial';
-          ctx.fillStyle = '#22c55e';
-          ctx.fillText('MVP:', 40, currentY);
-          currentY += 30;
-
-          ctx.font = '16px Arial';
-          ctx.fillStyle = '#b4b8bf';
-          mvpVotes.forEach(v => {
-            ctx.fillText(`  ${v.p.emoji}${v.p.name}: ${v.count}票`, 60, currentY);
-            currentY += 25;
-          });
-        }
-
-        // Burden votes
-        const burdenVotes = Object.entries(voteData.votes.burden || {})
-          .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
-          .filter(v => v.p)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 3);
-
-        if (burdenVotes.length > 0) {
-          ctx.font = '18px Arial';
-          ctx.fillStyle = '#ef4444';
-          ctx.fillText('最闹:', 40, currentY);
-          currentY += 30;
-
-          ctx.font = '16px Arial';
-          ctx.fillStyle = '#b4b8bf';
-          burdenVotes.forEach(v => {
-            ctx.fillText(`  ${v.p.emoji}${v.p.name}: ${v.count}票`, 60, currentY);
-            currentY += 25;
-          });
-        }
-
-        currentY += 20;
-      }
-    } catch (e) {
-      console.log('No votes to display');
-    }
-  }
 
   // === GAME HISTORY ===
   ctx.font = 'bold 28px Arial';
