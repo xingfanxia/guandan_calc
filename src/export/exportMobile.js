@@ -84,7 +84,7 @@ export function exportMobilePNG() {
   // Team MVPs
   const team1Players = getPlayersByTeam(1);
   const team2Players = getPlayersByTeam(2);
-  const playerStats = state.getPlayerStats();
+  // playerStats already declared at top
 
   const findMVPBurden = (teamPlayers) => {
     let mvp = null, burden = null;
