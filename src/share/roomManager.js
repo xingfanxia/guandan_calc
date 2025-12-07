@@ -297,15 +297,22 @@ async function pollForUpdates() {
     const response = await fetch(`/api/rooms/${currentRoomCode}`);
 
     if (!response.ok) {
-      console.error('Failed to poll room');
+      console.error('Failed to poll room:', response.status);
       return;
     }
 
-    const roomData = await response.json();
+    const text = await response.text();
+    const roomData = text ? JSON.parse(text) : null;
+
+    if (!roomData) {
+      console.error('No room data received');
+      return;
+    }
 
     // Check if data has changed
-    if (roomData.lastUpdated !== lastKnownUpdate) {
-      console.log('Room data updated, reloading...');
+    const newUpdate = roomData.lastUpdated || new Date().toISOString();
+    if (newUpdate !== lastKnownUpdate) {
+      console.log('Room data updated:', { old: lastKnownUpdate, new: newUpdate });
       loadRoomData(roomData);
 
       // Trigger UI refresh

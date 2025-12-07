@@ -698,6 +698,38 @@ function setupModuleEventHandlers() {
       unlockTeamAssignmentPanel();
     }
   });
+
+  // Room events
+  onEvent('room:updated', () => {
+    // Viewer received update from host - refresh all UI
+    console.log('Room data updated, refreshing UI...');
+
+    const mode = parseInt($('mode').value);
+
+    renderTeams();
+    applyTeamStyles();
+    renderPlayers();
+    renderRankingArea(mode);
+    renderHistory();
+    renderStatistics();
+
+    // Show update notification
+    const applyTip = $('applyTip');
+    if (applyTip) {
+      applyTip.textContent = '🔄 房间数据已更新';
+      setTimeout(() => {
+        applyTip.textContent = '';
+      }, 2000);
+    }
+  });
+
+  onEvent('room:created', ({ roomCode }) => {
+    console.log('Room created:', roomCode);
+  });
+
+  onEvent('room:joined', ({ roomCode, isHost, isViewer }) => {
+    console.log('Room joined:', { roomCode, isHost, isViewer });
+  });
 }
 
 /**
