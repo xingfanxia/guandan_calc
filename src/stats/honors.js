@@ -250,8 +250,8 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Calculate 慢热王 (Slow start) - Poor start, strong finish
-  const eligibleSlowStart = eligible.filter(p => allStats[p.id].games >= 10);
+  // Calculate 慢热王 (Slow start) - Poor start, strong finish (relaxed criteria)
+  const eligibleSlowStart = eligible.filter(p => allStats[p.id].games >= 8); // Lowered from 10
   let maxSlowStart = -Infinity;
 
   eligibleSlowStart.forEach(player => {
@@ -262,7 +262,7 @@ export function calculateHonors(totalPlayers = 8) {
 
     const improvement = earlyAvg - lateAvg;
 
-    if (improvement > 2.0 && earlyAvg > midRank && improvement > maxSlowStart) {
+    if (improvement > 1.5 && earlyAvg > midRank && improvement > maxSlowStart) { // Lowered from 2.0
       maxSlowStart = improvement;
       honors.slowStart = { player, score: `+${improvement.toFixed(1)}` };
     }
