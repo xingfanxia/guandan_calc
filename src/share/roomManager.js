@@ -212,6 +212,17 @@ function loadRoomData(roomData) {
 
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
 
+  // Check if latest history entry is an A-level victory
+  if (s.history && s.history.length > 0) {
+    const latestGame = s.history[s.history.length - 1];
+
+    // Check if this is an A-level victory (aNote contains "通关")
+    if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+      console.log('A-level victory detected in room sync!');
+      emit('game:victoryForVoting', { teamName: latestGame.win });
+    }
+  }
+
   emit('room:dataLoaded', { roomData });
 }
 
