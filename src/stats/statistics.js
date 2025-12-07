@@ -61,6 +61,11 @@ export function updatePlayerStats(mode) {
 export function renderStatistics() {
   renderPlayerStatsTable();
   renderTeamMVPBurden();
+
+  // Also render honors
+  import('./honors.js').then(module => {
+    module.renderHonors();
+  });
 }
 
 /**

@@ -47,6 +47,7 @@ import {
 
 // Statistics and UI
 import { updatePlayerStats, renderStatistics } from './stats/statistics.js';
+import { renderHonors } from './stats/honors.js';
 import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from './ui/teamDisplay.js';
 import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
 
@@ -133,12 +134,14 @@ function initializeUI() {
     updateBulkNamesPlaceholder(mode.value);
   }
 
-  // Hide honors section (not implemented in modular version)
-  const honorsSection = document.querySelector('h3').parentElement;
+  // Show honors section (now implemented!)
   const honorHeading = Array.from(document.querySelectorAll('h3')).find(h => h.textContent === '荣誉提名');
   if (honorHeading && honorHeading.parentElement) {
-    honorHeading.parentElement.style.display = 'none';
+    honorHeading.parentElement.style.display = 'block';
   }
+
+  // Render initial honors
+  renderHonors();
 }
 
 /**
@@ -325,11 +328,13 @@ function setupEventListeners() {
     });
   }
 
-  // Export mobile PNG button
+  // Export mobile PNG button - NOW WORKS!
   const exportMobilePngBtn = $('exportMobilePng');
   if (exportMobilePngBtn) {
     on(exportMobilePngBtn, 'click', () => {
-      alert('移动端PNG导出功能开发中，请使用桌面PNG导出');
+      import('./export/exportMobile.js').then(module => {
+        module.exportMobilePNG();
+      });
     });
   }
 

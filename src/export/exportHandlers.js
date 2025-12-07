@@ -220,10 +220,13 @@ function showExportMessage(message) {
 }
 
 /**
- * Export mobile PNG (not yet implemented - placeholder)
+ * Export mobile PNG - NOW IMPLEMENTED!
  */
 export function exportMobilePNG() {
-  alert('移动端PNG导出功能开发中，请使用桌面PNG导出');
+  // Import and call mobile export function
+  import('./exportMobile.js').then(module => {
+    module.exportMobilePNG();
+  });
 }
 
 /**
