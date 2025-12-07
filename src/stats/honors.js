@@ -179,8 +179,113 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Team Pillar: Sacrifice during team wins (TODO: needs team win data)
-  // Clutch: Better in close games (TODO: needs close game data)
+  // Calculate 翻车王 (Dramatic drops) - Top 3 to last place
+  let maxDrops = -Infinity;
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let dropCount = 0;
+
+    // Count games where went from top 3 one game to last place next game
+    for (let i = 1; i < stats.rankings.length; i++) {
+      if (stats.rankings[i - 1] <= 3 && stats.rankings[i] === totalPlayers) {
+        dropCount++;
+      }
+    }
+
+    if (dropCount > maxDrops && dropCount > 0) {
+      maxDrops = dropCount;
+      honors.fanche = { player, score: dropCount };
+    }
+  });
+
+  // Calculate 大满贯 (Complete all positions) - Experience all ranks
+  let maxCompleteion = 0;
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    const uniqueRanks = new Set(stats.rankings);
+    const completionRate = uniqueRanks.size / totalPlayers;
+
+    if (completionRate > maxCompleteion) {
+      maxCompleteion = completionRate;
+      honors.complete = { player, score: `${uniqueRanks.size}/${totalPlayers}` };
+    }
+  });
+
+  // Calculate 连胜王 (Longest streak) - Consecutive top-half finishes
+  let maxStreak = 0;
+  const midPoint = Math.ceil(totalPlayers / 2);
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let currentStreak = 0;
+    let longestStreak = 0;
+
+    stats.rankings.forEach(rank => {
+      if (rank <= midPoint) {
+        currentStreak++;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    });
+
+    if (longestStreak > maxStreak && longestStreak >= 3) {
+      maxStreak = longestStreak;
+      honors.streak = { player, score: longestStreak };
+    }
+  });
+
+  // Calculate 佛系玩家 (Median) - Closest to middle ranking
+  const midRank = (totalPlayers + 1) / 2;
+  let minDeviation = Infinity;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    const avgRank = stats.totalRank / stats.games;
+    const deviation = Math.abs(avgRank - midRank);
+
+    if (deviation < minDeviation) {
+      minDeviation = deviation;
+      honors.median = { player, score: avgRank.toFixed(2) };
+    }
+  });
+
+  // Calculate 慢热王 (Slow start) - Poor start, strong finish
+  const eligibleSlowStart = eligible.filter(p => allStats[p.id].games >= 10);
+  let maxSlowStart = -Infinity;
+
+  eligibleSlowStart.forEach(player => {
+    const stats = allStats[player.id];
+    const third = Math.floor(stats.rankings.length / 3);
+    const earlyAvg = stats.rankings.slice(0, third).reduce((sum, r) => sum + r, 0) / third;
+    const lateAvg = stats.rankings.slice(-third).reduce((sum, r) => sum + r, 0) / third;
+
+    const improvement = earlyAvg - lateAvg;
+
+    if (improvement > 2.0 && earlyAvg > midRank && improvement > maxSlowStart) {
+      maxSlowStart = improvement;
+      honors.slowStart = { player, score: `+${improvement.toFixed(1)}` };
+    }
+  });
+
+  // Calculate 闪电侠 (Frequent changes) - Most position changes
+  let maxChanges = 0;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let changes = 0;
+
+    for (let i = 1; i < stats.rankings.length; i++) {
+      if (stats.rankings[i] !== stats.rankings[i - 1]) {
+        changes++;
+      }
+    }
+
+    if (changes > maxChanges) {
+      maxChanges = changes;
+      honors.frequent = { player, score: changes };
+    }
+  });
 
   return honors;
 }
@@ -204,14 +309,20 @@ export function renderHonors() {
   console.log('Calculated honors:', honors);
 
   // Update honor elements (match HTML IDs)
-  updateHonorDisplay('lyubu', honors.mvp, '🥇 MVP王');
-  updateHonorDisplay('adou', honors.burden, '😅 拖油瓶');
-  updateHonorDisplay('shifo', honors.stable, '🗿 稳如泰山');
-  updateHonorDisplay('bodongwang', honors.rollercoaster, '🌊 过山车');
-  updateHonorDisplay('fendouwang', honors.comeback, '📈 逆袭王');
+  updateHonorDisplay('lyubu', honors.mvp, '🥇 吕布');
+  updateHonorDisplay('adou', honors.burden, '😅 阿斗');
+  updateHonorDisplay('shifo', honors.stable, '🗿 石佛');
+  updateHonorDisplay('bodongwang', honors.rollercoaster, '🌊 波动王');
+  updateHonorDisplay('fendouwang', honors.comeback, '📈 奋斗王');
+  updateHonorDisplay('fanchewang', honors.fanche, '🎪 翻车王');
+  updateHonorDisplay('damanwang', honors.complete, '👑 大满贯');
+  updateHonorDisplay('lianshengewang', honors.streak, '🔥 连胜王');
+  updateHonorDisplay('foxiwanjia', honors.median, '🧘 佛系玩家');
+  updateHonorDisplay('manrewang', honors.slowStart, '🐌 慢热王');
+  updateHonorDisplay('shandianxia', honors.frequent, '⚡ 闪电侠');
+  updateHonorDisplay('fuzhuwang', null, '🛡️ 辅助王'); // Placeholder
   updateHonorDisplay('pilaowang', honors.fatigue, '📉 疲劳选手');
-  updateHonorDisplay('fuzhuwang', null, '🛡️ 团队之光');
-  updateHonorDisplay('guanjianxiansheng', null, '🎯 关键先生');
+  updateHonorDisplay('shoumenyuan', null, '🛡️ 守门员'); // Placeholder
 }
 
 /**
