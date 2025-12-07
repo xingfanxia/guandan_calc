@@ -224,6 +224,9 @@ function loadRoomData(roomData) {
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
 
   emit('room:dataLoaded', { roomData });
+
+  // ALSO emit room:updated for initial load (triggers UI updates)
+  emit('room:updated', { roomData });
 }
 
 /**
