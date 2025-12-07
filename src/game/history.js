@@ -93,7 +93,6 @@ export function renderHistory() {
 export function rollbackTo(index) {
   const history = state.getHistory();
 
-  console.log('rollbackTo called with index:', index, 'history.length:', history.length);
 
   // Validate index - should be within history bounds
   if (index < 0 || index >= history.length) {
@@ -108,7 +107,6 @@ export function rollbackTo(index) {
 
   const entry = history[index];
 
-  console.log('Rolling back to before entry:', entry);
 
   // Restore state from snapshot
   state.setTeamLevel('t1', entry.prevT1Lvl);
@@ -131,7 +129,6 @@ export function rollbackTo(index) {
 
   emit('game:rollback', { index, entry });
 
-  console.log('Rollback complete, new history length:', state.getHistory().length);
 
   return {
     success: true,

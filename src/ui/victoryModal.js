@@ -322,7 +322,6 @@ function renderVoteLeaderboard(votes) {
         alert(`已确认：\nMVP: ${mvpWinner?.player.name || '无'}\n最闹: ${burdenWinner?.player.name || '无'}\n\n结果已记录到"人民的声音"`);
 
         // TODO: Actually record to "人民的声音" section and sync
-        console.log('Voting confirmed:', { mvpWinner, burdenWinner });
 
         closeVictoryModal();
       };

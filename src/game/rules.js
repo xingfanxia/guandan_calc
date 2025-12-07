@@ -191,12 +191,10 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
     state.setRoundLevel(String(nextBaseByRule));
     state.setRoundOwner(winnerKey);
     state.setNextRoundBase(null);
-    console.log('Auto advancing: roundLevel set to', nextBaseByRule, 'from', thisRound, 'owner:', winnerKey);
   } else {
     // Stay at current round (manual mode)
     state.setRoundLevel(String(thisRound));
     state.setNextRoundBase(String(nextBaseByRule));
-    console.log('Manual mode: roundLevel stays at', thisRound, 'next would be', nextBaseByRule);
   }
 
   // Create history entry

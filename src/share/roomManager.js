@@ -60,7 +60,6 @@ export async function createRoom() {
       body: JSON.stringify(roomData)
     });
 
-    console.log('Create room response:', { status: response.status, statusText: response.statusText });
 
     if (!response.ok) {
       const text = await response.text();
@@ -70,7 +69,6 @@ export async function createRoom() {
     }
 
     const text = await response.text();
-    console.log('Response text:', text);
 
     const result = text ? JSON.parse(text) : null;
 
@@ -157,7 +155,6 @@ export async function joinRoom(roomCode, token = null) {
  * @param {Object} roomData - Room data from API
  */
 function loadRoomData(roomData) {
-  console.log('Loading room data:', roomData);
 
   // Load config
   if (roomData.settings) {
@@ -175,7 +172,6 @@ function loadRoomData(roomData) {
     const s = roomData.state;
 
     if (s.teams) {
-      console.log('Loading teams:', s.teams);
       state.setTeamLevel('t1', s.teams.t1.lvl);
       state.setTeamAFail('t1', s.teams.t1.aFail || 0);
       state.setTeamLevel('t2', s.teams.t2.lvl);
@@ -197,7 +193,6 @@ function loadRoomData(roomData) {
 
         // Check if this is an A-level victory (aNote contains "通关")
         if (latestGame.aNote && latestGame.aNote.includes('通关')) {
-          console.log('A-level victory detected in room sync!');
           emit('game:victoryForVoting', { teamName: latestGame.win });
         }
       }
@@ -206,7 +201,6 @@ function loadRoomData(roomData) {
 
   // Load players
   if (roomData.players) {
-    console.log('Loading players:', roomData.players);
     state.setPlayers(roomData.players);
   }
 
@@ -217,7 +211,6 @@ function loadRoomData(roomData) {
 
   // Load ranking
   if (roomData.currentRanking) {
-    console.log('Loading ranking:', roomData.currentRanking);
     state.setCurrentRanking(roomData.currentRanking);
   }
 
@@ -298,7 +291,6 @@ function startAutoSync() {
     syncToRoom();
   }, 10000); // 10 seconds
 
-  console.log('Auto-sync started (10s interval)');
 }
 
 /**
@@ -311,7 +303,6 @@ function startPolling() {
     await pollForUpdates();
   }, 2000); // 2 seconds (faster for better UX)
 
-  console.log('Polling started (2s interval)');
 }
 
 /**
@@ -347,7 +338,6 @@ async function pollForUpdates() {
     // Check if data has changed
     const newUpdate = roomData.lastUpdated || new Date().toISOString();
     if (newUpdate !== lastKnownUpdate) {
-      console.log('Room data updated:', { old: lastKnownUpdate, new: newUpdate });
       loadRoomData(roomData);
 
       // Trigger UI refresh
@@ -366,7 +356,6 @@ async function pollForUpdates() {
  */
 function showUpdateNotification() {
   // Could show a toast notification
-  console.log('🔄 房间数据已更新');
 }
 
 /**

@@ -301,9 +301,6 @@
     touchClone.style.display = 'block';
     
     // Handle drop
-    console.log('Touch end - checking for drop target');
-    console.log('Element below:', elementBelow);
-    console.log('Dragged player:', draggedPlayer);
     
     if (elementBelow && draggedPlayer) {
       var rankSlot = elementBelow.closest('.rank-slot');
@@ -311,33 +308,22 @@
       var unassignedZone = elementBelow.closest('#unassignedPlayers');
       var teamZone = elementBelow.closest('.team-drop-zone');
       
-      console.log('Found rankSlot:', rankSlot);
-      console.log('Found teamZone:', teamZone);
-      console.log('Found pool:', pool);
-      console.log('Found unassignedZone:', unassignedZone);
       
       if (rankSlot) {
-        console.log('Dropping on rank slot');
         handleRankDrop(rankSlot, draggedPlayer);
       } else if (pool) {
-        console.log('Dropping on player pool');
         handlePoolDrop(draggedPlayer);
       } else if (unassignedZone) {
-        console.log('Dropping on unassigned zone');
-        console.log('Moving player to unassigned:', draggedPlayer);
         // Move player back to unassigned
         draggedPlayer.team = null;
         save('gd_players', players);
         renderPlayers();
         renderRankingArea();
       } else if (teamZone) {
-        console.log('Dropping on team zone');
         handleTeamDrop(teamZone, draggedPlayer);
       } else {
-        console.log('No valid drop target found');
       }
     } else {
-      console.log('No element below touch point or no dragged player');
     }
     
     // Clean up - ensure clone is removed
@@ -381,19 +367,13 @@
   }
   
   function updateRankingInput() {
-    console.log('=== updateRankingInput called ===');
-    console.log('currentRanking:', JSON.stringify(currentRanking));
-    console.log('players:', players.map(function(p) { return {id: p.id, name: p.name, team: p.team}; }));
     
     var mode = parseInt(modeSel.value);
-    console.log('Mode:', mode);
     
     var isMobile = 'ontouchstart' in window;
-    console.log('Is Mobile:', isMobile);
     
     if (!isMobile) {
       // Let desktop handle it the original way
-      console.log('Desktop mode - returning');
       return;
     }
     
@@ -403,17 +383,13 @@
     for (var i = 1; i <= mode; i++) {
       if (!currentRanking[i]) {
         allFilled = false;
-        console.log('Position ' + i + ' is empty');
       } else {
         filledCount++;
-        console.log('Position ' + i + ' has player:', currentRanking[i]);
       }
     }
     
-    console.log('Filled positions:', filledCount + '/' + mode);
     
     if (!allFilled) {
-      console.log('Not all positions filled - returning');
       return;
     }
     
@@ -423,16 +399,13 @@
     var firstPlacePlayer = players.find(function(p) { return p.id === firstPlacePlayerId; });
     
     if (!firstPlacePlayer) {
-      console.log('Error: Could not find first place player');
       return;
     }
     
-    console.log('First place player:', firstPlacePlayer.name, 'Team:', firstPlacePlayer.team);
     
     // Set winner based on first place player's team
     var actualWinner = firstPlacePlayer.team === 1 ? 't1' : 't2';
     setWinner(actualWinner);
-    console.log('Set winner to:', actualWinner);
     
     // Collect ranks for each team
     var team1Ranks = [];
@@ -452,47 +425,34 @@
       }
     }
     
-    console.log('Team 1 ranks:', team1Ranks);
-    console.log('Team 2 ranks:', team2Ranks);
     
     // Use the winning team's ranks for calculation
     var winnerRanks = actualWinner === 't1' ? team1Ranks : team2Ranks;
     winnerRanks.sort(function(a, b) { return a - b; });
     
-    console.log('Winner ranks (sorted):', winnerRanks);
     
     // Set input to winning team's ranks only (not player names!)
     input.value = winnerRanks.join(' ');
     selected = winnerRanks.slice();
-    console.log('Setting input.value to:', input.value);
-    console.log('Setting selected to:', selected);
     
     // Calculate and check for auto-apply
     var result = calc();
-    console.log('Called calc(), result:', result);
     
     // Auto-apply if enabled and calculation successful
     if (S.autoApply && result && result.ok) {
-      console.log('Auto-applying result');
       applyResult();
     }
   }
   
   function handleRankDrop(slot, player) {
-    console.log('=== handleRankDrop called ===');
-    console.log('Slot:', slot);
-    console.log('Player:', player);
     
     if (!player || !player.id) {
-      console.log('No player or player.id - returning');
       return;
     }
     
     var rank = parseInt(slot.dataset.rank);
-    console.log('Rank position:', rank);
     
     if (!rank) {
-      console.log('No rank - returning');
       return;
     }
     
@@ -527,15 +487,12 @@
     // Remove player from any existing rank (if not swapping)
     for (var r in currentRanking) {
       if (currentRanking[r] === player.id && r != rank) {
-        console.log('Removing player from previous rank:', r);
         delete currentRanking[r];
       }
     }
     
     // Add player to new rank
-    console.log('Adding player', player.id, 'to rank', rank);
     currentRanking[rank] = player.id;
-    console.log('Current ranking after update:', JSON.stringify(currentRanking));
     
     // Re-render everything to ensure clean state
     renderPlayerPool();
@@ -604,7 +561,6 @@
     
     // Always regenerate if no valid number
     if (!num || isNaN(num)) {
-      console.log('Invalid player count:', modeSel.value);
       return;
     }
     
@@ -1077,7 +1033,6 @@
       currentRanking[rank] = playerIds[rank - 1];
     }
     
-    console.log('Randomized ranking:', currentRanking);
     
     // Update display
     renderPlayerPool();
@@ -1100,12 +1055,10 @@
     }
     
     // Show current state
-    console.log('checkAutoCalculate: ranked', rankedCount, 'of', num);
     
     var allRanked = rankedCount === num;
     
     if (allRanked) {
-      console.log('All players ranked, calculating...');
       calculateFromRanking();
     } else {
       // Show progress
@@ -1126,7 +1079,6 @@
       }
     }
     
-    console.log('calculateFromRanking: ranked', rankedCount, 'of', num);
     
     if (rankedCount !== num) {
       // If not all players are ranked, clear results
@@ -1390,7 +1342,6 @@
       roundTeamName = ' (' + S.t2.name + ')';
     }
     curRoundLvl.textContent = ST.roundLevel + roundTeamName;
-    console.log('renderTeams: displaying roundLevel =', ST.roundLevel, 'with team name =', roundTeamName);
     
     // Show next round preview with team name
     var nextRound = ST.nextRoundBase || ST.roundLevel || '-';
@@ -1597,13 +1548,11 @@
       ST.roundLevel = String(nextBaseByRule); // Move to next round (winner's new level)
       ST.roundOwner = win; // The winner owns the next round
       ST.nextRoundBase=null; 
-      console.log('Auto advancing: roundLevel set to', ST.roundLevel, 'from', thisRound, 'owner:', win);
     }
     else { 
       ST.roundLevel = String(thisRound); // Stay at current round
       ST.nextRoundBase = String(nextBaseByRule); // But preview shows what next round would be
       // Don't change round owner when staying at same round
-      console.log('Manual mode: roundLevel stays at', ST.roundLevel, 'next would be', ST.nextRoundBase, 'owner:', ST.roundOwner);
     }
     // Build player ranking details for history
     var playerRankings = {};
@@ -1922,7 +1871,6 @@
       }
     });
     
-    console.log('Rebuilt ranking from UI:', newRanking);
     currentRanking = newRanking;
     
     // Now calculate

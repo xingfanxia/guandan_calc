@@ -70,7 +70,6 @@ import { initializeViewerVotingSection, showEndGameVotingForViewers, showHostVot
  * Initialize application
  */
 async function init() {
-  console.log('🎮 Guandan Calculator v9.0 - Modular Edition');
 
   try {
     // Check for room in URL first
@@ -100,7 +99,6 @@ async function init() {
       showRoomUI();
     }
 
-    console.log('✅ Application initialized successfully');
   } catch (error) {
     console.error('❌ Initialization failed:', error);
     console.error('Error stack:', error.stack);
@@ -698,7 +696,6 @@ function setupModuleEventHandlers() {
   // Room events
   onEvent('room:updated', () => {
     // Viewer received update from host - refresh all UI
-    console.log('Room data updated, refreshing UI...');
 
     const mode = parseInt($('mode').value);
 
@@ -727,11 +724,9 @@ function setupModuleEventHandlers() {
   });
 
   onEvent('room:created', ({ roomCode }) => {
-    console.log('Room created:', roomCode);
   });
 
   onEvent('room:joined', ({ roomCode, isHost, isViewer }) => {
-    console.log('Room joined:', { roomCode, isHost, isViewer });
   });
 }
 
@@ -748,7 +743,6 @@ function showRoomUI() {
     setTimeout(() => showHostVoting(), 1000);
     // Start polling vote leaderboard (static import)
     setInterval(() => {
-      console.log('Polling votes for host...');
       updateVoteLeaderboard();
     }, 3000); // Poll every 3s
   } else if (roomInfo.isViewer) {

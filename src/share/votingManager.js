@@ -29,7 +29,6 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
   try {
     const gameNumber = state.getHistory().length;
 
-    console.log('Submitting votes:', { mvpPlayerId, burdenPlayerId, gameNumber });
 
     const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
       method: 'POST',
@@ -49,12 +48,10 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       return false;
     }
 
-    console.log('Vote submitted successfully, emitting event');
     emit('voting:submitted', { mvpPlayerId, burdenPlayerId });
 
     // ALSO call directly to ensure it runs
     setTimeout(() => {
-      console.log('Calling updateVoteLeaderboard directly');
       updateVoteLeaderboard();
     }, 500);
 
@@ -136,7 +133,6 @@ export function initializeViewerVotingSection() {
   const roomInfo = getRoomInfo();
   if (!roomInfo.isViewer) return;
 
-  console.log('Initializing locked voting section for viewer');
 
   // Create locked voting section
   let votingCard = document.getElementById('viewerVotingCard');
@@ -209,12 +205,10 @@ export function unlockViewerVoting() {
 
   // Already unlocked, don't recreate
   if (votingUnlocked) {
-    console.log('Voting already unlocked, skipping');
     return;
   }
 
   votingUnlocked = true;
-  console.log('Unlocking voting section for viewer');
 
   const votingCard = document.getElementById('viewerVotingCard');
   if (!votingCard) {
@@ -311,12 +305,10 @@ export function unlockViewerVoting() {
   // Attach selection handlers
   setTimeout(() => {
     const mvpBtns = votingCard.querySelectorAll('.vote-mvp-btn');
-    console.log('Attached MVP selection handlers:', mvpBtns.length);
 
     mvpBtns.forEach(btn => {
       btn.onclick = () => {
         const playerId = parseInt(btn.dataset.playerId);
-        console.log('Selected MVP:', playerId);
 
         selectedMVP = playerId;
 
@@ -334,12 +326,10 @@ export function unlockViewerVoting() {
     });
 
     const burdenBtns = votingCard.querySelectorAll('.vote-burden-btn');
-    console.log('Attached burden selection handlers:', burdenBtns.length);
 
     burdenBtns.forEach(btn => {
       btn.onclick = () => {
         const playerId = parseInt(btn.dataset.playerId);
-        console.log('Selected burden:', playerId);
 
         selectedBurden = playerId;
 
@@ -365,7 +355,6 @@ export function unlockViewerVoting() {
           return;
         }
 
-        console.log('Confirming votes:', { mvp: selectedMVP, burden: selectedBurden });
 
         // Submit both votes together
         const success = await submitEndGameVotes(selectedMVP, selectedBurden);
@@ -501,29 +490,23 @@ async function showVoteResultsToViewer(votingCard) {
 }
 
 export async function updateVoteLeaderboard() {
-  console.log('updateVoteLeaderboard called');
 
   const roomInfo = getRoomInfo();
   if (!roomInfo.roomCode) {
-    console.log('No room code');
     return;
   }
 
-  console.log('Fetching votes from:', `/api/rooms/vote/${roomInfo.roomCode}`);
 
   const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
   const data = await response.json();
 
-  console.log('Vote data received:', data);
 
   if (!data.success || !data.votes) {
-    console.log('No vote data');
     return;
   }
 
   const players = getPlayers();
 
-  console.log('Votes:', data.votes);
 
   const mvp = Object.entries(data.votes.mvp || {})
     .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
@@ -535,27 +518,21 @@ export async function updateVoteLeaderboard() {
     .filter(v => v.p)
     .sort((a, b) => b.count - a.count);
 
-  console.log('MVP sorted:', mvp);
-  console.log('Burden sorted:', burden);
 
   const mvpDiv = document.getElementById('mvpStatsTable');
   const burdenDiv = document.getElementById('burdenStatsTable');
 
-  console.log('mvpDiv found:', !!mvpDiv, 'burdenDiv found:', !!burdenDiv);
 
   if (mvpDiv) {
     const html = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
-    console.log('Setting mvpDiv innerHTML:', html);
     mvpDiv.innerHTML = html;
   }
 
   if (burdenDiv) {
     const html = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
-    console.log('Setting burdenDiv innerHTML:', html);
     burdenDiv.innerHTML = html;
   }
 
-  console.log('updateVoteLeaderboard complete');
 }
 
 /**
@@ -645,10 +622,8 @@ export async function showHostVoting() {
     confirmBtn.onclick = () => {
       // Record winning votes to "人民的声音"
       if (mvpVotes.length > 0) {
-        console.log('MVP:', mvpVotes[0].player.name);
       }
       if (burdenVotes.length > 0) {
-        console.log('Burden:', burdenVotes[0].player.name);
       }
       alert('投票结果已确认');
     };
