@@ -208,8 +208,6 @@ function loadRoomData(roomData) {
 
   const loadTime = performance.now() - loadStart;
   console.log(`✅ Room data loaded in ${loadTime.toFixed(2)}ms`);
-    }
-  }
 
   // Load players
   if (roomData.players) {
