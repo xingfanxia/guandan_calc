@@ -1,29 +1,33 @@
 /**
- * Voting Manager - Remote Voting for Room Viewers
- * Allows viewers to vote from their own devices
+ * Voting Manager - End-Game Remote Voting for Room Viewers
+ * Allows viewers to vote when game ends (A-level victory)
  */
 
-import { currentRoomCode, isHost, isViewer } from './roomManager.js';
+import { currentRoomCode, isHost, isViewer, getRoomInfo } from './roomManager.js';
 import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
 import { $ } from '../core/utils.js';
-import { emit } from '../core/events.js';
+import { emit, on as onEvent } from '../core/events.js';
 
 /**
- * Submit vote as viewer
+ * Submit end-game vote as viewer
  * @param {string} voteType - 'mvp' or 'burden'
  * @param {number} playerId - Player ID being voted for
- * @param {number} roundNumber - Round number
  * @returns {Promise<boolean>} Success
  */
-export async function submitVote(voteType, playerId, roundNumber) {
-  if (!currentRoomCode || !isViewer) {
+export async function submitEndGameVote(voteType, playerId) {
+  const roomInfo = getRoomInfo();
+
+  if (!roomInfo.roomCode || !roomInfo.isViewer) {
     console.error('Not in viewer mode or no room');
     return false;
   }
 
   try {
-    const response = await fetch(`/api/rooms/vote/${currentRoomCode}`, {
+    // Use total games as game identifier
+    const gameNumber = state.getHistory().length;
+
+    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -31,7 +35,8 @@ export async function submitVote(voteType, playerId, roundNumber) {
       body: JSON.stringify({
         voteType,
         playerId,
-        roundNumber
+        gameNumber, // End-game vote identifier
+        timestamp: new Date().toISOString()
       })
     });
 
@@ -40,7 +45,7 @@ export async function submitVote(voteType, playerId, roundNumber) {
       return false;
     }
 
-    emit('voting:submitted', { voteType, playerId, roundNumber });
+    emit('voting:submitted', { voteType, playerId, gameNumber });
     return true;
   } catch (error) {
     console.error('Error submitting vote:', error);
@@ -49,25 +54,28 @@ export async function submitVote(voteType, playerId, roundNumber) {
 }
 
 /**
- * Get voting results for current round (host only)
+ * Get end-game voting results (host only)
  * @returns {Promise<Object|null>} Voting results
  */
-export async function getVotingResults() {
-  if (!currentRoomCode || !isHost) {
+export async function getEndGameVotingResults() {
+  const roomInfo = getRoomInfo();
+
+  if (!roomInfo.roomCode || !roomInfo.isHost) {
     return null;
   }
 
   try {
-    const history = state.getHistory();
-    const roundNumber = history.length;
+    const gameNumber = state.getHistory().length;
 
-    const response = await fetch(`/api/rooms/vote/${currentRoomCode}?round=${roundNumber}`);
+    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}?game=${gameNumber}`);
 
     if (!response.ok) {
       return null;
     }
 
-    const results = await response.json();
+    const text = await response.text();
+    const results = text ? JSON.parse(text) : null;
+
     return results;
   } catch (error) {
     console.error('Error fetching voting results:', error);
@@ -110,10 +118,12 @@ export async function resetVoting(authToken) {
 }
 
 /**
- * Show voting UI for viewers (per round)
+ * Show end-game voting UI for viewers
  */
-export function showViewerVoting() {
-  if (!isViewer) return;
+export function showEndGameVotingForViewers() {
+  const roomInfo = getRoomInfo();
+
+  if (!roomInfo.isViewer) return;
 
   const votingSection = $('votingSection');
   if (!votingSection) return;
