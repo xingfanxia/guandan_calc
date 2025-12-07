@@ -50,20 +50,22 @@ export function showVictoryModal(teamName) {
     const roomInfo = roomModule.getRoomInfo();
 
     if (roomInfo.roomCode && roomInfo.isHost) {
-      // Host: Show aggregated voting from viewers
-      const votingModule = await import('../share/votingManager.js');
-      const votes = await votingModule.getEndGameVotingResults();
+      // Host: Show vote leaderboard (fetch viewer votes)
+      console.log('Host mode: Fetching viewer votes');
 
-      if (votes && (votes.mvp || votes.burden)) {
-        // Show aggregated results
-        renderHostVotingResults(votes);
-      } else {
-        // No votes yet, show local voting
-        renderVotingInterface();
-      }
+      fetch(`/api/rooms/vote/${roomInfo.roomCode}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.votes) {
+            renderVoteLeaderboard(data.votes);
+          } else {
+            renderVotingInterface(); // Fallback to local
+          }
+        })
+        .catch(() => renderVotingInterface());
+
     } else if (roomInfo.roomCode && roomInfo.isViewer) {
       // Viewer: Don't show modal
-      console.log('Viewer: Victory achieved, voting available in separate section');
       modal.style.display = 'none';
       return;
     } else {
@@ -261,17 +263,17 @@ function updateVoteDisplay() {
 }
 
 /**
- * Render host voting results from remote viewers
+ * Render vote leaderboard for host
  */
-function renderHostVotingResults(votes) {
+function renderVoteLeaderboard(votes) {
   const votingContainer = $('victoryVoting');
   if (!votingContainer) return;
 
   const players = getPlayers();
 
-  // Parse votes
-  const mvpVotes = votes.mvp?.votes || {};
-  const burdenVotes = votes.burden?.votes || {};
+  // Parse votes (simple format from new API)
+  const mvpVotes = votes.mvp || {};
+  const burdenVotes = votes.burden || {};
 
   const mvpSorted = Object.entries(mvpVotes)
     .map(([id, count]) => ({ player: players.find(p => p.id === parseInt(id)), count }))
