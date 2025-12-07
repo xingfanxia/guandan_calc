@@ -310,3 +310,4 @@ function updateHonorDisplay(elementId, honorData, honorName) {
     el.onclick = null;
   }
 }
+}
