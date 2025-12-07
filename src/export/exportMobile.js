@@ -141,14 +141,21 @@ export function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  // Get honors by reading from DOM (like original uses window.guandanApp)
+  // Get ALL 13 honors by reading from DOM
   const honorElements = [
-    { id: 'lyubu', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
+    { id: 'lyubu', name: '🥇吕布', desc: '最多第一', color: '#d4af37' },
     { id: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
     { id: 'shifo', name: '🗿石佛', desc: '最稳定', color: '#708090' },
     { id: 'bodongwang', name: '🌊波动王', desc: '波动最大', color: '#ff4500' },
     { id: 'fendouwang', name: '📈奋斗王', desc: '稳步提升', color: '#32cd32' },
-    { id: 'fanchewang', name: '🎪翻车王', desc: '前3掉底', color: '#dc143c' }
+    { id: 'fanchewang', name: '🎪翻车王', desc: '前3掉底', color: '#dc143c' },
+    { id: 'damanguan', name: '👑大满贯', desc: '所有排名', color: '#ffd700' },
+    { id: 'lianshengewang', name: '🔥连胜王', desc: '连续好排', color: '#ff6347' },
+    { id: 'foxiwanjia', name: '🧘佛系', desc: '总是中游', color: '#9370db' },
+    { id: 'shandianxia', name: '⚡闪电侠', desc: '变化频繁', color: '#ffa500' },
+    { id: 'liyuwang', name: '🐟鲤鱼王', desc: '惊天逆转', color: '#f97316' },
+    { id: 'buzhanguo', name: '🍳不粘锅', desc: '不沾底', color: '#10b981' },
+    { id: 'ranjinwang', name: '🔥燃尽王', desc: '持续低迷', color: '#b91c1c' }
   ];
 
   ctx.font = 'bold 22px Arial';
