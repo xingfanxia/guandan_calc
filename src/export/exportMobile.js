@@ -8,7 +8,7 @@ import state from '../core/state.js';
 import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { now } from '../core/utils.js';
-import { calculateHonors } from '../stats/honors.js';
+// Don't import calculateHonors - causes circular dependency
 
 export function exportMobilePNG() {
   const canvas = document.createElement('canvas');
