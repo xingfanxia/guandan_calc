@@ -288,6 +288,76 @@ class GameConfig {
     this.persist();
     emit('config:reset');
   }
+
+  /**
+   * Collect and save custom rules from DOM inputs
+   * @param {string} mode - Game mode ('4', '6', or '8')
+   */
+  collectAndSaveRulesFromDOM(mode) {
+    if (mode === '4') {
+      // Collect 4-player rules from inputs
+      const c4_12 = document.getElementById('c4_12');
+      const c4_13 = document.getElementById('c4_13');
+      const c4_14 = document.getElementById('c4_14');
+
+      if (c4_12 && c4_13 && c4_14) {
+        this.config.c4 = {
+          '1,2': parseInt(c4_12.value) || 0,
+          '1,3': parseInt(c4_13.value) || 0,
+          '1,4': parseInt(c4_14.value) || 0
+        };
+      }
+    } else if (mode === '6') {
+      // Collect 6-player thresholds
+      const t6_3 = document.getElementById('t6_3');
+      const t6_2 = document.getElementById('t6_2');
+      const t6_1 = document.getElementById('t6_1');
+
+      if (t6_3 && t6_2 && t6_1) {
+        this.config.t6 = {
+          g3: parseInt(t6_3.value) || 7,
+          g2: parseInt(t6_2.value) || 4,
+          g1: parseInt(t6_1.value) || 1
+        };
+      }
+
+      // Collect 6-player points
+      const points = {};
+      for (let i = 1; i <= 6; i++) {
+        const input = document.getElementById(`p6_${i}`);
+        if (input) {
+          points[i] = parseInt(input.value) || 0;
+        }
+      }
+      this.config.p6 = points;
+    } else if (mode === '8') {
+      // Collect 8-player thresholds
+      const t8_3 = document.getElementById('t8_3');
+      const t8_2 = document.getElementById('t8_2');
+      const t8_1 = document.getElementById('t8_1');
+
+      if (t8_3 && t8_2 && t8_1) {
+        this.config.t8 = {
+          g3: parseInt(t8_3.value) || 11,
+          g2: parseInt(t8_2.value) || 6,
+          g1: parseInt(t8_1.value) || 1
+        };
+      }
+
+      // Collect 8-player points
+      const points = {};
+      for (let i = 1; i <= 8; i++) {
+        const input = document.getElementById(`p8_${i}`);
+        if (input) {
+          points[i] = parseInt(input.value) || 0;
+        }
+      }
+      this.config.p8 = points;
+    }
+
+    this.persist();
+    emit('config:rulesUpdated', { mode });
+  }
 }
 
 // Create and export singleton instance

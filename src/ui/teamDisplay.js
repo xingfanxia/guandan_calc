@@ -1,6 +1,6 @@
 /**
  * Team Display - Team UI Utilities
- * Extracted from app.js lines 1342-1408
+ * Extracted from app.js lines 1342-1408, 1467-1475
  * Handles team styling and display
  */
 
@@ -127,6 +127,43 @@ export function renderTeams() {
 
   if (nextRoundPreview) {
     nextRoundPreview.textContent = nextRound + nextTeamName;
+  }
+}
+
+/**
+ * Update rule hint text
+ * @param {string} mode - Game mode
+ */
+export function updateRuleHint(mode) {
+  const ruleHint = $('ruleHint');
+  if (!ruleHint) return;
+
+  const cfg = config.getAll();
+
+  if (mode === '4') {
+    ruleHint.textContent = `4人：固定表 (${cfg.c4['1,2']},${cfg.c4['1,3']},${cfg.c4['1,4']})`;
+  } else if (mode === '6') {
+    ruleHint.textContent = `6人：分差≥${cfg.t6.g3} 升3；≥${cfg.t6.g2} 升2；≥${cfg.t6.g1} 升1`;
+  } else {
+    ruleHint.textContent = `8人：分差≥${cfg.t8.g3} 升3；≥${cfg.t8.g2} 升2；≥${cfg.t8.g1} 升1`;
+  }
+}
+
+/**
+ * Refresh preview display without full recalculation
+ * Extracted from app.js lines 1467-1475
+ */
+export function refreshPreviewOnly() {
+  const nextRoundPreview = $('nextRoundPreview');
+  if (!nextRoundPreview) return;
+
+  const nextRoundBase = state.getNextRoundBase();
+  const roundLevel = state.getRoundLevel();
+
+  if (nextRoundBase) {
+    nextRoundPreview.textContent = nextRoundBase;
+  } else {
+    nextRoundPreview.textContent = roundLevel || '-';
   }
 }
 

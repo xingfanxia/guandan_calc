@@ -219,9 +219,29 @@ function showExportMessage(message) {
   }
 }
 
-// Make exports globally accessible for HTML onclick
+/**
+ * Export mobile PNG (not yet implemented - placeholder)
+ */
+export function exportMobilePNG() {
+  alert('移动端PNG导出功能开发中，请使用桌面PNG导出');
+}
+
+/**
+ * Share game (not yet implemented - placeholder)
+ */
+export function shareGame() {
+  alert('分享功能开发中');
+}
+
+// Make exports globally accessible for HTML onclick and victory modal
 if (typeof window !== 'undefined') {
   window.exportTXT = exportTXT;
   window.exportCSV = exportCSV;
   window.exportLongPNG = exportLongPNG;
+  window.exportMobilePNG = exportMobilePNG;
+  window.shareGame = shareGame;
+  window.resetAll = () => {
+    // This will be set by main.js
+    console.warn('resetAll not yet initialized');
+  };
 }

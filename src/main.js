@@ -46,7 +46,7 @@ import {
 
 // Statistics and UI
 import { updatePlayerStats, renderStatistics } from './stats/statistics.js';
-import { applyTeamStyles, renderTeams, updateRuleHint } from './ui/teamDisplay.js';
+import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from './ui/teamDisplay.js';
 import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
 
 // Export
@@ -259,6 +259,22 @@ function setupEventListeners() {
     });
   }
 
+  // Share game button
+  const shareGameBtn = $('shareGame');
+  if (shareGameBtn) {
+    on(shareGameBtn, 'click', () => {
+      alert('分享功能开发中');
+    });
+  }
+
+  // Export mobile PNG button
+  const exportMobilePngBtn = $('exportMobilePng');
+  if (exportMobilePngBtn) {
+    on(exportMobilePngBtn, 'click', () => {
+      alert('移动端PNG导出功能开发中，请使用桌面PNG导出');
+    });
+  }
+
   // Room buttons (disable for now - not implemented in modular version)
   const createRoomBtn = $('createRoom');
   const joinRoomBtn = $('joinRoom');
@@ -279,6 +295,12 @@ function setupEventListeners() {
     on(browseRoomsBtn, 'click', () => {
       alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
     });
+  }
+
+  // Hide voting section (not implemented in modular version)
+  const votingSection = $('votingSection');
+  if (votingSection) {
+    votingSection.style.display = 'none';
   }
 
   // Bulk name input
@@ -343,6 +365,35 @@ function setupEventListeners() {
   if (strictA) {
     on(strictA, 'change', (e) => {
       config.setPreference('strictA', e.target.checked);
+    });
+  }
+
+  // Custom rules save buttons
+  const save4Btn = $('save4');
+  const save6Btn = $('save6');
+  const save8Btn = $('save8');
+
+  if (save4Btn) {
+    on(save4Btn, 'click', () => {
+      config.collectAndSaveRulesFromDOM('4');
+      updateRuleHint('4');
+      refreshPreviewOnly();
+    });
+  }
+
+  if (save6Btn) {
+    on(save6Btn, 'click', () => {
+      config.collectAndSaveRulesFromDOM('6');
+      updateRuleHint('6');
+      refreshPreviewOnly();
+    });
+  }
+
+  if (save8Btn) {
+    on(save8Btn, 'click', () => {
+      config.collectAndSaveRulesFromDOM('8');
+      updateRuleHint('8');
+      refreshPreviewOnly();
     });
   }
 
@@ -518,8 +569,18 @@ if (document.readyState === 'loading') {
   init();
 }
 
-// Export for debugging
+// Export globally for HTML inline handlers
 if (typeof window !== 'undefined') {
+  window.closeVictoryModal = closeVictoryModal;
+  window.resetAll = () => {
+    const result = resetAll(true);
+    if (result.success) {
+      renderInitialState();
+      closeVictoryModal();
+    }
+  };
+
+  // Debug interface
   window.guandanApp = {
     state,
     config,

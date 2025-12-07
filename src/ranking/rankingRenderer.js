@@ -7,7 +7,7 @@
 import { $, on } from '../core/utils.js';
 import { getRanking, setRankPosition, clearRankPosition } from './rankingManager.js';
 import { getPlayers, getPlayerById, areAllPlayersAssigned } from '../player/playerManager.js';
-import { getDraggedPlayer } from '../player/playerRenderer.js';
+import { getDraggedPlayer, setDraggedPlayer } from '../player/playerRenderer.js';
 import { handleRankDrop, handlePoolDrop } from '../player/dragDrop.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
@@ -202,13 +202,15 @@ function createRankingPlayerTile(player) {
 
   // Desktop drag events
   tile.ondragstart = (e) => {
-    emit('drag:started', { player });
+    setDraggedPlayer(player);
     tile.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+    emit('drag:started', { player });
   };
 
   tile.ondragend = () => {
     tile.classList.remove('dragging');
+    setDraggedPlayer(null);
     emit('drag:ended');
   };
 
