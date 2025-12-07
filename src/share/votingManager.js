@@ -443,8 +443,8 @@ async function updateVoteLeaderboard() {
     .filter(v => v.p)
     .sort((a, b) => b.count - a.count);
 
-  const mvpDiv = document.getElementById('mvpRanking');
-  const burdenDiv = document.getElementById('burdenRanking');
+  const mvpDiv = document.getElementById('mvpStatsTable');
+  const burdenDiv = document.getElementById('burdenStatsTable');
 
   if (mvpDiv) {
     mvpDiv.innerHTML = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无';
