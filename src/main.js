@@ -101,10 +101,11 @@ function initializeUI() {
   if (autoApply) autoApply.checked = prefs.autoApply;
   if (strictA) strictA.checked = prefs.strictA;
 
-  // Update rule hint
+  // Update rule hint and bulk names placeholder
   const mode = $('mode');
   if (mode) {
     updateRuleHint(mode.value);
+    updateBulkNamesPlaceholder(mode.value);
   }
 }
 
@@ -118,6 +119,7 @@ function setupEventListeners() {
     on(modeSelect, 'change', (e) => {
       const newMode = e.target.value;
       updateRuleHint(newMode);
+      updateBulkNamesPlaceholder(newMode);
       generatePlayers(parseInt(newMode), false);
       emit('ui:modeChanged', { mode: newMode });
     });
@@ -581,6 +583,20 @@ function setupModuleEventHandlers() {
   onEvent('state:allReset', () => {
     unlockTeamAssignmentPanel();
   });
+}
+
+/**
+ * Update bulk names input placeholder based on mode
+ */
+function updateBulkNamesPlaceholder(mode) {
+  const bulkNamesInput = $('bulkNames');
+  if (!bulkNamesInput) return;
+
+  const placeholder = mode === '4' ? '豪 小 大 姐' :
+                      mode === '6' ? '豪 小 大 姐 夫 塔' :
+                      '豪 小 大 姐 夫 塔 帆 鱼';
+
+  bulkNamesInput.placeholder = placeholder;
 }
 
 /**
