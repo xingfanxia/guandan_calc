@@ -54,7 +54,20 @@ export default async function handler(request) {
   } else if (request.method === 'GET') {
     try {
       const roomData = await kv.get(`room:${roomCode}`);
+
+      if (!roomData) {
+        return new Response(JSON.stringify({
+          success: true,
+          votes: { mvp: {}, burden: {} }
+        }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
       const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+
+      console.log('GET votes:', room.endGameVotes);
 
       return new Response(JSON.stringify({
         success: true,
@@ -65,6 +78,7 @@ export default async function handler(request) {
       });
 
     } catch (error) {
+      console.error('GET error:', error);
       return new Response(JSON.stringify({ error: 'Error' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
