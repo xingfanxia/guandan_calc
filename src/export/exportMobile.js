@@ -235,6 +235,50 @@ export function exportMobilePNG() {
 
   currentY += 40;
 
+  // === VIEWER VOTES (read from DOM) ===
+  const mvpStatsTable = document.getElementById('mvpStatsTable');
+  const burdenStatsTable = document.getElementById('burdenStatsTable');
+
+  if (mvpStatsTable && mvpStatsTable.textContent && !mvpStatsTable.textContent.includes('暂无')) {
+    ctx.font = 'bold 28px Arial';
+    ctx.fillStyle = '#f5f6f8';
+    ctx.fillText('🗳️ 观众投票', 40, currentY);
+    currentY += 40;
+
+    // MVP votes (parse from DOM)
+    ctx.font = '18px Arial';
+    ctx.fillStyle = '#22c55e';
+    ctx.fillText('MVP:', 40, currentY);
+    currentY += 30;
+
+    ctx.font = '14px Arial';
+    ctx.fillStyle = '#b4b8bf';
+    const mvpText = mvpStatsTable.textContent.trim();
+    if (mvpText && mvpText !== '暂无数据') {
+      // Simple display
+      ctx.fillText(mvpText, 60, currentY);
+      currentY += 60;
+    }
+
+    // Burden votes
+    if (burdenStatsTable && burdenStatsTable.textContent && !burdenStatsTable.textContent.includes('暂无')) {
+      ctx.font = '18px Arial';
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText('最闹:', 40, currentY);
+      currentY += 30;
+
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#b4b8bf';
+      const burdenText = burdenStatsTable.textContent.trim();
+      if (burdenText && burdenText !== '暂无数据') {
+        ctx.fillText(burdenText, 60, currentY);
+        currentY += 60;
+      }
+    }
+
+    currentY += 20;
+  }
+
   // === GAME HISTORY ===
   ctx.font = 'bold 28px Arial';
   ctx.fillStyle = '#f5f6f8';
