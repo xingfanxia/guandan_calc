@@ -427,15 +427,30 @@ onEvent('voting:submitted', () => {
 });
 
 async function updateVoteLeaderboard() {
+  console.log('updateVoteLeaderboard called');
+
   const roomInfo = getRoomInfo();
-  if (!roomInfo.roomCode) return;
+  if (!roomInfo.roomCode) {
+    console.log('No room code');
+    return;
+  }
+
+  console.log('Fetching votes from:', `/api/rooms/vote/${roomInfo.roomCode}`);
 
   const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
   const data = await response.json();
 
-  if (!data.success || !data.votes) return;
+  console.log('Vote data received:', data);
+
+  if (!data.success || !data.votes) {
+    console.log('No vote data');
+    return;
+  }
 
   const players = getPlayers();
+
+  console.log('Votes:', data.votes);
+
   const mvp = Object.entries(data.votes.mvp || {})
     .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
     .filter(v => v.p)
@@ -446,16 +461,27 @@ async function updateVoteLeaderboard() {
     .filter(v => v.p)
     .sort((a, b) => b.count - a.count);
 
+  console.log('MVP sorted:', mvp);
+  console.log('Burden sorted:', burden);
+
   const mvpDiv = document.getElementById('mvpStatsTable');
   const burdenDiv = document.getElementById('burdenStatsTable');
 
+  console.log('mvpDiv found:', !!mvpDiv, 'burdenDiv found:', !!burdenDiv);
+
   if (mvpDiv) {
-    mvpDiv.innerHTML = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无';
+    const html = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
+    console.log('Setting mvpDiv innerHTML:', html);
+    mvpDiv.innerHTML = html;
   }
 
   if (burdenDiv) {
-    burdenDiv.innerHTML = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无';
+    const html = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
+    console.log('Setting burdenDiv innerHTML:', html);
+    burdenDiv.innerHTML = html;
   }
+
+  console.log('updateVoteLeaderboard complete');
 }
 
 /**
