@@ -36,6 +36,28 @@ export function exportMobilePNG() {
   ctx.fillText('掼蛋战绩总览', 40, currentY);
   currentY += 45;
 
+  // Check if there's an A-level victory
+  const latestGame = history.length > 0 ? history[history.length - 1] : null;
+  const hasVictory = latestGame && latestGame.aNote && latestGame.aNote.includes('通关');
+
+  if (hasVictory) {
+    // Show victory team
+    ctx.fillStyle = latestGame.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    ctx.font = 'bold 32px Arial';
+    ctx.fillText(`🏆 ${latestGame.win} A级通关！`, 40, currentY);
+    currentY += 50;
+
+    // Show team roster
+    const winnerTeam = latestGame.winKey === 't1' ? 1 : 2;
+    const teamPlayers = players.filter(p => p.team === winnerTeam);
+
+    ctx.font = '20px Arial';
+    ctx.fillStyle = '#b4b8bf';
+    const roster = teamPlayers.map(p => `${p.emoji}${p.name}`).join(' ');
+    ctx.fillText(`冠军队伍: ${roster}`, 40, currentY);
+    currentY += 40;
+  }
+
   ctx.font = '18px Arial';
   ctx.fillStyle = '#b4b8bf';
   ctx.fillText(`级牌：${state.getRoundLevel()} | 下局：${state.getNextRoundBase() || '—'}`, 40, currentY);
@@ -212,6 +234,68 @@ export function exportMobilePNG() {
   });
 
   currentY += 40;
+
+  // === VIEWER VOTES (if any) ===
+  const roomInfo = await import('../share/roomManager.js').then(m => m.getRoomInfo());
+  if (roomInfo.roomCode) {
+    try {
+      const voteResponse = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
+      const voteData = await voteResponse.json();
+
+      if (voteData.success && voteData.votes && (Object.keys(voteData.votes.mvp).length > 0 || Object.keys(voteData.votes.burden).length > 0)) {
+        ctx.font = 'bold 28px Arial';
+        ctx.fillStyle = '#f5f6f8';
+        ctx.fillText('🗳️ 观众投票', 40, currentY);
+        currentY += 40;
+
+        // MVP votes
+        const mvpVotes = Object.entries(voteData.votes.mvp || {})
+          .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+          .filter(v => v.p)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+
+        if (mvpVotes.length > 0) {
+          ctx.font = '18px Arial';
+          ctx.fillStyle = '#22c55e';
+          ctx.fillText('MVP:', 40, currentY);
+          currentY += 30;
+
+          ctx.font = '16px Arial';
+          ctx.fillStyle = '#b4b8bf';
+          mvpVotes.forEach(v => {
+            ctx.fillText(`  ${v.p.emoji}${v.p.name}: ${v.count}票`, 60, currentY);
+            currentY += 25;
+          });
+        }
+
+        // Burden votes
+        const burdenVotes = Object.entries(voteData.votes.burden || {})
+          .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+          .filter(v => v.p)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 3);
+
+        if (burdenVotes.length > 0) {
+          ctx.font = '18px Arial';
+          ctx.fillStyle = '#ef4444';
+          ctx.fillText('最闹:', 40, currentY);
+          currentY += 30;
+
+          ctx.font = '16px Arial';
+          ctx.fillStyle = '#b4b8bf';
+          burdenVotes.forEach(v => {
+            ctx.fillText(`  ${v.p.emoji}${v.p.name}: ${v.count}票`, 60, currentY);
+            currentY += 25;
+          });
+        }
+
+        currentY += 20;
+      }
+    } catch (e) {
+      console.log('No votes to display');
+    }
+  }
 
   // === GAME HISTORY ===
   ctx.font = 'bold 28px Arial';
