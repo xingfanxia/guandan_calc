@@ -320,14 +320,14 @@ export function renderHonors() {
   updateHonorDisplay('bodongwang', honors.rollercoaster, '🌊 波动王');
   updateHonorDisplay('fendouwang', honors.comeback, '📈 奋斗王');
   updateHonorDisplay('fanchewang', honors.fanche, '🎪 翻车王');
-  updateHonorDisplay('damanwang', honors.complete, '👑 大满贯');
+  updateHonorDisplay('damanguan', honors.complete, '👑 大满贯'); // Fixed ID
   updateHonorDisplay('lianshengewang', honors.streak, '🔥 连胜王');
   updateHonorDisplay('foxiwanjia', honors.median, '🧘 佛系玩家');
   updateHonorDisplay('manrewang', honors.slowStart, '🐌 慢热王');
   updateHonorDisplay('shandianxia', honors.frequent, '⚡ 闪电侠');
-  updateHonorDisplay('fuzhuwang', null, '🛡️ 辅助王'); // Placeholder
-  updateHonorDisplay('pilaowang', honors.fatigue, '📉 疲劳选手');
+  updateHonorDisplay('fuzhuwang', honors.teamPillar, '🛡️ 辅助王');
   updateHonorDisplay('shoumenyuan', null, '🛡️ 守门员'); // Placeholder
+  updateHonorDisplay('dutu', honors.gambler, '🎲 赌徒'); // Add if exists
 }
 
 /**
