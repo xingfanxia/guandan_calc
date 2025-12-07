@@ -328,9 +328,14 @@ export function renderHonors() {
   updateHonorDisplay('foxiwanjia', honors.median, '🧘 佛系玩家');
   updateHonorDisplay('manrewang', honors.slowStart || null, '🐌 慢热王');
   updateHonorDisplay('shandianxia', honors.frequent, '⚡ 闪电侠');
-  updateHonorDisplay('fuzhuwang', honors.teamPillar || null, '🛡️ 辅助王');
-  updateHonorDisplay('shoumenyuan', null, '🛡️ 守门员'); // Not implemented
-  updateHonorDisplay('dutu', null, '🎲 赌徒'); // Not implemented yet
+  // Hide non-working honors for now
+  const hideHonors = ['fuzhuwang', 'shoumenyuan', 'dutu', 'manrewang'];
+  hideHonors.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.parentElement) {
+      el.parentElement.style.display = 'none';
+    }
+  });
 }
 
 /**
