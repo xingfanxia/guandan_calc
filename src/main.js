@@ -1241,6 +1241,9 @@ function renderInitialState() {
   // Render ranking area
   renderRankingArea(mode);
 
+  // Attach touch handlers AFTER ranking area is rendered
+  attachTouchHandlersToAllTiles();
+
   // Render history and statistics
   renderHistory();
   renderStatistics();
