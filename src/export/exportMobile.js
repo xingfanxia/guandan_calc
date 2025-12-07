@@ -186,7 +186,7 @@ export function exportMobilePNG() {
   ctx.fillText('📊 玩家排名统计', 40, currentY);
   currentY += 40;
 
-  const players = getPlayers();
+  // players already declared at top
   const playerData = [];
 
   players.forEach(player => {
