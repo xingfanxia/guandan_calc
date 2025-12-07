@@ -238,10 +238,114 @@ export function showEndGameVotingForViewers() {
   });
 }
 
+/**
+ * Create floating voting UI if votingSection doesn't exist
+ */
+function createFloatingVotingUI() {
+  console.log('Creating floating voting UI for viewer');
+
+  const existingFloat = document.getElementById('floatingVoting');
+  if (existingFloat) existingFloat.remove();
+
+  const float = document.createElement('div');
+  float.id = 'floatingVoting';
+  float.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1a1b1c;
+    border: 3px solid #22c55e;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    z-index: 10000;
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+  `;
+
+  const players = getPlayers();
+
+  float.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 style="margin: 0; color: #22c55e;">🎉 游戏结束 - 投票！</h3>
+      <button id="closeFloatingVoting" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer;">
+        关闭
+      </button>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: #22c55e; margin-bottom: 10px;">谁是 MVP？</h4>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        ${players.map(p => `
+          <button class="vote-mvp" data-player-id="${p.id}" style="padding: 8px; background: #2a2b2c; border: 2px solid #444; border-radius: 8px; color: #fff; cursor: pointer;">
+            <div style="font-size: 20px;">${p.emoji}</div>
+            <div style="font-size: 10px;">${p.name}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 20px;">
+      <h4 style="color: #ef4444; margin-bottom: 10px;">谁是最闹？</h4>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        ${players.map(p => `
+          <button class="vote-burden" data-player-id="${p.id}" style="padding: 8px; background: #2a2b2c; border: 2px solid #444; border-radius: 8px; color: #fff; cursor: pointer;">
+            <div style="font-size: 20px;">${p.emoji}</div>
+            <div style="font-size: 10px;">${p.name}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div id="floatVoteStatus" style="padding: 10px; background: #2a2b2c; border-radius: 6px; text-align: center; color: #999;">
+      点击投票
+    </div>
+  `;
+
+  document.body.appendChild(float);
+
+  // Attach handlers
+  setTimeout(() => {
+    const closeBtn = document.getElementById('closeFloatingVoting');
+    if (closeBtn) {
+      closeBtn.onclick = () => float.remove();
+    }
+
+    const mvpBtns = float.querySelectorAll('.vote-mvp');
+    mvpBtns.forEach(btn => {
+      btn.onclick = async () => {
+        const playerId = parseInt(btn.dataset.playerId);
+        const success = await submitEndGameVote('mvp', playerId);
+        if (success) {
+          const status = document.getElementById('floatVoteStatus');
+          const player = players.find(p => p.id === playerId);
+          if (status) status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
+        }
+      };
+    });
+
+    const burdenBtns = float.querySelectorAll('.vote-burden');
+    burdenBtns.forEach(btn => {
+      btn.onclick = async () => {
+        const playerId = parseInt(btn.dataset.playerId);
+        const success = await submitEndGameVote('burden', playerId);
+        if (success) {
+          const status = document.getElementById('floatVoteStatus');
+          const player = players.find(p => p.id === playerId);
+          if (status) status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
+        }
+      };
+    });
+  }, 100);
+}
+
 // Listen for victory event to show viewer voting
 onEvent('game:victoryForVoting', () => {
   const roomInfo = getRoomInfo();
   if (roomInfo.isViewer) {
+    console.log('Victory event received for viewer, showing voting');
     showEndGameVotingForViewers();
   }
 });
