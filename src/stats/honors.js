@@ -229,12 +229,14 @@ function updateHonorDisplay(elementId, honorData, honorName) {
 
   if (honorData && honorData.player) {
     const p = honorData.player;
-    el.innerHTML = `${p.emoji}${p.name} <span style="font-size: 11px; opacity: 0.7;">(${honorData.score})</span>`;
+    el.innerHTML = `${p.emoji}${p.name} <span style="font-size: 11px; opacity: 0.8;">(${honorData.score})</span>`;
     el.title = `${honorName}: ${p.name} - 得分 ${honorData.score}`;
-    el.style.color = '#22c55e';
+    el.style.color = '#fff'; // White text for better contrast on colored badges
+    el.style.fontWeight = 'bold';
   } else {
     el.textContent = '—';
     el.title = `${honorName}: 暂无数据（需要5+场比赛）`;
-    el.style.color = '#666';
+    el.style.color = '#999'; // Lighter gray for empty state
+    el.style.fontWeight = 'normal';
   }
 }
