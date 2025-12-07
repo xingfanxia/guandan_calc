@@ -107,6 +107,13 @@ function initializeUI() {
     updateRuleHint(mode.value);
     updateBulkNamesPlaceholder(mode.value);
   }
+
+  // Hide honors section (not implemented in modular version)
+  const honorsSection = document.querySelector('h3').parentElement;
+  const honorHeading = Array.from(document.querySelectorAll('h3')).find(h => h.textContent === '荣誉提名');
+  if (honorHeading && honorHeading.parentElement) {
+    honorHeading.parentElement.style.display = 'none';
+  }
 }
 
 /**

@@ -163,8 +163,10 @@ export function resetAll(preservePlayers = true) {
   }
 
   if (preservePlayers) {
-    // Only reset game state, keep players
+    // Reset game state and stats, but keep player names/teams
     state.resetGame();
+    // Also clear player stats
+    state.setPlayerStats({});
   } else {
     // Reset everything including players
     state.resetAll();
