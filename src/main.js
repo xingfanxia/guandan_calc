@@ -713,6 +713,12 @@ function setupModuleEventHandlers() {
     renderHistory();
     renderStatistics();
 
+    // Refresh compact roster for viewers
+    const roomInfo = getRoomInfo();
+    if (roomInfo.isViewer) {
+      showCompactTeamRoster();
+    }
+
     // Show update notification
     const applyTip = $('applyTip');
     if (applyTip) {
