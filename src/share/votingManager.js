@@ -49,7 +49,15 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       return false;
     }
 
+    console.log('Vote submitted successfully, emitting event');
     emit('voting:submitted', { mvpPlayerId, burdenPlayerId });
+
+    // ALSO call directly to ensure it runs
+    setTimeout(() => {
+      console.log('Calling updateVoteLeaderboard directly');
+      updateVoteLeaderboard();
+    }, 500);
+
     return true;
   } catch (error) {
     console.error('Error submitting vote:', error);
