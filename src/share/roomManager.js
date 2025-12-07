@@ -121,7 +121,10 @@ export async function joinRoom(roomCode, token = null) {
       return false;
     }
 
-    const roomData = await response.json();
+    const responseData = await response.json();
+
+    // Extract actual data from response structure {success: true, data: {...}}
+    const roomData = responseData.data || responseData;
 
     // Load room data into state
     loadRoomData(roomData);
@@ -305,10 +308,18 @@ async function pollForUpdates() {
     }
 
     const text = await response.text();
-    const roomData = text ? JSON.parse(text) : null;
+    const responseData = text ? JSON.parse(text) : null;
+
+    if (!responseData) {
+      console.error('No room data received');
+      return;
+    }
+
+    // Extract actual data from response structure {success: true, data: {...}}
+    const roomData = responseData.data || responseData;
 
     if (!roomData) {
-      console.error('No room data received');
+      console.error('No data in response');
       return;
     }
 
