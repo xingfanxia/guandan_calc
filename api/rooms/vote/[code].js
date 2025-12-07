@@ -35,8 +35,12 @@ export default async function handler(request) {
       room.endGameVotes.mvp[mvpPlayerId] = (room.endGameVotes.mvp[mvpPlayerId] || 0) + 1;
       room.endGameVotes.burden[burdenPlayerId] = (room.endGameVotes.burden[burdenPlayerId] || 0) + 1;
 
+      console.log('Saving votes:', room.endGameVotes);
+
       // Save
       await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(room));
+
+      console.log('Votes saved successfully');
 
       return new Response(JSON.stringify({ success: true }), {
         status: 200,
