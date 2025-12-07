@@ -196,6 +196,41 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
+  // 鲤鱼王 (Comeback King) - Bottom 3 to #1 in consecutive games
+  let maxLeaps = 0;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let leaps = 0;
+
+    for (let i = 1; i < stats.rankings.length; i++) {
+      const prevRank = stats.rankings[i - 1];
+      const currRank = stats.rankings[i];
+
+      // From bottom 3 to #1
+      if (prevRank >= totalPlayers - 2 && currRank === 1) {
+        leaps++;
+      }
+    }
+
+    if (leaps > maxLeaps && leaps > 0) {
+      maxLeaps = leaps;
+      honors.carp = { player, score: leaps };
+    }
+  });
+
+  // 不粘锅 (Non-stick) - 0 last places + avg > 5
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    const avgRank = stats.totalRank / stats.games;
+
+    if (stats.lastPlaceCount === 0 && avgRank > 5 && stats.games >= 8) {
+      if (!honors.nonstick || avgRank > honors.nonstick.score) {
+        honors.nonstick = { player, score: avgRank.toFixed(2) };
+      }
+    }
+  });
+
   return honors;
 }
 
@@ -215,13 +250,8 @@ export function renderHonors() {
   updateHonorDisplay('lianshengewang', honors.streak, '连胜王');
   updateHonorDisplay('foxiwanjia', honors.median, '佛系玩家');
   updateHonorDisplay('shandianxia', honors.frequent, '闪电侠');
-
-  // Hide broken ones
-  ['fuzhuwang', 'shoumenyuan', 'dutu', 'manrewang'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el?.parentElement) el.parentElement.style.display = 'none';
-  });
-}
+  updateHonorDisplay('liyuwang', honors.carp, '鲤鱼王');
+  updateHonorDisplay('buzhanguo', honors.nonstick, '不粘锅');
 
 /**
  * Update display with click explanation
@@ -264,6 +294,10 @@ function updateHonorDisplay(elementId, honorData, honorName) {
       msg += `平均${honorData.score}名\n\n佛系心态！`;
     } else if (elementId === 'shandianxia') {
       msg += `变化: ${honorData.score}次\n\n捉摸不定！`;
+    } else if (elementId === 'liyuwang') {
+      msg += `🐟 鲤鱼跃龙门: ${honorData.score}次\n从倒数3跳到第1名\n\n惊天逆转！`;
+    } else if (elementId === 'buzhanguo') {
+      msg += `🍳 从未垫底！\n平均${honorData.score}名\n\n不沾坏运气！`;
     }
 
     el.onclick = () => alert(msg);
