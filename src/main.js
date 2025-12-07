@@ -712,6 +712,7 @@ function setupModuleEventHandlers() {
     renderRankingArea(mode);
     renderHistory();
     renderStatistics();
+    renderHonors(); // Update honors on room sync
 
     // Refresh compact roster for viewers
     const roomInfo = getRoomInfo();
