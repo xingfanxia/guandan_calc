@@ -379,13 +379,16 @@ export function unlockViewerVoting() {
           const burdenPlayer = players.find(p => p.id === selectedBurden);
 
           if (status) {
-            status.innerHTML = `✅ 投票成功！<br>MVP: ${mvpPlayer.emoji}${mvpPlayer.name}<br>最闹: ${burdenPlayer.emoji}${burdenPlayer.name}`;
+            status.innerHTML = `✅ 投票成功！<br>MVP: ${mvpPlayer.emoji}${mvpPlayer.name}<br>最闹: ${burdenPlayer.emoji}${burdenPlayer.name}<br><br>正在获取投票结果...`;
             status.style.background = 'rgba(34, 197, 94, 0.5)';
           }
 
           confirmBtn.disabled = true;
           confirmBtn.style.opacity = '0.5';
           confirmBtn.textContent = '✅ 已投票';
+
+          // Show vote results to viewer
+          setTimeout(() => showVoteResultsToViewer(votingCard), 1000);
         } else {
           alert('投票失败，请重试');
         }
@@ -433,6 +436,69 @@ onEvent('game:victoryForVoting', () => {
 onEvent('voting:submitted', () => {
   setTimeout(updateVoteLeaderboard, 500);
 });
+
+/**
+ * Show vote results to viewer after voting
+ */
+async function showVoteResultsToViewer(votingCard) {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.roomCode) return;
+
+  try {
+    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
+    const data = await response.json();
+
+    if (!data.success || !data.votes) return;
+
+    const players = getPlayers();
+    const mvpVotes = Object.entries(data.votes.mvp || {})
+      .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+      .filter(v => v.p)
+      .sort((a, b) => b.count - a.count);
+
+    const burdenVotes = Object.entries(data.votes.burden || {})
+      .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+      .filter(v => v.p)
+      .sort((a, b) => b.count - a.count);
+
+    // Add results section to voting card
+    const resultsDiv = document.createElement('div');
+    resultsDiv.style.cssText = `
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    `;
+
+    resultsDiv.innerHTML = `
+      <h4 style="color: white; margin: 0 0 15px 0; text-align: center;">📊 当前投票结果</h4>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div>
+          <h5 style="color: #22c55e; margin-bottom: 10px;">MVP</h5>
+          ${mvpVotes.slice(0, 3).map((v, i) => `
+            <div style="padding: 8px; margin: 4px 0; background: rgba(34, 197, 94, ${0.3 - i * 0.08}); border-radius: 4px; font-size: 14px;">
+              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong>
+            </div>
+          `).join('') || '<div style="color: #999;">暂无</div>'}
+        </div>
+        <div>
+          <h5 style="color: #ef4444; margin-bottom: 10px;">最闹</h5>
+          ${burdenVotes.slice(0, 3).map((v, i) => `
+            <div style="padding: 8px; margin: 4px 0; background: rgba(239, 68, 68, ${0.3 - i * 0.08}); border-radius: 4px; font-size: 14px;">
+              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong>
+            </div>
+          `).join('') || '<div style="color: #999;">暂无</div>'}
+        </div>
+      </div>
+    `;
+
+    votingCard.appendChild(resultsDiv);
+
+  } catch (error) {
+    console.error('Error fetching vote results:', error);
+  }
+}
 
 export async function updateVoteLeaderboard() {
   console.log('updateVoteLeaderboard called');
