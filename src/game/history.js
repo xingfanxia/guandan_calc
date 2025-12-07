@@ -88,21 +88,27 @@ export function renderHistory() {
 
 /**
  * Rollback to a specific history index
- * @param {number} index - History index to rollback to
+ * @param {number} index - History index to rollback to (will rollback TO BEFORE this entry)
  */
 export function rollbackTo(index) {
   const history = state.getHistory();
 
+  console.log('rollbackTo called with index:', index, 'history.length:', history.length);
+
+  // Validate index - should be within history bounds
   if (index < 0 || index >= history.length) {
-    console.error('Invalid rollback index:', index);
-    return;
+    console.error('Invalid rollback index:', index, 'history.length:', history.length);
+    alert(`无效的回滚索引：${index}`);
+    return { success: false };
   }
 
-  if (!confirm(`回滚到第 ${index + 1} 局之前？`)) {
-    return;
+  if (!confirm(`回滚到第 ${index + 1} 局之前？这将删除此局及之后的所有记录。`)) {
+    return { success: false };
   }
 
   const entry = history[index];
+
+  console.log('Rolling back to before entry:', entry);
 
   // Restore state from snapshot
   state.setTeamLevel('t1', entry.prevT1Lvl);
@@ -124,6 +130,8 @@ export function rollbackTo(index) {
   state.rollbackToIndex(index);
 
   emit('game:rollback', { index, entry });
+
+  console.log('Rollback complete, new history length:', state.getHistory().length);
 
   return {
     success: true,
