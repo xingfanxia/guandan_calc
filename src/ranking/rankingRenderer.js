@@ -185,6 +185,7 @@ function createRankingPlayerTile(player) {
   tile.className = 'ranking-player-tile';
   tile.draggable = true;
   tile.dataset.playerId = player.id;
+  tile.dataset.playerData = JSON.stringify({ id: player.id }); // For touch handlers
 
   // Apply team color
   const teamColor = player.team === 1 ? config.getTeamColor('t1') : config.getTeamColor('t2');
