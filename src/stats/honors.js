@@ -127,13 +127,15 @@ export function calculateHonors(totalPlayers = 8) {
 
   eligibleStable.forEach(player => {
     const stats = allStats[player.id];
-    const sd = stdDev(stats.rankings);
+    const variance = calculateVariance(stats.rankings);
     const avgRank = stats.totalRank / stats.games;
 
-    // Relaxed: avg 4.5 or better + low variance
-    if (avgRank <= 4.5 && sd < 2.0 && sd < minStdDev) {
-      minStdDev = sd;
-      honors.stable = { player, score: sd.toFixed(2) };
+    console.log(`石佛 check ${player.name}:`, { avgRank, variance, qualifies: avgRank <= 4.5 && variance < 2.5 });
+
+    // FURTHER RELAXED: avg 4.5 or better + variance < 2.5
+    if (avgRank <= 4.5 && variance < 2.5 && variance < minStdDev) {
+      minStdDev = variance;
+      honors.stable = { player, score: variance.toFixed(2) };
     }
   });
 
