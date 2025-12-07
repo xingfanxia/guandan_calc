@@ -9,6 +9,7 @@ import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { now } from '../core/utils.js';
 import { calculateHonors } from '../stats/honors.js';
+import { getRoomInfo } from '../share/roomManager.js';
 
 export async function exportMobilePNG() {
   const canvas = document.createElement('canvas');
@@ -236,8 +237,8 @@ export async function exportMobilePNG() {
   currentY += 40;
 
   // === VIEWER VOTES (if any) ===
-  const roomInfo = await import('../share/roomManager.js').then(m => m.getRoomInfo());
-  if (roomInfo.roomCode) {
+  const roomInfo = getRoomInfo();
+  if (roomInfo && roomInfo.roomCode) {
     try {
       const voteResponse = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
       const voteData = await voteResponse.json();
