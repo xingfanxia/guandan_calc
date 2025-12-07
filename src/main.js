@@ -752,6 +752,18 @@ function showRoomUI() {
     disableViewerControls();
     // Initialize locked voting section
     initializeViewerVotingSection();
+
+    // Check if game already ended (in case event fired before listener attached)
+    setTimeout(() => {
+      const history = state.getHistory();
+      if (history.length > 0) {
+        const latestGame = history[history.length - 1];
+        if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+          console.log('🎯 Game already ended on load, manually unlocking voting');
+          showEndGameVotingForViewers();
+        }
+      }
+    }, 500); // Give time for listener to register
   }
 }
 
