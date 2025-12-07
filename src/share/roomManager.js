@@ -341,14 +341,19 @@ async function pollForUpdates() {
 
     // Check if data has changed
     const newUpdate = roomData.lastUpdated || new Date().toISOString();
-    if (newUpdate !== lastKnownUpdate) {
+
+    // ALWAYS update lastKnownUpdate even if no emit (prevents duplicate triggers)
+    const hasChanged = newUpdate !== lastKnownUpdate;
+    lastKnownUpdate = newUpdate;
+
+    if (hasChanged) {
       loadRoomData(roomData);
 
-      // Trigger UI refresh
-      emit('room:updated', { roomData });
-
-      // Show notification
-      showUpdateNotification();
+      // Use requestAnimationFrame to avoid blocking polling
+      requestAnimationFrame(() => {
+        emit('room:updated', { roomData });
+        showUpdateNotification();
+      });
     }
   } catch (error) {
     console.error('Error polling room:', error);
