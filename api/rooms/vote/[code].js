@@ -21,19 +21,23 @@ export default async function handler(request) {
     try {
       // Get vote data
       const voteData = await request.json();
-      const { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber } = voteData;
+      const { mvpPlayerId, burdenPlayerId, gameNumber } = voteData;
 
-      console.log('Vote submission:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
+      console.log('Vote submission:', { mvpPlayerId, burdenPlayerId, gameNumber });
 
-      if (!mvpPlayerId || !burdenPlayerId || !roundId) {
-        console.error('Missing vote data:', voteData);
-        return new Response(JSON.stringify({ 
-          error: 'Missing vote data' 
+      // Validate MVP and burden IDs
+      if (!mvpPlayerId || !burdenPlayerId) {
+        console.error('Missing player IDs:', voteData);
+        return new Response(JSON.stringify({
+          error: 'Missing MVP or burden player ID'
         }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
       }
+
+      // Use gameNumber or generate unique ID for this vote
+      const voteId = gameNumber ? `game_${gameNumber}` : `endgame_${Date.now()}`;
 
       // Get room data
       const roomData = await kv.get(`room:${roomCode}`);
@@ -75,18 +79,18 @@ export default async function handler(request) {
         parsedRoom.voting.rounds = {};
       }
 
-      // Initialize specific round voting if needed
-      if (!parsedRoom.voting.rounds[roundId]) {
-        parsedRoom.voting.rounds[roundId] = {
-          roundId: roundId,
-          gameRoundNumber: gameRoundNumber,
+      // Initialize voting for this game if needed
+      if (!parsedRoom.voting.rounds[voteId]) {
+        parsedRoom.voting.rounds[voteId] = {
+          voteId: voteId,
+          gameNumber: gameNumber,
           votes: {},
           results: { mvp: {}, burden: {} },
           createdAt: new Date().toISOString()
         };
       }
 
-      const currentVoting = parsedRoom.voting.rounds[roundId];
+      const currentVoting = parsedRoom.voting.rounds[voteId];
 
       // Temporary: No duplicate checking - completely open voting for testing
       // Generate unique ID for each vote to ensure accumulation

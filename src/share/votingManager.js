@@ -24,10 +24,9 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
   }
 
   try {
-    const gameRoundNumber = state.getHistory().length;
-    const roundId = `round_${gameRoundNumber}`;
+    const gameNumber = state.getHistory().length;
 
-    console.log('Submitting votes:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
+    console.log('Submitting votes:', { mvpPlayerId, burdenPlayerId, gameNumber });
 
     const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
       method: 'POST',
@@ -37,8 +36,7 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       body: JSON.stringify({
         mvpPlayerId,
         burdenPlayerId,
-        roundId,
-        gameRoundNumber
+        gameNumber
       })
     });
 
