@@ -147,32 +147,42 @@ function setupEventListeners() {
 
       if (result.ok) {
         const playerRankingData = getPlayerRankingData();
-        const applyResult = applyGameResult(result.calcResult, result.winner, playerRankingData);
 
-        // Update player stats
-        updatePlayerStats(parseInt(mode));
+        // Merge ranks into calcResult for applyGameResult
+        const fullCalcResult = {
+          ...result.calcResult,
+          ranks: result.ranks,
+          mode: String(mode)
+        };
 
-        // Clear ranking for next round
-        clearRankingState();
+        const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
 
-        // Show message
-        const applyTip = $('applyTip');
-        if (applyTip) {
-          applyTip.textContent = applyResult.message;
-        }
+        if (applyResult && applyResult.applied) {
+          // Update player stats
+          updatePlayerStats(parseInt(mode));
 
-        // Render updates
-        renderTeams();
-        renderHistory();
-        renderPlayerPool();
-        renderRankingSlots();
-        renderStatistics();
-        attachTouchHandlersToAllTiles();
+          // Clear ranking for next round
+          clearRankingState();
 
-        // Show victory modal if final win
-        if (applyResult.finalWin) {
-          const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-          showVictoryModal(winnerName);
+          // Show message
+          const applyTip = $('applyTip');
+          if (applyTip) {
+            applyTip.textContent = applyResult.message;
+          }
+
+          // Render updates
+          renderTeams();
+          renderHistory();
+          renderPlayerPool();
+          renderRankingSlots();
+          renderStatistics();
+          attachTouchHandlersToAllTiles();
+
+          // Show victory modal if final win
+          if (applyResult.finalWin) {
+            const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+            showVictoryModal(winnerName);
+          }
         }
       } else {
         // Show error message
@@ -480,20 +490,30 @@ function setupModuleEventHandlers() {
         // Auto-apply if enabled
         if (config.getPreference('autoApply')) {
           const playerRankingData = getPlayerRankingData();
-          const applyResult = applyGameResult(result.calcResult, result.winner, playerRankingData);
 
-          updatePlayerStats(parseInt(mode));
-          clearRankingState();
+          // Merge ranks into calcResult for applyGameResult
+          const fullCalcResult = {
+            ...result.calcResult,
+            ranks: result.ranks,
+            mode: String(mode)
+          };
 
-          const applyTip = $('applyTip');
-          if (applyTip) applyTip.textContent = applyResult.message;
+          const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
 
-          renderTeams();
-          renderHistory();
-          renderStatistics();
+          if (applyResult && applyResult.applied) {
+            updatePlayerStats(parseInt(mode));
+            clearRankingState();
 
-          if (applyResult.finalWin) {
-            showVictoryModal(winnerName);
+            const applyTip = $('applyTip');
+            if (applyTip) applyTip.textContent = applyResult.message;
+
+            renderTeams();
+            renderHistory();
+            renderStatistics();
+
+            if (applyResult.finalWin) {
+              showVictoryModal(winnerName);
+            }
           }
         }
       }

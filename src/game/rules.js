@@ -132,14 +132,22 @@ export function checkALevelRules(winnerKey, ranks, mode) {
 
 /**
  * Apply game result - main orchestration function
- * @param {Object} calcResult - Result from calculator.calculateUpgrade()
+ * @param {Object} calcResult - Result from calculator.calculateUpgrade() (must have: upgrade, mode, ranks)
  * @param {string} winnerKey - Winning team key
  * @param {Object} playerRankingData - Current ranking with player details
  * @returns {{applied: boolean, finalWin: boolean, historyEntry: Object}}
  */
 export function applyGameResult(calcResult, winnerKey, playerRankingData) {
-  if (!calcResult || !calcResult.upgrade === undefined) {
-    console.error('Invalid calc result');
+  console.log('applyGameResult called with:', { calcResult, winnerKey, playerRankingData });
+
+  if (!calcResult || calcResult.upgrade === undefined) {
+    console.error('Invalid calc result:', calcResult);
+    return { applied: false };
+  }
+
+  // Ensure ranks array exists
+  if (!calcResult.ranks || !Array.isArray(calcResult.ranks)) {
+    console.error('calcResult.ranks is missing or invalid:', calcResult);
     return { applied: false };
   }
 
