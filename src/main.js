@@ -583,6 +583,25 @@ function setupModuleEventHandlers() {
   onEvent('state:allReset', () => {
     unlockTeamAssignmentPanel();
   });
+
+  onEvent('game:rollback', ({ index }) => {
+    // After rollback, refresh all displays
+    renderHistory();
+    renderTeams();
+    renderStatistics();
+    renderPlayerPool();
+    renderRankingSlots();
+
+    // Update apply tip
+    const applyTip = $('applyTip');
+    if (applyTip) applyTip.textContent = '已回滚。';
+
+    // Check if should unlock panel (if history is now empty)
+    const history = state.getHistory();
+    if (history.length === 0) {
+      unlockTeamAssignmentPanel();
+    }
+  });
 }
 
 /**
