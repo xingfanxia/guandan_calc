@@ -1191,6 +1191,8 @@ function unlockTeamAssignmentPanel() {
 function attachTouchHandlersToAllTiles() {
   // Attach to player tiles
   const playerTiles = document.querySelectorAll('.player-tile');
+  console.log(`📱 Attaching to ${playerTiles.length} player tiles`);
+
   playerTiles.forEach(tile => {
     const playerData = JSON.parse(tile.dataset.playerData || '{}');
     if (playerData.id) {
@@ -1203,6 +1205,8 @@ function attachTouchHandlersToAllTiles() {
 
   // Attach to ranking tiles
   const rankingTiles = document.querySelectorAll('.ranking-player-tile');
+  console.log(`📱 Attaching to ${rankingTiles.length} ranking tiles`);
+
   rankingTiles.forEach(tile => {
     const playerId = parseInt(tile.dataset.playerId);
     if (playerId) {
@@ -1212,6 +1216,8 @@ function attachTouchHandlersToAllTiles() {
       }
     }
   });
+
+  console.log(`✅ Touch handlers attached to ${playerTiles.length} player + ${rankingTiles.length} ranking tiles`);
 }
 
 /**
