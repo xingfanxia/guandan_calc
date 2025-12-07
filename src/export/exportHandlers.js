@@ -219,14 +219,14 @@ function showExportMessage(message) {
   }
 }
 
+// Import mobile export statically to avoid dynamic import issues
+import { exportMobilePNG as exportMobilePNGImpl } from './exportMobile.js';
+
 /**
  * Export mobile PNG - NOW IMPLEMENTED!
  */
 export function exportMobilePNG() {
-  // Import and call mobile export function
-  import('./exportMobile.js').then(module => {
-    module.exportMobilePNG();
-  });
+  exportMobilePNGImpl();
 }
 
 /**

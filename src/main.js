@@ -52,7 +52,7 @@ import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from
 import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
 
 // Export
-import { exportTXT, exportCSV, exportLongPNG } from './export/exportHandlers.js';
+import { exportTXT, exportCSV, exportLongPNG, exportMobilePNG } from './export/exportHandlers.js';
 
 // Share and room features
 import {
@@ -331,11 +331,7 @@ function setupEventListeners() {
   // Export mobile PNG button - NOW WORKS!
   const exportMobilePngBtn = $('exportMobilePng');
   if (exportMobilePngBtn) {
-    on(exportMobilePngBtn, 'click', () => {
-      import('./export/exportMobile.js').then(module => {
-        module.exportMobilePNG();
-      });
-    });
+    on(exportMobilePngBtn, 'click', exportMobilePNG);
   }
 
   // Room buttons - NOW IMPLEMENTED!
