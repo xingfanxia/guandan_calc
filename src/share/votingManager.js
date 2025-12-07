@@ -475,20 +475,20 @@ async function showVoteResultsToViewer(votingCard) {
       <h4 style="color: white; margin: 0 0 15px 0; text-align: center;">📊 当前投票结果</h4>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div>
-          <h5 style="color: #22c55e; margin-bottom: 10px;">MVP</h5>
+          <h5 style="color: white; margin-bottom: 10px; font-weight: bold;">MVP</h5>
           ${mvpVotes.slice(0, 3).map((v, i) => `
-            <div style="padding: 8px; margin: 4px 0; background: rgba(34, 197, 94, ${0.3 - i * 0.08}); border-radius: 4px; font-size: 14px;">
-              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong>
+            <div style="padding: 10px; margin: 6px 0; background: rgba(255, 255, 255, 0.9); color: #1a1b1c; border-radius: 6px; font-size: 15px; font-weight: ${i === 0 ? 'bold' : 'normal'};">
+              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong style="color: #22c55e;">${v.count}票</strong>
             </div>
-          `).join('') || '<div style="color: #999;">暂无</div>'}
+          `).join('') || '<div style="color: white;">暂无</div>'}
         </div>
         <div>
-          <h5 style="color: #ef4444; margin-bottom: 10px;">最闹</h5>
+          <h5 style="color: white; margin-bottom: 10px; font-weight: bold;">最闹</h5>
           ${burdenVotes.slice(0, 3).map((v, i) => `
-            <div style="padding: 8px; margin: 4px 0; background: rgba(239, 68, 68, ${0.3 - i * 0.08}); border-radius: 4px; font-size: 14px;">
-              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong>
+            <div style="padding: 10px; margin: 6px 0; background: rgba(255, 255, 255, 0.9); color: #1a1b1c; border-radius: 6px; font-size: 15px; font-weight: ${i === 0 ? 'bold' : 'normal'};">
+              ${i + 1}. ${v.p.emoji}${v.p.name}: <strong style="color: #ef4444;">${v.count}票</strong>
             </div>
-          `).join('') || '<div style="color: #999;">暂无</div>'}
+          `).join('') || '<div style="color: white;">暂无</div>'}
         </div>
       </div>
     `;
