@@ -376,10 +376,10 @@ function setupEventListeners() {
     });
   }
 
-  // Hide voting section (not implemented in modular version)
+  // Show voting section (人民的声音) - now implemented!
   const votingSection = $('votingSection');
   if (votingSection) {
-    votingSection.style.display = 'none';
+    votingSection.style.display = 'block';
   }
 
   // Bulk name input
