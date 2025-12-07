@@ -585,7 +585,116 @@ function setupModuleEventHandlers() {
 
   onEvent('state:historyAdded', () => {
     renderHistory();
+    lockTeamAssignmentPanel();
   });
+
+  onEvent('state:gameReset', () => {
+    unlockTeamAssignmentPanel();
+  });
+
+  onEvent('state:allReset', () => {
+    unlockTeamAssignmentPanel();
+  });
+}
+
+/**
+ * Lock and collapse team assignment panel after game starts
+ */
+function lockTeamAssignmentPanel() {
+  const playerSetupSection = $('playerSetupSection');
+  const history = state.getHistory();
+
+  // Only lock if there's history (game has started)
+  if (history.length > 0 && playerSetupSection) {
+    const details = playerSetupSection.querySelector('details');
+    if (details) {
+      details.open = false; // Collapse
+    }
+
+    // Disable team assignment buttons
+    const generateBtn = $('generatePlayers');
+    const shuffleBtn = $('shuffleTeams');
+    const applyBulkBtn = $('applyBulkNames');
+    const quickStartBtn = $('quickStart');
+
+    if (generateBtn) {
+      generateBtn.disabled = true;
+      generateBtn.style.opacity = '0.5';
+      generateBtn.title = '游戏进行中，无法修改玩家';
+    }
+    if (shuffleBtn) {
+      shuffleBtn.disabled = true;
+      shuffleBtn.style.opacity = '0.5';
+      shuffleBtn.title = '游戏进行中，无法重新分配队伍';
+    }
+    if (applyBulkBtn) applyBulkBtn.disabled = true;
+    if (quickStartBtn) quickStartBtn.disabled = true;
+
+    // Disable mode selector
+    const modeSelect = $('mode');
+    if (modeSelect) {
+      modeSelect.disabled = true;
+      modeSelect.style.opacity = '0.5';
+      modeSelect.title = '游戏进行中，无法更改人数';
+    }
+
+    // Add lock indicator
+    const summary = playerSetupSection.querySelector('summary');
+    if (summary && !summary.querySelector('.lock-indicator')) {
+      const lockIcon = document.createElement('span');
+      lockIcon.className = 'lock-indicator';
+      lockIcon.textContent = ' 🔒';
+      lockIcon.style.color = '#f59e0b';
+      lockIcon.title = '游戏进行中，玩家设置已锁定。重置游戏可解锁。';
+      summary.appendChild(lockIcon);
+    }
+  }
+}
+
+/**
+ * Unlock team assignment panel after reset
+ */
+function unlockTeamAssignmentPanel() {
+  const playerSetupSection = $('playerSetupSection');
+  if (!playerSetupSection) return;
+
+  const details = playerSetupSection.querySelector('details');
+  if (details) {
+    details.open = true; // Expand
+  }
+
+  // Re-enable buttons
+  const generateBtn = $('generatePlayers');
+  const shuffleBtn = $('shuffleTeams');
+  const applyBulkBtn = $('applyBulkNames');
+  const quickStartBtn = $('quickStart');
+
+  if (generateBtn) {
+    generateBtn.disabled = false;
+    generateBtn.style.opacity = '1';
+    generateBtn.title = '';
+  }
+  if (shuffleBtn) {
+    shuffleBtn.disabled = false;
+    shuffleBtn.style.opacity = '1';
+    shuffleBtn.title = '';
+  }
+  if (applyBulkBtn) applyBulkBtn.disabled = false;
+  if (quickStartBtn) quickStartBtn.disabled = false;
+
+  // Re-enable mode selector
+  const modeSelect = $('mode');
+  if (modeSelect) {
+    modeSelect.disabled = false;
+    modeSelect.style.opacity = '1';
+    modeSelect.title = '';
+  }
+
+  // Remove lock indicator
+  const lockIndicator = playerSetupSection.querySelector('.lock-indicator');
+  if (lockIndicator) {
+    lockIndicator.remove();
+  }
 }
 
 /**
@@ -647,6 +756,12 @@ function renderInitialState() {
   // Render history and statistics
   renderHistory();
   renderStatistics();
+
+  // Lock team panel if game has started
+  const history = state.getHistory();
+  if (history.length > 0) {
+    lockTeamAssignmentPanel();
+  }
 
   // Initial placeholder state
   const headline = $('headline');
