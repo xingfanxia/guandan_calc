@@ -133,8 +133,8 @@ export function calculateHonors(totalPlayers = 8) {
 
     console.log(`石佛 check ${player.name}:`, { avgRank, variance, qualifies: avgRank <= 4.5 && variance < 2.5 });
 
-    // FURTHER RELAXED: avg 4.5 or better + variance < 2.5
-    if (avgRank <= 4.5 && variance < 2.5 && variance < minStdDev) {
+    // VERY RELAXED: avg 4.5 or better + variance < 4.5
+    if (avgRank <= 4.5 && variance < 4.5 && variance < minStdDev) {
       minStdDev = variance;
       honors.stable = { player, score: variance.toFixed(2) };
     }
