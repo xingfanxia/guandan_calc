@@ -740,10 +740,10 @@ function showCompactTeamRoster() {
   roster.appendChild(team1Div);
   roster.appendChild(team2Div);
 
-  // Insert after summary
-  const summary = playerSetupSection.querySelector('summary');
-  if (summary && summary.nextSibling) {
-    playerSetupSection.insertBefore(roster, summary.nextSibling);
+  // Insert after the entire details element (not inside it)
+  const details = playerSetupSection.querySelector('details');
+  if (details && details.nextSibling) {
+    playerSetupSection.insertBefore(roster, details.nextSibling);
   } else {
     playerSetupSection.appendChild(roster);
   }
