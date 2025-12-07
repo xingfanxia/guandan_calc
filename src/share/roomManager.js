@@ -17,11 +17,20 @@ let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
 
+// Development mode check
+const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 /**
  * Create a new room
  * @returns {Promise<{roomCode: string, authToken: string}|null>}
  */
 export async function createRoom() {
+  // Check if in development mode
+  if (isDevelopment) {
+    alert('房间功能需要部署到 Vercel 才能使用\n\n本地开发模式下无法连接 Vercel KV 数据库\n\n请运行 "npm run build" 并部署到 Vercel 后测试房间功能');
+    return null;
+  }
+
   try {
     // Gather current game state
     const roomData = {
@@ -51,13 +60,19 @@ export async function createRoom() {
       body: JSON.stringify(roomData)
     });
 
+    console.log('Create room response:', { status: response.status, statusText: response.statusText });
+
     if (!response.ok) {
-      const error = await response.json();
-      console.error('Failed to create room:', error);
+      const text = await response.text();
+      console.error('Failed to create room:', { status: response.status, body: text });
+      alert(`创建房间失败: ${response.status} ${response.statusText}`);
       return null;
     }
 
-    const result = await response.json();
+    const text = await response.text();
+    console.log('Response text:', text);
+
+    const result = text ? JSON.parse(text) : null;
 
     if (result.success && result.roomCode) {
       currentRoomCode = result.roomCode;
@@ -90,6 +105,12 @@ export async function createRoom() {
  * @returns {Promise<boolean>} Success status
  */
 export async function joinRoom(roomCode, token = null) {
+  // Check if in development mode
+  if (isDevelopment) {
+    alert('房间功能需要部署到 Vercel 才能使用\n\n本地开发模式下无法连接 Vercel KV 数据库\n\n请运行 "npm run build" 并部署到 Vercel 后测试房间功能');
+    return false;
+  }
+
   try {
     // Fetch room data
     const response = await fetch(`/api/rooms/${roomCode}`);
