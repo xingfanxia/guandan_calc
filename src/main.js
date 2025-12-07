@@ -1188,10 +1188,38 @@ function unlockTeamAssignmentPanel() {
 /**
  * Attach touch handlers to all player tiles
  */
+// Create debug display for mobile
+function showMobileDebug(message) {
+  let debugDiv = document.getElementById('mobileDebug');
+  if (!debugDiv) {
+    debugDiv = document.createElement('div');
+    debugDiv.id = 'mobileDebug';
+    debugDiv.style.cssText = `
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #0f0;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 11px;
+      z-index: 99999;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 2px solid #0f0;
+      border-radius: 4px;
+    `;
+    document.body.appendChild(debugDiv);
+  }
+  const time = new Date().toLocaleTimeString();
+  debugDiv.innerHTML = `[${time}] ${message}<br>` + debugDiv.innerHTML;
+}
+
 function attachTouchHandlersToAllTiles() {
   // Attach to player tiles
   const playerTiles = document.querySelectorAll('.player-tile');
-  console.log(`📱 Attaching to ${playerTiles.length} player tiles`);
+  showMobileDebug(`📱 Attaching to ${playerTiles.length} player tiles`);
 
   playerTiles.forEach(tile => {
     const playerData = JSON.parse(tile.dataset.playerData || '{}');
@@ -1205,7 +1233,7 @@ function attachTouchHandlersToAllTiles() {
 
   // Attach to ranking tiles
   const rankingTiles = document.querySelectorAll('.ranking-player-tile');
-  console.log(`📱 Attaching to ${rankingTiles.length} ranking tiles`);
+  showMobileDebug(`📱 Attaching to ${rankingTiles.length} ranking tiles`);
 
   rankingTiles.forEach(tile => {
     const playerId = parseInt(tile.dataset.playerId);
@@ -1217,7 +1245,7 @@ function attachTouchHandlersToAllTiles() {
     }
   });
 
-  console.log(`✅ Touch handlers attached to ${playerTiles.length} player + ${rankingTiles.length} ranking tiles`);
+  showMobileDebug(`✅ Total: ${playerTiles.length} player + ${rankingTiles.length} ranking tiles`);
 }
 
 /**
