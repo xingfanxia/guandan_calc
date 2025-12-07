@@ -308,9 +308,8 @@ export function renderHonors() {
 
   console.log('Calculated honors:', honors);
   console.log('Honor details:', {
-    eligible: eligible.length,
-    eligibleStable: eligible.filter(p => allStats[p.id].games >= 8).length,
-    eligibleTrend: eligible.filter(p => allStats[p.id].games >= 10).length,
+    totalPlayers,
+    playersWithGames: players.filter(p => allStats[p.id]?.games > 0).length,
     minGames: Math.min(...players.map(p => allStats[p.id]?.games || 0).filter(g => g > 0))
   });
 
