@@ -118,25 +118,215 @@ export async function resetVoting(authToken) {
 }
 
 /**
+ * Initialize locked voting section for viewers (called on page load)
+ */
+export function initializeViewerVotingSection() {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.isViewer) return;
+
+  console.log('Initializing locked voting section for viewer');
+
+  // Create locked voting section
+  let votingCard = document.getElementById('viewerVotingCard');
+
+  if (!votingCard) {
+    votingCard = document.createElement('div');
+    votingCard.id = 'viewerVotingCard';
+    votingCard.className = 'card';
+    votingCard.style.cssText = `
+      background: #2a2b2c;
+      border: 2px solid #666;
+      padding: 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      opacity: 0.5;
+    `;
+
+    const wrap = document.querySelector('.wrap');
+    if (wrap) {
+      // Insert after viewer banner area
+      const firstCard = wrap.querySelector('.card');
+      if (firstCard) {
+        wrap.insertBefore(votingCard, firstCard);
+      }
+    }
+  }
+
+  const players = getPlayers();
+
+  votingCard.innerHTML = `
+    <h3 style="color: #999; margin: 0 0 10px 0; text-align: center;">
+      🔒 投票区（游戏结束后解锁）
+    </h3>
+    <p style="color: #666; text-align: center; font-size: 13px; margin-bottom: 15px;">
+      等待游戏结束...
+    </p>
+    <div id="votingButtons" style="opacity: 0.3; pointer-events: none;">
+      <div style="margin-bottom: 15px;">
+        <h4 style="color: #666; margin-bottom: 10px;">MVP (最C):</h4>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          ${players.map(p => `
+            <div style="padding: 8px; background: #1a1b1c; border: 2px solid #444; border-radius: 8px; text-align: center;">
+              <div style="font-size: 20px;">${p.emoji}</div>
+              <div style="font-size: 10px; color: #666;">${p.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div>
+        <h4 style="color: #666; margin-bottom: 10px;">累赘 (最闹):</h4>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          ${players.map(p => `
+            <div style="padding: 8px; background: #1a1b1c; border: 2px solid #444; border-radius: 8px; text-align: center;">
+              <div style="font-size: 20px;">${p.emoji}</div>
+              <div style="font-size: 10px; color: #666;">${p.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Unlock voting section for viewers (called when game ends)
+ */
+export function unlockViewerVoting() {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.isViewer) return;
+
+  console.log('Unlocking voting section for viewer');
+
+  const votingCard = document.getElementById('viewerVotingCard');
+  if (!votingCard) {
+    console.error('Voting card not found');
+    return;
+  }
+
+  // Update card styling
+  votingCard.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+  votingCard.style.border = '3px solid #22c55e';
+  votingCard.style.opacity = '1';
+
+  const players = getPlayers();
+
+  // Replace with interactive buttons
+  votingCard.innerHTML = `
+    <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
+      🎉 游戏结束 - 请投票！
+    </h3>
+
+    <div style="margin-bottom: 15px;">
+      <h4 style="color: white; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        ${players.map(p => `
+          <button class="vote-mvp-btn" data-player-id="${p.id}" style="
+            padding: 10px;
+            background: white;
+            border: 3px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+          ">
+            <div style="font-size: 24px;">${p.emoji}</div>
+            <div style="font-size: 11px; color: #1a1b1c; font-weight: bold;">${p.name}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <h4 style="color: white; margin-bottom: 10px;">谁是本场累赘 (最闹)？</h4>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+        ${players.map(p => `
+          <button class="vote-burden-btn" data-player-id="${p.id}" style="
+            padding: 10px;
+            background: white;
+            border: 3px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+          ">
+            <div style="font-size: 24px;">${p.emoji}</div>
+            <div style="font-size: 11px; color: #1a1b1c; font-weight: bold;">${p.name}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+
+    <div id="viewerVoteStatus" style="
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      text-align: center;
+      color: white;
+      font-weight: bold;
+      font-size: 15px;
+    ">
+      👆 点击上方按钮投票
+    </div>
+  `;
+
+  // Attach handlers
+  setTimeout(() => {
+    const mvpBtns = votingCard.querySelectorAll('.vote-mvp-btn');
+    console.log('Attached MVP handlers:', mvpBtns.length);
+
+    mvpBtns.forEach(btn => {
+      btn.onclick = async () => {
+        const playerId = parseInt(btn.dataset.playerId);
+        console.log('Voting for MVP:', playerId);
+
+        const success = await submitEndGameVote('mvp', playerId);
+
+        if (success) {
+          const player = players.find(p => p.id === playerId);
+          const status = document.getElementById('viewerVoteStatus');
+          if (status) {
+            status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
+            status.style.background = 'rgba(34, 197, 94, 0.5)';
+          }
+
+          mvpBtns.forEach(b => b.style.borderColor = 'white');
+          btn.style.borderColor = '#22c55e';
+          btn.style.borderWidth = '4px';
+        }
+      };
+    });
+
+    const burdenBtns = votingCard.querySelectorAll('.vote-burden-btn');
+    console.log('Attached burden handlers:', burdenBtns.length);
+
+    burdenBtns.forEach(btn => {
+      btn.onclick = async () => {
+        const playerId = parseInt(btn.dataset.playerId);
+        console.log('Voting for burden:', playerId);
+
+        const success = await submitEndGameVote('burden', playerId);
+
+        if (success) {
+          const player = players.find(p => p.id === playerId);
+          const status = document.getElementById('viewerVoteStatus');
+          if (status) {
+            status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
+            status.style.background = 'rgba(239, 68, 68, 0.5)';
+          }
+
+          burdenBtns.forEach(b => b.style.borderColor = 'white');
+          btn.style.borderColor = '#ef4444';
+          btn.style.borderWidth = '4px';
+        }
+      };
+    });
+  }, 200);
+}
+
+/**
  * Show end-game voting UI for viewers
  */
 export function showEndGameVotingForViewers() {
-  const roomInfo = getRoomInfo();
-
-  if (!roomInfo.isViewer) return;
-
-  console.log('Showing end-game voting for viewer');
-
-  const votingSection = $('votingSection');
-  if (!votingSection) return;
-
-  votingSection.style.display = 'block';
-
-  const players = getPlayers();
-  const gameNumber = state.getHistory().length;
-
-  const voterInterface = $('voterInterface');
-  if (!voterInterface) return;
+  unlockViewerVoting();
+}
 
   voterInterface.innerHTML = `
     <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: white;">

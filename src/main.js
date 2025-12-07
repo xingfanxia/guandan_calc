@@ -64,7 +64,7 @@ import {
   leaveRoom
 } from './share/roomManager.js';
 import { generateShareURL, loadFromShareURL, showShareModal } from './share/shareManager.js';
-import { showEndGameVotingForViewers, showHostVoting } from './share/votingManager.js';
+import { initializeViewerVotingSection, showEndGameVotingForViewers, showHostVoting } from './share/votingManager.js';
 
 /**
  * Initialize application
@@ -751,7 +751,8 @@ function showRoomUI() {
     showViewerBanner(roomInfo.roomCode);
     // Disable all controls for viewers
     disableViewerControls();
-    // Note: Viewer voting shown when victory happens, not on join
+    // Initialize locked voting section
+    initializeViewerVotingSection();
   }
 }
 
