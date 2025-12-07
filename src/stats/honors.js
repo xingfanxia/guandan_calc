@@ -1,58 +1,27 @@
 /**
- * Honors System - Redesigned with Better Metrics
- * Statistical analysis to identify player achievements
+ * Honors System - Working honors with clickable explanations
+ * Redesigned for 5-10 game threshold with dynamic updates
  */
 
 import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
 
 /**
- * Calculate variance (not std dev - this is variance!)
+ * Calculate variance
  */
 function calculateVariance(rankings) {
   if (!rankings || rankings.length === 0) return 0;
 
   const mean = rankings.reduce((sum, val) => sum + val, 0) / rankings.length;
-  const squareDiffs = rankings.map(val => Math.pow(val - mean, 2));
-  return squareDiffs.reduce((sum, val) => sum + val, 0) / rankings.length;
-}
-
-// Alias for compatibility
-const stdDev = calculateVariance;
-
-/**
- * Calculate MVP score (weighted performance)
- */
-function calculateMVPScore(stats) {
-  const firstPlaces = stats.firstPlaceCount || 0;
-  const lastPlaces = stats.lastPlaceCount || 0;
-  const avgRank = stats.totalRank / stats.games;
-
-  // Top 3 finishes (ranks 1, 2, 3)
-  const top3Count = stats.rankings.filter(r => r <= 3).length;
-
-  return (firstPlaces * 3) + (top3Count * 1) - (lastPlaces * 2) - (avgRank * 0.5);
+  const squaredDiffs = rankings.map(val => Math.pow(val - mean, 2));
+  return squaredDiffs.reduce((sum, val) => sum + val, 0) / rankings.length;
 }
 
 /**
- * Calculate burden score (reverse weighted)
- */
-function calculateBurdenScore(stats, totalPlayers) {
-  const lastPlaces = stats.lastPlaceCount || 0;
-  const firstPlaces = stats.firstPlaceCount || 0;
-  const avgRank = stats.totalRank / stats.games;
-
-  // Bottom 3 finishes
-  const bottom3Count = stats.rankings.filter(r => r >= totalPlayers - 2).length;
-
-  return (lastPlaces * 3) + (bottom3Count * 1) - (firstPlaces * 2) + (avgRank * 0.5);
-}
-
-/**
- * Calculate improvement trend score
+ * Calculate improvement (first half vs second half)
  */
 function calculateImprovementScore(rankings) {
-  if (rankings.length < 15) return 0;
+  if (rankings.length < 6) return 0;
 
   const third = Math.floor(rankings.length / 3);
   const early = rankings.slice(0, third);
@@ -61,217 +30,154 @@ function calculateImprovementScore(rankings) {
   const earlyAvg = early.reduce((sum, r) => sum + r, 0) / early.length;
   const lateAvg = late.reduce((sum, r) => sum + r, 0) / late.length;
 
-  // Positive score = improvement (lower rank is better, so early - late)
-  return earlyAvg - lateAvg;
+  return earlyAvg - lateAvg; // Positive = improvement
 }
 
 /**
- * Calculate all honors
- * @param {number} totalPlayers - Total players in game
- * @returns {Object} Honor assignments
+ * Calculate honors
  */
 export function calculateHonors(totalPlayers = 8) {
   const players = getPlayers();
   const allStats = state.getPlayerStats();
 
-  const honors = {
-    mvp: null,
-    burden: null,
-    stable: null,
-    rollercoaster: null,
-    comeback: null,
-    fatigue: null,
-    teamPillar: null,
-    clutch: null
-  };
+  const honors = {};
 
-  // Filter players with minimum games (lowered to 5 for faster testing)
   const eligible = players.filter(p => {
     const stats = allStats[p.id];
     return stats && stats.games >= 5;
   });
 
-  console.log('Eligible players:', eligible.length, 'out of', players.length);
+  if (eligible.length === 0) return honors;
 
-  if (eligible.length === 0) {
-    console.log('No players with 5+ games');
-    return honors; // No one eligible
-  }
+  // Simple honors
+  let maxFirst = 0, maxLast = 0;
 
-  // Calculate MVP
-  let maxMVP = -Infinity;
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    const score = calculateMVPScore(stats);
 
-    if (score > maxMVP) {
-      maxMVP = score;
-      honors.mvp = { player, score: score.toFixed(1) };
+    // 吕布
+    if (stats.firstPlaceCount > maxFirst) {
+      maxFirst = stats.firstPlaceCount;
+      honors.mvp = { player, score: stats.firstPlaceCount };
+    }
+
+    // 阿斗
+    if (stats.lastPlaceCount > maxLast) {
+      maxLast = stats.lastPlaceCount;
+      honors.burden = { player, score: stats.lastPlaceCount };
     }
   });
 
-  // Calculate Burden
-  let maxBurden = -Infinity;
+  // Variance-based
+  let minVar = Infinity, maxVar = 0;
+
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    const score = calculateBurdenScore(stats, totalPlayers);
+    if (!stats.rankings || stats.rankings.length < 5) return;
 
-    if (score > maxBurden) {
-      maxBurden = score;
-      honors.burden = { player, score: score.toFixed(1) };
-    }
-  });
-
-  // Calculate Stable (low variance + decent performance) - RELAXED
-  const eligibleStable = eligible.filter(p => allStats[p.id].games >= 8);
-  let minStdDev = Infinity;
-
-  eligibleStable.forEach(player => {
-    const stats = allStats[player.id];
     const variance = calculateVariance(stats.rankings);
     const avgRank = stats.totalRank / stats.games;
 
-    console.log(`石佛 check ${player.name}:`, { avgRank, variance, qualifies: avgRank <= 4.5 && variance < 2.5 });
-
-    // VERY RELAXED: avg 4.5 or better + variance < 4.5
-    if (avgRank <= 4.5 && variance < 4.5 && variance < minStdDev) {
-      minStdDev = variance;
+    // 石佛 (stable + good)
+    if (avgRank <= 4.5 && variance < 4.5 && variance < minVar) {
+      minVar = variance;
       honors.stable = { player, score: variance.toFixed(2) };
     }
-  });
 
-  // Calculate Rollercoaster (high variance + extremes)
-  let maxVariance = -Infinity;
-
-  eligibleStable.forEach(player => {
-    const stats = allStats[player.id];
-    const sd = stdDev(stats.rankings);
-    const hasFirst = stats.firstPlaceCount > 0;
-    const hasLast = stats.lastPlaceCount > 0;
-
-    if (sd > 2.5 && hasFirst && hasLast && sd > maxVariance) {
-      maxVariance = sd;
-      honors.rollercoaster = { player, score: sd.toFixed(2) };
+    // 波动王
+    if (variance > 2.5 && variance > maxVar) {
+      maxVar = variance;
+      honors.rollercoaster = { player, score: variance.toFixed(2) };
     }
   });
 
-  // Calculate Comeback (improving trend) - RELAXED
-  const eligibleTrend = eligible.filter(p => allStats[p.id].games >= 8); // Lowered from 10
-  let maxImprovement = -Infinity;
+  // Improvement
+  let maxImp = -Infinity;
 
-  eligibleTrend.forEach(player => {
-    const stats = allStats[player.id];
-    const improvement = calculateImprovementScore(stats.rankings);
-
-    if (improvement > 1.0 && improvement > maxImprovement) { // Lowered from 1.5
-      maxImprovement = improvement;
-      honors.comeback = { player, score: `+${improvement.toFixed(1)}` };
-    }
-  });
-
-  // Calculate Fatigue (declining trend)
-  let maxDecline = -Infinity;
-
-  eligibleTrend.forEach(player => {
-    const stats = allStats[player.id];
-    const decline = -calculateImprovementScore(stats.rankings); // Negative improvement
-
-    if (decline > 1.5 && decline > maxDecline) {
-      maxDecline = decline;
-      honors.fatigue = { player, score: `-${decline.toFixed(1)}` };
-    }
-  });
-
-  // Calculate 翻车王 (Dramatic drops) - Top 3 to last place
-  let maxDrops = -Infinity;
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    let dropCount = 0;
+    if (!stats.rankings || stats.rankings.length < 8) return;
 
-    // Count games where went from top 3 one game to last place next game
+    const imp = calculateImprovementScore(stats.rankings);
+
+    if (imp > 1.0 && imp > maxImp) {
+      maxImp = imp;
+      honors.comeback = { player, score: `+${imp.toFixed(1)}` };
+    }
+  });
+
+  // Crash count
+  let maxCrash = 0;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let crashes = 0;
+
     for (let i = 1; i < stats.rankings.length; i++) {
       if (stats.rankings[i - 1] <= 3 && stats.rankings[i] === totalPlayers) {
-        dropCount++;
+        crashes++;
       }
     }
 
-    if (dropCount > maxDrops && dropCount > 0) {
-      maxDrops = dropCount;
-      honors.fanche = { player, score: dropCount };
+    if (crashes > maxCrash) {
+      maxCrash = crashes;
+      honors.fanche = { player, score: crashes };
     }
   });
 
-  // Calculate 大满贯 (Complete all positions) - Experience all ranks
-  let maxCompleteion = 0;
+  // Grand slam
+  let maxComplete = 0;
+
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    const uniqueRanks = new Set(stats.rankings);
-    const completionRate = uniqueRanks.size / totalPlayers;
+    const unique = new Set(stats.rankings);
+    const rate = unique.size / totalPlayers;
 
-    if (completionRate > maxCompleteion) {
-      maxCompleteion = completionRate;
-      honors.complete = { player, score: `${uniqueRanks.size}/${totalPlayers}` };
+    if (rate > maxComplete) {
+      maxComplete = rate;
+      honors.complete = { player, score: `${unique.size}/${totalPlayers}` };
     }
   });
 
-  // Calculate 连胜王 (Longest streak) - Consecutive top-half finishes
+  // Win streak
   let maxStreak = 0;
-  const midPoint = Math.ceil(totalPlayers / 2);
+  const mid = Math.ceil(totalPlayers / 2);
 
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    let currentStreak = 0;
-    let longestStreak = 0;
+    let streak = 0, best = 0;
 
-    stats.rankings.forEach(rank => {
-      if (rank <= midPoint) {
-        currentStreak++;
-        longestStreak = Math.max(longestStreak, currentStreak);
+    stats.rankings.forEach(r => {
+      if (r <= mid) {
+        streak++;
+        best = Math.max(best, streak);
       } else {
-        currentStreak = 0;
+        streak = 0;
       }
     });
 
-    if (longestStreak > maxStreak && longestStreak >= 3) {
-      maxStreak = longestStreak;
-      honors.streak = { player, score: longestStreak };
+    if (best >= 3 && best > maxStreak) {
+      maxStreak = best;
+      honors.streak = { player, score: best };
     }
   });
 
-  // Calculate 佛系玩家 (Median) - Closest to middle ranking
+  // Median player
   const midRank = (totalPlayers + 1) / 2;
-  let minDeviation = Infinity;
+  let minDev = Infinity;
 
   eligible.forEach(player => {
     const stats = allStats[player.id];
-    const avgRank = stats.totalRank / stats.games;
-    const deviation = Math.abs(avgRank - midRank);
+    const avg = stats.totalRank / stats.games;
+    const dev = Math.abs(avg - midRank);
 
-    if (deviation < minDeviation) {
-      minDeviation = deviation;
-      honors.median = { player, score: avgRank.toFixed(2) };
+    if (dev < minDev) {
+      minDev = dev;
+      honors.median = { player, score: avg.toFixed(2) };
     }
   });
 
-  // Calculate 慢热王 (Slow start) - Poor start, strong finish (relaxed criteria)
-  const eligibleSlowStart = eligible.filter(p => allStats[p.id].games >= 8); // Lowered from 10
-  let maxSlowStart = -Infinity;
-
-  eligibleSlowStart.forEach(player => {
-    const stats = allStats[player.id];
-    const third = Math.floor(stats.rankings.length / 3);
-    const earlyAvg = stats.rankings.slice(0, third).reduce((sum, r) => sum + r, 0) / third;
-    const lateAvg = stats.rankings.slice(-third).reduce((sum, r) => sum + r, 0) / third;
-
-    const improvement = earlyAvg - lateAvg;
-
-    if (improvement > 1.5 && earlyAvg > midRank && improvement > maxSlowStart) { // Lowered from 2.0
-      maxSlowStart = improvement;
-      honors.slowStart = { player, score: `+${improvement.toFixed(1)}` };
-    }
-  });
-
-  // Calculate 闪电侠 (Frequent changes) - Most position changes
+  // Frequent changes
   let maxChanges = 0;
 
   eligible.forEach(player => {
@@ -294,73 +200,79 @@ export function calculateHonors(totalPlayers = 8) {
 }
 
 /**
- * Render honors display
+ * Render honors
  */
 export function renderHonors() {
-  const players = getPlayers();
-  const totalPlayers = players.length;
-  const allStats = state.getPlayerStats();
+  const honors = calculateHonors(getPlayers().length);
 
-  console.log('Rendering honors:', {
-    totalPlayers,
-    playersWithStats: Object.keys(allStats).length,
-    sampleStats: allStats[1]
-  });
+  updateHonorDisplay('lyubu', honors.mvp, '吕布');
+  updateHonorDisplay('adou', honors.burden, '阿斗');
+  updateHonorDisplay('shifo', honors.stable, '石佛');
+  updateHonorDisplay('bodongwang', honors.rollercoaster, '波动王');
+  updateHonorDisplay('fendouwang', honors.comeback, '奋斗王');
+  updateHonorDisplay('fanchewang', honors.fanche, '翻车王');
+  updateHonorDisplay('damanguan', honors.complete, '大满贯');
+  updateHonorDisplay('lianshengewang', honors.streak, '连胜王');
+  updateHonorDisplay('foxiwanjia', honors.median, '佛系玩家');
+  updateHonorDisplay('shandianxia', honors.frequent, '闪电侠');
 
-  const honors = calculateHonors(totalPlayers);
-
-  console.log('Calculated honors:', honors);
-  console.log('Honor details:', {
-    totalPlayers,
-    playersWithGames: players.filter(p => allStats[p.id]?.games > 0).length,
-    minGames: Math.min(...players.map(p => allStats[p.id]?.games || 0).filter(g => g > 0))
-  });
-
-  // Update honor elements (match HTML IDs)
-  updateHonorDisplay('lyubu', honors.mvp, '🥇 吕布');
-  updateHonorDisplay('adou', honors.burden, '😅 阿斗');
-  updateHonorDisplay('shifo', honors.stable, '🗿 石佛');
-  updateHonorDisplay('bodongwang', honors.rollercoaster, '🌊 波动王');
-  updateHonorDisplay('fendouwang', honors.comeback, '📈 奋斗王');
-  updateHonorDisplay('fanchewang', honors.fanche, '🎪 翻车王');
-  updateHonorDisplay('damanguan', honors.complete, '👑 大满贯'); // Fixed ID
-  updateHonorDisplay('lianshengewang', honors.streak, '🔥 连胜王');
-  updateHonorDisplay('foxiwanjia', honors.median, '🧘 佛系玩家');
-  updateHonorDisplay('manrewang', honors.slowStart || null, '🐌 慢热王');
-  updateHonorDisplay('shandianxia', honors.frequent, '⚡ 闪电侠');
-  // Hide non-working honors for now
-  const hideHonors = ['fuzhuwang', 'shoumenyuan', 'dutu', 'manrewang'];
-  hideHonors.forEach(id => {
+  // Hide broken ones
+  ['fuzhuwang', 'shoumenyuan', 'dutu', 'manrewang'].forEach(id => {
     const el = document.getElementById(id);
-    if (el && el.parentElement) {
-      el.parentElement.style.display = 'none';
-    }
+    if (el?.parentElement) el.parentElement.style.display = 'none';
   });
 }
 
 /**
- * Update individual honor display
+ * Update display with click explanation
  */
 function updateHonorDisplay(elementId, honorData, honorName) {
   const el = document.getElementById(elementId);
+  if (!el) return;
 
-  console.log(`Updating ${elementId}:`, { found: !!el, honorData });
-
-  if (!el) {
-    console.warn(`Element #${elementId} not found`);
-    return;
-  }
-
-  if (honorData && honorData.player) {
+  if (honorData?.player) {
     const p = honorData.player;
-    el.innerHTML = `${p.emoji}${p.name} <span style="font-size: 11px; opacity: 0.8;">(${honorData.score})</span>`;
-    el.title = `${honorName}: ${p.name} - 得分 ${honorData.score}`;
-    el.style.color = '#fff'; // White text for better contrast on colored badges
+    const stats = state.getPlayerStats()[p.id];
+
+    el.innerHTML = `${p.emoji}${p.name}`;
+    el.style.color = '#fff';
     el.style.fontWeight = 'bold';
+    el.style.cursor = 'pointer';
+
+    // Build explanation
+    let msg = `${honorName}\n\n${p.emoji} ${p.name}\n\n`;
+
+    const avgRank = (stats.totalRank / stats.games).toFixed(2);
+
+    if (elementId === 'lyubu') {
+      msg += `🥇 ${stats.firstPlaceCount}次第一 (${stats.games}场)\n胜率: ${(stats.firstPlaceCount / stats.games * 100).toFixed(1)}%\n\n最强战力！`;
+    } else if (elementId === 'adou') {
+      msg += `😅 ${stats.lastPlaceCount}次垫底 (${stats.games}场)\n垫底率: ${(stats.lastPlaceCount / stats.games * 100).toFixed(1)}%\n\n需要保护！`;
+    } else if (elementId === 'shifo') {
+      msg += `平均${avgRank}名\n方差: ${honorData.score}\n\n稳如泰山！`;
+    } else if (elementId === 'bodongwang') {
+      msg += `方差: ${honorData.score}\n${Math.min(...stats.rankings)}名→${Math.max(...stats.rankings)}名\n\n波动最大！`;
+    } else if (elementId === 'fendouwang') {
+      msg += `进步: ${honorData.score}个位次\n\n越战越勇！`;
+    } else if (elementId === 'fanchewang') {
+      msg += `翻车: ${honorData.score}次\n\n大起大落！`;
+    } else if (elementId === 'damanguan') {
+      msg += `${honorData.score}个排名\n\n见多识广！`;
+    } else if (elementId === 'lianshengewang') {
+      msg += `连胜: ${honorData.score}局\n\n状态火热！`;
+    } else if (elementId === 'foxiwanjia') {
+      msg += `平均${honorData.score}名\n\n佛系心态！`;
+    } else if (elementId === 'shandianxia') {
+      msg += `变化: ${honorData.score}次\n\n捉摸不定！`;
+    }
+
+    el.onclick = () => alert(msg);
+    el.title = '点击查看详情';
+
   } else {
     el.textContent = '—';
-    el.title = `${honorName}: 暂无数据（需要5+场比赛）`;
-    el.style.color = '#999'; // Lighter gray for empty state
-    el.style.fontWeight = 'normal';
+    el.style.color = '#999';
+    el.style.cursor = 'default';
+    el.onclick = null;
   }
 }
