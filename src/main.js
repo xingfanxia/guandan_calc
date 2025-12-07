@@ -714,8 +714,94 @@ function showRoomUI() {
   } else if (roomInfo.isViewer) {
     // Show viewer banner
     showViewerBanner(roomInfo.roomCode);
+    // Disable all controls for viewers
+    disableViewerControls();
     // Show viewer voting interface
     setTimeout(() => showViewerVoting(), 1000);
+  }
+}
+
+/**
+ * Disable all game controls for viewers (read-only mode)
+ */
+function disableViewerControls() {
+  // Disable all buttons except export
+  const buttons = [
+    'generatePlayers', 'shuffleTeams', 'applyBulkNames', 'quickStart',
+    'clearRanking', 'randomRanking', 'manualCalc',
+    'apply', 'advance', 'undo', 'resetMatch',
+    'save4', 'save6', 'save8', 'reset4', 'reset6', 'reset8'
+  ];
+
+  buttons.forEach(id => {
+    const btn = $(id);
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      btn.title = '观看模式：只读，无法操作';
+    }
+  });
+
+  // Disable mode selector
+  const modeSelect = $('mode');
+  if (modeSelect) {
+    modeSelect.disabled = true;
+    modeSelect.style.opacity = '0.5';
+  }
+
+  // Disable checkboxes
+  ['must1', 'autoNext', 'autoApply', 'strictA'].forEach(id => {
+    const checkbox = $(id);
+    if (checkbox) {
+      checkbox.disabled = true;
+      checkbox.style.opacity = '0.5';
+    }
+  });
+
+  // Disable bulk names input
+  const bulkNames = $('bulkNames');
+  if (bulkNames) {
+    bulkNames.disabled = true;
+    bulkNames.style.opacity = '0.5';
+  }
+
+  // Disable all drag and drop
+  const playerTiles = document.querySelectorAll('.player-tile, .ranking-player-tile');
+  playerTiles.forEach(tile => {
+    tile.draggable = false;
+    tile.style.cursor = 'default';
+    tile.style.opacity = '0.8';
+  });
+
+  // Disable drop zones
+  const dropZones = document.querySelectorAll('.team-drop-zone, .rank-slot, #playerPool');
+  dropZones.forEach(zone => {
+    zone.style.pointerEvents = 'none';
+    zone.style.opacity = '0.7';
+  });
+
+  // Add viewer mode indicator
+  const wrap = document.querySelector('.wrap');
+  if (wrap && !wrap.querySelector('.viewer-notice')) {
+    const notice = document.createElement('div');
+    notice.className = 'viewer-notice';
+    notice.style.cssText = `
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+    `;
+    notice.innerHTML = `
+      👀 观看模式：您正在观看房主的比赛
+      <div style="font-size: 13px; margin-top: 8px; opacity: 0.9;">
+        可以投票，但无法修改游戏。比赛由房主控制。
+      </div>
+    `;
+    wrap.insertBefore(notice, wrap.firstChild);
   }
 }
 
