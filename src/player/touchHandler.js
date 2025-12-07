@@ -154,11 +154,15 @@ export function handleTouchEnd(e) {
     const unassignedZone = elementBelow.closest('#unassignedPlayers');
     const teamZone = elementBelow.closest('.team-drop-zone');
 
+    console.log('Touch drop detected:', { rankSlot: !!rankSlot, pool: !!pool, elementBelow: elementBelow.className });
+
     if (rankSlot) {
+      console.log('Dropping on rank slot:', rankSlot.dataset.rank);
       // Handle rank drop
       const currentRanking = state.getCurrentRanking();
       const newRanking = handleRankDrop(rankSlot, player, currentRanking);
       state.setCurrentRanking(newRanking);
+      emit('ranking:updated'); // Trigger re-render
       dropTarget = { type: 'rank', element: rankSlot, player };
     } else if (pool) {
       // Handle pool drop
