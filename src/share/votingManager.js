@@ -9,6 +9,9 @@ import state from '../core/state.js';
 import { $ } from '../core/utils.js';
 import { emit, on as onEvent } from '../core/events.js';
 
+// Track if voting UI is already shown (prevent duplicates)
+let votingUIShown = false;
+
 /**
  * Submit end-game vote as viewer
  * @param {string} voteType - 'mvp' or 'burden'
@@ -128,9 +131,16 @@ export function showEndGameVotingForViewers() {
     return;
   }
 
-  console.log('Showing end-game voting for viewer');
+  console.log('Showing end-game voting for viewer, already shown:', votingUIShown);
+
+  // Prevent showing multiple times
+  if (votingUIShown) {
+    console.log('Voting UI already visible, skipping');
+    return;
+  }
 
   // ALWAYS use floating UI for viewers (won't be destroyed by room updates)
+  votingUIShown = true;
   createFloatingVotingUI();
   return;
 
@@ -324,7 +334,10 @@ function createFloatingVotingUI() {
   setTimeout(() => {
     const closeBtn = document.getElementById('closeFloatingVoting');
     if (closeBtn) {
-      closeBtn.onclick = () => float.remove();
+      closeBtn.onclick = () => {
+        float.remove();
+        votingUIShown = false; // Allow showing again
+      };
     }
 
     const mvpBtns = float.querySelectorAll('.vote-mvp');
