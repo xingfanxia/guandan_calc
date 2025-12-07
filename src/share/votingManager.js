@@ -10,12 +10,12 @@ import { $ } from '../core/utils.js';
 import { emit, on as onEvent } from '../core/events.js';
 
 /**
- * Submit end-game vote as viewer
- * @param {string} voteType - 'mvp' or 'burden'
- * @param {number} playerId - Player ID being voted for
+ * Submit end-game votes (both MVP and burden together)
+ * @param {number} mvpPlayerId - MVP player ID
+ * @param {number} burdenPlayerId - Burden player ID
  * @returns {Promise<boolean>} Success
  */
-export async function submitEndGameVote(voteType, playerId) {
+export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
   const roomInfo = getRoomInfo();
 
   if (!roomInfo.roomCode || !roomInfo.isViewer) {
@@ -24,8 +24,10 @@ export async function submitEndGameVote(voteType, playerId) {
   }
 
   try {
-    // Use total games as game identifier
-    const gameNumber = state.getHistory().length;
+    const gameRoundNumber = state.getHistory().length;
+    const roundId = `round_${gameRoundNumber}`;
+
+    console.log('Submitting votes:', { mvpPlayerId, burdenPlayerId, roundId, gameRoundNumber });
 
     const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
       method: 'POST',
@@ -33,19 +35,20 @@ export async function submitEndGameVote(voteType, playerId) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        voteType,
-        playerId,
-        gameNumber, // End-game vote identifier
-        timestamp: new Date().toISOString()
+        mvpPlayerId,
+        burdenPlayerId,
+        roundId,
+        gameRoundNumber
       })
     });
 
     if (!response.ok) {
-      console.error('Failed to submit vote');
+      const error = await response.text();
+      console.error('Failed to submit vote:', error);
       return false;
     }
 
-    emit('voting:submitted', { voteType, playerId, gameNumber });
+    emit('voting:submitted', { mvpPlayerId, burdenPlayerId, roundId });
     return true;
   } catch (error) {
     console.error('Error submitting vote:', error);
@@ -348,11 +351,10 @@ export function unlockViewerVoting() {
 
         console.log('Confirming votes:', { mvp: selectedMVP, burden: selectedBurden });
 
-        // Submit both votes
-        const mvpSuccess = await submitEndGameVote('mvp', selectedMVP);
-        const burdenSuccess = await submitEndGameVote('burden', selectedBurden);
+        // Submit both votes together
+        const success = await submitEndGameVotes(selectedMVP, selectedBurden);
 
-        if (mvpSuccess && burdenSuccess) {
+        if (success) {
           const status = document.getElementById('viewerVoteStatus');
           const mvpPlayer = players.find(p => p.id === selectedMVP);
           const burdenPlayer = players.find(p => p.id === selectedBurden);
