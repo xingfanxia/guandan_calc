@@ -9,6 +9,7 @@ import { getRanking, setRankPosition, clearRankPosition } from './rankingManager
 import { getPlayers, getPlayerById, areAllPlayersAssigned } from '../player/playerManager.js';
 import { getDraggedPlayer, setDraggedPlayer } from '../player/playerRenderer.js';
 import { handleRankDrop, handlePoolDrop } from '../player/dragDrop.js';
+import { handleTouchStart, handleTouchMove, handleTouchEnd } from '../player/touchHandler.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
@@ -217,8 +218,6 @@ function createRankingPlayerTile(player) {
   };
 
   // Mobile touch events - INLINE like original
-  const { handleTouchStart, handleTouchMove, handleTouchEnd } = require('../player/touchHandler.js');
-
   tile.addEventListener('touchstart', function(e) {
     handleTouchStart(e, player);
   }, { passive: false });
