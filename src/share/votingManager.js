@@ -46,7 +46,7 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       return false;
     }
 
-    emit('voting:submitted', { mvpPlayerId, burdenPlayerId, roundId });
+    emit('voting:submitted', { mvpPlayerId, burdenPlayerId });
     return true;
   } catch (error) {
     console.error('Error submitting vote:', error);
