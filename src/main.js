@@ -616,6 +616,7 @@ function lockTeamAssignmentPanel() {
     const shuffleBtn = $('shuffleTeams');
     const applyBulkBtn = $('applyBulkNames');
     const quickStartBtn = $('quickStart');
+    const bulkNamesInput = $('bulkNames');
 
     if (generateBtn) {
       generateBtn.disabled = true;
@@ -627,8 +628,18 @@ function lockTeamAssignmentPanel() {
       shuffleBtn.style.opacity = '0.5';
       shuffleBtn.title = '游戏进行中，无法重新分配队伍';
     }
-    if (applyBulkBtn) applyBulkBtn.disabled = true;
-    if (quickStartBtn) quickStartBtn.disabled = true;
+    if (applyBulkBtn) {
+      applyBulkBtn.disabled = true;
+      applyBulkBtn.style.opacity = '0.5';
+    }
+    if (quickStartBtn) {
+      quickStartBtn.disabled = true;
+      quickStartBtn.style.opacity = '0.5';
+    }
+    if (bulkNamesInput) {
+      bulkNamesInput.disabled = true;
+      bulkNamesInput.style.opacity = '0.5';
+    }
 
     // Disable mode selector
     const modeSelect = $('mode');
@@ -638,15 +649,49 @@ function lockTeamAssignmentPanel() {
       modeSelect.title = '游戏进行中，无法更改人数';
     }
 
+    // Disable drag and drop for team assignment
+    const unassignedZone = $('unassignedPlayers');
+    const team1Zone = $('team1Zone');
+    const team2Zone = $('team2Zone');
+
+    [unassignedZone, team1Zone, team2Zone].forEach(zone => {
+      if (zone) {
+        zone.style.pointerEvents = 'none';
+        zone.style.opacity = '0.6';
+        zone.classList.add('locked');
+      }
+    });
+
+    // Disable player tile dragging for team assignment
+    const playerTiles = playerSetupSection.querySelectorAll('.player-tile');
+    playerTiles.forEach(tile => {
+      tile.draggable = false;
+      tile.style.cursor = 'not-allowed';
+      tile.style.opacity = '0.8';
+    });
+
     // Add lock indicator
     const summary = playerSetupSection.querySelector('summary');
-    if (summary && !summary.querySelector('.lock-indicator')) {
-      const lockIcon = document.createElement('span');
-      lockIcon.className = 'lock-indicator';
-      lockIcon.textContent = ' 🔒';
-      lockIcon.style.color = '#f59e0b';
-      lockIcon.title = '游戏进行中，玩家设置已锁定。重置游戏可解锁。';
-      summary.appendChild(lockIcon);
+    if (summary) {
+      // Prevent opening when locked
+      summary.style.cursor = 'not-allowed';
+
+      if (!summary.querySelector('.lock-indicator')) {
+        const lockIcon = document.createElement('span');
+        lockIcon.className = 'lock-indicator';
+        lockIcon.textContent = ' 🔒';
+        lockIcon.style.color = '#f59e0b';
+        lockIcon.title = '游戏进行中，玩家设置已锁定。重置游戏可解锁。';
+        summary.appendChild(lockIcon);
+      }
+
+      // Prevent details toggle
+      summary.onclick = (e) => {
+        if (history.length > 0) {
+          e.preventDefault();
+          return false;
+        }
+      };
     }
   }
 }
@@ -668,6 +713,7 @@ function unlockTeamAssignmentPanel() {
   const shuffleBtn = $('shuffleTeams');
   const applyBulkBtn = $('applyBulkNames');
   const quickStartBtn = $('quickStart');
+  const bulkNamesInput = $('bulkNames');
 
   if (generateBtn) {
     generateBtn.disabled = false;
@@ -679,8 +725,18 @@ function unlockTeamAssignmentPanel() {
     shuffleBtn.style.opacity = '1';
     shuffleBtn.title = '';
   }
-  if (applyBulkBtn) applyBulkBtn.disabled = false;
-  if (quickStartBtn) quickStartBtn.disabled = false;
+  if (applyBulkBtn) {
+    applyBulkBtn.disabled = false;
+    applyBulkBtn.style.opacity = '1';
+  }
+  if (quickStartBtn) {
+    quickStartBtn.disabled = false;
+    quickStartBtn.style.opacity = '1';
+  }
+  if (bulkNamesInput) {
+    bulkNamesInput.disabled = false;
+    bulkNamesInput.style.opacity = '1';
+  }
 
   // Re-enable mode selector
   const modeSelect = $('mode');
@@ -690,10 +746,37 @@ function unlockTeamAssignmentPanel() {
     modeSelect.title = '';
   }
 
-  // Remove lock indicator
-  const lockIndicator = playerSetupSection.querySelector('.lock-indicator');
-  if (lockIndicator) {
-    lockIndicator.remove();
+  // Re-enable drag and drop zones
+  const unassignedZone = $('unassignedPlayers');
+  const team1Zone = $('team1Zone');
+  const team2Zone = $('team2Zone');
+
+  [unassignedZone, team1Zone, team2Zone].forEach(zone => {
+    if (zone) {
+      zone.style.pointerEvents = '';
+      zone.style.opacity = '';
+      zone.classList.remove('locked');
+    }
+  });
+
+  // Re-enable player tile dragging
+  const playerTiles = playerSetupSection.querySelectorAll('.player-tile');
+  playerTiles.forEach(tile => {
+    tile.draggable = true;
+    tile.style.cursor = '';
+    tile.style.opacity = '';
+  });
+
+  // Remove lock indicator and restore summary click
+  const summary = playerSetupSection.querySelector('summary');
+  if (summary) {
+    summary.style.cursor = 'pointer';
+    summary.onclick = null; // Remove click blocker
+
+    const lockIndicator = summary.querySelector('.lock-indicator');
+    if (lockIndicator) {
+      lockIndicator.remove();
+    }
   }
 }
 
