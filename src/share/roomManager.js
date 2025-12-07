@@ -299,6 +299,10 @@ function startAutoSync() {
 function startPolling() {
   if (pollInterval) clearInterval(pollInterval);
 
+  // Initial poll immediately
+  pollForUpdates();
+
+  // Then poll every 2 seconds
   pollInterval = setInterval(async () => {
     await pollForUpdates();
   }, 2000); // 2 seconds (faster for better UX)
