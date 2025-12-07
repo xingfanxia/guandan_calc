@@ -250,14 +250,16 @@ onEvent('game:victoryForVoting', () => {
  * Show host voting interface with results
  */
 export async function showHostVoting() {
-  if (!isHost) return;
+  const roomInfo = getRoomInfo();
+
+  if (!roomInfo.isHost) return;
 
   const votingSection = $('votingSection');
   if (!votingSection) return;
 
   votingSection.style.display = 'block';
 
-  const results = await getVotingResults();
+  const results = await getEndGameVotingResults();
 
   const hostInterface = $('hostVotingInterface');
   if (!hostInterface) return;
