@@ -198,6 +198,16 @@ class GameState {
     emit('state:historyCleared');
   }
 
+  /**
+   * Set entire history array (for room sync)
+   * @param {Array} historyArray - Complete history array
+   */
+  setHistory(historyArray) {
+    this.history = historyArray || [];
+    this.persist();
+    emit('state:historySet', { historyArray });
+  }
+
   // ===========================
   // Players Management
   // ===========================

@@ -184,11 +184,9 @@ function loadRoomData(roomData) {
     if (s.nextRoundBase !== undefined) state.setNextRoundBase(s.nextRoundBase);
     if (s.winner) state.setWinner(s.winner);
 
-    // Load history (DON'T emit historyAdded events to avoid locking panel multiple times)
+    // Load history (use setHistory to avoid emitting individual historyAdded events)
     if (s.history && Array.isArray(s.history)) {
-      // Directly set history without emitting events for each entry
-      state.history = s.history;
-      state.persist();
+      state.setHistory(s.history);
     }
   }
 
