@@ -121,7 +121,7 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Calculate Stable (low std dev + middle range) - lowered to 8 games
+  // Calculate Stable (low variance + decent performance) - RELAXED
   const eligibleStable = eligible.filter(p => allStats[p.id].games >= 8);
   let minStdDev = Infinity;
 
@@ -129,9 +129,9 @@ export function calculateHonors(totalPlayers = 8) {
     const stats = allStats[player.id];
     const sd = stdDev(stats.rankings);
     const avgRank = stats.totalRank / stats.games;
-    const middleRange = totalPlayers * 0.35 <= avgRank && avgRank <= totalPlayers * 0.65;
 
-    if (sd < minStdDev && sd < 1.5 && middleRange) {
+    // Relaxed: avg 4.5 or better + low variance
+    if (avgRank <= 4.5 && sd < 2.0 && sd < minStdDev) {
       minStdDev = sd;
       honors.stable = { player, score: sd.toFixed(2) };
     }
@@ -152,15 +152,15 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Calculate Comeback (improving trend) - lowered to 10 games
-  const eligibleTrend = eligible.filter(p => allStats[p.id].games >= 10);
+  // Calculate Comeback (improving trend) - RELAXED
+  const eligibleTrend = eligible.filter(p => allStats[p.id].games >= 8); // Lowered from 10
   let maxImprovement = -Infinity;
 
   eligibleTrend.forEach(player => {
     const stats = allStats[player.id];
     const improvement = calculateImprovementScore(stats.rankings);
 
-    if (improvement > 1.5 && improvement > maxImprovement) {
+    if (improvement > 1.0 && improvement > maxImprovement) { // Lowered from 1.5
       maxImprovement = improvement;
       honors.comeback = { player, score: `+${improvement.toFixed(1)}` };
     }
