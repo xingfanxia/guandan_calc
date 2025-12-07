@@ -285,9 +285,15 @@ function createFloatingVotingUI() {
     max-width: 500px;
     max-height: 80vh;
     overflow-y: auto;
-    z-index: 10000;
+    z-index: 999999;
     box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
+    pointer-events: auto;
   `;
+
+  // Test if modal is clickable
+  float.onclick = (e) => {
+    console.log('Float modal clicked!', e.target);
+  };
 
   const players = getPlayers();
 
