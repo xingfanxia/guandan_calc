@@ -78,13 +78,17 @@ function createRankSlot(rank) {
 
     const player = getDraggedPlayer();
     if (player) {
+      console.log('Rank drop:', { rank, player, currentRanking: getRanking() });
+
       const currentRanking = getRanking();
       const newRanking = handleRankDrop(slot, player, currentRanking);
+
+      console.log('New ranking after drop:', newRanking);
+
       state.setCurrentRanking(newRanking);
 
-      // Re-render
-      renderPlayerPool();
-      renderRankingSlots();
+      // Trigger ranking update event to re-render
+      emit('ranking:updated');
     }
   };
 
@@ -116,12 +120,17 @@ export function renderPlayerPool() {
 
     const player = getDraggedPlayer();
     if (player) {
+      console.log('Pool drop:', { player, currentRanking: getRanking() });
+
       const currentRanking = getRanking();
       const newRanking = handlePoolDrop(player, currentRanking);
+
+      console.log('New ranking after pool drop:', newRanking);
+
       state.setCurrentRanking(newRanking);
 
-      renderPlayerPool();
-      renderRankingSlots();
+      // Trigger ranking update event to re-render
+      emit('ranking:updated');
     }
   };
 
