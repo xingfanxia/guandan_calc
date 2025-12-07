@@ -141,30 +141,36 @@ export function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  // Skip honors section to avoid circular dependency
-  // Honors already visible on page, don't need in mobile PNG
-
-  // SKIP HONORS SECTION
-  /*
-  const honorsList = [
-    { key: 'mvp', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
-    { key: 'burden', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
-    { key: 'stable', name: '🗿石佛', desc: '排名最稳定', color: '#708090' },
-    { key: 'rollercoaster', name: '🌊波动王', desc: '排名波动最大', color: '#ff4500' },
-    { key: 'comeback', name: '📈奋斗王', desc: '排名稳步提升', color: '#32cd32' },
-    { key: 'fanche', name: '🎪翻车王', desc: '前3掉垫底', color: '#dc143c' },
-    { key: 'complete', name: '👑大满贯', desc: '体验所有排名', color: '#ffd700' },
-    { key: 'streak', name: '🔥连胜王', desc: '连续好排名', color: '#ff6347' },
-    { key: 'median', name: '🧘佛系玩家', desc: '总是中游', color: '#9370db' },
-    { key: 'slowStart', name: '🐌慢热王', desc: '后期发力', color: '#ff1493' },
-    { key: 'frequent', name: '⚡闪电侠', desc: '变化频繁', color: '#ffa500' },
-    { key: 'fatigue', name: '📉疲劳选手', desc: '后期疲软', color: '#8b008b' }
+  // Get honors by reading from DOM (like original uses window.guandanApp)
+  const honorElements = [
+    { id: 'lyubu', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
+    { id: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
+    { id: 'shifo', name: '🗿石佛', desc: '最稳定', color: '#708090' },
+    { id: 'bodongwang', name: '🌊波动王', desc: '波动最大', color: '#ff4500' },
+    { id: 'fendouwang', name: '📈奋斗王', desc: '稳步提升', color: '#32cd32' },
+    { id: 'fanchewang', name: '🎪翻车王', desc: '前3掉底', color: '#dc143c' }
   ];
 
-  */
-  // Honors section skipped
+  ctx.font = 'bold 22px Arial';
+  honorElements.forEach(honor => {
+    const el = document.getElementById(honor.id);
+    const winnerText = el && el.textContent !== '—' ? el.textContent : '—';
 
-  currentY += 20;
+    ctx.fillStyle = honor.color;
+    ctx.fillText(honor.name, 60, currentY);
+
+    ctx.fillStyle = '#f5f6f8';
+    ctx.fillText(winnerText, 200, currentY);
+
+    ctx.fillStyle = '#888';
+    ctx.font = '16px Arial';
+    ctx.fillText(`(${honor.desc})`, 330, currentY);
+
+    ctx.font = 'bold 22px Arial';
+    currentY += 40;
+  });
+
+  currentY += 60;
 
   // === PLAYER STATS ===
   ctx.font = 'bold 28px Arial';
