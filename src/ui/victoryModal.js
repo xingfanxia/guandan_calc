@@ -72,10 +72,11 @@ export function showVictoryModal(teamName) {
     }
   });
 
-  modal.style.display = 'flex';
-
+  // Emit voting event BEFORE checking room mode (so viewers receive it)
   emit('ui:victoryModalShown', { teamName });
   emit('game:victoryForVoting', { teamName }); // Signal for remote voting
+
+  modal.style.display = 'flex';
 }
 
 /**
