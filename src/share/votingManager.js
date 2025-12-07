@@ -9,9 +9,6 @@ import state from '../core/state.js';
 import { $ } from '../core/utils.js';
 import { emit, on as onEvent } from '../core/events.js';
 
-// Track if voting UI is already shown (prevent duplicates)
-let votingUIShown = false;
-
 /**
  * Submit end-game vote as viewer
  * @param {string} voteType - 'mvp' or 'burden'
@@ -126,153 +123,12 @@ export async function resetVoting(authToken) {
 export function showEndGameVotingForViewers() {
   const roomInfo = getRoomInfo();
 
-  if (!roomInfo.isViewer) {
-    console.log('Not viewer, skipping');
-    return;
-  }
+  if (!roomInfo.isViewer) return;
 
-  console.log('Unlocking voting for viewer');
+  console.log('Showing end-game voting for viewer');
 
-  // Find or create viewer voting section
-  let viewerVotingSection = document.getElementById('viewerVotingSection');
-
-  if (!viewerVotingSection) {
-    // Create dedicated viewer voting section
-    viewerVotingSection = document.createElement('div');
-    viewerVotingSection.id = 'viewerVotingSection';
-    viewerVotingSection.className = 'card';
-    viewerVotingSection.style.cssText = `
-      position: sticky;
-      top: 70px;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      border: 3px solid #22c55e;
-      padding: 20px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
-    `;
-
-    const wrap = document.querySelector('.wrap');
-    if (wrap && wrap.firstChild) {
-      wrap.insertBefore(viewerVotingSection, wrap.firstChild.nextSibling);
-    }
-  }
-
-  const players = getPlayers();
-
-  viewerVotingSection.innerHTML = `
-    <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
-      🎉 游戏结束 - 请投票！
-    </h3>
-
-    <div style="margin-bottom: 15px;">
-      <h4 style="color: white; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-        ${players.map(p => `
-          <button class="viewer-vote-mvp" data-player-id="${p.id}" style="
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid white;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-          ">
-            <div style="font-size: 20px;">${p.emoji}</div>
-            <div style="font-size: 10px; color: #1a1b1c;">${p.name}</div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div style="margin-bottom: 15px;">
-      <h4 style="color: white; margin-bottom: 10px;">谁是本场累赘 (最闹)？</h4>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
-        ${players.map(p => `
-          <button class="viewer-vote-burden" data-player-id="${p.id}" style="
-            padding: 8px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid white;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-          ">
-            <div style="font-size: 20px;">${p.emoji}</div>
-            <div style="font-size: 10px; color: #1a1b1c;">${p.name}</div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div id="viewerVoteStatus" style="
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      text-align: center;
-      color: white;
-      font-weight: bold;
-    ">
-      👆 点击上方按钮投票
-    </div>
-  `;
-
-  // Attach MVP handlers
-  setTimeout(() => {
-    const mvpBtns = viewerVotingSection.querySelectorAll('.viewer-vote-mvp');
-    console.log('Attaching handlers to', mvpBtns.length, 'MVP buttons');
-
-    mvpBtns.forEach((btn, i) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        console.log('MVP button clicked:', i);
-
-        const playerId = parseInt(btn.dataset.playerId);
-        const success = await submitEndGameVote('mvp', playerId);
-
-        if (success) {
-          const status = document.getElementById('viewerVoteStatus');
-          const player = players.find(p => p.id === playerId);
-          if (status) {
-            status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
-            status.style.background = 'rgba(34, 197, 94, 0.3)';
-          }
-
-          // Visual feedback
-          mvpBtns.forEach(b => b.style.borderColor = 'white');
-          btn.style.borderColor = '#22c55e';
-          btn.style.background = 'white';
-        }
-      };
-    });
-
-    // Attach burden handlers
-    const burdenBtns = viewerVotingSection.querySelectorAll('.viewer-vote-burden');
-    console.log('Attaching handlers to', burdenBtns.length, 'burden buttons');
-
-    burdenBtns.forEach((btn, i) => {
-      btn.onclick = async (e) => {
-        e.stopPropagation();
-        console.log('Burden button clicked:', i);
-
-        const playerId = parseInt(btn.dataset.playerId);
-        const success = await submitEndGameVote('burden', playerId);
-
-        if (success) {
-          const status = document.getElementById('viewerVoteStatus');
-          const player = players.find(p => p.id === playerId);
-          if (status) {
-            status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
-            status.style.background = 'rgba(239, 68, 68, 0.3)';
-          }
-
-          // Visual feedback
-          burdenBtns.forEach(b => b.style.borderColor = 'white');
-          btn.style.borderColor = '#ef4444';
-          btn.style.background = 'white';
-        }
-      };
-    });
-  }, 100);
-}
+  const votingSection = $('votingSection');
+  if (!votingSection) return;
 
   votingSection.style.display = 'block';
 
@@ -280,14 +136,7 @@ export function showEndGameVotingForViewers() {
   const gameNumber = state.getHistory().length;
 
   const voterInterface = $('voterInterface');
-
-  console.log('voterInterface found:', !!voterInterface);
-
-  if (!voterInterface) {
-    console.log('voterInterface not found, using floating UI');
-    createFloatingVotingUI();
-    return;
-  }
+  if (!voterInterface) return;
 
   voterInterface.innerHTML = `
     <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: white;">
@@ -389,133 +238,10 @@ export function showEndGameVotingForViewers() {
   });
 }
 
-/**
- * Create floating voting UI if votingSection doesn't exist
- */
-function createFloatingVotingUI() {
-  console.log('Creating floating voting UI for viewer');
-
-  const existingFloat = document.getElementById('floatingVoting');
-  if (existingFloat) existingFloat.remove();
-
-  const float = document.createElement('div');
-  float.id = 'floatingVoting';
-  float.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #1a1b1c;
-    border: 3px solid #22c55e;
-    border-radius: 16px;
-    padding: 20px;
-    max-width: 500px;
-    max-height: 80vh;
-    overflow-y: auto;
-    z-index: 999999;
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
-    pointer-events: auto;
-  `;
-
-  // Test if modal is clickable
-  float.onclick = (e) => {
-    console.log('Float modal clicked!', e.target);
-  };
-
-  const players = getPlayers();
-
-  float.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; pointer-events: auto;">
-      <h3 style="margin: 0; color: #22c55e;">🎉 游戏结束 - 投票！</h3>
-      <button id="closeFloatingVoting" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer; pointer-events: auto;">
-        关闭
-      </button>
-    </div>
-
-    <div style="margin-bottom: 20px; pointer-events: auto;">
-      <h4 style="color: #22c55e; margin-bottom: 10px;">谁是 MVP？</h4>
-      <div id="mvpVoteGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; pointer-events: auto;">
-        ${players.map(p => `
-          <button class="vote-mvp" data-player-id="${p.id}" style="padding: 8px; background: #2a2b2c; border: 2px solid #444; border-radius: 8px; color: #fff; cursor: pointer; pointer-events: auto;">
-            <div style="font-size: 20px; pointer-events: none;">${p.emoji}</div>
-            <div style="font-size: 10px; pointer-events: none;">${p.name}</div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div style="margin-bottom: 20px; pointer-events: auto;">
-      <h4 style="color: #ef4444; margin-bottom: 10px;">谁是最闹？</h4>
-      <div id="burdenVoteGrid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; pointer-events: auto;">
-        ${players.map(p => `
-          <button class="vote-burden" data-player-id="${p.id}" style="padding: 8px; background: #2a2b2c; border: 2px solid #444; border-radius: 8px; color: #fff; cursor: pointer; pointer-events: auto;">
-            <div style="font-size: 20px; pointer-events: none;">${p.emoji}</div>
-            <div style="font-size: 10px; pointer-events: none;">${p.name}</div>
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
-    <div id="floatVoteStatus" style="padding: 10px; background: #2a2b2c; border-radius: 6px; text-align: center; color: #999; pointer-events: none;">
-      点击投票
-    </div>
-  `;
-
-  document.body.appendChild(float);
-
-  console.log('Floating UI appended to body, attaching handlers...');
-
-  // Attach handlers immediately (not setTimeout)
-  const closeBtn = float.querySelector('#closeFloatingVoting');
-  if (closeBtn) {
-    console.log('Close button found, attaching handler');
-    closeBtn.onclick = () => {
-      console.log('Close button clicked');
-      float.remove();
-      votingUIShown = false;
-    };
-  } else {
-    console.error('Close button not found!');
-  }
-
-  const mvpBtns = float.querySelectorAll('.vote-mvp');
-  console.log('MVP buttons found:', mvpBtns.length);
-
-  mvpBtns.forEach((btn, index) => {
-    btn.onclick = async () => {
-      console.log('MVP button clicked:', index);
-      const playerId = parseInt(btn.dataset.playerId);
-      const success = await submitEndGameVote('mvp', playerId);
-      if (success) {
-        const status = float.querySelector('#floatVoteStatus');
-        const player = players.find(p => p.id === playerId);
-        if (status) status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
-      }
-    };
-  });
-
-  const burdenBtns = float.querySelectorAll('.vote-burden');
-  console.log('Burden buttons found:', burdenBtns.length);
-
-  burdenBtns.forEach((btn, index) => {
-    btn.onclick = async () => {
-      console.log('Burden button clicked:', index);
-      const playerId = parseInt(btn.dataset.playerId);
-      const success = await submitEndGameVote('burden', playerId);
-      if (success) {
-        const status = float.querySelector('#floatVoteStatus');
-        const player = players.find(p => p.id === playerId);
-        if (status) status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
-      }
-    };
-  });
-}
-
 // Listen for victory event to show viewer voting
 onEvent('game:victoryForVoting', () => {
   const roomInfo = getRoomInfo();
   if (roomInfo.isViewer) {
-    console.log('Victory event received for viewer, showing voting');
     showEndGameVotingForViewers();
   }
 });
