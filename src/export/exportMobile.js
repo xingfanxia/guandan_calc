@@ -16,6 +16,8 @@ export function exportMobilePNG() {
 
   const W = 600;
   const history = state.getHistory();
+  const players = getPlayers();
+  const playerStats = state.getPlayerStats();
   const n = history.length;
 
   // Start with large height
@@ -139,7 +141,8 @@ export function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  const honors = calculateHonors(getPlayers().length);
+  // Read honors from DOM instead of calculating (avoids circular dependency)
+  const honors = null; // Will read from page display
 
   const honorsList = [
     { key: 'mvp', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
