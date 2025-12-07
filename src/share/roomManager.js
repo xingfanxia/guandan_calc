@@ -240,6 +240,11 @@ export async function syncToRoom() {
   }
 
   try {
+    // FIRST fetch existing room to preserve votes
+    const existingResponse = await fetch(`/api/rooms/${currentRoomCode}`);
+    const existingData = existingResponse.ok ? await existingResponse.json() : null;
+    const existingRoom = existingData?.data || existingData || {};
+
     const roomData = {
       settings: config.getAll(),
       state: {
@@ -256,7 +261,9 @@ export async function syncToRoom() {
       players: getPlayers(),
       playerStats: state.getPlayerStats(),
       currentRanking: state.getCurrentRanking(),
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
+      // PRESERVE VOTES!
+      endGameVotes: existingRoom.endGameVotes || { mvp: {}, burden: {} }
     };
 
     const response = await fetch(`/api/rooms/${currentRoomCode}`, {
