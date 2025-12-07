@@ -746,6 +746,10 @@ function showRoomUI() {
     showHostBanner(roomInfo.roomCode, roomInfo.authToken);
     // Show host voting interface
     setTimeout(() => showHostVoting(), 1000);
+    // Start polling vote leaderboard
+    import('./share/votingManager.js').then(module => {
+      setInterval(() => module.updateVoteLeaderboard?.(), 3000); // Poll every 3s
+    });
   } else if (roomInfo.isViewer) {
     // Show viewer banner
     showViewerBanner(roomInfo.roomCode);
