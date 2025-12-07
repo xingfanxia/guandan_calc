@@ -725,6 +725,39 @@ function showRoomUI() {
  * Disable all game controls for viewers (read-only mode)
  */
 function disableViewerControls() {
+  const playerSetupSection = $('playerSetupSection');
+
+  if (playerSetupSection) {
+    // Collapse and lock the player setup section
+    const details = playerSetupSection.querySelector('details');
+    if (details) {
+      details.open = false; // Collapse
+    }
+
+    // Prevent opening
+    const summary = playerSetupSection.querySelector('summary');
+    if (summary) {
+      summary.style.cursor = 'not-allowed';
+      summary.onclick = (e) => {
+        e.preventDefault();
+        return false;
+      };
+
+      // Add lock icon to summary
+      if (!summary.querySelector('.viewer-lock')) {
+        const lockIcon = document.createElement('span');
+        lockIcon.className = 'viewer-lock';
+        lockIcon.textContent = ' 🔒';
+        lockIcon.style.color = '#10b981';
+        lockIcon.title = '观看模式：只读';
+        summary.appendChild(lockIcon);
+      }
+    }
+
+    // Show compact team roster
+    showCompactTeamRoster();
+  }
+
   // Disable all buttons except export
   const buttons = [
     'generatePlayers', 'shuffleTeams', 'applyBulkNames', 'quickStart',
@@ -743,14 +776,13 @@ function disableViewerControls() {
     }
   });
 
-  // Disable mode selector
+  // Disable mode selector and inputs
   const modeSelect = $('mode');
   if (modeSelect) {
     modeSelect.disabled = true;
     modeSelect.style.opacity = '0.5';
   }
 
-  // Disable checkboxes
   ['must1', 'autoNext', 'autoApply', 'strictA'].forEach(id => {
     const checkbox = $(id);
     if (checkbox) {
@@ -759,7 +791,6 @@ function disableViewerControls() {
     }
   });
 
-  // Disable bulk names input
   const bulkNames = $('bulkNames');
   if (bulkNames) {
     bulkNames.disabled = true;
@@ -771,38 +802,13 @@ function disableViewerControls() {
   playerTiles.forEach(tile => {
     tile.draggable = false;
     tile.style.cursor = 'default';
-    tile.style.opacity = '0.8';
   });
 
-  // Disable drop zones
   const dropZones = document.querySelectorAll('.team-drop-zone, .rank-slot, #playerPool');
   dropZones.forEach(zone => {
     zone.style.pointerEvents = 'none';
     zone.style.opacity = '0.7';
   });
-
-  // Add viewer mode indicator
-  const wrap = document.querySelector('.wrap');
-  if (wrap && !wrap.querySelector('.viewer-notice')) {
-    const notice = document.createElement('div');
-    notice.className = 'viewer-notice';
-    notice.style.cssText = `
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      text-align: center;
-      font-weight: bold;
-    `;
-    notice.innerHTML = `
-      👀 观看模式：您正在观看房主的比赛
-      <div style="font-size: 13px; margin-top: 8px; opacity: 0.9;">
-        可以投票，但无法修改游戏。比赛由房主控制。
-      </div>
-    `;
-    wrap.insertBefore(notice, wrap.firstChild);
-  }
 }
 
 /**
