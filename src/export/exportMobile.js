@@ -1,41 +1,25 @@
 /**
- * Mobile PNG Export - Optimized for Mobile Devices
- * 600px width matching desktop detail level
- * Based on original exportLongPNG but mobile-optimized
+ * Mobile PNG Export - EXACT REPLICATION of original detailed version
+ * 600px width with comprehensive sections
  */
 
 import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getPlayers } from '../player/playerManager.js';
+import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { now } from '../core/utils.js';
 import { calculateHonors } from '../stats/honors.js';
 
-/**
- * Export mobile-optimized PNG with full detail
- */
 export function exportMobilePNG() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  const history = state.getHistory();
-  const players = getPlayers();
-  const playerStats = state.getPlayerStats();
-  const honors = calculateHonors(players.length);
-
-  // Mobile dimensions
   const W = 600;
-  const headerH = 200;
-  const statsHeaderH = 50;
-  const statsRowH = 40;
-  const statsH = players.length * statsRowH + statsHeaderH + 20;
-  const honorsH = 300; // Space for 14 honors in grid
-  const historyHeaderH = 50;
-  const historyRowH = 55;
-  const historyH = Math.min(history.length * historyRowH + historyHeaderH + 20, 600); // Cap at 10 entries
-  const footerH = 40;
+  const history = state.getHistory();
+  const n = history.length;
 
-  const H = headerH + statsH + honorsH + historyH + footerH;
+  // Start with large height
+  let H = 2000 + n * 250;
 
   canvas.width = W;
   canvas.height = H;
@@ -44,201 +28,297 @@ export function exportMobilePNG() {
   ctx.fillStyle = '#0b0b0c';
   ctx.fillRect(0, 0, W, H);
 
-  let yPos = 35;
+  let currentY = 70;
 
   // === HEADER ===
   ctx.fillStyle = '#f5f6f8';
-  ctx.font = 'bold 36px Arial';
-  ctx.fillText('掼蛋战绩总览 v9.0', 20, yPos);
-  yPos += 50;
+  ctx.font = 'bold 48px Arial';
+  ctx.fillText('掼蛋战绩总览', 40, currentY);
+  currentY += 45;
 
-  ctx.font = '15px Arial';
+  ctx.font = '18px Arial';
   ctx.fillStyle = '#b4b8bf';
-  ctx.fillText(`当前级牌: ${state.getRoundLevel()} | 下局: ${state.getNextRoundBase() || '—'}`, 20, yPos);
-  yPos += 30;
+  ctx.fillText(`级牌：${state.getRoundLevel()} | 下局：${state.getNextRoundBase() || '—'}`, 40, currentY);
+  currentY += 26;
+  ctx.fillText(`A级：${config.getPreference('strictA') ? '严格模式' : '宽松模式'}`, 40, currentY);
+  currentY += 28;
 
-  ctx.fillText(`${config.getTeamName('t1')}: ${state.getTeamLevel('t1')} (A${state.getTeamAFail('t1')}/3) | ${config.getTeamName('t2')}: ${state.getTeamLevel('t2')} (A${state.getTeamAFail('t2')}/3)`, 20, yPos);
-  yPos += 30;
+  const teamInfo = `${config.getTeamName('t1')} ${state.getTeamLevel('t1')} | ${config.getTeamName('t2')} ${state.getTeamLevel('t2')}`;
+  ctx.fillText(teamInfo, 40, currentY);
+  currentY += 23;
 
-  ctx.fillText(`规则: ${config.getPreference('strictA') ? '严格模式' : '宽松模式'} | 生成: ${now().substring(0, 16)}`, 20, yPos);
-  yPos += 45;
+  ctx.font = '16px Arial';
+  ctx.fillText(`时间：${now()}`, 40, currentY);
+  currentY += 50;
+
+  // === HONORS SECTION ===
+  ctx.font = 'bold 36px Arial';
+  ctx.fillStyle = '#f5f6f8';
+  ctx.fillText('🏆 荣誉提名', 40, currentY);
+  currentY += 50;
+
+  // Team MVPs
+  const team1Players = getPlayersByTeam(1);
+  const team2Players = getPlayersByTeam(2);
+  const playerStats = state.getPlayerStats();
+
+  const findMVPBurden = (teamPlayers) => {
+    let mvp = null, burden = null;
+    let bestAvg = 999, worstAvg = 0;
+
+    teamPlayers.forEach(player => {
+      const stats = playerStats[player.id];
+      if (stats && stats.games > 0) {
+        const avg = stats.totalRank / stats.games;
+        if (avg < bestAvg) {
+          bestAvg = avg;
+          mvp = player;
+        }
+        if (avg > worstAvg) {
+          worstAvg = avg;
+          burden = player;
+        }
+      }
+    });
+
+    return { mvp, burden };
+  };
+
+  const team1Result = findMVPBurden(team1Players);
+  const team2Result = findMVPBurden(team2Players);
+
+  ctx.font = 'bold 24px Arial';
+  ctx.fillStyle = config.getTeamColor('t1');
+  ctx.fillText(config.getTeamName('t1'), 40, currentY);
+  currentY += 35;
+
+  ctx.font = '20px Arial';
+  ctx.fillStyle = '#b4b8bf';
+  ctx.fillText(`很C: ${team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—'}`, 60, currentY);
+  currentY += 30;
+  ctx.fillText(`很闹: ${team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'}`, 60, currentY);
+  currentY += 45;
+
+  ctx.font = 'bold 24px Arial';
+  ctx.fillStyle = config.getTeamColor('t2');
+  ctx.fillText(config.getTeamName('t2'), 40, currentY);
+  currentY += 35;
+
+  ctx.font = '20px Arial';
+  ctx.fillStyle = '#b4b8bf';
+  ctx.fillText(`很C: ${team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'}`, 60, currentY);
+  currentY += 30;
+  ctx.fillText(`很闹: ${team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'}`, 60, currentY);
+  currentY += 50;
+
+  // Special honors
+  ctx.font = 'bold 28px Arial';
+  ctx.fillStyle = '#f5f6f8';
+  ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
+  currentY += 45;
+
+  const honors = calculateHonors(getPlayers().length);
+
+  const honorsList = [
+    { key: 'mvp', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
+    { key: 'burden', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
+    { key: 'stable', name: '🗿石佛', desc: '排名最稳定', color: '#708090' },
+    { key: 'rollercoaster', name: '🌊波动王', desc: '排名波动最大', color: '#ff4500' },
+    { key: 'comeback', name: '📈奋斗王', desc: '排名稳步提升', color: '#32cd32' },
+    { key: 'fanche', name: '🎪翻车王', desc: '前3掉垫底', color: '#dc143c' },
+    { key: 'complete', name: '👑大满贯', desc: '体验所有排名', color: '#ffd700' },
+    { key: 'streak', name: '🔥连胜王', desc: '连续好排名', color: '#ff6347' },
+    { key: 'median', name: '🧘佛系玩家', desc: '总是中游', color: '#9370db' },
+    { key: 'slowStart', name: '🐌慢热王', desc: '后期发力', color: '#ff1493' },
+    { key: 'frequent', name: '⚡闪电侠', desc: '变化频繁', color: '#ffa500' },
+    { key: 'fatigue', name: '📉疲劳选手', desc: '后期疲软', color: '#8b008b' }
+  ];
+
+  ctx.font = 'bold 22px Arial';
+  honorsList.forEach(honor => {
+    const winner = honors[honor.key];
+    const winnerText = winner ? winner.player.emoji + winner.player.name : '—';
+
+    ctx.fillStyle = honor.color;
+    ctx.fillText(honor.name, 60, currentY);
+
+    ctx.fillStyle = '#f5f6f8';
+    ctx.fillText(winnerText, 200, currentY);
+
+    ctx.fillStyle = '#888';
+    ctx.font = '16px Arial';
+    ctx.fillText(`(${honor.desc})`, 280, currentY);
+
+    ctx.font = 'bold 22px Arial';
+    currentY += 40;
+  });
+
+  currentY += 60;
 
   // === PLAYER STATS ===
-  ctx.fillStyle = '#e6b800';
-  ctx.font = 'bold 22px Arial';
-  ctx.fillText('📊 玩家统计', 20, yPos);
-  yPos += 40;
+  ctx.font = 'bold 28px Arial';
+  ctx.fillStyle = '#f5f6f8';
+  ctx.fillText('📊 玩家排名统计', 40, currentY);
+  currentY += 40;
 
-  ctx.font = 'bold 13px Arial';
-  ctx.fillStyle = '#b4b8bf';
-  ctx.fillText('玩家', 30, yPos);
-  ctx.fillText('场次', 220, yPos);
-  ctx.fillText('平均', 300, yPos);
-  ctx.fillText('🥇', 380, yPos);
-  ctx.fillText('😅', 450, yPos);
-  ctx.fillText('队伍', 520, yPos);
-  yPos += 30;
+  const players = getPlayers();
+  const playerData = [];
 
-  ctx.font = '14px Arial';
   players.forEach(player => {
     const stats = playerStats[player.id];
     if (stats && stats.games > 0) {
-      const avgRank = (stats.totalRank / stats.games).toFixed(2);
-      const teamColor = player.team === 1 ? config.getTeamColor('t1') : config.getTeamColor('t2');
-
-      // Row background
-      ctx.fillStyle = teamColor + '15';
-      ctx.fillRect(15, yPos - 25, W - 30, 35);
-
-      // Text
-      ctx.fillStyle = '#f5f6f8';
-      ctx.fillText(`${player.emoji} ${player.name}`, 30, yPos);
-      ctx.fillText(`${stats.games}`, 230, yPos);
-      ctx.fillText(avgRank, 305, yPos);
-      ctx.fillText(`${stats.firstPlaceCount || 0}`, 390, yPos);
-      ctx.fillText(`${stats.lastPlaceCount || 0}`, 460, yPos);
-
-      ctx.fillStyle = teamColor;
-      ctx.fillText(player.team === 1 ? config.getTeamName('t1') : config.getTeamName('t2'), 520, yPos);
-
-      yPos += 40;
+      playerData.push({
+        player,
+        stats,
+        avgRank: stats.totalRank / stats.games
+      });
     }
   });
 
-  yPos += 25;
-
-  // === HONORS ===
-  ctx.fillStyle = '#e6b800';
-  ctx.font = 'bold 22px Arial';
-  ctx.fillText('🏆 特殊荣誉', 20, yPos);
-  yPos += 40;
-
-  ctx.font = 'bold 14px Arial';
-
-  const honorsList = [
-    { key: 'mvp', name: 'MVP王', color: '#d4af37' },
-    { key: 'burden', name: '拖油瓶', color: '#8b4513' },
-    { key: 'stable', name: '稳如泰山', color: '#708090' },
-    { key: 'rollercoaster', name: '波动王', color: '#ff4500' },
-    { key: 'comeback', name: '逆袭王', color: '#32cd32' },
-    { key: 'fatigue', name: '疲劳选手', color: '#ff1493' }
-  ];
-
-  let honorX = 20;
-  let honorY = yPos;
-
-  honorsList.forEach((honor, index) => {
-    const data = honors[honor.key];
-
-    if (data && data.player) {
-      // Badge background
-      ctx.fillStyle = honor.color;
-      ctx.fillRect(honorX, honorY - 20, 180, 35);
-
-      // Text
-      ctx.fillStyle = '#fff';
-      ctx.fillText(`${honor.name}: ${data.player.emoji}${data.player.name}`, honorX + 10, honorY);
-    } else {
-      // Empty badge
-      ctx.fillStyle = '#2a2b2c';
-      ctx.fillRect(honorX, honorY - 20, 180, 35);
-
-      ctx.fillStyle = '#666';
-      ctx.fillText(`${honor.name}: —`, honorX + 10, honorY);
+  playerData.sort((a, b) => {
+    if (a.player.team !== b.player.team) {
+      return (a.player.team || 999) - (b.player.team || 999);
     }
-
-    // Move to next position (2 columns)
-    honorX += 200;
-    if ((index + 1) % 2 === 0) {
-      honorX = 20;
-      honorY += 50;
-    }
+    return a.avgRank - b.avgRank;
   });
 
-  yPos = honorY + (honorsList.length % 2 === 0 ? 30 : 80);
+  ctx.font = 'bold 18px Arial';
+  ctx.fillStyle = '#b4b8bf';
+  ctx.fillText('玩家', 50, currentY);
+  ctx.fillText('场次', 220, currentY);
+  ctx.fillText('平均', 300, currentY);
+  ctx.fillText('第一', 380, currentY);
+  ctx.fillText('垫底', 460, currentY);
+  currentY += 35;
 
-  // === HISTORY ===
+  ctx.font = '18px Arial';
+  playerData.forEach(data => {
+    const { player, stats, avgRank } = data;
+    const teamColor = player.team === 1 ? config.getTeamColor('t1') : config.getTeamColor('t2');
+
+    ctx.fillStyle = teamColor + '15';
+    ctx.fillRect(30, currentY - 25, W - 60, 35);
+
+    ctx.fillStyle = teamColor;
+    ctx.fillText(`${player.emoji}${player.name}`, 50, currentY);
+
+    ctx.fillStyle = '#f5f6f8';
+    ctx.fillText(stats.games, 230, currentY);
+    ctx.fillText(avgRank.toFixed(2), 300, currentY);
+    ctx.fillText(stats.firstPlaceCount || 0, 390, currentY);
+    ctx.fillText(stats.lastPlaceCount || 0, 470, currentY);
+
+    currentY += 40;
+  });
+
+  currentY += 40;
+
+  // === GAME HISTORY ===
+  ctx.font = 'bold 28px Arial';
+  ctx.fillStyle = '#f5f6f8';
+  ctx.fillText('📜 比赛历史', 40, currentY);
+  currentY += 40;
+
+  ctx.font = 'bold 16px Arial';
   ctx.fillStyle = '#e6b800';
-  ctx.font = 'bold 22px Arial';
-  ctx.fillText('📜 比赛历史', 20, yPos);
-  yPos += 40;
+  ctx.fillText('#', 50, currentY);
+  ctx.fillText('组合', 100, currentY);
+  ctx.fillText('升级', 220, currentY);
+  ctx.fillText('胜队', 320, currentY);
+  ctx.fillText('级牌', 420, currentY);
+  currentY += 35;
 
-  ctx.font = '12px Arial';
+  ctx.font = '14px Arial';
+  history.forEach((h, i) => {
+    const winColor = h.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
 
-  if (history.length > 0) {
-    const recentHistory = history.slice(-10); // Last 10 games
+    ctx.fillStyle = winColor + '15';
+    ctx.fillRect(30, currentY - 25, W - 60, 80);
 
-    recentHistory.forEach((h, index) => {
-      const winColor = h.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    ctx.fillStyle = '#e6b800';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText(`${i + 1}`, 50, currentY);
 
-      // Row background
-      ctx.fillStyle = winColor + '15';
-      ctx.fillRect(15, yPos - 22, W - 30, 50);
+    ctx.fillStyle = '#f5f6f8';
+    ctx.font = '14px Arial';
+    ctx.fillText(h.combo || '', 100, currentY);
 
-      // Game number
-      ctx.fillStyle = '#e6b800';
-      ctx.font = 'bold 14px Arial';
-      ctx.fillText(`#${history.length - 10 + index + 1}`, 25, yPos);
+    const upgradeText = h.up ? `${h.win}升${h.up}级` : '不升级';
+    ctx.fillText(upgradeText, 220, currentY);
 
-      // Combo
-      ctx.fillStyle = '#f5f6f8';
-      ctx.font = '13px Arial';
-      ctx.fillText(h.combo || '', 60, yPos);
+    ctx.fillStyle = winColor;
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText(h.win, 320, currentY);
 
-      // Upgrade
-      const upgradeText = h.up ? `${h.win}升${h.up}` : '不升级';
-      ctx.fillText(upgradeText, 150, yPos);
+    ctx.fillStyle = '#999';
+    ctx.font = '13px Arial';
+    ctx.fillText(`${h.t1}|${h.t2}`, 420, currentY);
+    currentY += 25;
 
-      // Winner
-      ctx.fillStyle = winColor;
-      ctx.font = 'bold 13px Arial';
-      ctx.fillText(h.win, 260, yPos);
-
-      // Levels
-      ctx.fillStyle = '#999';
+    // Player rankings
+    if (h.playerRankings) {
+      ctx.fillStyle = '#b4b8bf';
       ctx.font = '12px Arial';
-      ctx.fillText(`${h.t1} | ${h.t2}`, 350, yPos);
 
-      // Round
-      ctx.fillText(`@${h.round}`, 450, yPos);
+      const rankingText = Object.keys(h.playerRankings)
+        .sort((a, b) => parseInt(a) - parseInt(b))
+        .map(rank => {
+          const p = h.playerRankings[rank];
+          return `${rank}.${p.emoji}${p.name}`;
+        })
+        .join(' ');
 
-      // Player rankings (if available)
-      if (h.playerRankings && Object.keys(h.playerRankings).length > 0) {
-        yPos += 20;
-        ctx.fillStyle = '#b4b8bf';
-        ctx.font = '11px Arial';
+      // Wrap text if too long
+      const maxWidth = W - 80;
+      const words = rankingText.split(' ');
+      let line = '';
+      let lineCount = 0;
 
-        const rankingText = Object.keys(h.playerRankings)
-          .sort((a, b) => parseInt(a) - parseInt(b))
-          .slice(0, 4) // First 4 positions
-          .map(rank => {
-            const p = h.playerRankings[rank];
-            return `${p.emoji}${p.name}`;
-          })
-          .join(' ');
+      for (let w = 0; w < words.length; w++) {
+        const testLine = line + words[w] + ' ';
+        const metrics = ctx.measureText(testLine);
 
-        ctx.fillText(rankingText, 25, yPos);
-        yPos += 25;
-      } else {
-        yPos += 55;
+        if (metrics.width > maxWidth && line) {
+          ctx.fillText(line, 50, currentY);
+          line = words[w] + ' ';
+          currentY += 18;
+          lineCount++;
+          if (lineCount >= 2) break; // Max 2 lines
+        } else {
+          line = testLine;
+        }
       }
-    });
-  } else {
-    ctx.fillStyle = '#666';
-    ctx.fillText('暂无历史记录', 25, yPos);
-    yPos += 30;
-  }
+
+      if (line) {
+        ctx.fillText(line, 50, currentY);
+        currentY += 18;
+      }
+    }
+
+    currentY += 25;
+  });
+
+  const finalContentY = currentY + 30;
 
   // Footer
-  yPos = H - 20;
   ctx.fillStyle = '#666';
-  ctx.font = '11px Arial';
-  ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v9.0', 20, yPos);
+  ctx.font = '12px Arial';
+  ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v9.0', 40, finalContentY);
+
+  // Create optimally-sized final canvas
+  const optimalHeight = finalContentY + 50;
+  const finalCanvas = document.createElement('canvas');
+  finalCanvas.width = W;
+  finalCanvas.height = optimalHeight;
+  const finalCtx = finalCanvas.getContext('2d');
+
+  // Copy content
+  finalCtx.drawImage(canvas, 0, 0, W, optimalHeight, 0, 0, W, optimalHeight);
 
   // Download
   const a = document.createElement('a');
-  a.href = canvas.toDataURL('image/png');
-  a.download = `掼蛋战绩_手机版_v9.png`;
+  a.href = finalCanvas.toDataURL('image/png');
+  a.download = '掼蛋战绩_手机版_v9.png';
   a.click();
 
   // Show message
