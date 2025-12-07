@@ -22,8 +22,9 @@ import {
   applyBulkNames,
   areAllPlayersAssigned
 } from './player/playerManager.js';
-import { renderPlayers, updateTeamLabels } from './player/playerRenderer.js';
+import { renderPlayers, updateTeamLabels, attachTouchHandlers } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
+import { handleTouchStart, handleTouchMove, handleTouchEnd } from './player/touchHandler.js';
 
 // Ranking system
 import {
@@ -233,6 +234,53 @@ function setupEventListeners() {
     });
   }
 
+  // Manual calc button
+  const manualCalcBtn = $('manualCalc');
+  if (manualCalcBtn) {
+    on(manualCalcBtn, 'click', () => {
+      const mode = parseInt($('mode').value);
+      const result = calculateFromRanking(mode);
+
+      if (result.ok && config.getPreference('autoApply')) {
+        const playerRankingData = getPlayerRankingData();
+        applyGameResult(result.calcResult, result.winner, playerRankingData);
+        updatePlayerStats(mode);
+        clearRankingState();
+
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '已应用';
+
+        renderTeams();
+        renderHistory();
+        renderPlayerPool();
+        renderRankingSlots();
+        renderStatistics();
+      }
+    });
+  }
+
+  // Room buttons (disable for now - not implemented in modular version)
+  const createRoomBtn = $('createRoom');
+  const joinRoomBtn = $('joinRoom');
+  const browseRoomsBtn = $('browseRooms');
+  const favoriteRoomBtn = $('favoriteRoomTop');
+
+  if (createRoomBtn) {
+    on(createRoomBtn, 'click', () => {
+      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+    });
+  }
+  if (joinRoomBtn) {
+    on(joinRoomBtn, 'click', () => {
+      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+    });
+  }
+  if (browseRoomsBtn) {
+    on(browseRoomsBtn, 'click', () => {
+      alert('房间功能尚未在模块化版本中实现，请使用 guodan_calc.html 版本体验房间功能');
+    });
+  }
+
   // Bulk name input
   const applyBulkNamesBtn = $('applyBulkNames');
   const quickStartBtn = $('quickStart');
@@ -316,6 +364,7 @@ function setupModuleEventHandlers() {
   onEvent('ranking:updated', () => {
     renderPlayerPool();
     renderRankingSlots();
+    attachTouchHandlersToAllTiles();
 
     const mode = parseInt($('mode').value);
     const check = checkAutoCalculate(mode);
@@ -337,6 +386,7 @@ function setupModuleEventHandlers() {
   onEvent('ranking:cleared', () => {
     renderPlayerPool();
     renderRankingSlots();
+    attachTouchHandlersToAllTiles();
 
     const headline = $('headline');
     const explain = $('explain');
@@ -350,18 +400,21 @@ function setupModuleEventHandlers() {
   // Player events
   onEvent('player:generated', () => {
     renderPlayers();
+    attachTouchHandlersToAllTiles();
     const mode = parseInt($('mode').value);
     renderRankingArea(mode);
   });
 
   onEvent('player:teamAssigned', () => {
     renderPlayers();
+    attachTouchHandlersToAllTiles();
     const mode = parseInt($('mode').value);
     renderRankingArea(mode);
   });
 
   onEvent('player:teamsShuffled', () => {
     renderPlayers();
+    attachTouchHandlersToAllTiles();
     const mode = parseInt($('mode').value);
     renderRankingArea(mode);
   });
@@ -389,6 +442,35 @@ function setupModuleEventHandlers() {
 }
 
 /**
+ * Attach touch handlers to all player tiles
+ */
+function attachTouchHandlersToAllTiles() {
+  // Attach to player tiles
+  const playerTiles = document.querySelectorAll('.player-tile');
+  playerTiles.forEach(tile => {
+    const playerData = JSON.parse(tile.dataset.playerData || '{}');
+    if (playerData.id) {
+      const player = getPlayers().find(p => p.id === playerData.id);
+      if (player) {
+        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+      }
+    }
+  });
+
+  // Attach to ranking tiles
+  const rankingTiles = document.querySelectorAll('.ranking-player-tile');
+  rankingTiles.forEach(tile => {
+    const playerId = parseInt(tile.dataset.playerId);
+    if (playerId) {
+      const player = getPlayers().find(p => p.id === playerId);
+      if (player) {
+        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+      }
+    }
+  });
+}
+
+/**
  * Render initial application state
  */
 function renderInitialState() {
@@ -405,6 +487,9 @@ function renderInitialState() {
   } else {
     renderPlayers();
   }
+
+  // Attach touch handlers after rendering
+  attachTouchHandlersToAllTiles();
 
   // Setup drop zones
   setupDropZones(mode);

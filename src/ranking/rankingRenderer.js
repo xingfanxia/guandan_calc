@@ -200,7 +200,17 @@ function createRankingPlayerTile(player) {
   tile.appendChild(emoji);
   tile.appendChild(name);
 
-  // Note: Drag event handlers will be added by touch/dragDrop modules
+  // Desktop drag events
+  tile.ondragstart = (e) => {
+    emit('drag:started', { player });
+    tile.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  tile.ondragend = () => {
+    tile.classList.remove('dragging');
+    emit('drag:ended');
+  };
 
   return tile;
 }

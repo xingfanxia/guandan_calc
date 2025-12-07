@@ -130,7 +130,27 @@ export function createPlayerTile(player, onDragStart, onDragEnd) {
     if (onDragEnd) onDragEnd();
   };
 
+  // Touch events for mobile - import dynamically to avoid circular dependency
+  // These will be attached by the touch handler module
+  tile.dataset.attachTouchHandlers = 'true';
+  tile.dataset.playerData = JSON.stringify({ id: player.id });
+
   return tile;
+}
+
+/**
+ * Attach touch handlers to a tile
+ * @param {HTMLElement} tile - Tile element
+ * @param {Object} player - Player data
+ * @param {Function} handleTouchStart - Touch start handler
+ * @param {Function} handleTouchMove - Touch move handler
+ * @param {Function} handleTouchEnd - Touch end handler
+ */
+export function attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd) {
+  tile.addEventListener('touchstart', (e) => handleTouchStart(e, player), { passive: false });
+  tile.addEventListener('touchmove', handleTouchMove, { passive: false });
+  tile.addEventListener('touchend', handleTouchEnd, { passive: false });
+  tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 }
 
 /**

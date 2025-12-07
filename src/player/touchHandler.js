@@ -5,6 +5,9 @@
  */
 
 import { getDraggedPlayer, setDraggedPlayer } from './playerRenderer.js';
+import { assignPlayerToTeam } from './playerManager.js';
+import { handleRankDrop, handlePoolDrop } from './dragDrop.js';
+import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
 // Touch drag state
@@ -152,13 +155,28 @@ export function handleTouchEnd(e) {
     const teamZone = elementBelow.closest('.team-drop-zone');
 
     if (rankSlot) {
+      // Handle rank drop
+      const currentRanking = state.getCurrentRanking();
+      const newRanking = handleRankDrop(rankSlot, player, currentRanking);
+      state.setCurrentRanking(newRanking);
       dropTarget = { type: 'rank', element: rankSlot, player };
     } else if (pool) {
+      // Handle pool drop
+      const currentRanking = state.getCurrentRanking();
+      const newRanking = handlePoolDrop(player, currentRanking);
+      state.setCurrentRanking(newRanking);
       dropTarget = { type: 'pool', element: pool, player };
     } else if (unassignedZone) {
+      // Move to unassigned
+      assignPlayerToTeam(player.id, null);
       dropTarget = { type: 'unassigned', element: unassignedZone, player };
     } else if (teamZone) {
-      dropTarget = { type: 'team', element: teamZone, player };
+      // Assign to team
+      const team = parseInt(teamZone.dataset.team);
+      if (team) {
+        assignPlayerToTeam(player.id, team);
+        dropTarget = { type: 'team', element: teamZone, player };
+      }
     }
   }
 
