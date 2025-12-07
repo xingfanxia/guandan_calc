@@ -9,6 +9,9 @@ import state from '../core/state.js';
 import { $ } from '../core/utils.js';
 import { emit, on as onEvent } from '../core/events.js';
 
+// Track if voting has been unlocked (prevent re-locking on refresh)
+let votingUnlocked = false;
+
 /**
  * Submit end-game votes (both MVP and burden together)
  * @param {number} mvpPlayerId - MVP player ID
@@ -196,6 +199,13 @@ export function unlockViewerVoting() {
   const roomInfo = getRoomInfo();
   if (!roomInfo.isViewer) return;
 
+  // Already unlocked, don't recreate
+  if (votingUnlocked) {
+    console.log('Voting already unlocked, skipping');
+    return;
+  }
+
+  votingUnlocked = true;
   console.log('Unlocking voting section for viewer');
 
   const votingCard = document.getElementById('viewerVotingCard');
