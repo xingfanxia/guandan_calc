@@ -302,9 +302,9 @@ function startPolling() {
 
   pollInterval = setInterval(async () => {
     await pollForUpdates();
-  }, 5000); // 5 seconds
+  }, 2000); // 2 seconds (faster for better UX)
 
-  console.log('Polling started (5s interval)');
+  console.log('Polling started (2s interval)');
 }
 
 /**

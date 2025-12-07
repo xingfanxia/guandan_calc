@@ -363,6 +363,9 @@ export function unlockViewerVoting() {
         const success = await submitEndGameVotes(selectedMVP, selectedBurden);
 
         if (success) {
+          // Trigger immediate leaderboard update
+          setTimeout(updateVoteLeaderboard, 200);
+
           const status = document.getElementById('viewerVoteStatus');
           const mvpPlayer = players.find(p => p.id === selectedMVP);
           const burdenPlayer = players.find(p => p.id === selectedBurden);
