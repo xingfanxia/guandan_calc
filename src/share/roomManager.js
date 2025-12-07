@@ -154,9 +154,10 @@ export async function joinRoom(roomCode, token = null) {
  * @param {Object} roomData - Room data from API
  */
 function loadRoomData(roomData) {
+  console.log('Loading room data:', roomData);
+
   // Load config
   if (roomData.settings) {
-    // Hydrate config with room settings
     Object.keys(roomData.settings).forEach(key => {
       if (key === 't1' || key === 't2') {
         config.setTeam(key, roomData.settings[key]);
@@ -171,6 +172,7 @@ function loadRoomData(roomData) {
     const s = roomData.state;
 
     if (s.teams) {
+      console.log('Loading teams:', s.teams);
       state.setTeamLevel('t1', s.teams.t1.lvl);
       state.setTeamAFail('t1', s.teams.t1.aFail || 0);
       state.setTeamLevel('t2', s.teams.t2.lvl);
@@ -182,15 +184,17 @@ function loadRoomData(roomData) {
     if (s.nextRoundBase !== undefined) state.setNextRoundBase(s.nextRoundBase);
     if (s.winner) state.setWinner(s.winner);
 
-    // Load history
+    // Load history (DON'T emit historyAdded events to avoid locking panel multiple times)
     if (s.history && Array.isArray(s.history)) {
-      state.clearHistory();
-      s.history.forEach(entry => state.addHistoryEntry(entry));
+      // Directly set history without emitting events for each entry
+      state.history = s.history;
+      state.persist();
     }
   }
 
   // Load players
   if (roomData.players) {
+    console.log('Loading players:', roomData.players);
     state.setPlayers(roomData.players);
   }
 
@@ -201,6 +205,7 @@ function loadRoomData(roomData) {
 
   // Load ranking
   if (roomData.currentRanking) {
+    console.log('Loading ranking:', roomData.currentRanking);
     state.setCurrentRanking(roomData.currentRanking);
   }
 
