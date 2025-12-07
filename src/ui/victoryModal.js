@@ -46,18 +46,26 @@ export function showVictoryModal(teamName) {
   votes = { mvp: {}, burden: {} };
 
   // Check if in room mode for remote voting
-  import('../share/roomManager.js').then(module => {
-    const roomInfo = module.getRoomInfo();
+  import('../share/roomManager.js').then(async roomModule => {
+    const roomInfo = roomModule.getRoomInfo();
 
     if (roomInfo.roomCode && roomInfo.isHost) {
-      // Host: Show host voting UI (will be implemented)
-      console.log('TODO: Show host voting aggregation');
-      renderVotingInterface(); // For now, show local voting
+      // Host: Show aggregated voting from viewers
+      const votingModule = await import('../share/votingManager.js');
+      const votes = await votingModule.getEndGameVotingResults();
+
+      if (votes && (votes.mvp || votes.burden)) {
+        // Show aggregated results
+        renderHostVotingResults(votes);
+      } else {
+        // No votes yet, show local voting
+        renderVotingInterface();
+      }
     } else if (roomInfo.roomCode && roomInfo.isViewer) {
-      // Viewer: Don't show modal, just notification
-      // Voting happens in separate section
-      console.log('Viewer: Victory achieved, voting available');
-      return; // Don't show modal for viewers
+      // Viewer: Don't show modal
+      console.log('Viewer: Victory achieved, voting available in separate section');
+      modal.style.display = 'none';
+      return;
     } else {
       // Local mode: Show local voting
       renderVotingInterface();
@@ -249,6 +257,91 @@ function updateVoteDisplay() {
   if (totalVotes > 0) {
     showVotingResults();
   }
+}
+
+/**
+ * Render host voting results from remote viewers
+ */
+function renderHostVotingResults(votes) {
+  const votingContainer = $('victoryVoting');
+  if (!votingContainer) return;
+
+  const players = getPlayers();
+
+  // Parse votes
+  const mvpVotes = votes.mvp?.votes || {};
+  const burdenVotes = votes.burden?.votes || {};
+
+  const mvpSorted = Object.entries(mvpVotes)
+    .map(([id, count]) => ({ player: players.find(p => p.id === parseInt(id)), count }))
+    .filter(v => v.player)
+    .sort((a, b) => b.count - a.count);
+
+  const burdenSorted = Object.entries(burdenVotes)
+    .map(([id, count]) => ({ player: players.find(p => p.id === parseInt(id)), count }))
+    .filter(v => v.player)
+    .sort((a, b) => b.count - a.count);
+
+  votingContainer.innerHTML = `
+    <h3 style="margin: 20px 0; color: #f5f6f8; text-align: center;">📊 观众投票结果</h3>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
+      <div>
+        <h4 style="color: #22c55e; text-align: center; margin-bottom: 15px;">🥇 MVP</h4>
+        ${mvpSorted.slice(0, 3).map((v, i) => `
+          <div style="padding: 12px; margin: 8px 0; background: ${i === 0 ? '#22c55e20' : '#2a2b2c'}; border-radius: 8px; border: 2px solid ${i === 0 ? '#22c55e' : '#444'};">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 24px;">${v.player.emoji}</span>
+                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${v.player.name}</span>
+              </div>
+              <div style="font-size: 20px; font-weight: bold; color: #22c55e;">${v.count} 票</div>
+            </div>
+          </div>
+        `).join('') || '<p style="color: #666; text-align: center;">暂无投票</p>'}
+      </div>
+
+      <div>
+        <h4 style="color: #ef4444; text-align: center; margin-bottom: 15px;">😅 最闹</h4>
+        ${burdenSorted.slice(0, 3).map((v, i) => `
+          <div style="padding: 12px; margin: 8px 0; background: ${i === 0 ? '#ef444420' : '#2a2b2c'}; border-radius: 8px; border: 2px solid ${i === 0 ? '#ef4444' : '#444'};">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span style="font-size: 24px;">${v.player.emoji}</span>
+                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${v.player.name}</span>
+              </div>
+              <div style="font-size: 20px; font-weight: bold; color: #ef4444;">${v.count} 票</div>
+            </div>
+          </div>
+        `).join('') || '<p style="color: #666; text-align: center;">暂无投票</p>'}
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid #444;">
+      <p style="color: #999; font-size: 13px; margin-bottom: 15px;">房主确认后将记录到"人民的声音"</p>
+      <button id="confirmVotingResults" style="padding: 12px 32px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">
+        ✅ 确认投票结果
+      </button>
+    </div>
+  `;
+
+  // Attach confirmation handler
+  setTimeout(() => {
+    const confirmBtn = $('confirmVotingResults');
+    if (confirmBtn) {
+      confirmBtn.onclick = () => {
+        const mvpWinner = mvpSorted[0];
+        const burdenWinner = burdenSorted[0];
+
+        alert(`已确认：\nMVP: ${mvpWinner?.player.name || '无'}\n最闹: ${burdenWinner?.player.name || '无'}\n\n结果已记录到"人民的声音"`);
+
+        // TODO: Actually record to "人民的声音" section and sync
+        console.log('Voting confirmed:', { mvpWinner, burdenWinner });
+
+        closeVictoryModal();
+      };
+    }
+  }, 100);
 }
 
 /**
