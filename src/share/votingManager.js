@@ -136,7 +136,14 @@ export function showEndGameVotingForViewers() {
   const gameNumber = state.getHistory().length;
 
   const voterInterface = $('voterInterface');
-  if (!voterInterface) return;
+
+  console.log('voterInterface found:', !!voterInterface);
+
+  if (!voterInterface) {
+    console.log('voterInterface not found, using floating UI');
+    createFloatingVotingUI();
+    return;
+  }
 
   voterInterface.innerHTML = `
     <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; color: white;">
