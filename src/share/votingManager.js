@@ -414,8 +414,46 @@ onEvent('game:victoryForVoting', () => {
   const roomInfo = getRoomInfo();
   if (roomInfo.isViewer) {
     showEndGameVotingForViewers();
+  } else if (roomInfo.isHost) {
+    updateVoteLeaderboard();
   }
 });
+
+onEvent('voting:submitted', () => {
+  setTimeout(updateVoteLeaderboard, 500);
+});
+
+async function updateVoteLeaderboard() {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.roomCode) return;
+
+  const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
+  const data = await response.json();
+
+  if (!data.success || !data.votes) return;
+
+  const players = getPlayers();
+  const mvp = Object.entries(data.votes.mvp || {})
+    .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+    .filter(v => v.p)
+    .sort((a, b) => b.count - a.count);
+
+  const burden = Object.entries(data.votes.burden || {})
+    .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+    .filter(v => v.p)
+    .sort((a, b) => b.count - a.count);
+
+  const mvpDiv = document.getElementById('mvpRanking');
+  const burdenDiv = document.getElementById('burdenRanking');
+
+  if (mvpDiv) {
+    mvpDiv.innerHTML = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无';
+  }
+
+  if (burdenDiv) {
+    burdenDiv.innerHTML = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${v.p.emoji}${v.p.name}: <strong>${v.count}票</strong></div>`).join('') || '暂无';
+  }
+}
 
 /**
  * Show host voting interface with results
