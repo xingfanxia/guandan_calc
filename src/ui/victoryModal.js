@@ -113,10 +113,10 @@ function renderVotingInterface() {
     <div id="votingContent">
       <div style="margin-bottom: 25px;">
         <h4 style="color: #22c55e; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
-      <div id="mvpVoting" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
+      <div id="mvpVoting" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
         ${players.map(p => `
           <button class="vote-btn" data-vote-type="mvp" data-player-id="${p.id}" style="
-            padding: 10px;
+            padding: 8px;
             background: #2a2b2c;
             border: 2px solid #444;
             border-radius: 8px;
@@ -138,10 +138,10 @@ function renderVotingInterface() {
 
     <div style="margin-bottom: 15px;">
       <h4 style="color: #ef4444; margin-bottom: 10px;">谁是本场累赘 (最闹)？</h4>
-      <div id="burdenVoting" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
+      <div id="burdenVoting" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
         ${players.map(p => `
           <button class="vote-btn" data-vote-type="burden" data-player-id="${p.id}" style="
-            padding: 10px;
+            padding: 8px;
             background: #2a2b2c;
             border: 2px solid #444;
             border-radius: 8px;
