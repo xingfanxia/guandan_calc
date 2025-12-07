@@ -45,33 +45,16 @@ export function showVictoryModal(teamName) {
   // Clear previous votes
   votes = { mvp: {}, burden: {} };
 
-  // Check if in room mode for remote voting
+  // Check if in room mode
   import('../share/roomManager.js').then(async roomModule => {
     const roomInfo = roomModule.getRoomInfo();
 
-    if (roomInfo.roomCode && roomInfo.isHost) {
-      // Host: Show vote leaderboard (fetch viewer votes)
-      console.log('Host mode: Fetching viewer votes');
-
-      fetch(`/api/rooms/vote/${roomInfo.roomCode}`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.success && data.votes) {
-            renderVoteLeaderboard(data.votes);
-          } else {
-            renderVotingInterface(); // Fallback to local
-          }
-        })
-        .catch(() => renderVotingInterface());
-
-    } else if (roomInfo.roomCode && roomInfo.isViewer) {
+    if (roomInfo.roomCode && roomInfo.isViewer) {
       // Viewer: Don't show modal
       modal.style.display = 'none';
       return;
-    } else {
-      // Local mode: Show local voting
-      renderVotingInterface();
     }
+    // Host and local mode: Just show celebration, no voting interface
   });
 
   // Emit voting event BEFORE checking room mode (so viewers receive it)
