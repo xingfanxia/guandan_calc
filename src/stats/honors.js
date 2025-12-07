@@ -307,6 +307,12 @@ export function renderHonors() {
   const honors = calculateHonors(totalPlayers);
 
   console.log('Calculated honors:', honors);
+  console.log('Honor details:', {
+    eligible: eligible.length,
+    eligibleStable: eligible.filter(p => allStats[p.id].games >= 8).length,
+    eligibleTrend: eligible.filter(p => allStats[p.id].games >= 10).length,
+    minGames: Math.min(...players.map(p => allStats[p.id]?.games || 0).filter(g => g > 0))
+  });
 
   // Update honor elements (match HTML IDs)
   updateHonorDisplay('lyubu', honors.mvp, '🥇 吕布');
