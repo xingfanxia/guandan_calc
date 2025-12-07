@@ -78,10 +78,16 @@ function renderVotingInterface() {
   const players = getPlayers();
 
   votingContainer.innerHTML = `
-    <h3 style="margin: 20px 0 15px 0; color: #f5f6f8;">🏆 投票评选</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 15px 0;">
+      <h3 style="margin: 0; color: #f5f6f8;">🏆 投票评选</h3>
+      <button id="toggleVoting" style="padding: 8px 16px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
+        隐藏投票
+      </button>
+    </div>
 
-    <div style="margin-bottom: 25px;">
-      <h4 style="color: #22c55e; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
+    <div id="votingContent">
+      <div style="margin-bottom: 25px;">
+        <h4 style="color: #22c55e; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
       <div id="mvpVoting" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px;">
         ${players.map(p => `
           <button class="vote-btn" data-vote-type="mvp" data-player-id="${p.id}" style="
@@ -130,11 +136,29 @@ function renderVotingInterface() {
       </div>
     </div>
 
-    <div id="votingResults" style="margin-top: 20px; padding: 15px; background: #1a1b1c; border-radius: 8px; display: none;">
-      <h4>📊 投票结果</h4>
-      <div id="resultsContent"></div>
+      <div id="votingResults" style="margin-top: 20px; padding: 15px; background: #1a1b1c; border-radius: 8px; display: none;">
+        <h4>📊 投票结果</h4>
+        <div id="resultsContent"></div>
+      </div>
     </div>
   `;
+
+  // Add toggle functionality
+  setTimeout(() => {
+    const toggleBtn = document.getElementById('toggleVoting');
+    const votingContent = document.getElementById('votingContent');
+
+    if (toggleBtn && votingContent) {
+      let isVisible = true;
+
+      toggleBtn.onclick = () => {
+        isVisible = !isVisible;
+        votingContent.style.display = isVisible ? 'block' : 'none';
+        toggleBtn.textContent = isVisible ? '隐藏投票' : '显示投票';
+        toggleBtn.style.background = isVisible ? '#666' : '#3b82f6';
+      };
+    }
+  }, 100);
 
   // Attach vote handlers
   attachVoteHandlers();
