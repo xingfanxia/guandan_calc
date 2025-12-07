@@ -217,14 +217,7 @@ function createRankingPlayerTile(player) {
     emit('drag:ended');
   };
 
-  // Mobile touch events - INLINE like original
-  tile.addEventListener('touchstart', function(e) {
-    handleTouchStart(e, player);
-  }, { passive: false });
-
-  tile.addEventListener('touchmove', handleTouchMove, { passive: false });
-  tile.addEventListener('touchend', handleTouchEnd, { passive: false });
-  tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  // Touch handlers will be attached by attachTouchHandlersToAllTiles()
 
   return tile;
 }
