@@ -232,6 +232,30 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
+  // 燃尽王 (Burnout) - Longest consecutive streak in bottom 4
+  let maxBurnout = 0;
+  const bottomThreshold = Math.ceil(totalPlayers * 0.5); // Bottom half
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    let currentStreak = 0;
+    let longestStreak = 0;
+
+    stats.rankings.forEach(rank => {
+      if (rank > bottomThreshold) {
+        currentStreak++;
+        longestStreak = Math.max(longestStreak, currentStreak);
+      } else {
+        currentStreak = 0;
+      }
+    });
+
+    if (longestStreak >= 3 && longestStreak > maxBurnout) {
+      maxBurnout = longestStreak;
+      honors.burnout = { player, score: longestStreak };
+    }
+  });
+
   return honors;
 }
 
@@ -253,6 +277,7 @@ export function renderHonors() {
   updateHonorDisplay('shandianxia', honors.frequent, '闪电侠');
   updateHonorDisplay('liyuwang', honors.carp, '鲤鱼王');
   updateHonorDisplay('buzhanguo', honors.nonstick, '不粘锅');
+  updateHonorDisplay('ranjinwang', honors.burnout, '燃尽王');
 
 /**
  * Update display with click explanation
@@ -299,6 +324,8 @@ function updateHonorDisplay(elementId, honorData, honorName) {
       msg += `🐟 鲤鱼跃龙门: ${honorData.score}次\n从倒数3跳到第1名\n\n惊天逆转！`;
     } else if (elementId === 'buzhanguo') {
       msg += `🍳 从未垫底！\n平均${honorData.score}名\n\n不沾坏运气！`;
+    } else if (elementId === 'ranjinwang') {
+      msg += `🔥 连续${honorData.score}局后半段\n持续低迷\n\n需要充电！`;
     }
 
     el.onclick = () => alert(msg);
