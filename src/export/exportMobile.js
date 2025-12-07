@@ -237,48 +237,64 @@ export function exportMobilePNG() {
 
   currentY += 40;
 
-  // === VIEWER VOTES (read from DOM) ===
+  // === VIEWER VOTES (parse divs properly) ===
   const mvpStatsTable = document.getElementById('mvpStatsTable');
   const burdenStatsTable = document.getElementById('burdenStatsTable');
 
-  if (mvpStatsTable && mvpStatsTable.textContent && !mvpStatsTable.textContent.includes('暂无')) {
-    ctx.font = 'bold 28px Arial';
-    ctx.fillStyle = '#f5f6f8';
-    ctx.fillText('🗳️ 观众投票', 40, currentY);
-    currentY += 40;
+  if (mvpStatsTable && mvpStatsTable.children.length > 0) {
+    const mvpDivs = Array.from(mvpStatsTable.children);
+    const burdenDivs = burdenStatsTable ? Array.from(burdenStatsTable.children) : [];
 
-    // MVP votes (parse from DOM)
-    ctx.font = '18px Arial';
-    ctx.fillStyle = '#22c55e';
-    ctx.fillText('MVP:', 40, currentY);
-    currentY += 30;
+    if (mvpDivs.length > 0 || burdenDivs.length > 0) {
+      ctx.font = 'bold 28px Arial';
+      ctx.fillStyle = '#f5f6f8';
+      ctx.fillText('🗳️ 观众投票', 40, currentY);
+      currentY += 40;
 
-    ctx.font = '14px Arial';
-    ctx.fillStyle = '#b4b8bf';
-    const mvpText = mvpStatsTable.textContent.trim();
-    if (mvpText && mvpText !== '暂无数据') {
-      // Simple display
-      ctx.fillText(mvpText, 60, currentY);
-      currentY += 60;
-    }
+      // MVP votes (parse each div)
+      if (mvpDivs.length > 0) {
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#22c55e';
+        ctx.fillText('MVP:', 40, currentY);
+        currentY += 35;
 
-    // Burden votes
-    if (burdenStatsTable && burdenStatsTable.textContent && !burdenStatsTable.textContent.includes('暂无')) {
-      ctx.font = '18px Arial';
-      ctx.fillStyle = '#ef4444';
-      ctx.fillText('最闹:', 40, currentY);
-      currentY += 30;
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#b4b8bf';
 
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#b4b8bf';
-      const burdenText = burdenStatsTable.textContent.trim();
-      if (burdenText && burdenText !== '暂无数据') {
-        ctx.fillText(burdenText, 60, currentY);
-        currentY += 60;
+        mvpDivs.slice(0, 5).forEach(div => {
+          const text = div.textContent.trim();
+          if (text && text !== '暂无数据') {
+            ctx.fillText(text, 60, currentY);
+            currentY += 28;
+          }
+        });
+
+        currentY += 15;
       }
-    }
 
-    currentY += 20;
+      // Burden votes
+      if (burdenDivs.length > 0) {
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText('最闹:', 40, currentY);
+        currentY += 35;
+
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#b4b8bf';
+
+        burdenDivs.slice(0, 5).forEach(div => {
+          const text = div.textContent.trim();
+          if (text && text !== '暂无数据') {
+            ctx.fillText(text, 60, currentY);
+            currentY += 28;
+          }
+        });
+
+        currentY += 15;
+      }
+
+      currentY += 20;
+    }
   }
 
   // === GAME HISTORY ===
