@@ -219,15 +219,16 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // 不粘锅 (Non-stick) - 0 last places + avg > 5
+  // 不粘锅 (Non-stick) - 0 last places, lowest average (best who never hit bottom)
+  let bestNonstick = Infinity;
+
   eligible.forEach(player => {
     const stats = allStats[player.id];
     const avgRank = stats.totalRank / stats.games;
 
-    if (stats.lastPlaceCount === 0 && avgRank > 5 && stats.games >= 8) {
-      if (!honors.nonstick || avgRank > honors.nonstick.score) {
-        honors.nonstick = { player, score: avgRank.toFixed(2) };
-      }
+    if (stats.lastPlaceCount === 0 && avgRank < bestNonstick && stats.games >= 5) {
+      bestNonstick = avgRank;
+      honors.nonstick = { player, score: avgRank.toFixed(2) };
     }
   });
 
