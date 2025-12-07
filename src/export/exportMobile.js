@@ -141,9 +141,11 @@ export function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  // Read honors from DOM instead of calculating (avoids circular dependency)
-  const honors = null; // Will read from page display
+  // Skip honors section to avoid circular dependency
+  // Honors already visible on page, don't need in mobile PNG
 
+  // SKIP HONORS SECTION
+  /*
   const honorsList = [
     { key: 'mvp', name: '🥇吕布', desc: '最多第一名', color: '#d4af37' },
     { key: 'burden', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
@@ -159,26 +161,10 @@ export function exportMobilePNG() {
     { key: 'fatigue', name: '📉疲劳选手', desc: '后期疲软', color: '#8b008b' }
   ];
 
-  ctx.font = 'bold 22px Arial';
-  honorsList.forEach(honor => {
-    const winner = honors[honor.key];
-    const winnerText = winner ? winner.player.emoji + winner.player.name : '—';
+  */
+  // Honors section skipped
 
-    ctx.fillStyle = honor.color;
-    ctx.fillText(honor.name, 60, currentY);
-
-    ctx.fillStyle = '#f5f6f8';
-    ctx.fillText(winnerText, 200, currentY);
-
-    ctx.fillStyle = '#888';
-    ctx.font = '16px Arial';
-    ctx.fillText(`(${honor.desc})`, 280, currentY);
-
-    ctx.font = 'bold 22px Arial';
-    currentY += 40;
-  });
-
-  currentY += 60;
+  currentY += 20;
 
   // === PLAYER STATS ===
   ctx.font = 'bold 28px Arial';
