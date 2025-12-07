@@ -349,9 +349,9 @@ function setupEventListeners() {
   if (quickStartBtn) {
     on(quickStartBtn, 'click', () => {
       const mode = parseInt($('mode').value);
-      const quickNames = mode === 4 ? '超 豪 姐 哥' :
-                          mode === 6 ? '超 豪 姐 哥 帆 夫' :
-                          '超 豪 姐 哥 帆 夫 塔 小';
+      const quickNames = mode === 4 ? '豪 小 大 姐' :
+                          mode === 6 ? '豪 小 大 姐 夫 塔' :
+                          '豪 小 大 姐 夫 塔 帆 鱼';
 
       const success = applyBulkNames(quickNames);
       if (success) {
