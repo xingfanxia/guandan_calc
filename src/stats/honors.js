@@ -200,16 +200,15 @@ export function renderHonors() {
 
   console.log('Calculated honors:', honors);
 
-  // Update honor elements
+  // Update honor elements (match HTML IDs)
   updateHonorDisplay('lyubu', honors.mvp, '🥇 MVP王');
   updateHonorDisplay('adou', honors.burden, '😅 拖油瓶');
   updateHonorDisplay('shifo', honors.stable, '🗿 稳如泰山');
-  updateHonorDisplay('bodong', honors.rollercoaster, '🌊 过山车');
-  updateHonorDisplay('fendou', honors.comeback, '📈 逆袭王');
-  updateHonorDisplay('pilao', honors.fatigue, '📉 疲劳选手');
-  // teamPillar and clutch placeholders
-  updateHonorDisplay('fuzhu', null, '🛡️ 团队之光');
-  updateHonorDisplay('guanjian', null, '🎯 关键先生');
+  updateHonorDisplay('bodongwang', honors.rollercoaster, '🌊 过山车');
+  updateHonorDisplay('fendouwang', honors.comeback, '📈 逆袭王');
+  updateHonorDisplay('pilaowang', honors.fatigue, '📉 疲劳选手');
+  updateHonorDisplay('fuzhuwang', null, '🛡️ 团队之光');
+  updateHonorDisplay('guanjianxiansheng', null, '🎯 关键先生');
 }
 
 /**

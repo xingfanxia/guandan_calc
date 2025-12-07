@@ -9,6 +9,7 @@ import { getPlayers, getPlayerById, getPlayersByTeam } from '../player/playerMan
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { emit } from '../core/events.js';
+import { renderHonors } from './honors.js';
 
 /**
  * Update player statistics from current ranking
@@ -61,11 +62,7 @@ export function updatePlayerStats(mode) {
 export function renderStatistics() {
   renderPlayerStatsTable();
   renderTeamMVPBurden();
-
-  // Also render honors
-  import('./honors.js').then(module => {
-    module.renderHonors();
-  });
+  renderHonors(); // Direct import, not dynamic
 }
 
 /**
