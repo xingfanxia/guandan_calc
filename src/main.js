@@ -398,12 +398,16 @@ function setupEventListeners() {
   const save4Btn = $('save4');
   const save6Btn = $('save6');
   const save8Btn = $('save8');
+  const reset4Btn = $('reset4');
+  const reset6Btn = $('reset6');
+  const reset8Btn = $('reset8');
 
   if (save4Btn) {
     on(save4Btn, 'click', () => {
       config.collectAndSaveRulesFromDOM('4');
       updateRuleHint('4');
       refreshPreviewOnly();
+      alert('4人规则已保存到本地浏览器');
     });
   }
 
@@ -412,6 +416,7 @@ function setupEventListeners() {
       config.collectAndSaveRulesFromDOM('6');
       updateRuleHint('6');
       refreshPreviewOnly();
+      alert('6人规则已保存到本地浏览器');
     });
   }
 
@@ -420,6 +425,40 @@ function setupEventListeners() {
       config.collectAndSaveRulesFromDOM('8');
       updateRuleHint('8');
       refreshPreviewOnly();
+      alert('8人规则已保存到本地浏览器');
+    });
+  }
+
+  if (reset4Btn) {
+    on(reset4Btn, 'click', () => {
+      if (confirm('恢复4人规则到默认值？')) {
+        config.resetModeToDefaults('4');
+        updateRuleHint('4');
+        refreshPreviewOnly();
+        alert('4人规则已恢复默认');
+      }
+    });
+  }
+
+  if (reset6Btn) {
+    on(reset6Btn, 'click', () => {
+      if (confirm('恢复6人规则到默认值？')) {
+        config.resetModeToDefaults('6');
+        updateRuleHint('6');
+        refreshPreviewOnly();
+        alert('6人规则已恢复默认');
+      }
+    });
+  }
+
+  if (reset8Btn) {
+    on(reset8Btn, 'click', () => {
+      if (confirm('恢复8人规则到默认值？')) {
+        config.resetModeToDefaults('8');
+        updateRuleHint('8');
+        refreshPreviewOnly();
+        alert('8人规则已恢复默认');
+      }
     });
   }
 

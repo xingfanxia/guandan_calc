@@ -290,6 +290,70 @@ class GameConfig {
   }
 
   /**
+   * Reset specific mode rules to defaults
+   * @param {string} mode - Game mode ('4', '6', or '8')
+   */
+  resetModeToDefaults(mode) {
+    if (mode === '4') {
+      this.config.c4 = { '1,2': 3, '1,3': 2, '1,4': 1 };
+    } else if (mode === '6') {
+      this.config.t6 = { g3: 7, g2: 4, g1: 1 };
+      this.config.p6 = { 1: 5, 2: 4, 3: 3, 4: 3, 5: 1, 6: 0 };
+    } else if (mode === '8') {
+      this.config.t8 = { g3: 11, g2: 6, g1: 1 };
+      this.config.p8 = { 1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 0 };
+    }
+
+    this.persist();
+    emit('config:rulesReset', { mode });
+
+    // Update DOM inputs to show defaults
+    this.updateDOMInputsFromConfig(mode);
+  }
+
+  /**
+   * Update DOM inputs from current config
+   * @param {string} mode - Game mode ('4', '6', or '8')
+   */
+  updateDOMInputsFromConfig(mode) {
+    if (mode === '4') {
+      const c4_12 = document.getElementById('c4_12');
+      const c4_13 = document.getElementById('c4_13');
+      const c4_14 = document.getElementById('c4_14');
+
+      if (c4_12) c4_12.value = this.config.c4['1,2'];
+      if (c4_13) c4_13.value = this.config.c4['1,3'];
+      if (c4_14) c4_14.value = this.config.c4['1,4'];
+    } else if (mode === '6') {
+      const t6_3 = document.getElementById('t6_3');
+      const t6_2 = document.getElementById('t6_2');
+      const t6_1 = document.getElementById('t6_1');
+
+      if (t6_3) t6_3.value = this.config.t6.g3;
+      if (t6_2) t6_2.value = this.config.t6.g2;
+      if (t6_1) t6_1.value = this.config.t6.g1;
+
+      for (let i = 1; i <= 6; i++) {
+        const input = document.getElementById(`p6_${i}`);
+        if (input) input.value = this.config.p6[i];
+      }
+    } else if (mode === '8') {
+      const t8_3 = document.getElementById('t8_3');
+      const t8_2 = document.getElementById('t8_2');
+      const t8_1 = document.getElementById('t8_1');
+
+      if (t8_3) t8_3.value = this.config.t8.g3;
+      if (t8_2) t8_2.value = this.config.t8.g2;
+      if (t8_1) t8_1.value = this.config.t8.g1;
+
+      for (let i = 1; i <= 8; i++) {
+        const input = document.getElementById(`p8_${i}`);
+        if (input) input.value = this.config.p8[i];
+      }
+    }
+  }
+
+  /**
    * Collect and save custom rules from DOM inputs
    * @param {string} mode - Game mode ('4', '6', or '8')
    */
