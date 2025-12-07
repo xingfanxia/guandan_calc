@@ -45,12 +45,29 @@ export function showVictoryModal(teamName) {
   // Clear previous votes
   votes = { mvp: {}, burden: {} };
 
-  // Render voting interface
-  renderVotingInterface();
+  // Check if in room mode for remote voting
+  import('../share/roomManager.js').then(module => {
+    const roomInfo = module.getRoomInfo();
+
+    if (roomInfo.roomCode && roomInfo.isHost) {
+      // Host: Show host voting UI (will be implemented)
+      console.log('TODO: Show host voting aggregation');
+      renderVotingInterface(); // For now, show local voting
+    } else if (roomInfo.roomCode && roomInfo.isViewer) {
+      // Viewer: Don't show modal, just notification
+      // Voting happens in separate section
+      console.log('Viewer: Victory achieved, voting available');
+      return; // Don't show modal for viewers
+    } else {
+      // Local mode: Show local voting
+      renderVotingInterface();
+    }
+  });
 
   modal.style.display = 'flex';
 
   emit('ui:victoryModalShown', { teamName });
+  emit('game:victoryForVoting', { teamName }); // Signal for remote voting
 }
 
 /**
