@@ -7,17 +7,18 @@ import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
 
 /**
- * Calculate standard deviation
+ * Calculate variance (not std dev - this is variance!)
  */
-function stdDev(arr) {
-  if (!arr || arr.length === 0) return 0;
+function calculateVariance(rankings) {
+  if (!rankings || rankings.length === 0) return 0;
 
-  const mean = arr.reduce((sum, val) => sum + val, 0) / arr.length;
-  const squareDiffs = arr.map(val => Math.pow(val - mean, 2));
-  const avgSquareDiff = squareDiffs.reduce((sum, val) => sum + val, 0) / arr.length;
-
-  return Math.sqrt(avgSquareDiff);
+  const mean = rankings.reduce((sum, val) => sum + val, 0) / rankings.length;
+  const squareDiffs = rankings.map(val => Math.pow(val - mean, 2));
+  return squareDiffs.reduce((sum, val) => sum + val, 0) / rankings.length;
 }
+
+// Alias for compatibility
+const stdDev = calculateVariance;
 
 /**
  * Calculate MVP score (weighted performance)
