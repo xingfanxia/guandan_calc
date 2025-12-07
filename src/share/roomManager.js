@@ -155,6 +155,8 @@ export async function joinRoom(roomCode, token = null) {
  * @param {Object} roomData - Room data from API
  */
 function loadRoomData(roomData) {
+  const loadStart = performance.now();
+  console.log(`[${new Date().toISOString()}] 🔄 Loading room data...`);
 
   // Load config
   if (roomData.settings) {
@@ -190,12 +192,22 @@ function loadRoomData(roomData) {
       // Check if latest history entry is an A-level victory
       if (s.history.length > 0) {
         const latestGame = s.history[s.history.length - 1];
+        console.log(`📊 Game state - Teams: t1=${s.teams.t1.lvl}, t2=${s.teams.t2.lvl}, Round: ${s.roundLevel}`);
+        console.log(`📜 Latest game aNote:`, latestGame.aNote);
 
         // Check if this is an A-level victory (aNote contains "通关")
         if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+          console.log(`🎉 A-LEVEL VICTORY DETECTED! Emitting game:victoryForVoting`);
           emit('game:victoryForVoting', { teamName: latestGame.win });
+        } else {
+          console.log(`⏸️ No victory yet (aNote doesn't contain "通关")`);
         }
       }
+    }
+  }
+
+  const loadTime = performance.now() - loadStart;
+  console.log(`✅ Room data loaded in ${loadTime.toFixed(2)}ms`);
     }
   }
 
@@ -347,13 +359,18 @@ async function pollForUpdates() {
     lastKnownUpdate = newUpdate;
 
     if (hasChanged) {
+      console.log(`🔄 Room update detected - lastUpdated changed from ${lastKnownUpdate} to ${newUpdate}`);
       loadRoomData(roomData);
 
       // Use requestAnimationFrame to avoid blocking polling
       requestAnimationFrame(() => {
+        const uiStart = performance.now();
         emit('room:updated', { roomData });
         showUpdateNotification();
+        console.log(`🎨 UI refresh took ${(performance.now() - uiStart).toFixed(2)}ms`);
       });
+    } else {
+      console.log(`⏭️ No change (timestamp same: ${newUpdate})`);
     }
   } catch (error) {
     console.error('Error polling room:', error);

@@ -200,14 +200,21 @@ export function initializeViewerVotingSection() {
  * Unlock voting section for viewers (called when game ends)
  */
 export function unlockViewerVoting() {
-  const roomInfo = getRoomInfo();
-  if (!roomInfo.isViewer) return;
+  console.log(`[${new Date().toISOString()}] 🔓 unlockViewerVoting called`);
 
-  // Already unlocked, don't recreate
-  if (votingUnlocked) {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.isViewer) {
+    console.log('❌ Not viewer, skipping unlock');
     return;
   }
 
+  // Already unlocked, don't recreate
+  if (votingUnlocked) {
+    console.log('⏭️ Already unlocked, skipping');
+    return;
+  }
+
+  console.log('✅ UNLOCKING VOTING CARD NOW!');
   votingUnlocked = true;
 
   const votingCard = document.getElementById('viewerVotingCard');
