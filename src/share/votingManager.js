@@ -377,41 +377,6 @@ function createFloatingVotingUI() {
     };
   });
 }
-    const closeBtn = document.getElementById('closeFloatingVoting');
-    if (closeBtn) {
-      closeBtn.onclick = () => {
-        float.remove();
-        votingUIShown = false; // Allow showing again
-      };
-    }
-
-    const mvpBtns = float.querySelectorAll('.vote-mvp');
-    mvpBtns.forEach(btn => {
-      btn.onclick = async () => {
-        const playerId = parseInt(btn.dataset.playerId);
-        const success = await submitEndGameVote('mvp', playerId);
-        if (success) {
-          const status = document.getElementById('floatVoteStatus');
-          const player = players.find(p => p.id === playerId);
-          if (status) status.innerHTML = `✅ 已投 MVP: ${player.emoji}${player.name}`;
-        }
-      };
-    });
-
-    const burdenBtns = float.querySelectorAll('.vote-burden');
-    burdenBtns.forEach(btn => {
-      btn.onclick = async () => {
-        const playerId = parseInt(btn.dataset.playerId);
-        const success = await submitEndGameVote('burden', playerId);
-        if (success) {
-          const status = document.getElementById('floatVoteStatus');
-          const player = players.find(p => p.id === playerId);
-          if (status) status.innerHTML = `✅ 已投最闹: ${player.emoji}${player.name}`;
-        }
-      };
-    });
-  }, 100);
-}
 
 // Listen for victory event to show viewer voting
 onEvent('game:victoryForVoting', () => {
