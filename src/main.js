@@ -1275,10 +1275,11 @@ function renderInitialState() {
   // Render ranking area
   renderRankingArea(mode);
 
-  // Attach touch handlers AFTER DOM updates (use setTimeout)
+  // Attach touch handlers AFTER DOM fully updates (longer delay for mobile)
   setTimeout(() => {
+    showMobileDebug('⏰ Attaching handlers after 1s delay...');
     attachTouchHandlersToAllTiles();
-  }, 100);
+  }, 1000); // 1 second to ensure DOM is ready on mobile
 
   // Render history and statistics
   renderHistory();
