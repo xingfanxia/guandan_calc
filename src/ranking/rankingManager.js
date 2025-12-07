@@ -58,10 +58,13 @@ export function isRankingComplete(mode) {
 
   let filledCount = 0;
   for (let i = 1; i <= requiredCount; i++) {
-    if (ranking[i]) {
+    // Check for both truthy value AND explicit undefined check
+    if (ranking[i] !== undefined && ranking[i] !== null) {
       filledCount++;
     }
   }
+
+  console.log('Ranking complete check:', { ranking, filledCount, requiredCount, complete: filledCount === requiredCount });
 
   return filledCount === requiredCount;
 }
@@ -77,10 +80,14 @@ export function getRankingProgress(mode) {
 
   let filled = 0;
   for (let i = 1; i <= total; i++) {
-    if (ranking[i]) {
+    // Check for both truthy value AND explicit undefined check
+    // because playerId might be 0 (though it shouldn't be)
+    if (ranking[i] !== undefined && ranking[i] !== null) {
       filled++;
     }
   }
+
+  console.log('Ranking progress check:', { ranking, filled, total });
 
   return { filled, total };
 }
