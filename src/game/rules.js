@@ -138,8 +138,6 @@ export function checkALevelRules(winnerKey, ranks, mode) {
  * @returns {{applied: boolean, finalWin: boolean, historyEntry: Object}}
  */
 export function applyGameResult(calcResult, winnerKey, playerRankingData) {
-  console.log('applyGameResult called with:', { calcResult, winnerKey, playerRankingData });
-
   if (!calcResult || calcResult.upgrade === undefined) {
     console.error('Invalid calc result:', calcResult);
     return { applied: false };

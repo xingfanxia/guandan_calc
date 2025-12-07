@@ -78,12 +78,8 @@ function createRankSlot(rank) {
 
     const player = getDraggedPlayer();
     if (player) {
-      console.log('Rank drop:', { rank, player, currentRanking: getRanking() });
-
       const currentRanking = getRanking();
       const newRanking = handleRankDrop(slot, player, currentRanking);
-
-      console.log('New ranking after drop:', newRanking);
 
       state.setCurrentRanking(newRanking);
 
@@ -120,12 +116,8 @@ export function renderPlayerPool() {
 
     const player = getDraggedPlayer();
     if (player) {
-      console.log('Pool drop:', { player, currentRanking: getRanking() });
-
       const currentRanking = getRanking();
       const newRanking = handlePoolDrop(player, currentRanking);
-
-      console.log('New ranking after pool drop:', newRanking);
 
       state.setCurrentRanking(newRanking);
 

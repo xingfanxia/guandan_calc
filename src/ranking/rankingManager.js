@@ -64,8 +64,6 @@ export function isRankingComplete(mode) {
     }
   }
 
-  console.log('Ranking complete check:', { ranking, filledCount, requiredCount, complete: filledCount === requiredCount });
-
   return filledCount === requiredCount;
 }
 
@@ -87,8 +85,6 @@ export function getRankingProgress(mode) {
     }
   }
 
-  console.log('Ranking progress check:', { ranking, filled, total });
-
   return { filled, total };
 }
 
@@ -98,8 +94,6 @@ export function getRankingProgress(mode) {
  * @param {number} mode - Game mode
  */
 export function randomizeRanking(playerIds, mode) {
-  console.log('randomizeRanking called:', { playerIds, mode });
-
   const num = parseInt(mode);
 
   // Fisher-Yates shuffle
@@ -114,8 +108,6 @@ export function randomizeRanking(playerIds, mode) {
   for (let rank = 1; rank <= num; rank++) {
     newRanking[rank] = shuffled[rank - 1];
   }
-
-  console.log('New randomized ranking:', newRanking);
 
   state.setCurrentRanking(newRanking);
   emit('ranking:randomized', { ranking: newRanking });

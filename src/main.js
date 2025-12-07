@@ -57,33 +57,21 @@ import { exportTXT, exportCSV, exportLongPNG } from './export/exportHandlers.js'
  */
 function init() {
   console.log('🎮 Guandan Calculator v9.0 - Modular Edition');
-  console.log('DOM ready state:', document.readyState);
 
   try {
     // Hydrate state and config from localStorage
-    console.log('Hydrating state and config...');
     state.hydrate();
     config.hydrate();
-    console.log('✅ State and config hydrated');
 
     // Setup UI
-    console.log('Initializing UI...');
     initializeUI();
-    console.log('✅ UI initialized');
 
     // Setup event handlers
-    console.log('Setting up event listeners...');
     setupEventListeners();
-    console.log('✅ Event listeners set up');
-
-    console.log('Setting up module event handlers...');
     setupModuleEventHandlers();
-    console.log('✅ Module event handlers set up');
 
     // Initial render
-    console.log('Rendering initial state...');
     renderInitialState();
-    console.log('✅ Initial state rendered');
 
     console.log('✅ Application initialized successfully');
   } catch (error) {
@@ -256,8 +244,6 @@ function setupEventListeners() {
 
   if (randomRankingBtn) {
     on(randomRankingBtn, 'click', () => {
-      console.log('Random ranking button clicked');
-
       if (!areAllPlayersAssigned()) {
         alert('请先分配所有玩家到队伍');
         return;
@@ -267,7 +253,6 @@ function setupEventListeners() {
       const players = getPlayers();
       const playerIds = players.map(p => p.id);
 
-      console.log('Calling randomizeRanking with:', { playerIds, mode });
       randomizeRanking(playerIds, mode);
     });
   }
