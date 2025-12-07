@@ -10,7 +10,7 @@ import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { now } from '../core/utils.js';
 import { calculateHonors } from '../stats/honors.js';
 
-export function exportMobilePNG() {
+export async function exportMobilePNG() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
