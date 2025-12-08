@@ -256,6 +256,20 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
+  // 棋差一着 (Almost There) - Best average rank among those who never got 1st place
+  let bestAlmost = Infinity;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    const avgRank = stats.totalRank / stats.games;
+
+    // Must have 0 first places and at least 5 games
+    if (stats.firstPlaceCount === 0 && stats.games >= 5 && avgRank < bestAlmost) {
+      bestAlmost = avgRank;
+      honors.almost = { player, score: avgRank.toFixed(2) };
+    }
+  });
+
   return honors;
 }
 
@@ -278,6 +292,7 @@ export function renderHonors() {
   updateHonorDisplay('liyuwang', honors.carp, '鲤鱼王');
   updateHonorDisplay('buzhanguo', honors.nonstick, '不粘锅');
   updateHonorDisplay('ranjinwang', honors.burnout, '燃尽王');
+  updateHonorDisplay('qichayizhao', honors.almost, '棋差一着');
 
 /**
  * Update display with click explanation
@@ -326,6 +341,8 @@ function updateHonorDisplay(elementId, honorData, honorName) {
       msg += `🍳 从未垫底！\n平均${honorData.score}名\n\n不沾坏运气！`;
     } else if (elementId === 'ranjinwang') {
       msg += `🔥 连续${honorData.score}局后半段\n持续低迷\n\n需要充电！`;
+    } else if (elementId === 'qichayizhao') {
+      msg += `🎯 从未拿过第一\n但平均${honorData.score}名\n\n差一点就登顶！`;
     }
 
     el.onclick = () => alert(msg);
