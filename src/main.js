@@ -1186,20 +1186,41 @@ function unlockTeamAssignmentPanel() {
 }
 
 /**
- * Attach touch handlers to all player tiles
- * Note: Ranking tiles now have touch handlers attached inline in createRankingPlayerTile
- * to fix iOS Safari mobile touch issues. This function handles player tiles only.
+ * Attach touch handlers to all player and ranking tiles
+ * Uses a data attribute to prevent double-attachment
  */
 function attachTouchHandlersToAllTiles() {
   // Attach to player tiles (team assignment area)
   const playerTiles = document.querySelectorAll('.player-tile');
 
   playerTiles.forEach(tile => {
+    // Skip if already has handlers attached
+    if (tile.dataset.touchHandlersAttached === 'true') return;
+
     const playerData = JSON.parse(tile.dataset.playerData || '{}');
     if (playerData.id) {
       const player = getPlayers().find(p => p.id === playerData.id);
       if (player) {
         attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+        tile.dataset.touchHandlersAttached = 'true';
+      }
+    }
+  });
+
+  // Attach to ranking tiles (ranking area)
+  // This is needed because iOS WebKit has issues with inline handlers in some cases
+  const rankingTiles = document.querySelectorAll('.ranking-player-tile');
+
+  rankingTiles.forEach(tile => {
+    // Skip if already has handlers attached
+    if (tile.dataset.touchHandlersAttached === 'true') return;
+
+    const playerId = parseInt(tile.dataset.playerId);
+    if (playerId) {
+      const player = getPlayers().find(p => p.id === playerId);
+      if (player) {
+        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+        tile.dataset.touchHandlersAttached = 'true';
       }
     }
   });
@@ -1223,14 +1244,14 @@ function renderInitialState() {
     renderPlayers();
   }
 
-  // Attach touch handlers after rendering
-  attachTouchHandlersToAllTiles();
-
   // Setup drop zones
   setupDropZones(mode);
 
-  // Render ranking area (ranking tiles now have inline touch handlers)
+  // Render ranking area
   renderRankingArea(mode);
+
+  // Attach touch handlers AFTER all tiles are rendered (critical for iOS)
+  attachTouchHandlersToAllTiles();
 
   // Render history and statistics
   renderHistory();
