@@ -270,6 +270,31 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
+  // 赌徒 (Gambler) - High first rate + high last rate (risky player)
+  let maxGamblerScore = 0;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+
+    // Must have at least 1 first AND 1 last place to be a "gambler"
+    if (stats.firstPlaceCount > 0 && stats.lastPlaceCount > 0) {
+      const firstRate = stats.firstPlaceCount / stats.games;
+      const lastRate = stats.lastPlaceCount / stats.games;
+
+      // Gambler score: rewards having BOTH extremes
+      // Use geometric mean to require balance of both
+      const gamblerScore = Math.sqrt(firstRate * lastRate) * (stats.firstPlaceCount + stats.lastPlaceCount);
+
+      if (gamblerScore > maxGamblerScore) {
+        maxGamblerScore = gamblerScore;
+        honors.gambler = {
+          player,
+          score: `${stats.firstPlaceCount}冠${stats.lastPlaceCount}末`
+        };
+      }
+    }
+  });
+
   return honors;
 }
 
@@ -293,6 +318,7 @@ export function renderHonors() {
   updateHonorDisplay('buzhanguo', honors.nonstick, '不粘锅');
   updateHonorDisplay('ranjinwang', honors.burnout, '燃尽王');
   updateHonorDisplay('qichayizhao', honors.almost, '棋差一着');
+  updateHonorDisplay('dutu', honors.gambler, '赌徒');
 
 /**
  * Update display with click explanation
@@ -343,6 +369,8 @@ function updateHonorDisplay(elementId, honorData, honorName) {
       msg += `🔥 连续${honorData.score}局后半段\n持续低迷\n\n需要充电！`;
     } else if (elementId === 'qichayizhao') {
       msg += `🎯 从未拿过第一\n但平均${honorData.score}名\n\n差一点就登顶！`;
+    } else if (elementId === 'dutu') {
+      msg += `🎲 ${honorData.score}\n大起大落的高风险玩家\n\n要么第一，要么垫底！`;
     }
 
     el.onclick = () => alert(msg);
