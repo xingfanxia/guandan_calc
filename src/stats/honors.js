@@ -295,6 +295,20 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
+  // 🤡 (Clown) - Worst average rank among those who never got 1st place
+  let worstClown = 0;
+
+  eligible.forEach(player => {
+    const stats = allStats[player.id];
+    const avgRank = stats.totalRank / stats.games;
+
+    // Must have 0 first places and at least 5 games, find WORST (highest) average
+    if (stats.firstPlaceCount === 0 && stats.games >= 5 && avgRank > worstClown) {
+      worstClown = avgRank;
+      honors.clown = { player, score: avgRank.toFixed(2) };
+    }
+  });
+
   return honors;
 }
 
@@ -319,6 +333,7 @@ export function renderHonors() {
   updateHonorDisplay('ranjinwang', honors.burnout, '燃尽王');
   updateHonorDisplay('qichayizhao', honors.almost, '棋差一着');
   updateHonorDisplay('dutu', honors.gambler, '赌徒');
+  updateHonorDisplay('xiaochou', honors.clown, '🤡');
 
 /**
  * Update display with click explanation
@@ -371,6 +386,8 @@ function updateHonorDisplay(elementId, honorData, honorName) {
       msg += `🎯 从未拿过第一\n但平均${honorData.score}名\n\n差一点就登顶！`;
     } else if (elementId === 'dutu') {
       msg += `🎲 ${honorData.score}\n大起大落的高风险玩家\n\n要么第一，要么垫底！`;
+    } else if (elementId === 'xiaochou') {
+      msg += `🤡 从未拿过第一\n平均${honorData.score}名（最差）\n\n继续努力！`;
     }
 
     el.onclick = () => alert(msg);
