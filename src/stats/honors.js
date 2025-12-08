@@ -49,22 +49,38 @@ export function calculateHonors(totalPlayers = 8) {
 
   if (eligible.length === 0) return honors;
 
-  // Simple honors
-  let maxFirst = 0, maxLast = 0;
+  // Simple honors with tie-breakers
+  let maxFirst = 0, mvpAvgRank = Infinity;
+  let maxLast = 0, burdenAvgRank = 0;
 
   eligible.forEach(player => {
     const stats = allStats[player.id];
+    const avgRank = stats.totalRank / stats.games;
 
-    // 吕布
+    // 吕布 - most first places, tie-breaker: lower avg rank (better)
     if (stats.firstPlaceCount > maxFirst) {
       maxFirst = stats.firstPlaceCount;
+      mvpAvgRank = avgRank;
       honors.mvp = { player, score: stats.firstPlaceCount };
+    } else if (stats.firstPlaceCount === maxFirst && stats.firstPlaceCount > 0) {
+      // Tie-breaker: lower average rank wins
+      if (avgRank < mvpAvgRank) {
+        mvpAvgRank = avgRank;
+        honors.mvp = { player, score: stats.firstPlaceCount };
+      }
     }
 
-    // 阿斗
+    // 阿斗 - most last places, tie-breaker: higher avg rank (worse)
     if (stats.lastPlaceCount > maxLast) {
       maxLast = stats.lastPlaceCount;
+      burdenAvgRank = avgRank;
       honors.burden = { player, score: stats.lastPlaceCount };
+    } else if (stats.lastPlaceCount === maxLast && stats.lastPlaceCount > 0) {
+      // Tie-breaker: higher average rank wins (is worse)
+      if (avgRank > burdenAvgRank) {
+        burdenAvgRank = avgRank;
+        honors.burden = { player, score: stats.lastPlaceCount };
+      }
     }
   });
 
