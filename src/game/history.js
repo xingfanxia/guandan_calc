@@ -33,8 +33,15 @@ export function renderHistory() {
     const winColor = entry.winKey === 't1' ? t1Color : t2Color;
     tr.style.background = `linear-gradient(90deg, ${winColor}10, transparent)`;
 
-    // Upgrade display
-    const upgradeText = entry.up ? `${entry.win} 升${entry.up}级` : '不升级';
+    // Upgrade display - show "X队获胜" for A-level wins (通关)
+    let upgradeText;
+    if (entry.up) {
+      upgradeText = `${entry.win} 升${entry.up}级`;
+    } else if (entry.aNote && entry.aNote.includes('通关')) {
+      upgradeText = `${entry.win}获胜`;
+    } else {
+      upgradeText = '不升级';
+    }
 
     // Build player ranking display if available
     let rankingDisplay = '';

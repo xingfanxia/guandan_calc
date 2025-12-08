@@ -552,8 +552,17 @@ function setupModuleEventHandlers() {
           const mode = result.calcResult.mode;
           const ranks = result.ranks;
           const upgrade = result.calcResult.upgrade;
-          const roundLevel = state.getRoundLevel();
-          const upgradeLabel = upgrade > 0 ? `${winnerName} 升 ${upgrade} 级` : '不升级';
+          const winnerLevel = state.getTeamLevel(result.winner);
+
+          // Show "X队获胜" when winning at A-level (通关)
+          let upgradeLabel;
+          if (upgrade > 0) {
+            upgradeLabel = `${winnerName} 升 ${upgrade} 级`;
+          } else if (winnerLevel === 'A') {
+            upgradeLabel = `${winnerName}获胜`;
+          } else {
+            upgradeLabel = '不升级';
+          }
 
           headline.textContent = `${mode}人：(${ranks.join(',')}) → ${upgradeLabel}`;
         }

@@ -327,7 +327,7 @@ export function exportMobilePNG() {
     ctx.font = '14px Arial';
     ctx.fillText(h.combo || '', 100, currentY);
 
-    const upgradeText = h.up ? `${h.win}升${h.up}级` : '不升级';
+    const upgradeText = h.up ? `${h.win}升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
     ctx.fillText(upgradeText, 220, currentY);
 
     ctx.fillStyle = winColor;

@@ -60,7 +60,7 @@ export function exportTXT() {
       playerRankStr = rankParts.join(' ');
     }
 
-    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : '不升级';
+    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
     lines.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote].join(' | '));
   });
 
@@ -99,7 +99,7 @@ export function exportCSV() {
       playerRankStr = rankParts.join(' ');
     }
 
-    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : '不升级';
+    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
     rows.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote, strictA ? '严格' : '宽松']);
   });
 
