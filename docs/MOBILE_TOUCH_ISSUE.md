@@ -163,38 +163,30 @@ Not ideal but functional.
 
 ## RESOLUTION
 
-**Root Cause**: All iOS browsers (Safari, Chrome, Firefox, etc.) use Apple's WebKit engine under the hood - Apple mandates this for all browsers on iOS. WebKit requires touch event handlers to be attached **INLINE** when the DOM element is created, not dynamically added later via `addEventListener()`.
+**Root Cause**: `attachTouchHandlersToAllTiles()` was called BEFORE `renderRankingArea()` which creates the ranking tiles. So touch handlers were being attached to elements that didn't exist yet!
 
-**The Key Difference**:
-
-**Original app.js (WORKS)** - Touch handlers attached inline in `createRankingPlayerTile()`:
-```javascript
-tile.addEventListener('touchstart', function(e) {
-  handleTouchStart(e, player);
-}, { passive: false });
-```
-
-**Modular version (DIDN'T WORK)** - Relied on separate `attachTouchHandlersToAllTiles()` function called after rendering:
-```javascript
-// In createRankingPlayerTile()
-// Touch handlers will be attached by attachTouchHandlersToAllTiles()
-
-// In main.js - called after rendering
-attachTouchHandlersToAllTiles(); // Too late for iOS!
-```
-
-**Why The Workaround Worked**:
-When clicking "随机排名" or "清空排名", the tiles were recreated by the event handlers, and `attachTouchHandlersToAllTiles()` was called again. Something about this re-creation/re-attachment cycle made iOS recognize the handlers.
+After clicking "clear rank", the event handler called `attachTouchHandlersToAllTiles()` AFTER re-rendering the tiles, which is why the workaround worked.
 
 **The Fix**:
-Modified `createRankingPlayerTile()` in `src/ranking/rankingRenderer.js` to attach touch handlers INLINE when the tile is created, matching the original `app.js` pattern.
+
+In `renderInitialState()`, the order was wrong:
+```javascript
+// BEFORE (broken):
+attachTouchHandlersToAllTiles();  // Called here - no ranking tiles exist yet!
+renderRankingArea(mode);          // Ranking tiles created here
+
+// AFTER (fixed):
+renderRankingArea(mode);          // Create ranking tiles first
+attachTouchHandlersToAllTiles();  // Now attach handlers to existing tiles
+```
 
 **Files Changed**:
-- `src/ranking/rankingRenderer.js` - Added inline touch handlers in `createRankingPlayerTile()`
-- `src/main.js` - Removed debug display code and unnecessary setTimeout
+- `src/main.js` - Fixed order of operations in `renderInitialState()`
+- `src/main.js` - Added `touchHandlersAttached` flag to prevent double-attachment
+- `src/ranking/rankingRenderer.js` - Added inline touch handlers as extra safety
 
 **Lesson Learned**:
-iOS WebKit (used by ALL iOS browsers including Chrome, Safari, Firefox) has stricter requirements for touch event handling compared to desktop browsers. Always attach touch handlers at element creation time, not dynamically later.
+Always ensure DOM elements exist before attaching event handlers. The order of operations in initialization code is critical.
 
 ---
 
