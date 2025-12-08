@@ -303,46 +303,45 @@ export function exportMobilePNG() {
   ctx.fillText('📜 比赛历史', 40, currentY);
   currentY += 40;
 
-  ctx.font = 'bold 16px Arial';
+  ctx.font = 'bold 20px Arial';
   ctx.fillStyle = '#e6b800';
   ctx.fillText('#', 50, currentY);
   ctx.fillText('组合', 100, currentY);
-  ctx.fillText('升级', 220, currentY);
-  ctx.fillText('胜队', 320, currentY);
-  ctx.fillText('级牌', 420, currentY);
-  currentY += 35;
+  ctx.fillText('升级', 240, currentY);
+  ctx.fillText('胜队', 360, currentY);
+  ctx.fillText('级牌', 450, currentY);
+  currentY += 40;
 
-  ctx.font = '14px Arial';
   history.forEach((h, i) => {
     const winColor = h.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
 
     ctx.fillStyle = winColor + '15';
-    ctx.fillRect(30, currentY - 25, W - 60, 80);
+    ctx.fillRect(30, currentY - 30, W - 60, 95);
 
     ctx.fillStyle = '#e6b800';
-    ctx.font = 'bold 16px Arial';
+    ctx.font = 'bold 20px Arial';
     ctx.fillText(`${i + 1}`, 50, currentY);
 
     ctx.fillStyle = '#f5f6f8';
-    ctx.font = '14px Arial';
+    ctx.font = '18px Arial';
     ctx.fillText(h.combo || '', 100, currentY);
 
     const upgradeText = h.up ? `${h.win}升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
-    ctx.fillText(upgradeText, 220, currentY);
+    ctx.fillText(upgradeText, 240, currentY);
 
     ctx.fillStyle = winColor;
-    ctx.font = 'bold 14px Arial';
-    ctx.fillText(h.win, 320, currentY);
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText(h.win, 360, currentY);
 
-    ctx.fillStyle = '#999';
-    ctx.font = '13px Arial';
-    ctx.fillText(`${h.t1}|${h.t2}`, 420, currentY);
-    currentY += 25;
+    ctx.fillStyle = '#aaa';
+    ctx.font = '17px Arial';
+    ctx.fillText(`${h.t1}|${h.t2}`, 450, currentY);
+    currentY += 30;
 
     // Player rankings
     if (h.playerRankings) {
       ctx.fillStyle = '#b4b8bf';
-      ctx.font = '12px Arial';
+      ctx.font = '15px Arial';
 
       const rankingText = Object.keys(h.playerRankings)
         .sort((a, b) => parseInt(a) - parseInt(b))
@@ -365,7 +364,7 @@ export function exportMobilePNG() {
         if (metrics.width > maxWidth && line) {
           ctx.fillText(line, 50, currentY);
           line = words[w] + ' ';
-          currentY += 18;
+          currentY += 22;
           lineCount++;
           if (lineCount >= 2) break; // Max 2 lines
         } else {
@@ -375,11 +374,11 @@ export function exportMobilePNG() {
 
       if (line) {
         ctx.fillText(line, 50, currentY);
-        currentY += 18;
+        currentY += 22;
       }
     }
 
-    currentY += 25;
+    currentY += 30;
   });
 
   const finalContentY = currentY + 30;
