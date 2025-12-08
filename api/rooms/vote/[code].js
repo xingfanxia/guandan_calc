@@ -1,4 +1,4 @@
-// End-game voting - SIMPLE version
+// End-game voting - with fingerprint deduplication
 import { kv } from '@vercel/kv';
 
 export default async function handler(request) {
@@ -7,10 +7,18 @@ export default async function handler(request) {
 
   if (request.method === 'POST') {
     try {
-      const { mvpPlayerId, burdenPlayerId } = await request.json();
+      const { mvpPlayerId, burdenPlayerId, fingerprint } = await request.json();
 
       if (!mvpPlayerId || !burdenPlayerId) {
         return new Response(JSON.stringify({ error: 'Missing player IDs' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Validate: MVP and burden cannot be the same person
+      if (mvpPlayerId === burdenPlayerId) {
+        return new Response(JSON.stringify({ error: 'same_person' }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -27,13 +35,33 @@ export default async function handler(request) {
 
       const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
 
-      // Store vote (simple accumulation)
+      // Initialize vote structure if needed
       if (!room.endGameVotes) {
-        room.endGameVotes = { mvp: {}, burden: {} };
+        room.endGameVotes = { mvp: {}, burden: {}, fingerprints: [] };
       }
 
+      // Ensure fingerprints array exists
+      if (!room.endGameVotes.fingerprints) {
+        room.endGameVotes.fingerprints = [];
+      }
+
+      // Check for duplicate fingerprint
+      if (fingerprint && room.endGameVotes.fingerprints.includes(fingerprint)) {
+        console.log('Duplicate fingerprint detected:', fingerprint);
+        return new Response(JSON.stringify({ error: 'duplicate_fingerprint' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Store vote
       room.endGameVotes.mvp[mvpPlayerId] = (room.endGameVotes.mvp[mvpPlayerId] || 0) + 1;
       room.endGameVotes.burden[burdenPlayerId] = (room.endGameVotes.burden[burdenPlayerId] || 0) + 1;
+
+      // Store fingerprint to prevent duplicate voting
+      if (fingerprint) {
+        room.endGameVotes.fingerprints.push(fingerprint);
+      }
 
       console.log('Saving votes:', room.endGameVotes);
 

@@ -13,6 +13,63 @@ import { emit, on as onEvent } from '../core/events.js';
 let votingUnlocked = false;
 
 /**
+ * Generate a simple browser fingerprint for vote deduplication
+ * Uses localStorage ID + browser properties
+ */
+function getBrowserFingerprint() {
+  // Check if we already have a fingerprint stored
+  let storedFingerprint = localStorage.getItem('gd_voter_fingerprint');
+
+  if (storedFingerprint) {
+    return storedFingerprint;
+  }
+
+  // Generate new fingerprint from browser properties
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    screen.colorDepth,
+    new Date().getTimezoneOffset(),
+    navigator.hardwareConcurrency || 'unknown',
+    // Add some randomness for uniqueness
+    Math.random().toString(36).substring(2, 15)
+  ];
+
+  // Simple hash function
+  const fingerprint = components.join('|');
+  const hash = fingerprint.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0).toString(36);
+
+  // Add timestamp for extra uniqueness
+  const fullFingerprint = hash + '_' + Date.now().toString(36);
+
+  // Store it
+  localStorage.setItem('gd_voter_fingerprint', fullFingerprint);
+
+  return fullFingerprint;
+}
+
+/**
+ * Check if current browser has already voted for this room
+ */
+function hasAlreadyVoted(roomCode) {
+  const votedRooms = JSON.parse(localStorage.getItem('gd_voted_rooms') || '{}');
+  return votedRooms[roomCode] === true;
+}
+
+/**
+ * Mark current browser as having voted for this room
+ */
+function markAsVoted(roomCode) {
+  const votedRooms = JSON.parse(localStorage.getItem('gd_voted_rooms') || '{}');
+  votedRooms[roomCode] = true;
+  localStorage.setItem('gd_voted_rooms', JSON.stringify(votedRooms));
+}
+
+/**
  * Submit end-game votes (both MVP and burden together)
  * @param {number} mvpPlayerId - MVP player ID
  * @param {number} burdenPlayerId - Burden player ID
@@ -23,12 +80,24 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
 
   if (!roomInfo.roomCode || !roomInfo.isViewer) {
     console.error('Not in viewer mode or no room');
-    return false;
+    return { success: false, error: 'not_viewer' };
+  }
+
+  // Check if already voted (client-side check)
+  if (hasAlreadyVoted(roomInfo.roomCode)) {
+    console.warn('Already voted for this room');
+    return { success: false, error: 'already_voted' };
+  }
+
+  // Validate: MVP and burden cannot be the same person
+  if (mvpPlayerId === burdenPlayerId) {
+    console.error('MVP and burden cannot be the same person');
+    return { success: false, error: 'same_person' };
   }
 
   try {
     const gameNumber = state.getHistory().length;
-
+    const fingerprint = getBrowserFingerprint();
 
     const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
       method: 'POST',
@@ -38,15 +107,20 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       body: JSON.stringify({
         mvpPlayerId,
         burdenPlayerId,
-        gameNumber
+        gameNumber,
+        fingerprint
       })
     });
 
+    const result = await response.json();
+
     if (!response.ok) {
-      const error = await response.text();
-      console.error('Failed to submit vote:', error);
-      return false;
+      console.error('Failed to submit vote:', result.error);
+      return { success: false, error: result.error || 'server_error' };
     }
+
+    // Mark as voted locally
+    markAsVoted(roomInfo.roomCode);
 
     emit('voting:submitted', { mvpPlayerId, burdenPlayerId });
 
@@ -55,10 +129,10 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
       updateVoteLeaderboard();
     }, 500);
 
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Error submitting vote:', error);
-    return false;
+    return { success: false, error: 'network_error' };
   }
 }
 
@@ -214,6 +288,28 @@ export function unlockViewerVoting() {
     return;
   }
 
+  // Check if already voted
+  if (hasAlreadyVoted(roomInfo.roomCode)) {
+    // Show "already voted" UI
+    votingCard.style.background = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
+    votingCard.style.border = '3px solid #6b7280';
+    votingCard.style.opacity = '1';
+
+    votingCard.innerHTML = `
+      <h3 style="color: white; margin: 0 0 15px 0; text-align: center;">
+        ✅ 您已投过票
+      </h3>
+      <p style="color: rgba(255,255,255,0.8); text-align: center; margin-bottom: 15px;">
+        每个设备只能投一次票，感谢您的参与！
+      </p>
+      <div id="viewerVoteResultsContainer"></div>
+    `;
+
+    // Show current vote results
+    setTimeout(() => showVoteResultsToViewer(votingCard), 500);
+    return;
+  }
+
   // Update card styling
   votingCard.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
   votingCard.style.border = '3px solid #22c55e';
@@ -353,11 +449,16 @@ export function unlockViewerVoting() {
           return;
         }
 
+        // Validate: cannot select same person for both
+        if (selectedMVP === selectedBurden) {
+          alert('不能选择同一个人同时作为 MVP 和累赘！');
+          return;
+        }
 
         // Submit both votes together
-        const success = await submitEndGameVotes(selectedMVP, selectedBurden);
+        const result = await submitEndGameVotes(selectedMVP, selectedBurden);
 
-        if (success) {
+        if (result.success) {
           // Trigger immediate leaderboard update
           setTimeout(updateVoteLeaderboard, 200);
 
@@ -377,7 +478,22 @@ export function unlockViewerVoting() {
           // Show vote results to viewer
           setTimeout(() => showVoteResultsToViewer(votingCard), 1000);
         } else {
-          alert('投票失败，请重试');
+          // Handle specific errors
+          if (result.error === 'already_voted') {
+            alert('您已经投过票了！每个设备只能投一次票。');
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.textContent = '❌ 已投过票';
+          } else if (result.error === 'same_person') {
+            alert('不能选择同一个人同时作为 MVP 和累赘！');
+          } else if (result.error === 'duplicate_fingerprint') {
+            alert('检测到重复投票！每个设备只能投一次票。');
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.textContent = '❌ 已投过票';
+          } else {
+            alert('投票失败，请重试');
+          }
         }
       };
     }
@@ -385,6 +501,14 @@ export function unlockViewerVoting() {
     function updateVoteStatus() {
       const status = document.getElementById('viewerVoteStatus');
       if (!status) return;
+
+      // Check for same person selection
+      if (selectedMVP && selectedBurden && selectedMVP === selectedBurden) {
+        const player = players.find(p => p.id === selectedMVP);
+        status.innerHTML = `⚠️ 警告：不能选同一个人！<br>${player.emoji}${player.name} 不能同时是 MVP 和累赘`;
+        status.style.background = 'rgba(239, 68, 68, 0.5)';
+        return;
+      }
 
       let text = '';
       if (selectedMVP) {
@@ -399,6 +523,7 @@ export function unlockViewerVoting() {
 
       if (text) {
         status.innerHTML = `已选择：<br>${text}<br><br>👇 点击下方确认按钮提交`;
+        status.style.background = 'rgba(255, 255, 255, 0.2)'; // Reset to normal
       }
     }
   }, 200);
