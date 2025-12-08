@@ -181,7 +181,7 @@ export function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  // Get ALL 13 honors by reading from DOM
+  // Get ALL 16 honors by reading from DOM
   const honorElements = [
     { id: 'lyubu', name: '🥇吕布', desc: '最多第一', color: '#d4af37' },
     { id: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
@@ -195,7 +195,10 @@ export function exportMobilePNG() {
     { id: 'shandianxia', name: '⚡闪电侠', desc: '变化频繁', color: '#ffa500' },
     { id: 'liyuwang', name: '🐟鲤鱼王', desc: '惊天逆转', color: '#f97316' },
     { id: 'buzhanguo', name: '🍳不粘锅', desc: '不沾底', color: '#10b981' },
-    { id: 'ranjinwang', name: '🔥燃尽王', desc: '持续低迷', color: '#b91c1c' }
+    { id: 'ranjinwang', name: '🔥燃尽王', desc: '持续低迷', color: '#b91c1c' },
+    { id: 'qichayizhao', name: '🎯棋差一着', desc: '无冠最强', color: '#3b82f6' },
+    { id: 'dutu', name: '🎲赌徒', desc: '大起大落', color: '#8b5cf6' },
+    { id: 'xiaochou', name: '🤡小丑', desc: '无冠最弱', color: '#ec4899' }
   ];
 
   ctx.font = 'bold 22px Arial';
