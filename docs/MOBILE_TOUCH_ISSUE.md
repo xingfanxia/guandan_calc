@@ -1,8 +1,9 @@
 # Mobile Touch Issue - Ranking Tiles
 
 **Date**: 2025-12-07
-**Status**: Unresolved
+**Status**: RESOLVED
 **Priority**: Medium
+**Resolution Date**: 2025-12-07
 
 ## Problem Description
 
@@ -160,4 +161,41 @@ Not ideal but functional.
 
 ---
 
-**Status**: Documented for future investigation. Workaround available.
+## RESOLUTION
+
+**Root Cause**: All iOS browsers (Safari, Chrome, Firefox, etc.) use Apple's WebKit engine under the hood - Apple mandates this for all browsers on iOS. WebKit requires touch event handlers to be attached **INLINE** when the DOM element is created, not dynamically added later via `addEventListener()`.
+
+**The Key Difference**:
+
+**Original app.js (WORKS)** - Touch handlers attached inline in `createRankingPlayerTile()`:
+```javascript
+tile.addEventListener('touchstart', function(e) {
+  handleTouchStart(e, player);
+}, { passive: false });
+```
+
+**Modular version (DIDN'T WORK)** - Relied on separate `attachTouchHandlersToAllTiles()` function called after rendering:
+```javascript
+// In createRankingPlayerTile()
+// Touch handlers will be attached by attachTouchHandlersToAllTiles()
+
+// In main.js - called after rendering
+attachTouchHandlersToAllTiles(); // Too late for iOS!
+```
+
+**Why The Workaround Worked**:
+When clicking "随机排名" or "清空排名", the tiles were recreated by the event handlers, and `attachTouchHandlersToAllTiles()` was called again. Something about this re-creation/re-attachment cycle made iOS recognize the handlers.
+
+**The Fix**:
+Modified `createRankingPlayerTile()` in `src/ranking/rankingRenderer.js` to attach touch handlers INLINE when the tile is created, matching the original `app.js` pattern.
+
+**Files Changed**:
+- `src/ranking/rankingRenderer.js` - Added inline touch handlers in `createRankingPlayerTile()`
+- `src/main.js` - Removed debug display code and unnecessary setTimeout
+
+**Lesson Learned**:
+iOS WebKit (used by ALL iOS browsers including Chrome, Safari, Firefox) has stricter requirements for touch event handling compared to desktop browsers. Always attach touch handlers at element creation time, not dynamically later.
+
+---
+
+**Status**: RESOLVED - Touch drag now works on initial page load for all iOS browsers (Safari, Chrome, etc.).

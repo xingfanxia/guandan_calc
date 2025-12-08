@@ -217,7 +217,18 @@ function createRankingPlayerTile(player) {
     emit('drag:ended');
   };
 
-  // Touch handlers will be attached by attachTouchHandlersToAllTiles()
+  // Touch events for mobile - INLINE attachment (critical for iOS Safari)
+  // iOS Safari requires touch handlers to be attached when element is created,
+  // not dynamically added later. This matches the working original app.js pattern.
+  tile.addEventListener('touchstart', function(e) {
+    handleTouchStart(e, player);
+  }, { passive: false });
+
+  tile.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+  tile.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+  tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
   return tile;
 }
