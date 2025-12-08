@@ -15,6 +15,24 @@ import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
 /**
+ * Check if game has ended (a team achieved A级通关)
+ * @returns {Object|null} Victory info or null
+ */
+export function checkGameEnded() {
+  const history = state.getHistory();
+  if (history.length === 0) return null;
+
+  const latestGame = history[history.length - 1];
+  if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+    return {
+      winner: latestGame.win,
+      winKey: latestGame.winKey
+    };
+  }
+  return null;
+}
+
+/**
  * Render ranking area with slots
  * @param {number} mode - Game mode (4, 6, or 8)
  */
@@ -25,6 +43,19 @@ export function renderRankingArea(mode) {
   if (!pool || !area) return;
 
   const num = parseInt(mode);
+
+  // Check if game has ended (A级通关)
+  const victory = checkGameEnded();
+  if (victory) {
+    const winColor = victory.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    pool.innerHTML = `<div style="text-align:center; padding: 20px;">
+      <div style="font-size: 48px;">🏆</div>
+      <div style="font-size: 24px; color: ${winColor}; font-weight: bold; margin: 10px 0;">${victory.winner} A级通关！</div>
+      <div class="small muted">比赛已结束，重置游戏可开始新一局</div>
+    </div>`;
+    area.innerHTML = '';
+    return;
+  }
 
   // Check if all players assigned to teams
   if (!areAllPlayersAssigned()) {

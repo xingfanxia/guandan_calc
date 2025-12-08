@@ -37,7 +37,8 @@ import {
 import {
   renderRankingArea,
   renderPlayerPool,
-  renderRankingSlots
+  renderRankingSlots,
+  checkGameEnded
 } from './ranking/rankingRenderer.js';
 import {
   checkAutoCalculate,
@@ -166,6 +167,14 @@ function setupEventListeners() {
 
   if (applyBtn) {
     on(applyBtn, 'click', () => {
+      // Check if game has ended (A级通关)
+      const victory = checkGameEnded();
+      if (victory) {
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '比赛已结束，请重置游戏开始新一局';
+        return;
+      }
+
       const mode = $('mode').value;
       const result = calculateFromRanking(parseInt(mode));
 
@@ -274,12 +283,25 @@ function setupEventListeners() {
 
   if (clearRankingBtn) {
     on(clearRankingBtn, 'click', () => {
+      // Check if game has ended (A级通关)
+      if (checkGameEnded()) {
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '比赛已结束';
+        return;
+      }
       clearRankingState();
     });
   }
 
   if (randomRankingBtn) {
     on(randomRankingBtn, 'click', () => {
+      // Check if game has ended (A级通关)
+      if (checkGameEnded()) {
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '比赛已结束';
+        return;
+      }
+
       if (!areAllPlayersAssigned()) {
         alert('请先分配所有玩家到队伍');
         return;
@@ -297,6 +319,13 @@ function setupEventListeners() {
   const manualCalcBtn = $('manualCalc');
   if (manualCalcBtn) {
     on(manualCalcBtn, 'click', () => {
+      // Check if game has ended (A级通关)
+      if (checkGameEnded()) {
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '比赛已结束';
+        return;
+      }
+
       const mode = parseInt($('mode').value);
       const result = calculateFromRanking(mode);
 

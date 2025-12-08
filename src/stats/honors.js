@@ -334,6 +334,7 @@ export function renderHonors() {
   updateHonorDisplay('qichayizhao', honors.almost, '棋差一着');
   updateHonorDisplay('dutu', honors.gambler, '赌徒');
   updateHonorDisplay('xiaochou', honors.clown, '🤡');
+}
 
 /**
  * Update display with click explanation
@@ -399,5 +400,4 @@ function updateHonorDisplay(elementId, honorData, honorName) {
     el.style.cursor = 'default';
     el.onclick = null;
   }
-}
 }
