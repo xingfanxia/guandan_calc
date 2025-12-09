@@ -75,22 +75,44 @@
 ## Progress Log
 | Step | Status | Notes | Commit |
 |------|--------|-------|--------|
-| 1 | ✅ Complete | Utility functions created | |
-| 2 | ✅ Complete | Create endpoint | |
-| 3 | ✅ Complete | Get endpoint | |
-| 4 | ✅ Complete | List endpoint | |
-| 5 | ⏸️ Pending | Deploy & test | Ready for user deployment |
-| 6 | Pending | Documentation | After testing |
+| 1 | ✅ Complete | Utility functions created | e3f75e9 |
+| 2 | ✅ Complete | Create endpoint | e3f75e9 |
+| 3 | ✅ Complete | Get endpoint | e3f75e9 |
+| 4 | ✅ Complete | List endpoint | e3f75e9 |
+| 5 | ✅ Complete | Deploy & test | Production verified |
+| 6 | ✅ Complete | Documentation | 72fc54c |
 
-## Implementation Notes
-- All API endpoints follow existing pattern from `api/rooms/[code].js`
-- Player handles normalized to lowercase for case-insensitive lookups
-- No authentication in MVP - relying on handle uniqueness
-- Player data stored permanently (no TTL), unlike rooms (1-year TTL)
-- Using Vercel KV directly, no separate database layer
-- CORS headers included for cross-origin requests
+## Test Results (Production - https://gd.ax0x.ai)
 
-## Next Steps
-1. **User Action Required**: Deploy to Vercel preview to test with real KV storage
-2. After successful test: Document KV schema
-3. Then proceed with frontend integration (player selection in game setup)
+### ✅ All Endpoints Working
+
+**POST /api/players/create**:
+- ✅ Creates players with all required fields
+- ✅ Auto-generates player IDs (PLR_XXXXXX format)
+- ✅ Validates handle format (3-20 chars, alphanumeric + underscore)
+- ✅ Rejects duplicate handles (409 error)
+- ✅ Normalizes handles to lowercase
+- ✅ Returns full player object with initialized stats
+
+**GET /api/players/[handle]**:
+- ✅ Fetches individual player profiles
+- ✅ Returns 404 for non-existent players
+- ✅ Returns full data including stats and recentGames
+
+**GET /api/players/list**:
+- ✅ Lists all players sorted by createdAt DESC
+- ✅ Search by handle works (q=test)
+- ✅ Search by Chinese displayName works (q=小)
+- ✅ Pagination works (limit, offset, hasMore flag)
+- ✅ Returns player count and hasMore indicator
+
+### Test Data Created
+- testplayer (PLR_ZT8L8D) - 测试玩家 🐱
+- xiaoming (PLR_*) - 小明 🐶
+- lili (PLR_*) - 丽丽 🐰
+
+---
+
+## Backend Implementation: ✅ COMPLETE
+
+All player profile backend APIs are implemented, tested, and documented.
