@@ -1,151 +1,162 @@
-# 闹麻家族掼蛋计分器 - Project Overview
+# Guandan Calculator - Project Overview
 
-## 🎮 Product Achievement Summary
+> 闹麻家族掼蛋计分器 - Real-time multiplayer scoring platform
 
-### What We Built
-A comprehensive **real-time multiplayer** Guandan (掼蛋) scoring calculator that evolved from a simple single-page tool to a sophisticated gaming platform supporting live room sharing, advanced statistics, and mobile-optimized exports.
+## What We Built
 
-### Key Product Milestones
+A comprehensive **real-time multiplayer** Guandan (掼蛋) scoring calculator that evolved from a simple single-page tool into a sophisticated gaming platform with:
 
-#### Phase 1: Foundation Refactoring
-- **Modularized** 1,948-line monolithic codebase into **12 specialized modules**
-- **Modern ES6** architecture with clean dependencies
-- **UTF-8 support** for perfect Chinese character handling
-- **Preserved 100%** of original functionality while improving maintainability
+- **4/6/8 player modes** with team-based level progression (2→A)
+- **Real-time room sharing** with 6-digit codes
+- **14 data-driven honors** with cultural Chinese gaming references
+- **Community voting** for MVP/burden selection
+- **Mobile-optimized exports** (PNG, TXT, CSV)
 
-#### Phase 2: User Experience Enhancement  
-- **Bulk name input** with space-separated format (`小 超 豪 姐 哥 帆 夫 达`)
-- **Quick start** buttons with preset names for all game modes
-- **Smart reset** preserving player setup while clearing game data
-- **Enhanced avatars** - removed insects, added food emojis (77+ options)
+---
 
-#### Phase 3: Advanced Statistics System
-- **6 honor categories** with Chinese gaming culture references:
-  - 🥇 **吕布** - Most first places (legendary warrior)
-  - 😅 **阿斗** - Most last places (weak ruler)
-  - 🗿 **石佛** - Most stable rankings (steady player)
-  - 🌊 **波动王** - Most volatile performance
-  - 📈 **奋斗王** - Best improvement trend
-  - 🛡️ **辅助王** - Most team wins while finishing last
-- **Data-driven calculations** using variance analysis and trend detection
+## Development Phases
 
-#### Phase 4: Real-Time Multiplayer Platform
-- **Room sharing system** with Vercel KV (Upstash Redis) backend
-- **6-digit room codes** (A1B2C3 format) for easy sharing
-- **Host authentication** with secure token protection
-- **Real-time sync**: 10s host updates + 5s viewer polling
-- **Dual mode URLs**: Host management vs. viewer-only access
+### Phase 1: Foundation
+- Modularized 1,948-line monolith → 20 ES6 modules
+- Modern Vite build system with HMR
+- UTF-8 support for Chinese characters
 
-#### Phase 5: Advanced Community Features
-- **Room favorites** - Permanent storage for important games
-- **Room browsing** - Curated collection of memorable sessions  
-- **Anonymous voting** - Viewer participation in MVP/burden selection
-- **Mobile PNG optimization** - Perfect phone viewing with 14 honors included
+### Phase 2: User Experience
+- Bulk name input (space-separated)
+- Quick start presets for all modes
+- 77+ emoji avatars (animals + food)
+- Smart reset preserving player setup
 
-#### Phase 6: UI/UX Refinement
-- **Collapsible interfaces** - Reduced visual clutter after setup
-- **Information hierarchy** - Logical flow from setup to gameplay to results
-- **Cultural branding** - "闹麻家族" gaming community identity
-- **Accessibility** - Enhanced touch controls and mobile optimization
+### Phase 3: Statistics & Honors
+14 honor categories with Chinese gaming culture:
+- 吕布, 阿斗, 石佛, 波动王, 奋斗王, 辅助王
+- 翻车王, 赌徒, 大满贯, 连胜王, 佛系玩家
+- 守门员, 慢热王, 闪电侠
 
-## 🏆 Core Value Propositions
+### Phase 4: Real-Time Platform
+- Room sharing with Vercel KV (Upstash Redis)
+- 6-digit room codes (A1B2C3 format)
+- Host authentication with secure tokens
+- 10s host sync + 5s viewer polling
 
-### For Individual Players
-- **Quick Setup**: One-click player generation and naming
-- **Comprehensive Tracking**: Complete game history and personal statistics
-- **Cultural Gaming**: Honor system with Chinese gaming references
-- **Mobile Ready**: Perfect phone experience with optimized exports
+### Phase 5: Community Features
+- Room favorites (1-year TTL)
+- Anonymous voting system
+- "人民的声音" results panel
+- Mobile PNG optimization
 
-### For Group Gaming
-- **Real-Time Sharing**: Live room codes for multiplayer viewing
-- **Persistent Management**: Host URLs with authentication for session continuity  
-- **Clean Viewer Experience**: Read-only mode with only relevant information
-- **Easy Distribution**: Simple 6-digit codes vs complex URLs
+### Phase 6: Polish
+- Collapsible interfaces
+- Host/viewer mode distinction
+- Victory celebrations
+- Touch-optimized controls
 
-### For Gaming Communities
-- **Professional Statistics**: MVP/Burden analysis and special honors
-- **Export Versatility**: Multiple formats for different sharing needs
-- **Brand Identity**: "闹麻家族" gaming community branding
-- **Cultural Relevance**: Authentic Chinese gaming terminology
+### Phase 7: Player Profiles (In Development)
+- Persistent player identities (@handles)
+- Career statistics tracking
+- Game history with room links
+- Honor collection across games
+- Player and room browsers
 
-## 📊 Usage Scenarios Enabled
+---
 
-### Scenario 1: Offline Gathering
-- **Host setup**: One person manages scoring on laptop/tablet
-- **Live viewing**: Others watch on phones via room codes
-- **Statistics display**: Big screen shows real-time honor rankings
-- **Export sharing**: Mobile PNG perfect for social media sharing
+## Architecture
 
-### Scenario 2: Remote Gaming
-- **Video call gaming**: Friends play via video while one hosts scoring
-- **Real-time sync**: All participants see live game progression
-- **Persistent hosting**: Host can disconnect and reconnect without losing session
-- **Easy onboarding**: New viewers join with simple 6-digit codes
+```
+src/
+├── main.js                 # Entry point
+├── core/                   # State, events, config, storage
+├── game/                   # Calculator, rules, history
+├── player/                 # Player management, drag-drop, touch
+├── ranking/                # Ranking UI and calculations
+├── stats/                  # Statistics and honors
+├── ui/                     # Team display, victory modal
+└── export/                 # TXT, CSV, PNG exports
 
-### Scenario 3: Tournament Management
-- **Official scoring**: Tournament hosts create authenticated rooms
-- **Spectator access**: Audience watches via shared room codes
-- **Historical records**: Complete export capabilities for tournament archives
-- **Professional statistics**: Honor system adds competitive element
+api/
+└── rooms/
+    ├── create.js           # Room creation
+    ├── [code].js           # Room GET/PUT
+    ├── vote/[code].js      # Voting submission
+    ├── reset-vote/[code].js# Vote reset
+    ├── favorite/[code].js  # Favorite toggle
+    └── list.js             # List favorites
+```
 
-### Scenario 4: Casual Family Games
-- **Quick start**: Preset names and one-click setup
-- **Simple sharing**: Kids can easily join with room codes  
-- **Mobile viewing**: Perfect for passing phones around
-- **Memory preservation**: Export capabilities for family game memories
+---
 
-## 🎯 Success Metrics
+## Tech Stack
 
-### Technical Achievements
-- **Zero dependencies**: Pure vanilla JavaScript with modern ES6 modules
-- **Sub-second performance**: <1ms Redis reads, optimized polling intervals
-- **Global accessibility**: Vercel Edge Network for worldwide low latency
-- **Mobile optimization**: Responsive design with touch-optimized controls
+| Layer | Technology |
+|-------|------------|
+| Frontend | Vanilla JS (ES6 modules) |
+| Build | Vite |
+| Backend | Vercel Edge Functions |
+| Database | Vercel KV (Upstash Redis) |
+| Hosting | Vercel (global edge) |
 
-### User Experience Metrics  
-- **Setup time**: 30 seconds from landing to playing (generate → quick start → assign teams)
-- **Sharing friction**: 6-digit code vs. traditional complex URLs
-- **Mobile readability**: Large fonts and optimized layouts for phone screens
-- **Learning curve**: Intuitive drag-and-drop with clear visual feedback
+---
 
-### Business Value
-- **Market differentiation**: First real-time Guandan calculator with room sharing
-- **Community building**: "闹麻家族" brand identity for gaming community
-- **Viral potential**: Easy room sharing enables organic growth
-- **Data richness**: Comprehensive statistics system adds long-term engagement
+## Key Features
 
-## 🌟 Innovation Highlights
+### For Players
+- Quick setup (30 seconds to playing)
+- Comprehensive game history
+- Personal honor tracking
+- Mobile-ready experience
 
-### Real-Time Architecture Innovation
-- **Hybrid sync model**: LocalStorage + cloud rooms for best of both worlds
-- **Smart polling**: Timestamp-based change detection prevents unnecessary updates
-- **Graceful degradation**: Offline functionality with auto-sync recovery
-- **Edge computing**: Vercel Edge Functions for global performance
+### For Groups
+- Real-time room sharing
+- Simple 6-digit codes
+- Host/viewer separation
+- Easy social sharing
 
-### UX/UI Innovation  
-- **Cultural gaming integration**: Honor system with authentic Chinese references
-- **Mobile-first exports**: Optimized PNG generation for phone sharing
-- **Contextual interfaces**: Smart hiding of irrelevant sections in viewer mode
-- **One-click workflows**: Bulk naming, quick start, clickable banners
+### For Communities
+- MVP/burden voting
+- Professional statistics
+- Export for archiving
+- Cultural gaming identity
 
-### Technical Innovation
-- **Modular monolith**: Clean separation of concerns while maintaining simplicity
-- **Dynamic canvas sizing**: Precise content-to-space ratio optimization  
-- **Authentication via URL**: Secure host tokens without complex auth flows
-- **Progressive enhancement**: Works perfectly with and without JavaScript
+---
 
-## 🚀 Platform Scalability
+## Usage Scenarios
 
-### Current Capacity
-- **Free tier**: 10K requests/day = 50+ concurrent rooms
-- **Room persistence**: 24-hour TTL with automatic cleanup
-- **Global distribution**: Vercel Edge Network for worldwide access
-- **Device compatibility**: Works on any device with modern browser
+1. **Offline Gathering**: Host manages scoring, others view via room codes
+2. **Remote Gaming**: Video call + real-time scoring sync
+3. **Tournament**: Official scoring with spectator access
+4. **Casual Play**: Quick start presets for family games
 
-### Growth Readiness
-- **Horizontal scaling**: Redis clustering for increased capacity
-- **Feature extensibility**: Modular architecture enables easy additions
-- **Community features**: Foundation ready for tournaments, leagues, rankings
-- **Monetization ready**: Premium features can be added without architectural changes
+---
 
-This platform transforms Guandan from a manual scoring game into a connected, data-rich, community-enabled gaming experience.
+## Performance
+
+| Metric | Value |
+|--------|-------|
+| Initial load | <2s (3G) |
+| Room sync | <500ms RTT |
+| PNG export | <3s |
+| Memory | <50MB |
+
+---
+
+## Roadmap
+
+### Current: Player Profiles (Phase 7)
+- Persistent player identities
+- Career stats and honors
+- Game history tracking
+- `/players` and `/rooms` browsers
+
+### Future
+- Partner/rival statistics
+- Achievement badges
+- Seasons & leaderboards
+- Authentication system
+
+---
+
+## Links
+
+- **Live**: [Production URL]
+- **Docs**: See `docs/` directory
+- **Spec**: [Player Profile Spec](./features/PLAYER_PROFILE_SPEC.md)

@@ -1,162 +1,142 @@
-# 功能状态跟踪 (Feature Status Tracker)
+# Feature Status Tracker
 
-## 🎯 项目总体状态
+## Project Status
 
-**项目阶段**: 生产就绪 (Production Ready)  
-**最后更新**: 2025年9月1日  
-**总开发时长**: 约6周  
-**代码规模**: 12个ES6模块 + 5个API端点
+**Phase**: Production + Active Development
+**Last Updated**: 2024-12-09
+**Architecture**: 20 ES6 modules + 6 API endpoints
+**Version**: v9.0 (Modular)
 
-## ✅ 完成功能 (Completed Features)
+---
 
-### 🏗️ 核心架构 (100% 完成)
-- ✅ **模块化重构**: 1,948行单体 → 12个ES6模块
-- ✅ **现代构建**: Vite开发服务器 + 优化生产构建
-- ✅ **UTF-8支持**: 完整中文字符处理
-- ✅ **状态管理**: 单例模式 + 依赖注入
-- ✅ **错误处理**: 优雅降级和网络容错
+## Completed Features
 
-### 🎮 游戏核心 (100% 完成)
-- ✅ **多模式支持**: 4/6/8人模式完全实现
-- ✅ **拖拽系统**: 桌面+移动端双平台支持
-- ✅ **游戏规则**: A级规则、横扫奖励、升级计算
-- ✅ **级别进程**: 2→3→4→5→6→7→8→9→10→J→Q→K→A
-- ✅ **自定义规则**: 完全可配置的计分系统
+### Core Architecture (100%)
+- [x] Modular refactoring: 20 ES6 modules with clean separation
+- [x] Vite build system with HMR development
+- [x] UTF-8 support for Chinese characters
+- [x] State management with pub/sub events
+- [x] Fresh localStorage keys (`gd_v9_*`)
 
-### 👥 玩家系统 (100% 完成)  
-- ✅ **玩家生成**: 77+表情头像（动物+食物，无虫类）
-- ✅ **批量输入**: 空格分隔姓名 + 模式自适应placeholder
-- ✅ **快速开始**: 一键应用预设姓名组合
-- ✅ **队伍分配**: 拖拽分组 + 随机分配
-- ✅ **智能重置**: 保留玩家设置，清空比赛数据
-- ✅ **可折叠设置**: 设置完成后可收起界面
+### Game Modes (100%)
+- [x] 4-player mode with fixed upgrade table
+- [x] 6-player mode with point-based thresholds
+- [x] 8-player mode with sweep bonus
+- [x] Level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
+- [x] A-level rules (strict/lenient modes)
+- [x] Configurable scoring rules
 
-### 🏆 荣誉系统 (100% 完成)
-- ✅ **14个荣誉称号**: 覆盖所有游戏风格和表现模式
-- ✅ **智能算法**: 方差分析、趋势检测、模式自适应
-- ✅ **文化融合**: 中国历史典故 + 现代网络用语
-- ✅ **交互解释**: 点击任何荣誉查看详细算法说明
-- ✅ **视觉设计**: 14种主题色彩 + 2列响应式布局
+### Player System (100%)
+- [x] 77+ emoji avatars (animals + food)
+- [x] Bulk name input (space-separated)
+- [x] Quick start presets for all modes
+- [x] Drag-drop team assignment (desktop)
+- [x] Touch drag-drop (mobile, 200ms long-press)
+- [x] Smart reset (preserve players, clear game)
 
-### 🎮 实时房间 (100% 完成)
-- ✅ **房间创建**: 6位代码生成 + 认证token保护
-- ✅ **实时同步**: 房主10秒自动同步 + 观众5秒轮询
-- ✅ **模式区分**: 房主完整控制 vs 观众只读界面
-- ✅ **页面持久**: 刷新后从Redis恢复完整状态
-- ✅ **横幅交互**: 点击房主横幅复制观众链接
+### Honor System (100%)
+14 data-driven honors with clickable explanations:
+- [x] 吕布 - First place ratio with reliability threshold
+- [x] 阿斗 - Last place ratio with consecutive penalty
+- [x] 石佛 - Excellence + stability (top 25%, low variance)
+- [x] 波动王 - High variance + extreme range bonus
+- [x] 奋斗王 - Progressive improvement (3-segment trend)
+- [x] 辅助王 - Team support in bottom-half during wins
+- [x] 翻车王 - Dramatic drops (top 3 to last)
+- [x] 赌徒 - High risk/reward (high first + high last)
+- [x] 大满贯 - Experience all ranking positions
+- [x] 连胜王 - Longest consecutive top-half streak
+- [x] 佛系玩家 - Closest to median ranking
+- [x] 守门员 - Prevent last place during team losses
+- [x] 慢热王 - Poor start but strong finish
+- [x] 闪电侠 - Most frequent position changes
 
-### ⭐ 收藏系统 (100% 完成)
-- ✅ **房间收藏**: 重要房间标记为永久存储
-- ✅ **存储策略**: 默认1年TTL + 收藏永久保存
-- ✅ **精选回顾**: 浏览所有收藏房间的卡片界面
-- ✅ **一键跳转**: 点击房间卡片直接访问
-- ✅ **收藏管理**: 双按钮位置，状态同步更新
+### Real-Time Rooms (100%)
+- [x] 6-digit room codes (A1B2C3 format)
+- [x] Host authentication with secure tokens
+- [x] Auto-sync every 10 seconds (host)
+- [x] Viewer polling every 5 seconds
+- [x] State recovery on page refresh
+- [x] Host/viewer mode distinction
 
-### 📊 导出系统 (100% 完成)
-- ✅ **多格式支持**: TXT, CSV, 桌面PNG, 手机PNG, URL快照
-- ✅ **手机优化**: 600px宽度 + 大字体 + 自动换行
-- ✅ **内容完整**: 包含14个荣誉 + 玩家统计 + 完整历史
-- ✅ **智能尺寸**: 动态高度调整，消除空白区域
-- ✅ **多设备**: 桌面宽屏版 + 手机滚动版
+### Favorites System (100%)
+- [x] Room favoriting with 1-year TTL
+- [x] Favorites browser modal
+- [x] Quick access to saved rooms
 
-### 🎯 游戏体验 (100% 完成)
-- ✅ **移动触摸**: 长按拖拽 + 视觉反馈 + 触觉反馈
-- ✅ **自动计算**: 排名完成自动计算升级
-- ✅ **胜利庆祝**: A级通关动画 + 音效 + 模态框
-- ✅ **统计追踪**: 完整的玩家表现和荣誉分析
+### Voting System (100%)
+- [x] Anonymous viewer voting for MVP/burden
+- [x] Live vote counting (1s updates)
+- [x] Host confirmation flow
+- [x] "人民的声音" results panel
+- [x] Vote reset after confirmation
 
-## 🔄 开发中功能 (In Development)
+### Export System (100%)
+- [x] TXT export with full history
+- [x] CSV export for spreadsheets
+- [x] Desktop PNG (wide format)
+- [x] Mobile PNG (600px, optimized)
+- [x] All 14 honors in exports
 
-### 🗳️ 投票系统 (85% 完成)
+---
 
-**✅ 已实现:**
-- API端点: `/api/rooms/vote/[code]` 完整实现
-- 观众投票UI: 选择最C/最闹界面
-- 房主查看UI: 实时投票结果显示
-- 数据结构: 按round分离的投票组织
-- 实时更新: 1秒轮询机制
+## In Development
 
-**🔄 正在修复:**
-- **用户识别**: 浏览器指纹检测在家庭WiFi场景下准确性问题
-- **重复投票**: 需要平衡防刷票和多用户参与
-- **数据同步**: 确保房主能看到累积投票而非单票
+### Player Profile System (0% → Planning Complete)
+**Status**: Specification finalized, ready for implementation
 
-**📋 待实现:**
-- 房主确认后的统计累积
-- 投票历史的完整记录
-- "人民的声音"累计统计面板
+See [PLAYER_PROFILE_SPEC.md](./features/PLAYER_PROFILE_SPEC.md) for full details.
 
-## 📋 计划功能 (Planned Features)
+**MVP Scope**:
+- [ ] Player profiles with unique handles (@username)
+- [ ] Career stats (games, wins, rankings)
+- [ ] Honor collection tracking
+- [ ] Game history with room links
+- [ ] Player browser (`/players`)
+- [ ] Room browser (`/rooms`)
+- [ ] Player search in game setup
+- [ ] MVP tagline on victory screen
 
-### 🎪 高级统计功能
-- **荣誉趋势**: 玩家荣誉获得的时间趋势分析
-- **对战分析**: 特定对手组合的胜负统计
-- **团队化学**: 最佳搭档组合推荐
+**Deferred to Phase 2**:
+- [ ] Partner/rival statistics
+- [ ] Achievements system (20 badges)
+- [ ] Recent form visualization
+- [ ] Tagline in PNG export
 
-### 🏆 竞技功能
-- **排行榜系统**: 跨房间的玩家排行
-- **成就系统**: 解锁式成就和里程碑
-- **赛季统计**: 长期表现追踪
+**Deferred to Phase 3**:
+- [ ] Authentication (claim profiles)
+- [ ] Seasons & leaderboards
+- [ ] Player comparison tool
 
-### 🌐 社区功能
-- **公开房间**: 可发现的公共比赛观看
-- **用户系统**: 持久化的玩家身份
-- **社交分享**: 社交媒体集成
+---
 
-## 🚧 已知问题 (Known Issues)
+## Technical Debt
 
-### 🗳️ 投票系统
-- **用户识别**: 同WiFi多用户检测准确性有待提高
-- **数据累积**: 投票结果显示有时不稳定
-- **跨浏览器**: 不同浏览器的指纹识别需要优化
+### Code Quality
+- [ ] Add unit test coverage
+- [ ] Consider TypeScript migration
+- [ ] Performance optimization for large histories
 
-### 📱 移动端
-- **触摸优化**: 某些复杂拖拽操作在小屏设备上可能有延迟
-- **性能**: 大量统计计算在低端设备上可能较慢
+### Architecture
+- [ ] API versioning strategy
+- [ ] Client-side caching improvements
+- [ ] Error boundary implementation
 
-## 🔧 技术债务 (Technical Debt)
+---
 
-### 代码质量
-- **单元测试**: 需要添加自动化测试覆盖
-- **TypeScript**: 考虑迁移到TypeScript提高类型安全
-- **性能优化**: 大量游戏历史时的渲染优化
+## Performance Metrics
 
-### 架构改进
-- **状态管理**: 考虑使用更正式的状态管理模式
-- **API版本**: 建立API版本控制机制
-- **缓存策略**: 添加更智能的客户端缓存
+| Metric | Current |
+|--------|---------|
+| Initial load | <2s (3G) |
+| Room sync RTT | <500ms |
+| Vote submit | <300ms |
+| PNG generation | <3s (50+ rounds) |
+| Memory usage | <50MB |
 
-## 📈 性能指标
-
-### 当前表现
-- **初始加载**: <2秒 (3G网络)
-- **房间同步**: <500ms 往返时间
-- **投票提交**: <300ms 响应时间
-- **PNG生成**: <3秒 (50+局历史)
-- **内存使用**: <50MB 完整会话
-
-### 扩容能力
-- **并发房间**: 50+ (免费套餐)
-- **存储容量**: 8,500+ 房间 (256MB)
-- **全球访问**: <100ms 延迟 (边缘网络)
-- **观众支持**: 理论无限 (只读操作)
-
-## 🎯 优先级路线图
-
-### 高优先级 (已完成)
-1. ✅ **投票系统稳定** - 核心投票功能完全工作，手动刷新激活新round
-2. ✅ **移动端完善** - 触摸拖拽和PNG导出完全优化
-3. ✅ **性能优化** - 智能房间同步减少不必要API调用
-
-### 中优先级 (下季度)  
-1. **投票界面自动刷新** - 解决new round界面状态管理复杂性
-2. **用户系统** - 持久化玩家身份和跨房间统计
-3. **高级统计** - 趋势分析和深度洞察
-4. **API稳定化** - 版本控制和向后兼容
-
-### 低优先级 (未来)
-1. **竞技功能** - 排行榜和成就系统
-2. **社区功能** - 公开房间和社交分享
-3. **企业功能** - 白标定制和商业化
-
-这个功能状态跟踪器将持续更新，反映项目的最新进展和未来规划。
+### Capacity (Free Tier)
+| Resource | Limit |
+|----------|-------|
+| Concurrent rooms | 50+ |
+| Storage | 256MB (~8,500 rooms) |
+| Global latency | <100ms (edge) |
