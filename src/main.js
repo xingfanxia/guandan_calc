@@ -355,7 +355,9 @@ function setupEventListeners() {
   if (randomRankingBtn) {
     on(randomRankingBtn, 'click', () => {
       // Check if game has ended (A级通关)
-      if (checkGameEnded()) {
+      const gameEnded = checkGameEnded();
+      if (gameEnded) {
+        console.log('Random ranking blocked - game ended:', gameEnded);
         const applyTip = $('applyTip');
         if (applyTip) applyTip.textContent = '比赛已结束';
         return;
