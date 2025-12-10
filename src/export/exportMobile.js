@@ -59,14 +59,38 @@ export function exportMobilePNG() {
     ctx.fillText(`冠军队伍: ${roster}`, 40, currentY);
     currentY += 40;
 
-    // Show MVP tagline if available
-    const mvpId = latestGame.ranks ? latestGame.ranks[0] : null;
-    const mvpPlayer = teamPlayers.find(p => p.id === mvpId);
+    // Show MVP tagline if available (lowest average ranking)
+    let mvpPlayer = null;
+    let bestAvg = Infinity;
+    
+    teamPlayers.forEach(player => {
+      const stats = playerStats[player.id];
+      if (stats && stats.games > 0) {
+        const avgRank = stats.totalRank / stats.games;
+        if (avgRank < bestAvg) {
+          bestAvg = avgRank;
+          mvpPlayer = player;
+        }
+      }
+    });
+    
     if (mvpPlayer && mvpPlayer.tagline) {
       ctx.font = 'italic 22px Arial';
       ctx.fillStyle = '#fbbf24';
-      ctx.fillText(`${mvpPlayer.emoji} ${mvpPlayer.name}: "${mvpPlayer.tagline}"`, 40, currentY);
+      ctx.fillText(`MVP ${mvpPlayer.emoji} ${mvpPlayer.name} (平均${bestAvg.toFixed(2)}名)`, 40, currentY);
+      currentY += 30;
+      ctx.fillText(`"${mvpPlayer.tagline}"`, 40, currentY);
       currentY += 45;
+    }
+
+    // Show session duration
+    const sessionDuration = latestGame.sessionDuration || state.getSessionDuration();
+    if (sessionDuration > 0) {
+      const hours = Math.floor(sessionDuration / 3600);
+      const mins = Math.floor((sessionDuration % 3600) / 60);
+      const timeStr = hours > 0 ? `${hours}小时${mins}分` : `${mins}分钟`;
+      ctx.fillText(`游戏时长: ${timeStr}`, 40, currentY);
+      currentY += 40;
     }
   }
 
