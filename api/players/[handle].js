@@ -190,6 +190,14 @@ export default async function handler(request) {
         });
       }
 
+      // Update community voting stats
+      if (gameResult.votedMVP) {
+        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + 1;
+      }
+      if (gameResult.votedBurden) {
+        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + 1;
+      }
+
       // Update win/loss streaks (session counts as 1)
       if (gameResult.teamWon) {
         player.stats.currentWinStreak += 1;

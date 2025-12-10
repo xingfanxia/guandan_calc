@@ -109,6 +109,10 @@ export function initializePlayerStats() {
     longestSessionSeconds: 0,     // Longest single session
     avgSessionSeconds: 0,         // Average session duration
     
+    // Community voting
+    mvpVotes: 0,       // Times voted as MVP (最C)
+    burdenVotes: 0,    // Times voted as burden (最闹)
+    
     // Legacy fields (deprecated but kept for compatibility)
     gamesPlayed: 0,
     wins: 0,

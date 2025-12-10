@@ -17,6 +17,34 @@ let votes = {
 };
 
 /**
+ * Get confirmed voting results (top voted players)
+ * @returns {Object} {mvp: playerId, burden: playerId}
+ */
+export function getVotingResults() {
+  // Find player with most MVP votes
+  let mvpId = null;
+  let maxMVP = 0;
+  Object.entries(votes.mvp).forEach(([playerId, count]) => {
+    if (count > maxMVP) {
+      maxMVP = count;
+      mvpId = parseInt(playerId);
+    }
+  });
+
+  // Find player with most burden votes
+  let burdenId = null;
+  let maxBurden = 0;
+  Object.entries(votes.burden).forEach(([playerId, count]) => {
+    if (count > maxBurden) {
+      maxBurden = count;
+      burdenId = parseInt(playerId);
+    }
+  });
+
+  return { mvp: mvpId, burden: burdenId };
+}
+
+/**
  * Show victory modal with celebration and voting
  * @param {string} teamName - Winning team name
  */

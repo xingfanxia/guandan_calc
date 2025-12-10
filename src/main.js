@@ -58,7 +58,7 @@ import {
 import { updatePlayerStats, renderStatistics } from './stats/statistics.js';
 import { renderHonors, calculateHonors } from './stats/honors.js';
 import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from './ui/teamDisplay.js';
-import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
+import { showVictoryModal, closeVictoryModal, getVotingResults } from './ui/victoryModal.js';
 
 // Export
 import { exportTXT, exportCSV, exportLongPNG, exportMobilePNG } from './export/exportHandlers.js';
@@ -231,17 +231,23 @@ function setupEventListeners() {
           if (applyResult.finalWin) {
             const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
             
-            // Calculate session honors
-            const sessionHonors = calculateHonors(parseInt(mode));
-            
-            // Sync profile stats to database (non-blocking)
-            const roomInfo = getRoomInfo();
-            const allPlayers = getPlayers();
-            const sessionStats = state.getPlayerStats();
-            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors);
-            
-            // Show victory celebration
+            // Show victory celebration first
             showVictoryModal(winnerName);
+            
+            // Wait a moment for potential voting, then sync stats
+            setTimeout(() => {
+              // Calculate session honors
+              const sessionHonors = calculateHonors(parseInt(mode));
+              
+              // Get voting results
+              const votingResults = getVotingResults();
+              
+              // Sync profile stats to database (non-blocking)
+              const roomInfo = getRoomInfo();
+              const allPlayers = getPlayers();
+              const sessionStats = state.getPlayerStats();
+              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
+            }, 2000); // Wait 2 seconds for voting
           }
         }
       } else {
@@ -731,17 +737,23 @@ function setupModuleEventHandlers() {
               console.log('🎉 Final win detected! Showing victory modal...');
               // winnerName already calculated above at line 656
               
-              // Calculate session honors
-              const sessionHonors = calculateHonors(parseInt(mode));
-              
-              // Sync profile stats to database (non-blocking)
-              const roomInfo = getRoomInfo();
-              const allPlayers = getPlayers();
-              const sessionStats = state.getPlayerStats();
-              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors);
-              
-              // Show victory celebration
+              // Show victory celebration first
               showVictoryModal(winnerName);
+              
+              // Wait a moment for potential voting, then sync stats
+              setTimeout(() => {
+                // Calculate session honors
+                const sessionHonors = calculateHonors(parseInt(mode));
+                
+                // Get voting results
+                const votingResults = getVotingResults();
+                
+                // Sync profile stats to database (non-blocking)
+                const roomInfo = getRoomInfo();
+                const allPlayers = getPlayers();
+                const sessionStats = state.getPlayerStats();
+                syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
+              }, 2000); // Wait 2 seconds for voting
             }
           }
         }

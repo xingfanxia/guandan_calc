@@ -206,8 +206,9 @@ export async function updatePlayerStats(handle, gameResult) {
  * @param {Array} players - Array of all players in the game
  * @param {Object} sessionStats - Complete session stats from statistics.js
  * @param {Object} sessionHonors - Calculated honors from honors.js
+ * @param {Object} votingResults - Community voting results {mvp: playerId, burden: playerId}
  */
-export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}) {
+export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}, votingResults = null) {
   if (!historyEntry || players.length === 0 || !sessionStats) {
     console.log('Skipping profile stats sync - missing data');
     return;
@@ -269,6 +270,10 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     const avgRanking = playerSessionStats.totalRank / playerSessionStats.games;
     const honorsEarned = playerHonors[player.id] || [];
 
+    // Check if player was voted as MVP or burden
+    const wasMVP = votingResults && votingResults.mvp === player.id;
+    const wasBurden = votingResults && votingResults.burden === player.id;
+
     const gameResult = {
       roomCode,
       ranking: Math.round(avgRanking * 10) / 10,  // Session average ranking
@@ -279,11 +284,13 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       firstPlaces: playerSessionStats.firstPlaceCount || 0,
       lastPlaces: playerSessionStats.lastPlaceCount || 0,
       honorsEarned: honorsEarned,  // Honors won in this session
+      votedMVP: wasMVP,      // Community voted as MVP
+      votedBurden: wasBurden, // Community voted as burden
       mode: `${players.length}P`,
       finalLevel: historyEntry[playerTeamKey] || '?'  // Team's final level
     };
 
-    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, honors: ${honorsEarned.join(',')}`, gameResult);
+    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, honors: ${honorsEarned.join(',')}, MVP: ${wasMVP}, Burden: ${wasBurden}`, gameResult);
 
     // Non-blocking stats update
     updatePlayerStats(player.handle, gameResult).then(result => {
