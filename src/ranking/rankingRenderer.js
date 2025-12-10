@@ -23,7 +23,12 @@ export function checkGameEnded() {
   if (history.length === 0) return null;
 
   const latestGame = history[history.length - 1];
-  if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+  // Check for actual victory (通关 without negation like "才能通关")
+  if (latestGame.aNote && 
+      latestGame.aNote.includes('通关') && 
+      !latestGame.aNote.includes('才能通关') &&
+      !latestGame.aNote.includes('需') &&
+      !latestGame.aNote.includes('但')) {
     return {
       winner: latestGame.win,
       winKey: latestGame.winKey
