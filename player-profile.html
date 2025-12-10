@@ -245,7 +245,7 @@ async function loadProfile(handle) {
                     <strong style="color: ${game.teamWon ? '#22c55e' : '#ef4444'};">
                       ${game.teamWon ? '✅ 胜' : '❌ 负'}
                     </strong>
-                    · ${game.mode} · 第${game.ranking}名 · ${game.levelChange}
+                    · ${game.mode} · 第${game.ranking}名 · ${game.rounds || game.levelChange || '?'} 轮
                   </div>
                   <div style="font-size: 0.85em; color: #888;">
                     ${new Date(game.date).toLocaleString('zh-CN')}
