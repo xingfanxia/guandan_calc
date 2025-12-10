@@ -80,7 +80,8 @@ export default async function handler(request) {
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       stats: initializePlayerStats(),
-      recentGames: []
+      recentGames: [],
+      achievements: []  // Array of achievement IDs
     };
 
     // Store player data (no TTL - permanent)

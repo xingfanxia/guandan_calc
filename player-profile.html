@@ -83,6 +83,7 @@
 
 <script type="module">
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
+import { ACHIEVEMENTS } from '/src/stats/achievements.js';
 
 // Get handle from URL query parameter
 const urlParams = new URLSearchParams(window.location.search);
@@ -211,6 +212,25 @@ async function loadProfile(handle) {
             </div>
           ` : ''}
         ` : '<div style="color: #888; margin-top: 12px;">暂无荣誉，继续加油！</div>'}
+      </div>
+
+      <!-- Achievements -->
+      <div class="card">
+        <h3>🎖️ 成就徽章 (${player.achievements ? player.achievements.length : 0}/20)</h3>
+        ${player.achievements && player.achievements.length > 0 ? `
+          <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+            ${player.achievements.map(achId => {
+              const ach = ACHIEVEMENTS[achId];
+              return ach ? `
+                <div style="background: #2a2a2a; border: 1px solid #444; padding: 12px; border-radius: 8px;">
+                  <div style="font-size: 32px; margin-bottom: 8px;">${ach.badge}</div>
+                  <div style="font-weight: bold; margin-bottom: 4px;">${ach.name}</div>
+                  <div style="font-size: 0.85em; color: #888;">${ach.desc}</div>
+                </div>
+              ` : '';
+            }).join('')}
+          </div>
+        ` : '<div style="color: #888; margin-top: 12px;">暂无成就，开始游戏解锁徽章！</div>'}
       </div>
 
       <!-- Recent Games -->

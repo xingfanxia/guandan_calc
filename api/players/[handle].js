@@ -4,6 +4,47 @@
 import { kv } from '@vercel/kv';
 import { validateHandle } from './_utils.js';
 
+// Achievement checking - inline to avoid module imports in Edge Functions
+function checkAchievements(stats, lastSession = null) {
+  const earned = [];
+
+  // Milestone achievements
+  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 1) earned.push('newbie');
+  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 10) earned.push('started');
+  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 100) earned.push('veteran');
+  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 1000) earned.push('legend');
+
+  // Performance achievements
+  if ((stats.sessionsWon || stats.wins) >= 1) earned.push('first_win');
+  if (stats.longestWinStreak >= 5) earned.push('streak_5');
+  if (stats.longestWinStreak >= 10) earned.push('streak_10');
+  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 20 && 
+      (stats.sessionWinRate || stats.winRate || 0) >= 0.7) {
+    earned.push('champion');
+  }
+
+  // Honor collection achievements
+  const honors = stats.honors || {};
+  const uniqueHonors = Object.values(honors).filter(count => count > 0).length;
+  if (uniqueHonors >= 5) earned.push('honor_5');
+  if (uniqueHonors >= 10) earned.push('honor_10');
+  if (uniqueHonors >= 14) earned.push('honor_all');
+  if ((honors['吕布'] || 0) >= 10) earned.push('lubu_10');
+
+  // Session-specific achievements
+  if (lastSession) {
+    const rounds = lastSession.gamesInSession || 0;
+    const avgRank = lastSession.ranking || 999;
+
+    if (rounds > 50) earned.push('marathon');
+    if (rounds < 15 && lastSession.teamWon) earned.push('quick_finish');
+    if (avgRank <= 1.5) earned.push('perfect');
+    if ((lastSession.lastPlaces || 0) >= 5 && lastSession.teamWon) earned.push('unlucky');
+  }
+
+  return earned;
+}
+
 export default async function handler(request) {
   // Only allow GET and PUT requests
   if (request.method !== 'GET' && request.method !== 'PUT') {
@@ -168,12 +209,19 @@ export default async function handler(request) {
       // Update lastActiveAt
       player.lastActiveAt = new Date().toISOString();
 
+      // Check for new achievements
+      const oldAchievements = player.achievements || [];
+      const newAchievements = checkAchievements(player.stats, gameResult);
+      player.achievements = newAchievements;
+      const unlockedAchievements = newAchievements.filter(id => !oldAchievements.includes(id));
+
       // Save updated player
       await kv.set(`player:${handle}`, JSON.stringify(player));
 
       return new Response(JSON.stringify({
         success: true,
-        updatedStats: player.stats
+        updatedStats: player.stats,
+        newAchievements: unlockedAchievements  // Return newly unlocked achievements
       }), {
         status: 200,
         headers: {
