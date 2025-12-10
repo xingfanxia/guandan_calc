@@ -115,7 +115,7 @@ function renderPlayers() {
   }
 
   container.innerHTML = playersToShow.map(player => `
-    <div class="player-card" onclick="location.href='/players/${player.handle}.html'">
+    <div class="player-card" onclick="location.href='/player-profile.html?handle=${player.handle}'">
       <div style="display: flex; align-items: center; margin-bottom: 12px;">
         <span style="font-size: 48px; margin-right: 16px;">${player.emoji}</span>
         <div style="flex: 1;">
