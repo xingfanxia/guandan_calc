@@ -206,7 +206,7 @@ export async function updatePlayerStats(handle, gameResult) {
  * @param {Array} players - Array of all players in the game
  */
 export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = []) {
-  if (!historyEntry || !historyEntry.ranks || players.length === 0) {
+  if (!historyEntry || players.length === 0) {
     console.log('Skipping profile stats sync - missing data');
     return;
   }
@@ -214,38 +214,44 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
   console.log('Syncing profile stats for game completion:', {
     roomCode,
     playerCount: players.length,
-    ranks: historyEntry.ranks
+    winner: historyEntry.winKey,
+    playerRankings: historyEntry.playerRankings
   });
 
-  for (let i = 0; i < historyEntry.ranks.length; i++) {
-    const ranking = i + 1;
-    const playerId = historyEntry.ranks[i];
-    const player = players.find(p => p.id === playerId);
-    
+  // Iterate through ALL players and sync their stats
+  for (const player of players) {
     // Only update if player has a profile handle
-    if (player && player.handle) {
-      const gameResult = {
-        roomCode,
-        ranking,
-        team: player.team,
-        teamWon: historyEntry.winner === `t${player.team}`,
-        levelChange: historyEntry.teamUpgrades?.[`t${player.team}`] || '0',
-        honorsEarned: [], // TODO: Get from stats module
-        mode: `${players.length}P`
-      };
+    if (!player.handle) continue;
 
-      console.log(`Updating stats for @${player.handle}:`, gameResult);
-
-      // Non-blocking stats update
-      updatePlayerStats(player.handle, gameResult).then(result => {
-        if (result.success) {
-          console.log(`✅ Stats updated for @${player.handle}`);
-        } else {
-          console.warn(`❌ Failed to update stats for @${player.handle}`);
-        }
-      }).catch(err => {
-        console.error(`Error updating stats for @${player.handle}:`, err);
-      });
+    // Get this player's ranking from playerRankings
+    const playerRanking = historyEntry.playerRankings?.[player.id];
+    if (!playerRanking || playerRanking.rank === undefined) {
+      console.warn(`No ranking data for player ${player.id} (@${player.handle})`);
+      continue;
     }
+
+    const playerTeamKey = `t${player.team}`;
+    const gameResult = {
+      roomCode,
+      ranking: playerRanking.rank,
+      team: player.team,
+      teamWon: historyEntry.winKey === playerTeamKey,
+      levelChange: historyEntry[playerTeamKey] || '0',  // Team's final level from history
+      honorsEarned: [], // TODO: Get from stats module
+      mode: `${players.length}P`
+    };
+
+    console.log(`Updating stats for @${player.handle} (rank ${playerRanking.rank}):`, gameResult);
+
+    // Non-blocking stats update
+    updatePlayerStats(player.handle, gameResult).then(result => {
+      if (result.success) {
+        console.log(`✅ Stats updated for @${player.handle}`);
+      } else {
+        console.warn(`❌ Failed to update stats for @${player.handle}`);
+      }
+    }).catch(err => {
+      console.error(`Error updating stats for @${player.handle}:`, err);
+    });
   }
 }
