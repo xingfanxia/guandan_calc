@@ -202,13 +202,6 @@ function setupEventListeners() {
           // Update player stats
           updatePlayerStats(parseInt(mode));
 
-          // Sync profile stats to API ONLY on final win (non-blocking)
-          if (applyResult.finalWin) {
-            const roomInfo = getRoomInfo();
-            const allPlayers = getPlayers();
-            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
-          }
-
           // Clear ranking for next round
           clearRankingState();
 
@@ -226,9 +219,16 @@ function setupEventListeners() {
           renderStatistics();
           attachTouchHandlersToAllTiles();
 
-          // Show victory modal if final win
+          // Handle final win (A-level victory)
           if (applyResult.finalWin) {
             const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+            
+            // Sync profile stats to database (non-blocking)
+            const roomInfo = getRoomInfo();
+            const allPlayers = getPlayers();
+            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
+            
+            // Show victory celebration
             showVictoryModal(winnerName);
           }
         }
@@ -710,14 +710,16 @@ function setupModuleEventHandlers() {
             renderHistory();
             renderStatistics();
 
-            // Sync profile stats to API ONLY on final win (non-blocking)
+            // Handle final win (A-level victory)
             if (applyResult.finalWin) {
+              const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+              
+              // Sync profile stats to database (non-blocking)
               const roomInfo = getRoomInfo();
               const allPlayers = getPlayers();
               syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
-            }
-
-            if (applyResult.finalWin) {
+              
+              // Show victory celebration
               showVictoryModal(winnerName);
             }
           }
