@@ -58,6 +58,16 @@ export function exportMobilePNG() {
     const roster = teamPlayers.map(p => `${p.emoji}${p.name}`).join(' ');
     ctx.fillText(`冠军队伍: ${roster}`, 40, currentY);
     currentY += 40;
+
+    // Show MVP tagline if available
+    const mvpId = latestGame.ranks ? latestGame.ranks[0] : null;
+    const mvpPlayer = teamPlayers.find(p => p.id === mvpId);
+    if (mvpPlayer && mvpPlayer.tagline) {
+      ctx.font = 'italic 22px Arial';
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillText(`${mvpPlayer.emoji} ${mvpPlayer.name}: "${mvpPlayer.tagline}"`, 40, currentY);
+      currentY += 45;
+    }
   }
 
   ctx.font = '18px Arial';

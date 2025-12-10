@@ -205,7 +205,8 @@ function setupEventListeners() {
           // Sync profile stats to API ONLY on final win (non-blocking)
           if (applyResult.finalWin) {
             const roomInfo = getRoomInfo();
-            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL');
+            const allPlayers = getPlayers();
+            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
           }
 
           // Clear ranking for next round
@@ -712,7 +713,8 @@ function setupModuleEventHandlers() {
             // Sync profile stats to API ONLY on final win (non-blocking)
             if (applyResult.finalWin) {
               const roomInfo = getRoomInfo();
-              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL');
+              const allPlayers = getPlayers();
+              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
             }
 
             if (applyResult.finalWin) {

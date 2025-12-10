@@ -53,9 +53,7 @@
         style="flex: 1; padding: 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
       />
       <button id="searchButton" style="padding: 12px 24px; background: #3b82f6; color: white;">搜索</button>
-      <a href="/players/new.html" style="margin-left: 8px;">
-        <button style="padding: 12px 24px; background: #22c55e; color: white;">创建新玩家</button>
-      </a>
+      <button id="createPlayerButton" style="padding: 12px 24px; background: #22c55e; color: white; margin-left: 8px;">创建新玩家</button>
     </div>
 
     <div style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
@@ -78,11 +76,19 @@
 
 <script type="module">
 import { searchPlayers, getPlayStyleLabel } from '/src/api/playerApi.js';
+import { initializeCreateModal, showCreateModal } from '/src/player/playerCreateModal.js';
 
 let currentPage = 0;
 const pageSize = 20;
 let allPlayers = [];
 let filteredPlayers = [];
+
+// Initialize create modal
+initializeCreateModal((createdPlayer) => {
+  console.log('Player created:', createdPlayer);
+  // Reload players list
+  loadPlayers();
+});
 
 async function loadPlayers(query = '') {
   try {
@@ -168,6 +174,10 @@ function updatePagination() {
 document.getElementById('searchButton').onclick = () => {
   const query = document.getElementById('searchInput').value;
   loadPlayers(query);
+};
+
+document.getElementById('createPlayerButton').onclick = () => {
+  showCreateModal();
 };
 
 document.getElementById('searchInput').onkeypress = (e) => {
