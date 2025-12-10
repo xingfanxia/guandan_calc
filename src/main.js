@@ -16,6 +16,7 @@ import { renderHistory, undoLast, resetAll } from './game/history.js';
 
 // API clients
 import { searchPlayers } from './api/playerApi.js';
+import { syncProfileStats } from './api/playerApi.js';
 
 // Player system
 import {
@@ -200,6 +201,12 @@ function setupEventListeners() {
         if (applyResult && applyResult.applied) {
           // Update player stats
           updatePlayerStats(parseInt(mode));
+
+          // Sync profile stats to API ONLY on final win (non-blocking)
+          if (applyResult.finalWin) {
+            const roomInfo = getRoomInfo();
+            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL');
+          }
 
           // Clear ranking for next round
           clearRankingState();
@@ -702,6 +709,12 @@ function setupModuleEventHandlers() {
             renderHistory();
             renderStatistics();
 
+            // Sync profile stats to API ONLY on final win (non-blocking)
+            if (applyResult.finalWin) {
+              const roomInfo = getRoomInfo();
+              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL');
+            }
+
             if (applyResult.finalWin) {
               showVictoryModal(winnerName);
             }
@@ -1078,8 +1091,7 @@ function lockTeamAssignmentPanel() {
     const applyBulkBtn = $('applyBulkNames');
     const quickStartBtn = $('quickStart');
     const bulkNamesInput = $('bulkNames');
-    const clearRankingBtn = $('clearRanking');
-    const randomRankingBtn = $('randomRanking');
+    // Note: clearRanking and randomRanking should NOT be disabled during gameplay
 
     if (generateBtn) {
       generateBtn.disabled = true;
@@ -1102,14 +1114,6 @@ function lockTeamAssignmentPanel() {
     if (bulkNamesInput) {
       bulkNamesInput.disabled = true;
       bulkNamesInput.style.opacity = '0.5';
-    }
-    if (clearRankingBtn) {
-      clearRankingBtn.disabled = true;
-      clearRankingBtn.style.opacity = '0.5';
-    }
-    if (randomRankingBtn) {
-      randomRankingBtn.disabled = true;
-      randomRankingBtn.style.opacity = '0.5';
     }
 
     // Disable mode selector
@@ -1253,8 +1257,7 @@ function unlockTeamAssignmentPanel() {
   const applyBulkBtn = $('applyBulkNames');
   const quickStartBtn = $('quickStart');
   const bulkNamesInput = $('bulkNames');
-  const clearRankingBtn = $('clearRanking');
-  const randomRankingBtn = $('randomRanking');
+  // Note: clearRanking and randomRanking were never disabled
 
   if (generateBtn) {
     generateBtn.disabled = false;
@@ -1277,14 +1280,6 @@ function unlockTeamAssignmentPanel() {
   if (bulkNamesInput) {
     bulkNamesInput.disabled = false;
     bulkNamesInput.style.opacity = '1';
-  }
-  if (clearRankingBtn) {
-    clearRankingBtn.disabled = false;
-    clearRankingBtn.style.opacity = '1';
-  }
-  if (randomRankingBtn) {
-    randomRankingBtn.disabled = false;
-    randomRankingBtn.style.opacity = '1';
   }
 
   // Re-enable mode selector

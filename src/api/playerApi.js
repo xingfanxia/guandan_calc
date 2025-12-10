@@ -169,3 +169,72 @@ export async function touchPlayer(handle) {
     return { success: false };
   }
 }
+
+/**
+ * Update player stats after game completion
+ * @param {string} handle - Player handle
+ * @param {Object} gameResult - Game result data
+ * @returns {Promise<{success: boolean, updatedStats: Object}>}
+ */
+export async function updatePlayerStats(handle, gameResult) {
+  try {
+    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(gameResult)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Update stats failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('updatePlayerStats error:', error);
+    // Don't throw - this is a non-critical operation
+    return { success: false };
+  }
+}
+
+/**
+ * Sync player profile stats after game completion
+ * Calls API to update stats for all profile players in the game
+ * @param {Object} historyEntry - The history entry from the completed round
+ * @param {string} roomCode - Room code (if applicable)
+ */
+export async function syncProfileStats(historyEntry, roomCode = 'LOCAL') {
+  if (!historyEntry || !historyEntry.ranks) return;
+
+  const players = historyEntry.ranks.map((_, index) => {
+    const ranking = index + 1;
+    const playerId = historyEntry.ranks[index];
+    return { ranking, playerId };
+  });
+
+  // Get all players to find profile handles
+  const allPlayers = window.gameState?.getPlayers?.() || [];
+  
+  for (const { ranking, playerId } of players) {
+    const player = allPlayers.find(p => p.id === playerId);
+    
+    // Only update if player has a profile handle
+    if (player && player.handle) {
+      const gameResult = {
+        roomCode,
+        ranking,
+        team: player.team,
+        teamWon: historyEntry.winner === `t${player.team}`,
+        levelChange: historyEntry.teamUpgrades?.[`t${player.team}`] || '0',
+        honorsEarned: [], // Will be populated from stats module
+        mode: `${allPlayers.length}P`
+      };
+
+      // Non-blocking stats update
+      updatePlayerStats(player.handle, gameResult).catch(err => {
+        console.warn(`Failed to sync stats for @${player.handle}:`, err);
+      });
+    }
+  }
+}
