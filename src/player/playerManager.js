@@ -7,7 +7,7 @@
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
-// Animal emoji pool for player avatars (77+ emojis)
+// 77+ animal and food emoji avatars (no insects)
 const ANIMAL_EMOJIS = [
   '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯',
   '🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆',
@@ -18,6 +18,9 @@ const ANIMAL_EMOJIS = [
   '🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑',
   '🥦','🥬','🥒','🌶','🌽','🥕','🧄','🧅','🥔','🍠'
 ];
+
+// Export for use in other modules
+export { ANIMAL_EMOJIS };
 
 /**
  * Generate players for the game
@@ -95,6 +98,48 @@ export function generatePlayers(count, forceNew = false) {
  */
 export function getPlayers() {
   return state.getPlayers();
+}
+
+/**
+ * Add player from profile
+ * Creates a session player linked to a profile
+ * @param {Object} profile - Player profile from API
+ * @returns {Object} Created player object
+ */
+export function addPlayerFromProfile(profile) {
+  const players = state.getPlayers();
+  
+  // Check if player already added
+  const existing = players.find(p => p.handle === profile.handle);
+  if (existing) {
+    console.warn(`Player @${profile.handle} already added`);
+    return existing;
+  }
+
+  // Get next available ID
+  const nextId = players.length > 0 
+    ? Math.max(...players.map(p => p.id)) + 1 
+    : 1;
+
+  // Create player object with profile data
+  const player = {
+    id: nextId,
+    name: profile.displayName,     // Use displayName from profile
+    emoji: profile.emoji,
+    team: null,                     // Start unassigned
+    handle: profile.handle,         // Link to profile
+    playerId: profile.id,          // For stats updates
+    playStyle: profile.playStyle,  // From profile
+    tagline: profile.tagline       // For victory screen
+  };
+
+  // Add to players array
+  players.push(player);
+  state.setPlayers(players);
+
+  emit('player:addedFromProfile', { player, profile });
+
+  return player;
 }
 
 /**

@@ -29,6 +29,31 @@
   <div class="card" id="playerSetupSection">
     <details open>
       <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">👥 玩家设置</summary>
+      
+      <!-- Player Profile Search -->
+      <div style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
+        <h4 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;">🔍 搜索玩家资料</h4>
+        <div class="row" style="margin-bottom: 8px;">
+          <input 
+            type="text" 
+            id="playerSearchInput" 
+            placeholder="搜索用户名或昵称..."
+            style="flex: 1; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
+          />
+          <button id="playerSearchButton" style="padding: 8px 16px; background: #3b82f6; color: white;">搜索</button>
+          <button id="createPlayerButton" style="padding: 8px 16px; background: #22c55e; color: white; margin-left: 4px;">创建玩家</button>
+        </div>
+        <div id="playerSearchResults" style="max-height: 300px; overflow-y: auto;">
+          <!-- Search results will be populated here -->
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div style="text-align: center; margin: 16px 0; color: #666; font-size: 14px;">
+        ——— 或使用快速设置 ———
+      </div>
+
+      <!-- Existing Quick Setup -->
       <div class="row">
         <label for="mode">人数：</label>
         <select id="mode"><option value="4">4 人</option><option value="6">6 人</option><option value="8" selected>8 人</option></select>

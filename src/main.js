@@ -21,11 +21,14 @@ import {
   getPlayersByTeam,
   shuffleTeams,
   applyBulkNames,
-  areAllPlayersAssigned
+  areAllPlayersAssigned,
+  addPlayerFromProfile
 } from './player/playerManager.js';
 import { renderPlayers, updateTeamLabels, attachTouchHandlers } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
 import { handleTouchStart, handleTouchMove, handleTouchEnd } from './player/touchHandler.js';
+import { initializePlayerSearch, showInitialPlayers, clearSearchResults } from './player/playerSearch.js';
+import { initializeCreateModal, showCreateModal } from './player/playerCreateModal.js';
 
 // Ranking system
 import {
@@ -281,6 +284,38 @@ function setupEventListeners() {
     });
   }
 
+  // Player profile search and creation
+  initializePlayerSearch(
+    // onPlayerSelected callback
+    (player) => {
+      const addedPlayer = addPlayerFromProfile(player);
+      if (addedPlayer) {
+        renderPlayers();
+        console.log('Player added from profile:', addedPlayer);
+      }
+    },
+    // onCreatePlayer callback
+    () => {
+      showCreateModal();
+    }
+  );
+
+  initializeCreateModal((createdPlayer) => {
+    // Auto-add newly created player to game
+    const addedPlayer = addPlayerFromProfile(createdPlayer);
+    if (addedPlayer) {
+      renderPlayers();
+      clearSearchResults();
+      console.log('Player created and added:', addedPlayer);
+    }
+  });
+
+  // Show initial players in search on load
+  const searchResults = $('playerSearchResults');
+  if (searchResults) {
+    showInitialPlayers();
+  }
+
   if (clearRankingBtn) {
     on(clearRankingBtn, 'click', () => {
       // Check if game has ended (A级通关)
@@ -433,7 +468,7 @@ function setupEventListeners() {
       const mode = parseInt($('mode').value);
       const quickNames = mode === 4 ? '豪 小 大 姐' :
                           mode === 6 ? '豪 小 大 姐 夫 塔' :
-                          '豪 小 大 姐 夫 塔 帆 鱼';
+                          '豪 小 大 姐 夫 塾 帆 鱼';
 
       const success = applyBulkNames(quickNames);
       if (success) {
@@ -960,8 +995,8 @@ function updateBulkNamesPlaceholder(mode) {
   if (!bulkNamesInput) return;
 
   const placeholder = mode === '4' ? '豪 小 大 姐' :
-                      mode === '6' ? '豪 小 大 姐 夫 塔' :
-                      '豪 小 大 姐 夫 塔 帆 鱼';
+                      mode === '6' ? '豪 小 大 姐 夫 塞' :
+                      '豪 小 大 姐 夫 塾 帆 鱼';
 
   bulkNamesInput.placeholder = placeholder;
 }
@@ -986,6 +1021,8 @@ function lockTeamAssignmentPanel() {
     const applyBulkBtn = $('applyBulkNames');
     const quickStartBtn = $('quickStart');
     const bulkNamesInput = $('bulkNames');
+    const clearRankingBtn = $('clearRanking');
+    const randomRankingBtn = $('randomRanking');
 
     if (generateBtn) {
       generateBtn.disabled = true;
@@ -1008,6 +1045,14 @@ function lockTeamAssignmentPanel() {
     if (bulkNamesInput) {
       bulkNamesInput.disabled = true;
       bulkNamesInput.style.opacity = '0.5';
+    }
+    if (clearRankingBtn) {
+      clearRankingBtn.disabled = true;
+      clearRankingBtn.style.opacity = '0.5';
+    }
+    if (randomRankingBtn) {
+      randomRankingBtn.disabled = true;
+      randomRankingBtn.style.opacity = '0.5';
     }
 
     // Disable mode selector
@@ -1151,6 +1196,8 @@ function unlockTeamAssignmentPanel() {
   const applyBulkBtn = $('applyBulkNames');
   const quickStartBtn = $('quickStart');
   const bulkNamesInput = $('bulkNames');
+  const clearRankingBtn = $('clearRanking');
+  const randomRankingBtn = $('randomRanking');
 
   if (generateBtn) {
     generateBtn.disabled = false;
@@ -1173,6 +1220,14 @@ function unlockTeamAssignmentPanel() {
   if (bulkNamesInput) {
     bulkNamesInput.disabled = false;
     bulkNamesInput.style.opacity = '1';
+  }
+  if (clearRankingBtn) {
+    clearRankingBtn.disabled = false;
+    clearRankingBtn.style.opacity = '1';
+  }
+  if (randomRankingBtn) {
+    randomRankingBtn.disabled = false;
+    randomRankingBtn.style.opacity = '1';
   }
 
   // Re-enable mode selector

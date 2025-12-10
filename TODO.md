@@ -1,118 +1,149 @@
-# Implementation Plan: Player Profile System - Backend APIs
+# Implementation Plan: Player Profile System - Frontend Integration
 
-## Research Summary
-- ✅ Existing API pattern: Vercel Edge Functions with KV storage
-- ✅ Key pattern: `room:${roomCode}` with 1-year TTL
-- ✅ CORS headers, validation, proper error handling
-- ✅ Player profile spec: handle-based IDs, stats aggregation, 8 play styles, 14 honors
+## Backend Status: ✅ COMPLETE
+All 3 player APIs tested and working on production (https://gd.ax0x.ai)
+
+---
+
+## Frontend Integration Plan
+
+### Current Flow (Session-Only)
+1. Click "生成玩家" → `generatePlayers(count)` creates `{ id, name, emoji, team }`
+2. Bulk input → `applyBulkNames()` updates names
+3. Drag-drop → assigns teams
+4. State stored in localStorage (session-only)
+
+### Target Flow (Profile-Based)
+1. Click "搜索玩家" → Search existing profiles OR create new
+2. Select player → Add to game with full profile data
+3. Drag-drop → assigns teams (same as before)
+4. State includes profile handles for stats updates after game
+
+---
 
 ## Steps
 
-- [x] **Step 1**: Create helper functions module `api/players/_utils.js`
-  - File: `api/players/_utils.js`
-  - Functions implemented:
-    - `generatePlayerId()` - Returns `PLR_` + 6 random alphanumeric chars
-    - `validateHandle(handle)` - Checks URL-safe format (alphanumeric + underscore, 3-20 chars)
-    - `validatePlayerData(data)` - Validates required fields for player creation
-    - `initializePlayerStats()` - Returns fresh stats object with all 14 honors at 0
-  - Test: ✅ Functions validated through type checking and usage in create endpoint
-
-- [x] **Step 2**: Implement POST /api/players/create
-  - File: `api/players/create.js`
-  - Features:
-    - Validates handle uniqueness via `kv.get(player:${handle})`
-    - Generates unique player ID with collision detection
-    - Creates player object with all required fields
-    - Stores with `kv.set(player:${handle})` (permanent, no TTL)
-    - Stores reverse lookup: `kv.set(player_id:${id}, handle)`
-    - Returns 409 if handle exists, 400 for validation errors
-  - Test: ✅ Pending deployment test
-
-- [x] **Step 3**: Implement GET /api/players/[handle]
-  - File: `api/players/[handle].js`
-  - Features:
-    - Extracts and normalizes handle from URL (lowercase)
-    - Validates handle format
-    - Returns full player object from `kv.get(player:${handle})`
-    - Returns 404 if not found, 400 for invalid format
-  - Test: ✅ Pending deployment test
-
-- [x] **Step 4**: Implement GET /api/players/list with search
-  - File: `api/players/list.js`
-  - Features:
-    - Query params: `q` (search), `limit` (default 20, max 100), `offset` (default 0)
-    - Uses `kv.keys('player:*')` to get all player keys
-    - Fetches all players and filters by search query (handle or displayName)
-    - Sorts by createdAt DESC
-    - Applies pagination with hasMore flag
-    - Returns `{ players, total, hasMore }`
-  - Test: ✅ Pending deployment test
-
-- [ ] **Step 5**: Deploy and test endpoints on Vercel preview
-  - Test:
-    ```bash
-    # After deploying to Vercel preview
-    # Create player
-    curl -X POST https://[preview-url]/api/players/create \
-      -H "Content-Type: application/json" \
-      -d '{"handle":"testplayer","displayName":"Test","emoji":"🐱","playStyle":"gambler","tagline":"测试玩家"}'
-
-    # Get player
-    curl https://[preview-url]/api/players/testplayer
-
-    # List players
-    curl "https://[preview-url]/api/players/list?limit=10"
-
-    # Search players
-    curl "https://[preview-url]/api/players/list?q=test"
+- [ ] **Step 1**: Create player API client module `src/api/playerApi.js`
+  - File: `src/api/playerApi.js` (new)
+  - Functions:
+    ```javascript
+    searchPlayers(query)    // GET /api/players/list?q={query}
+    getPlayer(handle)       // GET /api/players/{handle}
+    createPlayer(data)      // POST /api/players/create
     ```
-  - Verify: All endpoints return correct status codes and data
+  - Test: Call each function from browser console
 
-- [ ] **Step 6**: Document KV schema and key patterns
-  - File: `docs/architecture/KV_SCHEMA.md`
-  - Content: Document all KV keys, data structures, TTLs, and access patterns
+- [ ] **Step 2**: Create player search UI component
+  - File: `src/player/playerSearch.js` (new)
+  - Features:
+    - Search input with real-time filtering
+    - Player results list (handle, displayName, emoji, playStyle)
+    - "Create New Player" button
+    - Selection callback to add player to game
+  - UI location: Replace or augment "批量输入姓名" section
+  - Test: Search shows results, clicking adds player
+
+- [ ] **Step 3**: Create "Create Player" modal
+  - File: `src/player/playerCreateModal.js` (new)
+  - Features:
+    - Form: handle, displayName, emoji selector, playStyle dropdown, tagline
+    - Validation (client-side + server response)
+    - Success → auto-add to game
+  - Test: Create player, verify added to game
+
+- [ ] **Step 4**: Update playerManager to support profile data
+  - File: `src/player/playerManager.js`
+  - Changes:
+    - Extend player object: `{ id, name, emoji, team, handle, playerId, playStyle, tagline }`
+    - Add `addPlayerFromProfile(profile)` function
+    - Keep backward compatibility for session-only players
+  - Test: Mix profile and session players in same game
+
+- [ ] **Step 5**: Update main.js event handlers
+  - File: `src/main.js`
+  - Changes:
+    - Add event bindings for search UI
+    - Add event bindings for create modal
+    - Keep existing "generatePlayers" as fallback/quick-start
+  - Test: All player setup flows work
+
+- [ ] **Step 6**: Update HTML with new UI elements
+  - File: `index.html`
+  - Changes:
+    - Add player search section before bulk names
+    - Add "或 手动添加" toggle for session-only players
+    - Keep existing UI as fallback option
+  - Test: UI renders correctly, responsive
+
+- [ ] **Step 7**: Add "Recent Players" localStorage cache
+  - File: `src/player/recentPlayers.js` (new)
+  - Features:
+    - Cache last 10 used player handles
+    - Show as quick-select buttons
+    - LocalStorage key: `gd_v9_recent_players`
+  - Test: Recent players persist across sessions
+
+- [ ] **Step 8**: Integration testing
+  - Test scenarios:
+    - Search and select existing player
+    - Create new player and use immediately
+    - Mix profile + session players
+    - Recent players quick-select
+    - Backward compat: old games still work
+  - Verify: All player data correctly stored
 
 ## Progress Log
 | Step | Status | Notes | Commit |
 |------|--------|-------|--------|
-| 1 | ✅ Complete | Utility functions created | e3f75e9 |
-| 2 | ✅ Complete | Create endpoint | e3f75e9 |
-| 3 | ✅ Complete | Get endpoint | e3f75e9 |
-| 4 | ✅ Complete | List endpoint | e3f75e9 |
-| 5 | ✅ Complete | Deploy & test | Production verified |
-| 6 | ✅ Complete | Documentation | 72fc54c |
+| 1 | Pending | API client module | |
+| 2 | Pending | Search UI component | |
+| 3 | Pending | Create player modal | |
+| 4 | Pending | playerManager updates | |
+| 5 | Pending | Event handler updates | |
+| 6 | Pending | HTML UI updates | |
+| 7 | Pending | Recent players cache | |
+| 8 | Pending | Integration testing | |
 
-## Test Results (Production - https://gd.ax0x.ai)
+## Design Decisions
 
-### ✅ All Endpoints Working
+### Backward Compatibility
+- Keep existing "生成玩家" + "批量输入" as quick-start option
+- Session-only players work without profiles (handle = null)
+- Gradual migration: users can adopt profiles at their own pace
 
-**POST /api/players/create**:
-- ✅ Creates players with all required fields
-- ✅ Auto-generates player IDs (PLR_XXXXXX format)
-- ✅ Validates handle format (3-20 chars, alphanumeric + underscore)
-- ✅ Rejects duplicate handles (409 error)
-- ✅ Normalizes handles to lowercase
-- ✅ Returns full player object with initialized stats
+### UI Layout
+```
+👥 玩家设置
+  [搜索玩家] [🔍]
+  Recent: [@xiaoming] [@lili] [@testplayer]
+  --- 或 ---
+  [生成玩家] [批量输入姓名] (existing flow)
+```
 
-**GET /api/players/[handle]**:
-- ✅ Fetches individual player profiles
-- ✅ Returns 404 for non-existent players
-- ✅ Returns full data including stats and recentGames
+### Data Model Enhancement
+```javascript
+// Before (session-only)
+{ id: 1, name: "小明", emoji: "🐱", team: 1 }
 
-**GET /api/players/list**:
-- ✅ Lists all players sorted by createdAt DESC
-- ✅ Search by handle works (q=test)
-- ✅ Search by Chinese displayName works (q=小)
-- ✅ Pagination works (limit, offset, hasMore flag)
-- ✅ Returns player count and hasMore indicator
+// After (profile-linked)
+{
+  id: 1,              // Session ID (for drag-drop)
+  name: "小明",       // Display name
+  emoji: "🐱",
+  team: 1,
+  handle: "xiaoming", // NEW: Link to profile
+  playerId: "PLR_X7K2M9", // NEW: For stats updates
+  playStyle: "steady",    // NEW: From profile
+  tagline: "稳如老狗"     // NEW: For victory screen
+}
+```
 
-### Test Data Created
-- testplayer (PLR_ZT8L8D) - 测试玩家 🐱
-- xiaoming (PLR_*) - 小明 🐶
-- lili (PLR_*) - 丽丽 🐰
+### Stats Update Flow (Future)
+After game ends:
+1. For each player with `handle`:
+2. Call `PUT /api/players/{handle}/stats` with game results
+3. Update: gamesPlayed, wins, honors, recentGames array
 
 ---
 
-## Backend Implementation: ✅ COMPLETE
-
-All player profile backend APIs are implemented, tested, and documented.
+## Next: Start Step 1 - Create API Client Module
