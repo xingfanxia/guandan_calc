@@ -45,43 +45,50 @@ export function showVictoryModal(teamName) {
 
   // Find MVP from winning team and show tagline
   try {
-    const history = state.getHistory();
     const players = state.getPlayers();
-    if (history.length > 0 && players.length > 0) {
-      const lastRound = history[history.length - 1];
-      const winningTeamNum = teamName === config.getTeamName('t1') ? 1 : 2;
-      
-      // Get winning team players
-      const winningPlayers = players.filter(p => p.team === winningTeamNum);
-      
-      // Find player with rank 1 (MVP)
-      const ranks = lastRound.ranks || [];
-      const mvpId = ranks[0]; // First place
-      const mvpPlayer = winningPlayers.find(p => p.id === mvpId);
-      
-      // Show tagline if MVP has profile
-      if (mvpPlayer && mvpPlayer.tagline) {
-        const existingTagline = modal.querySelector('.mvp-tagline');
-        if (existingTagline) existingTagline.remove();
-        
-        const taglineEl = document.createElement('p');
-        taglineEl.className = 'mvp-tagline';
-        taglineEl.style.cssText = `
-          color: #fbbf24;
-          font-size: 20px;
-          margin: 0 0 24px 0;
-          font-style: italic;
-          text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-        `;
-        taglineEl.innerHTML = `
-          <strong style="color: ${winningTeamColor};">${mvpPlayer.emoji} ${mvpPlayer.name}</strong>: 
-          "${mvpPlayer.tagline}"
-        `;
-        
-        // Insert after team name
-        if (teamNameEl && teamNameEl.nextSibling) {
-          teamNameEl.parentNode.insertBefore(taglineEl, teamNameEl.nextSibling);
+    const playerStats = state.getPlayerStats();
+    const winningTeamNum = teamName === config.getTeamName('t1') ? 1 : 2;
+    
+    // Get winning team players
+    const winningPlayers = players.filter(p => p.team === winningTeamNum);
+    
+    // Find MVP: player with LOWEST average ranking (best performance)
+    let mvpPlayer = null;
+    let bestAvg = Infinity;
+    
+    winningPlayers.forEach(player => {
+      const stats = playerStats[player.id];
+      if (stats && stats.games > 0) {
+        const avgRank = stats.totalRank / stats.games;
+        if (avgRank < bestAvg) {
+          bestAvg = avgRank;
+          mvpPlayer = player;
         }
+      }
+    });
+    
+    // Show tagline if MVP has profile
+    if (mvpPlayer && mvpPlayer.tagline) {
+      const existingTagline = modal.querySelector('.mvp-tagline');
+      if (existingTagline) existingTagline.remove();
+      
+      const taglineEl = document.createElement('p');
+      taglineEl.className = 'mvp-tagline';
+      taglineEl.style.cssText = `
+        color: #fbbf24;
+        font-size: 20px;
+        margin: 0 0 24px 0;
+        font-style: italic;
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+      `;
+      taglineEl.innerHTML = `
+        <strong style="color: ${winningTeamColor};">MVP ${mvpPlayer.emoji} ${mvpPlayer.name}</strong> (平均 ${bestAvg.toFixed(2)}名)<br>
+        "${mvpPlayer.tagline}"
+      `;
+      
+      // Insert after team name
+      if (teamNameEl && teamNameEl.nextSibling) {
+        teamNameEl.parentNode.insertBefore(taglineEl, teamNameEl.nextSibling);
       }
     }
   } catch (error) {

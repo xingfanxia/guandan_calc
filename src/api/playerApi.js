@@ -200,58 +200,63 @@ export async function updatePlayerStats(handle, gameResult) {
 
 /**
  * Sync player profile stats after game completion
- * Calls API to update stats for all profile players in the game
- * @param {Object} historyEntry - The history entry from the completed round
+ * Syncs the entire game session stats (all rounds) to player profiles
+ * @param {Object} historyEntry - The final history entry
  * @param {string} roomCode - Room code (if applicable)
  * @param {Array} players - Array of all players in the game
+ * @param {Object} sessionStats - Complete session stats from statistics.js
  */
-export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = []) {
-  if (!historyEntry || players.length === 0) {
+export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}) {
+  if (!historyEntry || players.length === 0 || !sessionStats) {
     console.log('Skipping profile stats sync - missing data');
     return;
   }
 
-  console.log('Syncing profile stats for game completion:', {
+  console.log('Syncing COMPLETE SESSION stats for all players:', {
     roomCode,
     playerCount: players.length,
     winner: historyEntry.winKey,
-    playerRankings: historyEntry.playerRankings
+    totalRounds: Object.values(sessionStats).length > 0 ? sessionStats[Object.keys(sessionStats)[0]]?.games : 0
   });
 
-  // Iterate through ALL players and sync their stats
+  // Iterate through ALL players and sync their complete session stats
   for (const player of players) {
     // Only update if player has a profile handle
     if (!player.handle) continue;
 
-    // Get this player's ranking from playerRankings
-    const playerRanking = historyEntry.playerRankings?.[player.id];
-    if (!playerRanking || playerRanking.rank === undefined) {
-      console.warn(`No ranking data for player ${player.id} (@${player.handle})`);
+    // Get this player's complete session stats
+    const playerSessionStats = sessionStats[player.id];
+    if (!playerSessionStats || !playerSessionStats.games) {
+      console.warn(`No session stats for player ${player.id} (@${player.handle})`);
       continue;
     }
 
     const playerTeamKey = `t${player.team}`;
+    const avgRanking = playerSessionStats.totalRank / playerSessionStats.games;
+
     const gameResult = {
       roomCode,
-      ranking: playerRanking.rank,
+      ranking: Math.round(avgRanking * 10) / 10,  // Session average ranking
       team: player.team,
       teamWon: historyEntry.winKey === playerTeamKey,
-      levelChange: historyEntry[playerTeamKey] || '0',  // Team's final level from history
-      honorsEarned: [], // TODO: Get from stats module
+      gamesInSession: playerSessionStats.games,  // Total rounds played
+      firstPlaces: playerSessionStats.firstPlaceCount || 0,
+      lastPlaces: playerSessionStats.lastPlaceCount || 0,
+      honorsEarned: [], // TODO: Get from honors calculation
       mode: `${players.length}P`
     };
 
-    console.log(`Updating stats for @${player.handle} (rank ${playerRanking.rank}):`, gameResult);
+    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}`, gameResult);
 
     // Non-blocking stats update
     updatePlayerStats(player.handle, gameResult).then(result => {
       if (result.success) {
-        console.log(`✅ Stats updated for @${player.handle}`);
+        console.log(`✅ Session stats synced for @${player.handle}`);
       } else {
-        console.warn(`❌ Failed to update stats for @${player.handle}`);
+        console.warn(`❌ Failed to sync session for @${player.handle}`);
       }
     }).catch(err => {
-      console.error(`Error updating stats for @${player.handle}:`, err);
+      console.error(`Error syncing session for @${player.handle}:`, err);
     });
   }
 }

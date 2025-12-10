@@ -225,10 +225,13 @@ function setupEventListeners() {
           if (applyResult.finalWin) {
             console.log('🎉 Final win detected! Showing victory modal...');
             // winnerName already calculated above at line 656
+            
             // Sync profile stats to database (non-blocking)
             const roomInfo = getRoomInfo();
             const allPlayers = getPlayers();
-            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
+            const sessionStats = state.getPlayerStats();  // Get complete session stats
+            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats);
+            
             // Show victory celebration
             showVictoryModal(winnerName);
           }

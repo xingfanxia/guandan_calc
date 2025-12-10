@@ -85,27 +85,31 @@ export default async function handler(request) {
 
       const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
 
-      // Update stats
-      player.stats.gamesPlayed += 1;
+      // Update stats - now receiving SESSION stats (multiple rounds)
+      const gamesInSession = gameResult.gamesInSession || 1;
+      player.stats.gamesPlayed += gamesInSession;
+      
       if (gameResult.teamWon) {
-        player.stats.wins += 1;
+        player.stats.wins += 1;  // Session counts as 1 win
       }
+      
       player.stats.winRate = player.stats.gamesPlayed > 0 
         ? player.stats.wins / player.stats.gamesPlayed 
         : 0;
 
-      // Update recent rankings (keep last 10)
+      // Update recent rankings - add session average as one entry
       player.stats.recentRankings = player.stats.recentRankings || [];
-      player.stats.recentRankings.unshift(gameResult.ranking);
+      player.stats.recentRankings.unshift(Math.round(gameResult.ranking));
       if (player.stats.recentRankings.length > 10) {
         player.stats.recentRankings = player.stats.recentRankings.slice(0, 10);
       }
 
-      // Calculate average ranking
-      const allRankings = [...player.stats.recentRankings];
-      if (allRankings.length > 0) {
-        player.stats.avgRanking = allRankings.reduce((sum, r) => sum + r, 0) / allRankings.length;
-      }
+      // Recalculate average ranking across all games
+      // Note: This is simplified - ideally we'd track all individual round rankings
+      const totalRankings = player.stats.gamesPlayed;
+      const previousTotal = player.stats.avgRanking * (totalRankings - gamesInSession);
+      const sessionTotal = gameResult.ranking * gamesInSession;
+      player.stats.avgRanking = (previousTotal + sessionTotal) / totalRankings;
 
       // Update honors
       if (gameResult.honorsEarned && Array.isArray(gameResult.honorsEarned)) {
@@ -116,7 +120,7 @@ export default async function handler(request) {
         });
       }
 
-      // Update win/loss streaks
+      // Update win/loss streaks (session counts as 1)
       if (gameResult.teamWon) {
         player.stats.currentWinStreak += 1;
         player.stats.currentLossStreak = 0;
@@ -137,10 +141,12 @@ export default async function handler(request) {
         roomCode: gameResult.roomCode,
         date: new Date().toISOString(),
         mode: gameResult.mode || '8P',
-        ranking: gameResult.ranking,
+        ranking: Math.round(gameResult.ranking * 10) / 10,  // Session average
         team: gameResult.team,
         teamWon: gameResult.teamWon,
-        levelChange: gameResult.levelChange || '0',
+        rounds: gamesInSession,  // How many rounds in this session
+        firstPlaces: gameResult.firstPlaces || 0,
+        lastPlaces: gameResult.lastPlaces || 0,
         honorsEarned: gameResult.honorsEarned || []
       });
       if (player.recentGames.length > 20) {
