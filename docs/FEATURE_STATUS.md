@@ -80,32 +80,51 @@
 
 ---
 
-## In Development
+## Player Profile System (100%) 🆕
 
-### Player Profile System (0% → Planning Complete)
-**Status**: Specification finalized, ready for implementation
+**Status**: ✅ Complete and Production-Ready
+**Implemented**: 2025-12-10
+**Commits**: 30 | **Code**: ~5,000 lines
 
-See [PLAYER_PROFILE_SPEC.md](./features/PLAYER_PROFILE_SPEC.md) for full details.
+See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.md) for complete technical documentation.
 
-**MVP Scope**:
-- [ ] Player profiles with unique handles (@username)
-- [ ] Career stats (games, wins, rankings)
-- [ ] Honor collection tracking
-- [ ] Game history with room links
-- [ ] Player browser (`/players`)
-- [ ] Room browser (`/rooms`)
-- [ ] Player search in game setup
-- [ ] MVP tagline on victory screen
+### Core Features
+- [x] Player profiles with unique handles (@username)
+- [x] Dual stat tracking (sessions + rounds)
+- [x] Time tracking (total, longest, average)
+- [x] Career stats with session history
+- [x] Honor collection (all 14 honors synced)
+- [x] Achievement system (20 badges auto-unlock)
+- [x] Game history with room links
+- [x] Player browser (`/players.html`)
+- [x] Individual profile pages (`/player-profile.html`)
+- [x] Player search in game setup
+- [x] Create player modal
+- [x] Remove player functionality
+- [x] Smart quick start (recent players)
+- [x] MVP tagline on victory screen
+- [x] MVP tagline in mobile PNG export
+- [x] Session duration tracking and display
+- [x] Community voting integration
+- [x] Auto-sync voting results (5 min)
+- [x] Manual voting sync button
 
-**Deferred to Phase 2**:
+### Backend APIs (10 endpoints)
+- [x] POST `/api/players/create` - Create profiles
+- [x] GET `/api/players/[handle]` - Fetch profiles
+- [x] PUT `/api/players/[handle]` - Update stats (with vote-only mode)
+- [x] GET `/api/players/list` - Search & pagination
+- [x] POST `/api/players/touch` - Update lastActiveAt
+- [x] POST `/api/players/delete` - Remove players
+- [x] POST `/api/players/reset-stats` - Clear stats
+
+### Deferred to Phase 2
 - [ ] Partner/rival statistics
-- [ ] Achievements system (20 badges)
-- [ ] Recent form visualization
-- [ ] Tagline in PNG export
+- [ ] Season leaderboards  
+- [ ] Room browser with player filter
 
-**Deferred to Phase 3**:
+### Deferred to Phase 3
 - [ ] Authentication (claim profiles)
-- [ ] Seasons & leaderboards
 - [ ] Player comparison tool
 
 ---
