@@ -98,6 +98,7 @@ export function initializePlayerStats() {
     sessionWinRate: 0,
     avgRankingPerSession: 0,
     avgRoundsPerSession: 0,
+    longestSessionRounds: 0,    // Most rounds in a single session
     
     // Round-level stats (individual rounds)
     roundsPlayed: 0,

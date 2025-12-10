@@ -146,6 +146,11 @@ export default async function handler(request) {
       const prevRoundsTotal = (player.stats.avgRoundsPerSession || 0) * ((player.stats.sessionsPlayed || 1) - 1);
       player.stats.avgRoundsPerSession = (prevRoundsTotal + gamesInSession) / player.stats.sessionsPlayed;
       
+      // Update longest session by rounds
+      if (gamesInSession > (player.stats.longestSessionRounds || 0)) {
+        player.stats.longestSessionRounds = gamesInSession;
+      }
+      
       // Round-level stats (weighted by actual rounds)
       player.stats.roundsPlayed = (player.stats.roundsPlayed || 0) + gamesInSession;
       const prevRoundTotal = (player.stats.avgRankingPerRound || 0) * ((player.stats.roundsPlayed || gamesInSession) - gamesInSession);

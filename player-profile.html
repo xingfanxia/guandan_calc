@@ -166,6 +166,10 @@ async function loadProfile(handle) {
             <span class="stat-label">场均局数</span>
           </div>
           <div class="stat-item">
+            <span class="stat-value">${player.stats.longestSessionRounds || 0}</span>
+            <span class="stat-label">最长局数</span>
+          </div>
+          <div class="stat-item">
             <span class="stat-value">${player.stats.currentWinStreak}</span>
             <span class="stat-label">当前连胜</span>
           </div>
