@@ -221,13 +221,11 @@ function setupEventListeners() {
 
           // Handle final win (A-level victory)
           if (applyResult.finalWin) {
-            const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-            
+            // winnerName already calculated above at line 656
             // Sync profile stats to database (non-blocking)
             const roomInfo = getRoomInfo();
             const allPlayers = getPlayers();
             syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
-            
             // Show victory celebration
             showVictoryModal(winnerName);
           }
@@ -712,13 +710,11 @@ function setupModuleEventHandlers() {
 
             // Handle final win (A-level victory)
             if (applyResult.finalWin) {
-              const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-              
+              // winnerName already calculated above at line 656
               // Sync profile stats to database (non-blocking)
               const roomInfo = getRoomInfo();
               const allPlayers = getPlayers();
               syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
-              
               // Show victory celebration
               showVictoryModal(winnerName);
             }
