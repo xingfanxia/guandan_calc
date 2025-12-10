@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>玩家浏览器 - 掼蛋计分器</title>
+<meta name="theme-color" content="#0b0b0c">
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  .player-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .player-card:hover {
+    background: #252525;
+    border-color: #444;
+    transform: translateY(-2px);
+  }
+  .player-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .stat-badge {
+    display: inline-block;
+    background: #2a2a2a;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    margin: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h1>👥 玩家浏览器</h1>
+    <a href="/" style="color: #3b82f6; text-decoration: none;">← 返回游戏</a>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom: 16px;">
+      <input
+        type="text"
+        id="searchInput"
+        placeholder="搜索用户名或昵称..."
+        style="flex: 1; padding: 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
+      />
+      <button id="searchButton" style="padding: 12px 24px; background: #3b82f6; color: white;">搜索</button>
+      <a href="/players/new.html" style="margin-left: 8px;">
+        <button style="padding: 12px 24px; background: #22c55e; color: white;">创建新玩家</button>
+      </a>
+    </div>
+
+    <div style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
+      <span id="playerCount">加载中...</span>
+    </div>
+
+    <div id="playersList" class="player-grid">
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+        加载中...
+      </div>
+    </div>
+
+    <div id="pagination" style="margin-top: 20px; text-align: center; display: none;">
+      <button id="prevPage" style="margin-right: 8px;" disabled>← 上一页</button>
+      <span id="pageInfo" style="color: #888; margin: 0 16px;"></span>
+      <button id="nextPage" disabled>下一页 →</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { searchPlayers, getPlayStyleLabel } from '/src/api/playerApi.js';
+
+let currentPage = 0;
+const pageSize = 20;
+let allPlayers = [];
+let filteredPlayers = [];
+
+async function loadPlayers(query = '') {
+  try {
+    const result = await searchPlayers(query, 100);
+    allPlayers = result.players;
+    filteredPlayers = allPlayers;
+
+    document.getElementById('playerCount').textContent =
+      `共 ${result.total} 位玩家${query ? ` (匹配 "${query}")` : ''}`;
+
+    currentPage = 0;
+    renderPlayers();
+  } catch (error) {
+    console.error('Failed to load players:', error);
+    document.getElementById('playersList').innerHTML =
+      '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ef4444;">加载失败，请刷新重试</div>';
+  }
+}
+
+function renderPlayers() {
+  const container = document.getElementById('playersList');
+  const start = currentPage * pageSize;
+  const end = start + pageSize;
+  const playersToShow = filteredPlayers.slice(start, end);
+
+  if (playersToShow.length === 0) {
+    container.innerHTML =
+      '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">暂无玩家</div>';
+    return;
+  }
+
+  container.innerHTML = playersToShow.map(player => `
+    <div class="player-card" onclick="location.href='/players/${player.handle}.html'">
+      <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <span style="font-size: 48px; margin-right: 16px;">${player.emoji}</span>
+        <div style="flex: 1;">
+          <h3 style="margin: 0 0 4px 0; font-size: 24px;">${player.displayName}</h3>
+          <div style="color: #888; font-size: 0.9em;">@${player.handle}</div>
+        </div>
+      </div>
+
+      <div style="color: #888; margin-bottom: 8px; font-size: 0.9em;">
+        ${getPlayStyleLabel(player.playStyle)}
+      </div>
+
+      <div style="font-style: italic; color: #fbbf24; margin-bottom: 12px; font-size: 0.95em;">
+        "${player.tagline}"
+      </div>
+
+      <div>
+        <span class="stat-badge">🎮 ${player.stats.gamesPlayed} 场</span>
+        <span class="stat-badge">🏆 ${player.stats.wins} 胜</span>
+        <span class="stat-badge">📊 胜率 ${(player.stats.winRate * 100).toFixed(1)}%</span>
+        <span class="stat-badge">📈 平均 ${player.stats.avgRanking.toFixed(1)} 名</span>
+      </div>
+    </div>
+  `).join('');
+
+  // Update pagination
+  updatePagination();
+}
+
+function updatePagination() {
+  const totalPages = Math.ceil(filteredPlayers.length / pageSize);
+  const pagination = document.getElementById('pagination');
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const pageInfo = document.getElementById('pageInfo');
+
+  if (totalPages <= 1) {
+    pagination.style.display = 'none';
+    return;
+  }
+
+  pagination.style.display = 'block';
+  pageInfo.textContent = `第 ${currentPage + 1} / ${totalPages} 页`;
+
+  prevBtn.disabled = currentPage === 0;
+  nextBtn.disabled = currentPage >= totalPages - 1;
+}
+
+// Event handlers
+document.getElementById('searchButton').onclick = () => {
+  const query = document.getElementById('searchInput').value;
+  loadPlayers(query);
+};
+
+document.getElementById('searchInput').onkeypress = (e) => {
+  if (e.key === 'Enter') {
+    const query = document.getElementById('searchInput').value;
+    loadPlayers(query);
+  }
+};
+
+document.getElementById('prevPage').onclick = () => {
+  if (currentPage > 0) {
+    currentPage--;
+    renderPlayers();
+  }
+};
+
+document.getElementById('nextPage').onclick = () => {
+  const totalPages = Math.ceil(filteredPlayers.length / pageSize);
+  if (currentPage < totalPages - 1) {
+    currentPage++;
+    renderPlayers();
+  }
+};
+
+// Load on page load
+loadPlayers();
+</script>
+</body>
+</html>

@@ -7,6 +7,7 @@
 import { $ } from '../core/utils.js';
 import { getPlayers } from '../player/playerManager.js';
 import config from '../core/config.js';
+import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
 // In-memory voting data (cleared on modal close)

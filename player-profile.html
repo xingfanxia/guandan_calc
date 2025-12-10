@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>玩家资料 - 掼蛋计分器</title>
+<meta name="theme-color" content="#0b0b0c">
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  .profile-header {
+    text-align: center;
+    padding: 32px 16px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat-item {
+    background: #1a1a1a;
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid #333;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #22c55e;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .stat-label {
+    font-size: 0.85em;
+    color: #888;
+  }
+  .honor-badge {
+    display: inline-block;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 4px;
+  }
+  .game-row {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .game-row:hover {
+    background: #252525;
+    border-color: #444;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h1>玩家资料</h1>
+    <div>
+      <a href="/players.html" style="color: #3b82f6; text-decoration: none; margin-right: 16px;">浏览所有玩家</a>
+      <a href="/" style="color: #3b82f6; text-decoration: none;">返回游戏</a>
+    </div>
+  </div>
+
+  <div id="profileContent">
+    <div style="text-align: center; padding: 40px; color: #888;">
+      加载中...
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
+
+// Get handle from URL query parameter
+const urlParams = new URLSearchParams(window.location.search);
+const handle = urlParams.get('handle');
+
+if (!handle) {
+  document.getElementById('profileContent').innerHTML = `
+    <div class="card" style="text-align: center; padding: 40px;">
+      <h2 style="color: #ef4444;">错误</h2>
+      <p style="color: #888;">缺少玩家用户名参数</p>
+      <p style="margin-top: 16px;">
+        <a href="/players.html" style="color: #3b82f6;">浏览所有玩家</a>
+      </p>
+    </div>
+  `;
+} else {
+  loadProfile(handle);
+}
+
+async function loadProfile(handle) {
+  try {
+    const result = await getPlayer(handle);
+    const player = result.player;
+
+    const topHonors = Object.entries(player.stats.honors)
+      .filter(([_, count]) => count > 0)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5);
+
+    document.getElementById('profileContent').innerHTML = `
+      <!-- Profile Header -->
+      <div class="profile-header">
+        <div style="font-size: 72px; margin-bottom: 16px;">${player.emoji}</div>
+        <h2 style="margin: 0 0 8px 0; font-size: 36px;">${player.displayName}</h2>
+        <div style="color: #888; font-size: 18px; margin-bottom: 8px;">@${player.handle}</div>
+        <div style="color: #888; font-size: 16px; margin-bottom: 16px;">
+          ${getPlayStyleLabel(player.playStyle)}
+        </div>
+        <div style="font-style: italic; color: #fbbf24; font-size: 20px;">
+          "${player.tagline}"
+        </div>
+      </div>
+
+      <!-- Career Stats -->
+      <div class="card">
+        <h3>📊 生涯统计</h3>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.gamesPlayed}</span>
+            <span class="stat-label">总场次</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.wins}</span>
+            <span class="stat-label">胜场</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${(player.stats.winRate * 100).toFixed(1)}%</span>
+            <span class="stat-label">胜率</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.avgRanking.toFixed(1)}</span>
+            <span class="stat-label">平均排名</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.currentWinStreak}</span>
+            <span class="stat-label">当前连胜</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.longestWinStreak}</span>
+            <span class="stat-label">最长连胜</span>
+          </div>
+        </div>
+
+        ${player.stats.recentRankings.length > 0 ? `
+          <div style="margin-top: 16px;">
+            <h4 style="font-size: 14px; color: #888; margin-bottom: 8px;">最近10场排名</h4>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              ${player.stats.recentRankings.map(rank => `
+                <span style="
+                  background: ${rank === 1 ? '#22c55e' : rank <= 3 ? '#3b82f6' : '#666'};
+                  color: white;
+                  padding: 4px 10px;
+                  border-radius: 4px;
+                  font-weight: bold;
+                ">
+                  #${rank}
+                </span>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- Honor Collection -->
+      <div class="card">
+        <h3>🏆 荣誉收藏 (${topHonors.length > 0 ? topHonors.reduce((sum, [_, count]) => sum + count, 0) : 0} 个)</h3>
+        ${topHonors.length > 0 ? `
+          <div style="margin-top: 12px;">
+            ${topHonors.map(([honor, count]) => `
+              <div class="honor-badge">
+                <strong>${honor}</strong> × ${count}
+              </div>
+            `).join('')}
+          </div>
+          ${Object.keys(player.stats.honors).length > topHonors.length ? `
+            <div style="margin-top: 12px; color: #888; font-size: 0.9em;">
+              + 其他 ${Object.keys(player.stats.honors).filter(h => player.stats.honors[h] === 0).length} 个荣誉待解锁
+            </div>
+          ` : ''}
+        ` : '<div style="color: #888; margin-top: 12px;">暂无荣誉，继续加油！</div>'}
+      </div>
+
+      <!-- Recent Games -->
+      <div class="card">
+        <h3>📜 最近游戏 (${player.recentGames.length})</h3>
+        ${player.recentGames.length > 0 ? `
+          <div style="margin-top: 12px;">
+            ${player.recentGames.slice(0, 10).map(game => `
+              <div class="game-row" onclick="location.href='/?room=${game.roomCode}'">
+                <div style="flex: 1;">
+                  <div style="margin-bottom: 4px;">
+                    <strong style="color: ${game.teamWon ? '#22c55e' : '#ef4444'};">
+                      ${game.teamWon ? '✅ 胜' : '❌ 负'}
+                    </strong>
+                    · ${game.mode} · 第${game.ranking}名 · ${game.levelChange}
+                  </div>
+                  <div style="font-size: 0.85em; color: #888;">
+                    ${new Date(game.date).toLocaleString('zh-CN')}
+                    ${game.roomCode !== 'LOCAL' ? ` · 房间 ${game.roomCode}` : ''}
+                  </div>
+                  ${game.honorsEarned && game.honorsEarned.length > 0 ? `
+                    <div style="font-size: 0.85em; color: #fbbf24; margin-top: 4px;">
+                      🏆 ${game.honorsEarned.join(', ')}
+                    </div>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<div style="color: #888; margin-top: 12px;">暂无游戏记录</div>'}
+      </div>
+    `;
+  } catch (error) {
+    console.error('Failed to load profile:', error);
+    document.getElementById('profileContent').innerHTML = `
+      <div class="card" style="text-align: center; padding: 40px;">
+        <h2 style="color: #ef4444;">加载失败</h2>
+        <p style="color: #888;">${error.message}</p>
+        <p style="margin-top: 16px;">
+          <a href="/players.html" style="color: #3b82f6;">浏览所有玩家</a>
+        </p>
+      </div>
+    `;
+  }
+}
+</script>
+</body>
+</html>
