@@ -14,6 +14,9 @@ import { calculateUpgrade } from './game/calculator.js';
 import { applyGameResult, advanceToNextRound } from './game/rules.js';
 import { renderHistory, undoLast, resetAll } from './game/history.js';
 
+// API clients
+import { searchPlayers } from './api/playerApi.js';
+
 // Player system
 import {
   generatePlayers,
@@ -465,8 +468,40 @@ function setupEventListeners() {
   }
 
   if (quickStartBtn) {
-    on(quickStartBtn, 'click', () => {
+    on(quickStartBtn, 'click', async () => {
       const mode = parseInt($('mode').value);
+      
+      // Try to load random players from profile database
+      try {
+        const { players: allPlayers } = await searchPlayers('', 100);
+        
+        if (allPlayers.length >= mode) {
+          // Randomly select players from available profiles
+          const shuffled = allPlayers.sort(() => Math.random() - 0.5);
+          const selected = shuffled.slice(0, mode);
+          
+          // Clear existing players first
+          state.setPlayers([]);
+          
+          // Add selected profile players
+          selected.forEach(profile => {
+            addPlayerFromProfile(profile);
+          });
+          
+          // Shuffle into teams
+          shuffleTeams(mode);
+          renderPlayers();
+          renderRankingArea(mode);
+          
+          console.log('Quick start with profile players:', selected.map(p => p.handle));
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to load profile players, falling back to session mode:', error);
+      }
+      
+      // Fallback: Generate session players with quick names
+      generatePlayers(mode, true);
       const quickNames = mode === 4 ? '豪 小 大 姐' :
                           mode === 6 ? '豪 小 大 姐 夫 塞' :
                           '豪 小 大 姐 夫 塾 帆 鱼';
