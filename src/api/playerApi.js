@@ -141,3 +141,31 @@ export function getPlayStyles() {
     { value: 'mystery', label: '神秘高手 🎭' }
   ];
 }
+
+/**
+ * Update player's lastActiveAt timestamp
+ * Call this when a player is added to a game
+ * @param {string} handle - Player handle
+ * @returns {Promise<{success: boolean}>}
+ */
+export async function touchPlayer(handle) {
+  try {
+    const response = await fetch(`${API_BASE}/api/players/touch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ handle })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Touch player failed: ${response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('touchPlayer error:', error);
+    // Don't throw - this is a non-critical operation
+    return { success: false };
+  }
+}

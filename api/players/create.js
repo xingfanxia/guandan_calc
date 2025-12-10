@@ -78,6 +78,7 @@ export default async function handler(request) {
       playStyle: playerData.playStyle,
       tagline: playerData.tagline,
       createdAt: new Date().toISOString(),
+      lastActiveAt: new Date().toISOString(),
       stats: initializePlayerStats(),
       recentGames: []
     };

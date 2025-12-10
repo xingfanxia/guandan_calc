@@ -59,8 +59,12 @@ export default async function handler(request) {
       );
     }
 
-    // Sort by createdAt DESC (most recent first)
-    players.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Sort by lastActiveAt DESC (most recently active first), fallback to createdAt
+    players.sort((a, b) => {
+      const aTime = new Date(a.lastActiveAt || a.createdAt);
+      const bTime = new Date(b.lastActiveAt || b.createdAt);
+      return bTime - aTime;
+    });
 
     // Get total count before pagination
     const total = players.length;

@@ -6,6 +6,7 @@
 
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
+import { touchPlayer } from '../api/playerApi.js';
 
 // 77+ animal and food emoji avatars (no insects)
 const ANIMAL_EMOJIS = [
@@ -136,6 +137,13 @@ export function addPlayerFromProfile(profile) {
   // Add to players array
   players.push(player);
   state.setPlayers(players);
+
+  // Update lastActiveAt timestamp (non-blocking)
+  if (profile.handle) {
+    touchPlayer(profile.handle).catch(err => {
+      console.warn('Failed to update lastActiveAt:', err);
+    });
+  }
 
   emit('player:addedFromProfile', { player, profile });
 

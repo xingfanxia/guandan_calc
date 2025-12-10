@@ -471,20 +471,20 @@ function setupEventListeners() {
     on(quickStartBtn, 'click', async () => {
       const mode = parseInt($('mode').value);
       
-      // Try to load random players from profile database
+      // Try to load recent players from profile database
       try {
         const { players: allPlayers } = await searchPlayers('', 100);
         
         if (allPlayers.length >= mode) {
-          // Randomly select players from available profiles
-          const shuffled = allPlayers.sort(() => Math.random() - 0.5);
-          const selected = shuffled.slice(0, mode);
+          // Players are already sorted by lastActiveAt DESC from API
+          // Just take the first N most recently active players
+          const recentPlayers = allPlayers.slice(0, mode);
           
           // Clear existing players first
           state.setPlayers([]);
           
-          // Add selected profile players
-          selected.forEach(profile => {
+          // Add recent profile players
+          recentPlayers.forEach(profile => {
             addPlayerFromProfile(profile);
           });
           
@@ -493,7 +493,7 @@ function setupEventListeners() {
           renderPlayers();
           renderRankingArea(mode);
           
-          console.log('Quick start with profile players:', selected.map(p => p.handle));
+          console.log('Quick start with recent players:', recentPlayers.map(p => `${p.displayName}(@${p.handle})`));
           return;
         }
       } catch (error) {

@@ -197,8 +197,6 @@ export function attachTouchHandlers(tile, player, handleTouchStart, handleTouchM
   tile.addEventListener('touchmove', handleTouchMove, { passive: false });
   tile.addEventListener('touchend', handleTouchEnd, { passive: false });
   tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-  console.log('Touch handlers attached to', player.emoji, player.name);
 }
 
 /**
