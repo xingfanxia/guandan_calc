@@ -143,6 +143,38 @@ export function addPlayerFromProfile(profile) {
 }
 
 /**
+ * Remove player from game
+ * @param {number} playerId - Player ID to remove
+ * @returns {boolean} Success
+ */
+export function removePlayer(playerId) {
+  const players = state.getPlayers();
+  const index = players.findIndex(p => p.id === playerId);
+  
+  if (index === -1) {
+    console.warn(`Player ${playerId} not found`);
+    return false;
+  }
+
+  // Remove player
+  const removed = players.splice(index, 1)[0];
+  state.setPlayers(players);
+
+  // Clear from ranking if assigned
+  const ranking = state.getCurrentRanking();
+  Object.keys(ranking).forEach(pos => {
+    if (ranking[pos] === playerId) {
+      delete ranking[pos];
+    }
+  });
+  state.setCurrentRanking(ranking);
+
+  emit('player:removed', { player: removed });
+
+  return true;
+}
+
+/**
  * Get player by ID
  * @param {number} playerId - Player ID
  * @returns {Object|null} Player object or null

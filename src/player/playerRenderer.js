@@ -92,27 +92,68 @@ export function createPlayerTile(player, onDragStart, onDragEnd) {
   nameInput.type = 'text';
   nameInput.value = player.name;
   nameInput.onclick = (e) => e.stopPropagation();
+  
+  // Disable name editing for profile players
+  if (player.handle) {
+    nameInput.disabled = true;
+    nameInput.style.cursor = 'not-allowed';
+    nameInput.title = `来自玩家资料 @${player.handle}`;
+  }
 
-  // Update name with debouncing
-  let updateTimer = null;
-  nameInput.oninput = function() {
-    const newName = this.value;
+  // Update name with debouncing (only for session players)
+  if (!player.handle) {
+    let updateTimer = null;
+    nameInput.oninput = function() {
+      const newName = this.value;
 
-    if (updateTimer) clearTimeout(updateTimer);
-    updateTimer = setTimeout(() => {
-      updatePlayer(player.id, { name: newName });
-      emit('ui:playerNameChanged', { playerId: player.id, name: newName });
-    }, 300);
-  };
+      if (updateTimer) clearTimeout(updateTimer);
+      updateTimer = setTimeout(() => {
+        updatePlayer(player.id, { name: newName });
+        emit('ui:playerNameChanged', { playerId: player.id, name: newName });
+      }, 300);
+    };
 
-  nameInput.onchange = function() {
-    if (updateTimer) clearTimeout(updateTimer);
-    updatePlayer(player.id, { name: this.value });
-    emit('ui:playerNameChanged', { playerId: player.id, name: this.value });
-  };
+    nameInput.onchange = function() {
+      if (updateTimer) clearTimeout(updateTimer);
+      updatePlayer(player.id, { name: this.value });
+      emit('ui:playerNameChanged', { playerId: player.id, name: this.value });
+    };
+  }
 
   tile.appendChild(emoji);
   tile.appendChild(nameInput);
+
+  // Add remove button for profile players
+  if (player.handle) {
+    const removeBtn = document.createElement('button');
+    removeBtn.textContent = '×';
+    removeBtn.className = 'remove-player-btn';
+    removeBtn.style.cssText = `
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ef4444;
+      color: white;
+      border: 2px solid #1a1a1a;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    `;
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      emit('player:removeRequested', { playerId: player.id });
+    };
+    
+    tile.style.position = 'relative';
+    tile.appendChild(removeBtn);
+  }
 
   // Desktop drag events
   tile.ondragstart = (e) => {

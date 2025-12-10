@@ -22,7 +22,8 @@ import {
   shuffleTeams,
   applyBulkNames,
   areAllPlayersAssigned,
-  addPlayerFromProfile
+  addPlayerFromProfile,
+  removePlayer
 } from './player/playerManager.js';
 import { renderPlayers, updateTeamLabels, attachTouchHandlers } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
@@ -467,7 +468,7 @@ function setupEventListeners() {
     on(quickStartBtn, 'click', () => {
       const mode = parseInt($('mode').value);
       const quickNames = mode === 4 ? '豪 小 大 姐' :
-                          mode === 6 ? '豪 小 大 姐 夫 塔' :
+                          mode === 6 ? '豪 小 大 姐 夫 塞' :
                           '豪 小 大 姐 夫 塾 帆 鱼';
 
       const success = applyBulkNames(quickNames);
@@ -720,6 +721,27 @@ function setupModuleEventHandlers() {
   onEvent('player:updated', () => {
     renderPlayers();
     renderStatistics();
+  });
+
+  onEvent('player:addedFromProfile', () => {
+    renderPlayers();
+    attachTouchHandlersToAllTiles();
+    const mode = parseInt($('mode').value);
+    renderRankingArea(mode);
+  });
+
+  onEvent('player:removeRequested', ({ playerId }) => {
+    const success = removePlayer(playerId);
+    if (success) {
+      renderPlayers();
+      attachTouchHandlersToAllTiles();
+      const mode = parseInt($('mode').value);
+      renderRankingArea(mode);
+    }
+  });
+
+  onEvent('player:removed', ({ player }) => {
+    console.log('Player removed:', player);
   });
 
   // Config events
@@ -1331,7 +1353,13 @@ function renderInitialState() {
   const mode = parseInt($('mode').value);
   const players = getPlayers();
 
-  if (players.length === 0 || players.length !== mode) {
+  // Only auto-generate if no players exist AND not in room/share mode
+  // Allow users to start with empty state for profile selection
+  if (players.length === 0) {
+    // Don't auto-generate - let users choose profile or quick setup
+    renderPlayers(); // Render empty state
+  } else if (players.length !== mode) {
+    // Player count mismatch - regenerate
     generatePlayers(mode, false);
   } else {
     renderPlayers();
