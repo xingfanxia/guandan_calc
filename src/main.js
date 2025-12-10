@@ -74,6 +74,7 @@ import {
 } from './share/roomManager.js';
 import { generateShareURL, loadFromShareURL, showShareModal } from './share/shareManager.js';
 import { initializeViewerVotingSection, showEndGameVotingForViewers, showHostVoting, updateVoteLeaderboard } from './share/votingManager.js';
+import { syncVotingToProfiles, scheduleAutoVotingSync } from './share/votingSync.js';
 
 /**
  * Initialize application
@@ -234,12 +235,15 @@ function setupEventListeners() {
             // Show victory celebration first
             showVictoryModal(winnerName);
             
+            // Schedule auto-sync of voting results (5 minutes)
+            scheduleAutoVotingSync();
+            
             // Wait a moment for potential voting, then sync stats
             setTimeout(() => {
               // Calculate session honors
               const sessionHonors = calculateHonors(parseInt(mode));
               
-              // Get voting results
+              // Get voting results (local voting only)
               const votingResults = getVotingResults();
               
               // Sync profile stats to database (non-blocking)
@@ -474,6 +478,39 @@ function setupEventListeners() {
   const votingSection = $('votingSection');
   if (votingSection) {
     votingSection.style.display = 'block';
+  }
+
+  // Manual voting sync button
+  const syncVotingBtn = $('syncVotingButton');
+  if (syncVotingBtn) {
+    on(syncVotingBtn, 'click', async () => {
+      const statusEl = $('syncVotingStatus');
+      
+      syncVotingBtn.disabled = true;
+      syncVotingBtn.textContent = '同步中...';
+      if (statusEl) statusEl.textContent = '正在同步投票结果到玩家资料...';
+      
+      const result = await syncVotingToProfiles();
+      
+      if (result.success) {
+        if (statusEl) {
+          statusEl.style.color = '#22c55e';
+          statusEl.textContent = `✅ 同步成功！MVP: ${result.mvpPlayer?.name || '无'} (${result.mvpVotes}票), 累赘: ${result.burdenPlayer?.name || '无'} (${result.burdenVotes}票)`;
+        }
+        syncVotingBtn.textContent = '✅ 已同步';
+        setTimeout(() => {
+          syncVotingBtn.disabled = false;
+          syncVotingBtn.textContent = '🔄 同步投票到玩家资料';
+        }, 3000);
+      } else {
+        if (statusEl) {
+          statusEl.style.color = '#ef4444';
+          statusEl.textContent = `❌ 同步失败: ${result.reason || 'unknown'}`;
+        }
+        syncVotingBtn.disabled = false;
+        syncVotingBtn.textContent = '🔄 重试同步';
+      }
+    });
   }
 
   // Bulk name input
@@ -740,6 +777,9 @@ function setupModuleEventHandlers() {
               // Show victory celebration first
               showVictoryModal(winnerName);
               
+              // Schedule auto-sync of voting results (5 minutes)
+              scheduleAutoVotingSync();
+              
               // Wait a moment for potential voting, then sync stats
               setTimeout(() => {
                 // Calculate session honors
@@ -762,8 +802,11 @@ function setupModuleEventHandlers() {
       // Show progress
       const headline = $('headline');
       const explain = $('explain');
+      const winnerDisplay = $('winnerDisplay');
+
       if (headline) headline.textContent = `已排名 ${check.progress.filled} / ${check.progress.total} 位玩家`;
       if (explain) explain.textContent = '请继续拖拽剩余玩家到排名位置';
+      if (winnerDisplay) winnerDisplay.textContent = '—';
     }
   });
 
@@ -1057,6 +1100,21 @@ function showHostBanner(roomCode, authToken) {
   const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
   const updateBannerContent = () => {
+    // Stop timer if game has ended
+    if (checkGameEnded()) {
+      const duration = state.getSessionDuration();
+      const mins = Math.floor(duration / 60);
+      const secs = duration % 60;
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      banner.innerHTML = `
+        <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+        | ⏱️ <strong>${timeStr}</strong> ✅
+        | <span style="font-size: 12px; opacity: 0.9;">游戏已结束</span>
+      `;
+      return true; // Signal to stop interval
+    }
+    
     const duration = state.getSessionDuration();
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
@@ -1067,12 +1125,18 @@ function showHostBanner(roomCode, authToken) {
       | ⏱️ <strong>${timeStr}</strong>
       | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
     `;
+    return false;
   };
 
   updateBannerContent();
   
-  // Update duration every second
-  setInterval(updateBannerContent, 1000);
+  // Update duration every second (stop when game ends)
+  const timerInterval = setInterval(() => {
+    const shouldStop = updateBannerContent();
+    if (shouldStop) {
+      clearInterval(timerInterval);
+    }
+  }, 1000);
 
   banner.onclick = async () => {
     try {
@@ -1103,6 +1167,21 @@ function showViewerBanner(roomCode) {
   `;
 
   const updateBannerContent = () => {
+    // Stop timer if game has ended
+    if (checkGameEnded()) {
+      const duration = state.getSessionDuration();
+      const mins = Math.floor(duration / 60);
+      const secs = duration % 60;
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      banner.innerHTML = `
+        <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+        | ⏱️ <strong>${timeStr}</strong> ✅
+        | <span style="font-size: 12px; opacity: 0.9;">游戏已结束</span>
+      `;
+      return true; // Signal to stop interval
+    }
+    
     const duration = state.getSessionDuration();
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
@@ -1113,12 +1192,18 @@ function showViewerBanner(roomCode) {
       | ⏱️ <strong>${timeStr}</strong>
       | <span style="font-size: 12px; opacity: 0.9;">实时观看房主比赛</span>
     `;
+    return false;
   };
 
   updateBannerContent();
   
-  // Update duration every second
-  setInterval(updateBannerContent, 1000);
+  // Update duration every second (stop when game ends)
+  const timerInterval = setInterval(() => {
+    const shouldStop = updateBannerContent();
+    if (shouldStop) {
+      clearInterval(timerInterval);
+    }
+  }, 1000);
 
   document.body.insertBefore(banner, document.body.firstChild);
 }
