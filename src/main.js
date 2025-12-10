@@ -1033,6 +1033,7 @@ function disableViewerControls() {
  */
 function showHostBanner(roomCode, authToken) {
   const banner = document.createElement('div');
+  banner.id = 'hostBanner';
   banner.style.cssText = `
     position: sticky; top: 0; z-index: 100;
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
@@ -1043,20 +1044,30 @@ function showHostBanner(roomCode, authToken) {
 
   const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
-  banner.innerHTML = `
-    <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
-    | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
-  `;
+  const updateBannerContent = () => {
+    const duration = state.getSessionDuration();
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    banner.innerHTML = `
+      <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+      | ⏱️ <strong>${timeStr}</strong>
+      | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
+    `;
+  };
+
+  updateBannerContent();
+  
+  // Update duration every second
+  setInterval(updateBannerContent, 1000);
 
   banner.onclick = async () => {
     try {
       await navigator.clipboard.writeText(viewerURL);
       banner.innerHTML += ' <span style="color: #22c55e;">✅ 已复制</span>';
       setTimeout(() => {
-        banner.innerHTML = `
-          <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
-          | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
-        `;
+        updateBannerContent();
       }, 2000);
     } catch (e) {
       alert(viewerURL);
@@ -1071,6 +1082,7 @@ function showHostBanner(roomCode, authToken) {
  */
 function showViewerBanner(roomCode) {
   const banner = document.createElement('div');
+  banner.id = 'viewerBanner';
   banner.style.cssText = `
     position: sticky; top: 0; z-index: 100;
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -1078,10 +1090,23 @@ function showViewerBanner(roomCode) {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   `;
 
-  banner.innerHTML = `
-    <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
-    | <span style="font-size: 12px; opacity: 0.9;">实时观看房主比赛</span>
-  `;
+  const updateBannerContent = () => {
+    const duration = state.getSessionDuration();
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    banner.innerHTML = `
+      <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+      | ⏱️ <strong>${timeStr}</strong>
+      | <span style="font-size: 12px; opacity: 0.9;">实时观看房主比赛</span>
+    `;
+  };
+
+  updateBannerContent();
+  
+  // Update duration every second
+  setInterval(updateBannerContent, 1000);
 
   document.body.insertBefore(banner, document.body.firstChild);
 }
