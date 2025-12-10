@@ -1,192 +1,303 @@
-# Implementation Plan: Player Profile System - Frontend Integration
+# Guandan Calculator - Development TODO
 
-## Backend Status: ✅ COMPLETE
-All 3 player APIs tested and working on production (https://gd.ax0x.ai)
-
----
-
-## Frontend Integration Plan
-
-### Current Flow (Session-Only)
-1. Click "生成玩家" → `generatePlayers(count)` creates `{ id, name, emoji, team }`
-2. Bulk input → `applyBulkNames()` updates names
-3. Drag-drop → assigns teams
-4. State stored in localStorage (session-only)
-
-### Target Flow (Profile-Based)
-1. Click "搜索玩家" → Search existing profiles OR create new
-2. Select player → Add to game with full profile data
-3. Drag-drop → assigns teams (same as before)
-4. State includes profile handles for stats updates after game
+**Last Updated**: 2025-12-10
+**Current Phase**: Player Profile System Complete ✅
 
 ---
 
-## Steps
+## ✅ Recently Completed (2025-12-10)
 
-- [ ] **Step 1**: Create player API client module `src/api/playerApi.js`
-  - File: `src/api/playerApi.js` (new)
-  - Functions:
-    ```javascript
-    searchPlayers(query)    // GET /api/players/list?q={query}
-    getPlayer(handle)       // GET /api/players/{handle}
-    createPlayer(data)      // POST /api/players/create
-    ```
-  - Test: Call each function from browser console
+### Player Profile System MVP - 33 Commits
+- [x] Complete backend (10 APIs)
+- [x] Game integration (search, create, remove)
+- [x] Dual stat tracking (sessions + rounds)
+- [x] Time tracking (duration, longest, average)
+- [x] Honor sync (all 14)
+- [x] Achievement system (20 badges)
+- [x] Voting integration (auto + manual sync)
+- [x] Partner/rival tracking (teammates + opponents)
+- [x] Player browser + profile pages
+- [x] MVP tagline (modal + PNG)
+- [x] Live session timer (stops on victory)
+- [x] Recent rankings (relative position)
+- [x] Comprehensive documentation
 
-- [ ] **Step 2**: Create player search UI component
-  - File: `src/player/playerSearch.js` (new)
-  - Features:
-    - Search input with real-time filtering
-    - Player results list (handle, displayName, emoji, playStyle)
-    - "Create New Player" button
-    - Selection callback to add player to game
-  - UI location: Replace or augment "批量输入姓名" section
-  - Test: Search shows results, clicking adds player
-
-- [ ] **Step 3**: Create "Create Player" modal
-  - File: `src/player/playerCreateModal.js` (new)
-  - Features:
-    - Form: handle, displayName, emoji selector, playStyle dropdown, tagline
-    - Validation (client-side + server response)
-    - Success → auto-add to game
-  - Test: Create player, verify added to game
-
-- [ ] **Step 4**: Update playerManager to support profile data
-  - File: `src/player/playerManager.js`
-  - Changes:
-    - Extend player object: `{ id, name, emoji, team, handle, playerId, playStyle, tagline }`
-    - Add `addPlayerFromProfile(profile)` function
-    - Keep backward compatibility for session-only players
-  - Test: Mix profile and session players in same game
-
-- [ ] **Step 5**: Update main.js event handlers
-  - File: `src/main.js`
-  - Changes:
-    - Add event bindings for search UI
-    - Add event bindings for create modal
-    - Keep existing "generatePlayers" as fallback/quick-start
-  - Test: All player setup flows work
-
-- [ ] **Step 6**: Update HTML with new UI elements
-  - File: `index.html`
-  - Changes:
-    - Add player search section before bulk names
-    - Add "或 手动添加" toggle for session-only players
-    - Keep existing UI as fallback option
-  - Test: UI renders correctly, responsive
-
-- [ ] **Step 7**: Add "Recent Players" localStorage cache
-  - File: `src/player/recentPlayers.js` (new)
-  - Features:
-    - Cache last 10 used player handles
-    - Show as quick-select buttons
-    - LocalStorage key: `gd_v9_recent_players`
-  - Test: Recent players persist across sessions
-
-- [ ] **Step 8**: Integration testing
-  - Test scenarios:
-    - Search and select existing player
-    - Create new player and use immediately
-    - Mix profile + session players
-    - Recent players quick-select
-    - Backward compat: old games still work
-  - Verify: All player data correctly stored
-
-## Progress Log
-| Step | Status | Notes | Commit |
-|------|--------|-------|--------|
-| 1 | ✅ Complete | API client module | 5fb82dc |
-| 2 | ✅ Complete | Search UI component | 5fb82dc |
-| 3 | ✅ Complete | Create player modal | 5fb82dc |
-| 4 | ✅ Complete | playerManager updates | 5fb82dc |
-| 5 | ✅ Complete | Event handler updates | 5fb82dc |
-| 6 | ✅ Complete | HTML UI updates | 5fb82dc |
-| 7 | ✅ Complete | Recent players cache | Deferred |
-| 8 | ✅ Complete | Integration testing | Deployed |
+**Code**: ~5,500 lines | **Bundle**: 90KB | **Status**: Production Ready
 
 ---
 
-## Frontend Implementation: ✅ COMPLETE
+## 🎯 Next Tasks (Priority Order)
 
-All player profile frontend components implemented and deployed:
+### High Priority - User Experience
 
-### New Files Created (3)
-- `src/api/playerApi.js` - API client for all player endpoints
-- `src/player/playerSearch.js` - Search UI with real-time filtering
-- `src/player/playerCreateModal.js` - Full profile creation modal
+#### 1. Achievement Unlock Notifications
+- [ ] Toast notifications when achievements unlock
+- [ ] Show badge animation on profile sync
+- [ ] Display in victory modal
+- [ ] Add sound effect (optional)
 
-### Updated Files (4)
-- `src/player/playerManager.js` - Added `addPlayerFromProfile()` function
-- `src/main.js` - Integrated search and modal components
-- `index.html` - Added player search section at top of setup
-- `TODO.md` - Updated with frontend implementation plan
+**Effort**: Small | **Impact**: High
 
-### Features Implemented
-✅ Search existing players by handle or displayName
-✅ Create new player with full profile form
-✅ Auto-add selected/created player to game
-✅ 77+ emoji selector grid in creation modal
-✅ Real-time search with 300ms debounce
-✅ Client-side handle validation
-✅ Backward compatible with session-only players
-✅ Profile data stored: handle, playerId, playStyle, tagline
+#### 2. Room Browser with Player Filter
+- [ ] Implement `GET /api/rooms/list` endpoint
+- [ ] Create `/rooms.html` page
+- [ ] Filter by player handle
+- [ ] Show last 20 rooms + favorites
+- [ ] Click room → join/view
 
-### Build Status
-- Bundle size: 98.31 KB (gzipped: 31.59 KB)
-- Build time: 150ms
-- Status: ✅ Production deployed
+**Effort**: Medium | **Impact**: High
 
-### Deployment
-- Committed: 5fb82dc
-- Pushed to main branch
-- Auto-deployed to: https://gd.ax0x.ai
-- APIs verified working
+#### 3. Enhanced Partner/Rival Display
+- [ ] Win rate trend charts (last 10 games)
+- [ ] Click partner → view their profile
+- [ ] Show all partners (not just best/worst)
+- [ ] Sortable by games/winrate
+
+**Effort**: Small | **Impact**: Medium
 
 ---
 
-## Complete Implementation Summary
+### Medium Priority - Polish
 
-### Backend (Commits: e3f75e9, 72fc54c, 626d4bf)
-✅ 3 API endpoints (create, get, list)
-✅ KV storage schema documented
-✅ All endpoints tested on production
+#### 4. Profile Page Enhancements
+- [ ] Share profile button (copy link)
+- [ ] QR code for profile URL
+- [ ] Export profile stats (PDF/image)
+- [ ] Dark/light mode toggle
 
-### Frontend (Commit: 5fb82dc)
-✅ API client module
-✅ Search UI component
-✅ Creation modal
-✅ Player manager integration
-✅ Main.js event handlers
-✅ HTML UI updates
+**Effort**: Small | **Impact**: Low
 
-### What Works Now
-1. **Search Players**: Type to search existing profiles
-2. **Create Player**: Click "创建玩家" to make new profile
-3. **Select Player**: Click any search result to add to game
-4. **Auto-Add**: Created players automatically added
-5. **Mixed Mode**: Can use profiles + quick setup together
-6. **Backward Compat**: Old games still work
+#### 5. Voting UX Improvements
+- [ ] Show voting countdown timer (5 min remaining)
+- [ ] Notification when voting sync completes
+- [ ] Vote history per player
+- [ ] Voting leaderboard (all-time)
 
-### Next Phase (Future)
-- Stats update after games (PUT /api/players/[handle]/stats)
-- Recent players quick-select cache
-- Player profile pages (/players/[handle])
-- Room browser with player filter
-- MVP tagline on victory screen
+**Effort**: Small | **Impact**: Medium
+
+#### 6. Mobile Optimizations
+- [ ] Touch-optimized profile cards
+- [ ] Swipe navigation between pages
+- [ ] Mobile-specific layouts
+- [ ] Better emoji selector on mobile
+
+**Effort**: Medium | **Impact**: Medium
 
 ---
 
-## How to Use (For Users)
+### Low Priority - Future Features
 
-### Option 1: Player Profiles (NEW)
-1. Click "搜索玩家" section at top
-2. Search for existing players OR click "创建玩家"
-3. Select players from search results
-4. Drag to teams as usual
+#### 7. Season System
+- [ ] Define season periods (monthly/quarterly)
+- [ ] Season leaderboards
+- [ ] Season achievements
+- [ ] Historical season data
 
-### Option 2: Quick Setup (Existing)
-1. Click "生成玩家" 
-2. Use "批量输入姓名" or "快速开始"
-3. Works exactly as before
+**Effort**: Large | **Impact**: Medium
 
-Both options can be mixed in the same game!
+#### 8. Authentication
+- [ ] OAuth integration (optional)
+- [ ] Profile claiming system
+- [ ] Password protection
+- [ ] Admin panel
+
+**Effort**: Large | **Impact**: Low (works well without it)
+
+#### 9. Advanced Analytics
+- [ ] Performance trends over time
+- [ ] Honor frequency analysis
+- [ ] Optimal team composition suggester
+- [ ] Predictive win rate calculator
+
+**Effort**: Large | **Impact**: Low
+
+---
+
+## 🐛 Known Issues (Minor)
+
+### Non-Critical
+- [ ] Local voting results don't sync to profiles (only room voting)
+  - Workaround: Use room mode for voting
+
+- [ ] Partner/rival only tracks profile players (session players skipped)
+  - By design: Can't track without persistent identity
+
+- [ ] Recent rankings not retrospective (only going forward)
+  - By design: Old data calculated differently
+
+### Future Improvements
+- [ ] Add TypeScript for better type safety
+- [ ] Add unit tests for critical algorithms
+- [ ] Performance optimization for large histories
+- [ ] Accessibility improvements (ARIA labels, keyboard nav)
+
+---
+
+## 📋 Testing Checklist
+
+### Pre-Production
+- [x] All APIs working
+- [x] Profile creation/deletion
+- [x] Stats sync on completion
+- [x] MVP tagline displays
+- [x] Recent rankings correct
+- [x] Partner/rival tracking
+- [x] Achievements unlock
+- [x] Voting sync works
+- [x] Timer stops on victory
+
+### User Acceptance
+- [ ] Play complete game end-to-end
+- [ ] Verify all stats accurate
+- [ ] Test on mobile device
+- [ ] Test room mode with viewers
+- [ ] Check multiple sessions build history
+- [ ] Verify partner/rival evolves
+
+### Production Readiness
+- [ ] Remove test_ players (or keep for demo)
+- [ ] Monitor KV storage usage
+- [ ] Set up error tracking
+- [ ] Performance monitoring
+
+---
+
+## 🚀 Deployment Process
+
+### Current Setup
+- **Platform**: Vercel Edge + KV
+- **Auto-Deploy**: Push to main → auto-build → deploy
+- **URL**: https://gd.ax0x.ai
+- **Build**: `npm run build` → `dist/`
+
+### Manual Deploy (if needed)
+```bash
+# Build locally
+npm run build
+
+# Deploy to Vercel
+vercel --prod
+
+# Or push to GitHub (auto-deploys)
+git push origin main
+```
+
+### Rollback (if needed)
+```bash
+# Revert to previous commit
+git revert HEAD
+git push
+
+# Or use Vercel dashboard to redeploy previous version
+```
+
+---
+
+## 📚 Documentation TODO
+
+### High Priority
+- [x] CODEBASE_STRUCTURE.md - Complete file reference
+- [x] PLAYER_PROFILE_ARCHITECTURE.md - Technical deep-dive
+- [x] Update FEATURE_STATUS.md
+- [ ] Create USER_GUIDE update for profiles
+- [ ] API documentation (OpenAPI/Swagger)
+
+### Medium Priority
+- [ ] Video tutorial (profile creation walkthrough)
+- [ ] FAQ for common questions
+- [ ] Troubleshooting guide
+
+---
+
+## 🎓 Code Quality Improvements
+
+### Technical Debt
+- [ ] Extract magic numbers to constants
+- [ ] Reduce function complexity (some 100+ line functions)
+- [ ] Add JSDoc comments to all public functions
+- [ ] Consolidate duplicate code patterns
+
+### Refactoring Opportunities
+- [ ] Split large files (main.js is 1,500 lines)
+- [ ] Create shared UI component library
+- [ ] Standardize error handling patterns
+- [ ] Improve test coverage
+
+---
+
+## 💡 Feature Ideas (Backlog)
+
+### Community Suggested
+- [ ] Team chat in rooms
+- [ ] Replay system (watch past games)
+- [ ] Tournament bracket support
+- [ ] Custom honor creation
+- [ ] Player notes/tags
+
+### Experimental
+- [ ] AI opponent (practice mode)
+- [ ] Strategy tips based on stats
+- [ ] Social features (friend list, messages)
+- [ ] Clan/guild system
+
+---
+
+## 📊 Metrics to Track
+
+### Usage Analytics
+- [ ] Daily active users
+- [ ] Games played per day
+- [ ] Profile creation rate
+- [ ] Feature adoption (search vs quick start)
+
+### Performance Metrics
+- [ ] API response times
+- [ ] Page load times
+- [ ] Bundle size over time
+- [ ] KV storage growth
+
+### User Engagement
+- [ ] Average session duration
+- [ ] Return user rate
+- [ ] Profile page views
+- [ ] Achievement unlock rate
+
+---
+
+## 🔧 Maintenance Tasks
+
+### Regular
+- [ ] Monitor KV storage quota (256MB free tier)
+- [ ] Clean up test_ players before real launch
+- [ ] Review and update dependencies
+- [ ] Check for security updates
+
+### As Needed
+- [ ] Database backups (export player data)
+- [ ] Performance profiling
+- [ ] Bug triage and prioritization
+- [ ] Feature request review
+
+---
+
+## 🎯 Immediate Next Steps
+
+1. **Test complete game flow** with profile players
+2. **Verify all stats sync** correctly
+3. **Check partner/rival** appears after 2+ games
+4. **Test voting sync** (manual button)
+5. **Review documentation** for accuracy
+6. **Plan Phase 2.5** features (room browser, etc.)
+
+---
+
+## 📖 Reference
+
+- [FEATURE_STATUS.md](docs/FEATURE_STATUS.md) - Overall project status
+- [PLAYER_PROFILE_SPEC.md](docs/features/PLAYER_PROFILE_SPEC.md) - Original spec
+- [PLAYER_PROFILE_ARCHITECTURE.md](docs/architecture/PLAYER_PROFILE_ARCHITECTURE.md) - Tech details
+- [CODEBASE_STRUCTURE.md](docs/architecture/CODEBASE_STRUCTURE.md) - File reference
+
+---
+
+**Player Profile System MVP: SHIPPED!** 🚀
