@@ -139,10 +139,10 @@ function renderPlayers() {
       </div>
 
       <div>
-        <span class="stat-badge">🎮 ${player.stats.gamesPlayed} 场</span>
-        <span class="stat-badge">🏆 ${player.stats.wins} 胜</span>
-        <span class="stat-badge">📊 胜率 ${(player.stats.winRate * 100).toFixed(1)}%</span>
-        <span class="stat-badge">📈 平均 ${player.stats.avgRanking.toFixed(1)} 名</span>
+        <span class="stat-badge">🎮 ${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0} 场</span>
+        <span class="stat-badge">🏆 ${player.stats.sessionsWon || player.stats.wins || 0} 胜</span>
+        <span class="stat-badge">📊 胜率 ${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
+        <span class="stat-badge">📈 场均 ${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)} 名</span>
       </div>
     </div>
   `).join('');

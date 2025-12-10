@@ -56,7 +56,7 @@ import {
 
 // Statistics and UI
 import { updatePlayerStats, renderStatistics } from './stats/statistics.js';
-import { renderHonors } from './stats/honors.js';
+import { renderHonors, calculateHonors } from './stats/honors.js';
 import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from './ui/teamDisplay.js';
 import { showVictoryModal, closeVictoryModal } from './ui/victoryModal.js';
 
@@ -223,14 +223,16 @@ function setupEventListeners() {
 
           // Handle final win (A-level victory)
           if (applyResult.finalWin) {
-            console.log('🎉 Final win detected! Showing victory modal...');
-            // winnerName already calculated above at line 656
+            const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+            
+            // Calculate session honors
+            const sessionHonors = calculateHonors(parseInt(mode));
             
             // Sync profile stats to database (non-blocking)
             const roomInfo = getRoomInfo();
             const allPlayers = getPlayers();
-            const sessionStats = state.getPlayerStats();  // Get complete session stats
-            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats);
+            const sessionStats = state.getPlayerStats();
+            syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors);
             
             // Show victory celebration
             showVictoryModal(winnerName);
@@ -720,10 +722,16 @@ function setupModuleEventHandlers() {
             if (applyResult.finalWin) {
               console.log('🎉 Final win detected! Showing victory modal...');
               // winnerName already calculated above at line 656
+              
+              // Calculate session honors
+              const sessionHonors = calculateHonors(parseInt(mode));
+              
               // Sync profile stats to database (non-blocking)
               const roomInfo = getRoomInfo();
               const allPlayers = getPlayers();
-              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers);
+              const sessionStats = state.getPlayerStats();
+              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors);
+              
               // Show victory celebration
               showVictoryModal(winnerName);
             }

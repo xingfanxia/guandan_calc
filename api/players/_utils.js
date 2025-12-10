@@ -92,10 +92,23 @@ export function validatePlayerData(data) {
  */
 export function initializePlayerStats() {
   return {
+    // Session-level stats (complete games)
+    sessionsPlayed: 0,
+    sessionsWon: 0,
+    sessionWinRate: 0,
+    avgRankingPerSession: 0,
+    avgRoundsPerSession: 0,
+    
+    // Round-level stats (individual rounds)
+    roundsPlayed: 0,
+    avgRankingPerRound: 0,
+    
+    // Legacy fields (deprecated but kept for compatibility)
     gamesPlayed: 0,
     wins: 0,
     winRate: 0,
     avgRanking: 0,
+    
     recentRankings: [],
     honors: {
       '吕布': 0,

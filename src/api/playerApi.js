@@ -205,8 +205,9 @@ export async function updatePlayerStats(handle, gameResult) {
  * @param {string} roomCode - Room code (if applicable)
  * @param {Array} players - Array of all players in the game
  * @param {Object} sessionStats - Complete session stats from statistics.js
+ * @param {Object} sessionHonors - Calculated honors from honors.js
  */
-export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}) {
+export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}) {
   if (!historyEntry || players.length === 0 || !sessionStats) {
     console.log('Skipping profile stats sync - missing data');
     return;
@@ -216,7 +217,40 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     roomCode,
     playerCount: players.length,
     winner: historyEntry.winKey,
-    totalRounds: Object.values(sessionStats).length > 0 ? sessionStats[Object.keys(sessionStats)[0]]?.games : 0
+    totalRounds: Object.values(sessionStats).length > 0 ? sessionStats[Object.keys(sessionStats)[0]]?.games : 0,
+    honorsCount: Object.keys(sessionHonors).length
+  });
+
+  // Map honors to players
+  const playerHonors = {};
+  Object.entries(sessionHonors).forEach(([honorKey, honorData]) => {
+    if (honorData && honorData.player) {
+      const playerId = honorData.player.id;
+      if (!playerHonors[playerId]) playerHonors[playerId] = [];
+      
+      // Map honor keys to Chinese names
+      const honorNames = {
+        mvp: '吕布',
+        burden: '阿斗',
+        stable: '石佛',
+        rollercoaster: '波动王',
+        comeback: '奋斗王',
+        assist: '辅助王',
+        fanche: '翻车王',
+        gambler: '赌徒',
+        complete: '大满贯',
+        streak: '连胜王',
+        median: '佛系玩家',
+        keeper: '守门员',
+        slowstart: '慢热王',
+        frequent: '闪电侠'
+      };
+      
+      const honorName = honorNames[honorKey];
+      if (honorName) {
+        playerHonors[playerId].push(honorName);
+      }
+    }
   });
 
   // Iterate through ALL players and sync their complete session stats
@@ -233,6 +267,7 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
 
     const playerTeamKey = `t${player.team}`;
     const avgRanking = playerSessionStats.totalRank / playerSessionStats.games;
+    const honorsEarned = playerHonors[player.id] || [];
 
     const gameResult = {
       roomCode,
@@ -242,11 +277,11 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       gamesInSession: playerSessionStats.games,  // Total rounds played
       firstPlaces: playerSessionStats.firstPlaceCount || 0,
       lastPlaces: playerSessionStats.lastPlaceCount || 0,
-      honorsEarned: [], // TODO: Get from honors calculation
+      honorsEarned: honorsEarned,  // Honors won in this session
       mode: `${players.length}P`
     };
 
-    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}`, gameResult);
+    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, honors: ${honorsEarned.join(',')}`, gameResult);
 
     // Non-blocking stats update
     updatePlayerStats(player.handle, gameResult).then(result => {

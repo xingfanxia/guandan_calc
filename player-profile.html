@@ -129,26 +129,44 @@ async function loadProfile(handle) {
       <!-- Career Stats -->
       <div class="card">
         <h3>📊 生涯统计</h3>
+        
+        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏场次 (完整对局)</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <span class="stat-value">${player.stats.gamesPlayed}</span>
-            <span class="stat-label">总场次</span>
+            <span class="stat-value">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</span>
+            <span class="stat-label">游戏场次</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.wins}</span>
-            <span class="stat-label">胜场</span>
+            <span class="stat-value">${player.stats.sessionsWon || player.stats.wins || 0}</span>
+            <span class="stat-label">获胜场次</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${(player.stats.winRate * 100).toFixed(1)}%</span>
+            <span class="stat-value">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
             <span class="stat-label">胜率</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.avgRanking.toFixed(1)}</span>
-            <span class="stat-label">平均排名</span>
+            <span class="stat-value">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</span>
+            <span class="stat-label">场均排名</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${Math.round(player.stats.avgRoundsPerSession || 30)}</span>
+            <span class="stat-label">场均局数</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">${player.stats.currentWinStreak}</span>
             <span class="stat-label">当前连胜</span>
+          </div>
+        </div>
+
+        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">单局数据 (所有轮次)</h4>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <span class="stat-value">${player.stats.roundsPlayed || 0}</span>
+            <span class="stat-label">总轮次</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</span>
+            <span class="stat-label">局均排名</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">${player.stats.longestWinStreak}</span>
@@ -156,7 +174,7 @@ async function loadProfile(handle) {
           </div>
         </div>
 
-        ${player.stats.recentRankings.length > 0 ? `
+        ${player.stats.recentRankings && player.stats.recentRankings.length > 0 ? `
           <div style="margin-top: 16px;">
             <h4 style="font-size: 14px; color: #888; margin-bottom: 8px;">最近10场排名</h4>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
