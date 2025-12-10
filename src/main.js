@@ -219,8 +219,11 @@ function setupEventListeners() {
           renderStatistics();
           attachTouchHandlersToAllTiles();
 
+          console.log('Game applied, finalWin:', applyResult.finalWin);
+
           // Handle final win (A-level victory)
           if (applyResult.finalWin) {
+            console.log('🎉 Final win detected! Showing victory modal...');
             // winnerName already calculated above at line 656
             // Sync profile stats to database (non-blocking)
             const roomInfo = getRoomInfo();
@@ -708,8 +711,11 @@ function setupModuleEventHandlers() {
             renderHistory();
             renderStatistics();
 
+            console.log('Game applied, finalWin:', applyResult.finalWin);
+
             // Handle final win (A-level victory)
             if (applyResult.finalWin) {
+              console.log('🎉 Final win detected! Showing victory modal...');
               // winnerName already calculated above at line 656
               // Sync profile stats to database (non-blocking)
               const roomInfo = getRoomInfo();
