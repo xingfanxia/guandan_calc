@@ -134,7 +134,7 @@ function renderPartnerRivalStats(player) {
           <h4 style="font-size: 16px; color: #888; margin-bottom: 12px;">队友</h4>
           ${bestPartner ? `
             <div style="background: #1a2e1a; border: 1px solid #22c55e; padding: 12px; border-radius: 8px; margin-bottom: 8px;">
-              <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">🏆 最佳队友</div>
+              <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">🏆 大佬带我躺赢</div>
               <div style="font-size: 18px;">@${bestPartner.handle}</div>
               <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
                 ${bestPartner.games}场 · ${bestPartner.wins}胜 · ${(bestPartner.winRate * 100).toFixed(1)}%胜率
@@ -143,7 +143,7 @@ function renderPartnerRivalStats(player) {
           ` : ''}
           ${worstPartner && worstPartner.handle !== bestPartner?.handle && partnerStats.length > 1 ? `
             <div style="background: #2a1a1a; border: 1px solid #ef4444; padding: 12px; border-radius: 8px;">
-              <div style="color: #ef4444; font-weight: bold; margin-bottom: 4px;">😅 最闹队友</div>
+              <div style="color: #ef4444; font-weight: bold; margin-bottom: 4px;">😅 你就偷着乐吧</div>
               <div style="font-size: 18px;">@${worstPartner.handle}</div>
               <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
                 ${worstPartner.games}场 · ${worstPartner.wins}胜 · ${(worstPartner.winRate * 100).toFixed(1)}%胜率
@@ -157,7 +157,7 @@ function renderPartnerRivalStats(player) {
           <h4 style="font-size: 16px; color: #888; margin-bottom: 12px;">对手</h4>
           ${hardestOpponent ? `
             <div style="background: #2a1a2a; border: 1px solid #a855f7; padding: 12px; border-radius: 8px; margin-bottom: 8px;">
-              <div style="color: #a855f7; font-weight: bold; margin-bottom: 4px;">⚔️ 命中宿敌</div>
+              <div style="color: #a855f7; font-weight: bold; margin-bottom: 4px;">⚔️ 既生瑜何生亮</div>
               <div style="font-size: 18px;">@${hardestOpponent.handle}</div>
               <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
                 ${hardestOpponent.games}场 · ${hardestOpponent.wins}胜 · ${(hardestOpponent.winRate * 100).toFixed(1)}%胜率
@@ -166,7 +166,7 @@ function renderPartnerRivalStats(player) {
           ` : ''}
           ${easiestOpponent && easiestOpponent.handle !== hardestOpponent?.handle && opponentStats.length > 1 ? `
             <div style="background: #1a2a1a; border: 1px solid #3b82f6; padding: 12px; border-radius: 8px;">
-              <div style="color: #3b82f6; font-weight: bold; margin-bottom: 4px;">🎁 命中送分</div>
+              <div style="color: #3b82f6; font-weight: bold; margin-bottom: 4px;">🎁 这是送分来的</div>
               <div style="font-size: 18px;">@${easiestOpponent.handle}</div>
               <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
                 ${easiestOpponent.games}场 · ${easiestOpponent.wins}胜 · ${(easiestOpponent.winRate * 100).toFixed(1)}%胜率
