@@ -59,13 +59,10 @@
         <select id="mode"><option value="4">4 人</option><option value="6">6 人</option><option value="8" selected>8 人</option></select>
         <button id="generatePlayers">生成玩家</button>
         <button id="shuffleTeams">随机分配队伍</button>
+        <button id="quickStart" style="background:#4ade80; color:white; margin-left:auto;">快速开始</button>
       </div>
-      <div class="row" style="margin-top:8px;">
-        <label for="bulkNames">批量输入姓名：</label>
-        <input type="text" id="bulkNames" placeholder="豪 小 大 姐 夫 塔 帆 鱼" style="flex:1; margin-right:8px;">
-        <button id="applyBulkNames">应用姓名</button>
-        <button id="quickStart" style="background:#4ade80; color:white; margin-left:4px;">快速开始</button>
-      </div>
+      <!-- Removed bulk names input - use player profiles instead -->
+      
       <div class="unassigned-players" id="unassignedPlayers">
         <div class="small muted" style="width:100%">点击"生成玩家"开始</div>
       </div>
