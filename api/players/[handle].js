@@ -178,9 +178,9 @@ export default async function handler(request) {
         player.stats.winRate = player.stats.sessionWinRate;
         player.stats.avgRanking = player.stats.avgRankingPerSession;
 
-        // Update recent rankings - add session average as one entry
+        // Update recent rankings - add relative position within session
         player.stats.recentRankings = player.stats.recentRankings || [];
-        player.stats.recentRankings.unshift(Math.round(gameResult.ranking));
+        player.stats.recentRankings.unshift(gameResult.relativeRank || Math.round(gameResult.ranking));
         if (player.stats.recentRankings.length > 10) {
           player.stats.recentRankings = player.stats.recentRankings.slice(0, 10);
         }
@@ -200,6 +200,40 @@ export default async function handler(request) {
         }
         if (gameResult.votedBurden) {
           player.stats.burdenVotes = (player.stats.burdenVotes || 0) + 1;
+        }
+
+        // Update partner/opponent tracking
+        player.stats.partners = player.stats.partners || {};
+        player.stats.opponents = player.stats.opponents || {};
+
+        // Track teammates
+        if (gameResult.teammates && Array.isArray(gameResult.teammates)) {
+          gameResult.teammates.forEach(teammateHandle => {
+            if (!player.stats.partners[teammateHandle]) {
+              player.stats.partners[teammateHandle] = { games: 0, wins: 0, winRate: 0 };
+            }
+            player.stats.partners[teammateHandle].games += 1;
+            if (gameResult.teamWon) {
+              player.stats.partners[teammateHandle].wins += 1;
+            }
+            player.stats.partners[teammateHandle].winRate = 
+              player.stats.partners[teammateHandle].wins / player.stats.partners[teammateHandle].games;
+          });
+        }
+
+        // Track opponents
+        if (gameResult.opponents && Array.isArray(gameResult.opponents)) {
+          gameResult.opponents.forEach(opponentHandle => {
+            if (!player.stats.opponents[opponentHandle]) {
+              player.stats.opponents[opponentHandle] = { games: 0, wins: 0, winRate: 0 };
+            }
+            player.stats.opponents[opponentHandle].games += 1;
+            if (gameResult.teamWon) {
+              player.stats.opponents[opponentHandle].wins += 1;
+            }
+            player.stats.opponents[opponentHandle].winRate = 
+              player.stats.opponents[opponentHandle].wins / player.stats.opponents[opponentHandle].games;
+          });
         }
 
         // Update win/loss streaks (session counts as 1)

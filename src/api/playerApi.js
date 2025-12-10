@@ -222,6 +222,21 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     honorsCount: Object.keys(sessionHonors).length
   });
 
+  // Calculate relative rankings within this session
+  const playerAverages = players.map(p => {
+    const stats = sessionStats[p.id];
+    return {
+      playerId: p.id,
+      avgRank: stats && stats.games > 0 ? stats.totalRank / stats.games : 999
+    };
+  }).sort((a, b) => a.avgRank - b.avgRank);  // Sort by avg (lower is better)
+
+  // Map player ID to relative position (1-8)
+  const relativeRankings = {};
+  playerAverages.forEach((item, index) => {
+    relativeRankings[item.playerId] = index + 1;
+  });
+
   // Map honors to players
   const playerHonors = {};
   Object.entries(sessionHonors).forEach(([honorKey, honorData]) => {
@@ -269,6 +284,11 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     const playerTeamKey = `t${player.team}`;
     const avgRanking = playerSessionStats.totalRank / playerSessionStats.games;
     const honorsEarned = playerHonors[player.id] || [];
+    const relativeRank = relativeRankings[player.id] || 0;  // Position within session (1-8)
+
+    // Get teammates and opponents
+    const teammates = players.filter(p => p.team === player.team && p.id !== player.id && p.handle);
+    const opponents = players.filter(p => p.team !== player.team && p.handle);
 
     // Check if player was voted as MVP or burden
     const wasMVP = votingResults && votingResults.mvp === player.id;
@@ -277,6 +297,7 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     const gameResult = {
       roomCode,
       ranking: Math.round(avgRanking * 10) / 10,  // Session average ranking
+      relativeRank: relativeRank,  // Position within this session (1-8)
       team: player.team,
       teamWon: historyEntry.winKey === playerTeamKey,
       gamesInSession: playerSessionStats.games,  // Total rounds played
@@ -286,11 +307,13 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       honorsEarned: honorsEarned,  // Honors won in this session
       votedMVP: wasMVP,      // Community voted as MVP
       votedBurden: wasBurden, // Community voted as burden
+      teammates: teammates.map(p => p.handle),  // Teammate handles
+      opponents: opponents.map(p => p.handle),  // Opponent handles
       mode: `${players.length}P`,
       finalLevel: historyEntry[playerTeamKey] || '?'  // Team's final level
     };
 
-    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, honors: ${honorsEarned.join(',')}, MVP: ${wasMVP}, Burden: ${wasBurden}`, gameResult);
+    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, 对局内排名 #${relativeRank}, honors: ${honorsEarned.join(',')}`, gameResult);
 
     // Non-blocking stats update
     updatePlayerStats(player.handle, gameResult).then(result => {
