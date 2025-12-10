@@ -151,6 +151,18 @@ export default async function handler(request) {
       const prevRoundTotal = (player.stats.avgRankingPerRound || 0) * ((player.stats.roundsPlayed || gamesInSession) - gamesInSession);
       player.stats.avgRankingPerRound = (prevRoundTotal + (gameResult.ranking * gamesInSession)) / player.stats.roundsPlayed;
       
+      // Time tracking
+      const sessionDuration = gameResult.sessionDuration || 0;
+      if (sessionDuration > 0) {
+        player.stats.totalPlayTimeSeconds = (player.stats.totalPlayTimeSeconds || 0) + sessionDuration;
+        
+        if (sessionDuration > (player.stats.longestSessionSeconds || 0)) {
+          player.stats.longestSessionSeconds = sessionDuration;
+        }
+        
+        player.stats.avgSessionSeconds = player.stats.totalPlayTimeSeconds / player.stats.sessionsPlayed;
+      }
+      
       // Legacy fields (for backward compatibility)
       player.stats.gamesPlayed = player.stats.sessionsPlayed;
       player.stats.wins = player.stats.sessionsWon;
@@ -198,6 +210,7 @@ export default async function handler(request) {
         team: gameResult.team,
         teamWon: gameResult.teamWon,
         rounds: gamesInSession,  // How many rounds in this session
+        duration: sessionDuration,  // Session duration in seconds
         firstPlaces: gameResult.firstPlaces || 0,
         lastPlaces: gameResult.lastPlaces || 0,
         honorsEarned: gameResult.honorsEarned || []

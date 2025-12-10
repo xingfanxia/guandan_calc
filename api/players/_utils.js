@@ -103,6 +103,11 @@ export function initializePlayerStats() {
     roundsPlayed: 0,
     avgRankingPerRound: 0,
     
+    // Time tracking
+    totalPlayTimeSeconds: 0,      // Total time spent playing (all sessions)
+    longestSessionSeconds: 0,     // Longest single session
+    avgSessionSeconds: 0,         // Average session duration
+    
     // Legacy fields (deprecated but kept for compatibility)
     gamesPlayed: 0,
     wins: 0,

@@ -85,6 +85,18 @@
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { ACHIEVEMENTS } from '/src/stats/achievements.js';
 
+// Format duration in seconds to readable string
+function formatDuration(seconds) {
+  if (!seconds) return '';
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  
+  if (hours > 0) {
+    return `${hours}小时${mins}分`;
+  }
+  return `${mins}分钟`;
+}
+
 // Get handle from URL query parameter
 const urlParams = new URLSearchParams(window.location.search);
 const handle = urlParams.get('handle');
@@ -175,6 +187,22 @@ async function loadProfile(handle) {
           </div>
         </div>
 
+        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏时长</h4>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <span class="stat-value">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</span>
+            <span class="stat-label">总游戏时长</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${formatDuration(player.stats.longestSessionSeconds || 0)}</span>
+            <span class="stat-label">最长对局</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">${formatDuration(player.stats.avgSessionSeconds || 0)}</span>
+            <span class="stat-label">场均时长</span>
+          </div>
+        </div>
+
         ${player.stats.recentRankings && player.stats.recentRankings.length > 0 ? `
           <div style="margin-top: 16px;">
             <h4 style="font-size: 14px; color: #888; margin-bottom: 8px;">最近10场排名</h4>
@@ -245,7 +273,8 @@ async function loadProfile(handle) {
                     <strong style="color: ${game.teamWon ? '#22c55e' : '#ef4444'};">
                       ${game.teamWon ? '✅ 胜' : '❌ 负'}
                     </strong>
-                    · ${game.mode} · 第${game.ranking}名 · ${game.rounds || game.levelChange || '?'} 轮
+                    · ${game.mode} · 平均${game.ranking}名 · ${game.rounds}轮
+                    ${game.duration ? ` · ${formatDuration(game.duration)}` : ''}
                   </div>
                   <div style="font-size: 0.85em; color: #888;">
                     ${new Date(game.date).toLocaleString('zh-CN')}

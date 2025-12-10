@@ -33,6 +33,9 @@ class GameState {
     this.players = [];
     this.playerStats = {};
     this.currentRanking = {};
+    
+    // Session timing
+    this.sessionStartTime = null;
 
     instance = this;
   }
@@ -240,6 +243,24 @@ class GameState {
     this.currentRanking = ranking;
     // Note: Don't persist ranking (temporary state)
     emit('state:currentRankingChanged', { ranking });
+  }
+
+  // ===========================
+  // Session Timing
+  // ===========================
+
+  getSessionStartTime() {
+    return this.sessionStartTime;
+  }
+
+  setSessionStartTime(timestamp) {
+    this.sessionStartTime = timestamp;
+    // Don't persist - session timing is per-session only
+  }
+
+  getSessionDuration() {
+    if (!this.sessionStartTime) return 0;
+    return Math.floor((Date.now() - this.sessionStartTime) / 1000);  // seconds
   }
 
   // ===========================

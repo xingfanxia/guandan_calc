@@ -93,6 +93,12 @@ async function init() {
       config.hydrate();
     }
 
+    // Start session timer (for local games or new sessions)
+    if (!state.getSessionStartTime()) {
+      state.setSessionStartTime(Date.now());
+      console.log('⏱️ Session timer started');
+    }
+
     // Setup UI
     initializeUI();
 
@@ -832,6 +838,10 @@ function setupModuleEventHandlers() {
 
   onEvent('state:allReset', () => {
     unlockTeamAssignmentPanel();
+    
+    // Reset session timer for new game
+    state.setSessionStartTime(Date.now());
+    console.log('⏱️ Session timer reset for new game');
   });
 
   onEvent('game:rollback', ({ index }) => {

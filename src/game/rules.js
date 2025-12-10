@@ -211,6 +211,7 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
     t2: state.getTeamLevel('t2'),
     round: thisRound,
     aNote: aLevelResult.aNote,
+    sessionDuration: state.getSessionDuration(),  // Add session duration
     ...snapshot,
     playerRankings: playerRankingData || {}
   };

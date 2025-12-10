@@ -275,10 +275,12 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       team: player.team,
       teamWon: historyEntry.winKey === playerTeamKey,
       gamesInSession: playerSessionStats.games,  // Total rounds played
+      sessionDuration: historyEntry.sessionDuration || 0,  // Session duration in seconds
       firstPlaces: playerSessionStats.firstPlaceCount || 0,
       lastPlaces: playerSessionStats.lastPlaceCount || 0,
       honorsEarned: honorsEarned,  // Honors won in this session
-      mode: `${players.length}P`
+      mode: `${players.length}P`,
+      finalLevel: historyEntry[playerTeamKey] || '?'  // Team's final level
     };
 
     console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, honors: ${honorsEarned.join(',')}`, gameResult);
