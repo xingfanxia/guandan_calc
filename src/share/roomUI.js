@@ -50,124 +50,157 @@ export function showRoomUI() {
  * Disable all controls for viewers (read-only mode)
  */
 export function disableViewerControls() {
-  // Disable all buttons and inputs
-  const allButtons = document.querySelectorAll('button:not(#leaveRoom):not(.vote-btn)');
-  const allInputs = document.querySelectorAll('input, select');
-  const allLabels = document.querySelectorAll('label');
+  const playerSetupSection = $('playerSetupSection');
 
-  allButtons.forEach(btn => {
-    btn.disabled = true;
-    btn.style.opacity = '0.3';
-    btn.style.cursor = 'not-allowed';
-  });
+  if (playerSetupSection) {
+    // Collapse and lock the player setup section
+    const details = playerSetupSection.querySelector('details');
+    if (details) {
+      details.open = false; // Collapse
+    }
 
-  allInputs.forEach(input => {
-    input.disabled = true;
-    input.style.opacity = '0.5';
-    input.style.cursor = 'not-allowed';
-  });
+    // Prevent opening
+    const summary = playerSetupSection.querySelector('summary');
+    if (summary) {
+      summary.style.cursor = 'not-allowed';
+      summary.onclick = (e) => {
+        e.preventDefault();
+        return false;
+      };
 
-  allLabels.forEach(label => {
-    label.style.opacity = '0.5';
-  });
+      // Add lock icon to summary
+      if (!summary.querySelector('.viewer-lock')) {
+        const lockIcon = document.createElement('span');
+        lockIcon.className = 'viewer-lock';
+        lockIcon.textContent = ' 🔒';
+        lockIcon.style.color = '#10b981';
+        lockIcon.title = '观看模式：只读';
+        summary.appendChild(lockIcon);
+      }
+    }
 
-  // Disable drag & drop
-  const draggables = document.querySelectorAll('[draggable="true"]');
-  draggables.forEach(el => {
-    el.draggable = false;
-    el.style.cursor = 'not-allowed';
-  });
-
-  // Hide player setup section for viewers
-  const playerSetup = $('playerSetupSection');
-  if (playerSetup) {
-    playerSetup.style.display = 'none';
+    // Show compact team roster
+    showCompactTeamRoster();
   }
 
-  // Hide settings for viewers
-  const settingsSection = $('settingsSection');
-  if (settingsSection) {
-    settingsSection.style.display = 'none';
+  // Disable all buttons except export
+  const buttons = [
+    'generatePlayers', 'shuffleTeams', 'applyBulkNames', 'quickStart',
+    'clearRanking', 'randomRanking', 'manualCalc',
+    'apply', 'advance', 'undo', 'resetMatch',
+    'save4', 'save6', 'save8', 'reset4', 'reset6', 'reset8'
+  ];
+
+  buttons.forEach(id => {
+    const btn = $(id);
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+      btn.title = '观看模式：只读，无法操作';
+    }
+  });
+
+  // Disable mode selector and inputs
+  const modeSelect = $('mode');
+  if (modeSelect) {
+    modeSelect.disabled = true;
+    modeSelect.style.opacity = '0.5';
   }
 
-  // Show compact team roster for viewers
-  showCompactTeamRoster();
+  ['must1', 'autoNext', 'autoApply', 'strictA'].forEach(id => {
+    const checkbox = $(id);
+    if (checkbox) {
+      checkbox.disabled = true;
+      checkbox.style.opacity = '0.5';
+    }
+  });
 
-  // Show viewer tip
-  const rankingArea = $('rankingArea');
-  if (rankingArea) {
-    const tip = document.createElement('div');
-    tip.className = 'viewer-tip';
-    tip.style.cssText = 'background: #2a1a2a; border: 1px solid #a855f7; padding: 12px; margin-bottom: 16px; border-radius: 8px; text-align: center; color: #a855f7;';
-    tip.innerHTML = '👁️ <strong>观看模式</strong> - 只能查看，无法操作。等待房主更新...';
-    rankingArea.insertBefore(tip, rankingArea.firstChild);
+  const bulkNames = $('bulkNames');
+  if (bulkNames) {
+    bulkNames.disabled = true;
+    bulkNames.style.opacity = '0.5';
   }
+
+  // Disable all drag and drop
+  const playerTiles = document.querySelectorAll('.player-tile, .ranking-player-tile');
+  playerTiles.forEach(tile => {
+    tile.draggable = false;
+    tile.style.cursor = 'default';
+  });
+
+  const dropZones = document.querySelectorAll('.team-drop-zone, .rank-slot, #playerPool');
+  dropZones.forEach(zone => {
+    zone.style.pointerEvents = 'none';
+    zone.style.opacity = '0.7';
+  });
 }
 
 /**
  * Show host banner with room code and copy functionality
  */
 export function showHostBanner(roomCode, authToken) {
-  const existing = document.querySelector('.room-banner');
-  if (existing) return; // Already shown
-
   const banner = document.createElement('div');
-  banner.className = 'room-banner host-banner';
+  banner.id = 'hostBanner';
   banner.style.cssText = `
+    position: sticky; top: 0; z-index: 100;
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white;
-    padding: 16px 24px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
+    color: white; padding: 12px 20px; text-align: center;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    margin: 0;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
     cursor: pointer;
   `;
 
-  const shareURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+  const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
-  const updateBanner = () => {
+  const updateBannerContent = () => {
+    // Stop timer if game has ended
+    if (checkGameEnded()) {
+      const duration = state.getSessionDuration();
+      const mins = Math.floor(duration / 60);
+      const secs = duration % 60;
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      banner.innerHTML = `
+        <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+        | ⏱️ <strong>${timeStr}</strong> ✅
+        | <span style="font-size: 12px; opacity: 0.9;">游戏已结束</span>
+      `;
+      return true; // Signal to stop interval
+    }
+    
     const duration = state.getSessionDuration();
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
     
     banner.innerHTML = `
-      📺 <span style="font-size: 24px; letter-spacing: 3px; margin: 0 12px;">${roomCode}</span>
+      <strong>📺 房主模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
       | ⏱️ <strong>${timeStr}</strong>
-      <span style="font-size: 14px; opacity: 0.9; margin-left: 12px;">点击复制观众链接</span>
+      | <span style="font-size: 12px; opacity: 0.9;">点击横幅复制观众链接</span>
     `;
+    return false;
   };
 
-  updateBanner();
+  updateBannerContent();
   
-  // Update timer every second
+  // Update duration every second (stop when game ends)
   const timerInterval = setInterval(() => {
-    if (checkGameEnded()) {
+    const shouldStop = updateBannerContent();
+    if (shouldStop) {
       clearInterval(timerInterval);
-      updateBanner();
-      banner.innerHTML += ' ✅ <span style="font-size: 14px;">游戏已结束</span>';
-    } else {
-      updateBanner();
     }
   }, 1000);
 
-  banner.onclick = () => {
-    navigator.clipboard.writeText(shareURL).then(() => {
-      const originalHTML = banner.innerHTML;
-      banner.innerHTML = '✅ 已复制观众链接！分享给朋友观看比赛';
-      banner.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+  banner.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(viewerURL);
+      banner.innerHTML += ' <span style="color: #22c55e;">✅ 已复制</span>';
       setTimeout(() => {
-        banner.innerHTML = originalHTML;
-        banner.style.background = 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)';
+        updateBannerContent();
       }, 2000);
-    }).catch(err => {
-      alert('复制失败，请手动复制链接:\n' + shareURL);
-    });
+    } catch (e) {
+      alert(viewerURL);
+    }
   };
 
   document.body.insertBefore(banner, document.body.firstChild);
@@ -177,47 +210,51 @@ export function showHostBanner(roomCode, authToken) {
  * Show viewer banner with room code
  */
 export function showViewerBanner(roomCode) {
-  const existing = document.querySelector('.room-banner');
-  if (existing) return; // Already shown
-
   const banner = document.createElement('div');
-  banner.className = 'room-banner viewer-banner';
+  banner.id = 'viewerBanner';
   banner.style.cssText = `
-    background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
-    color: white;
-    padding: 16px 24px;
-    text-align: center;
-    font-size: 18px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
-    margin: 0;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white; padding: 12px 20px; text-align: center;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   `;
 
-  const updateBanner = () => {
+  const updateBannerContent = () => {
+    // Stop timer if game has ended
+    if (checkGameEnded()) {
+      const duration = state.getSessionDuration();
+      const mins = Math.floor(duration / 60);
+      const secs = duration % 60;
+      const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+      
+      banner.innerHTML = `
+        <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
+        | ⏱️ <strong>${timeStr}</strong> ✅
+        | <span style="font-size: 12px; opacity: 0.9;">游戏已结束</span>
+      `;
+      return true; // Signal to stop interval
+    }
+    
     const duration = state.getSessionDuration();
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
     
     banner.innerHTML = `
-      👁️ 观看模式 - 房间代码: <span style="font-size: 22px; letter-spacing: 2px; margin: 0 8px;">${roomCode}</span>
+      <strong>👀 观看模式</strong> | 房间代码: <strong style="font-size: 18px; letter-spacing: 2px;">${roomCode}</strong>
       | ⏱️ <strong>${timeStr}</strong>
+      | <span style="font-size: 12px; opacity: 0.9;">实时观看房主比赛</span>
     `;
+    return false;
   };
 
-  updateBanner();
+  updateBannerContent();
   
-  // Update timer every second
+  // Update duration every second (stop when game ends)
   const timerInterval = setInterval(() => {
-    if (checkGameEnded()) {
+    const shouldStop = updateBannerContent();
+    if (shouldStop) {
       clearInterval(timerInterval);
-      updateBanner();
-      banner.innerHTML += ' ✅ <span style="font-size: 14px;">游戏已结束</span>';
-    } else {
-      updateBanner();
     }
   }, 1000);
 
