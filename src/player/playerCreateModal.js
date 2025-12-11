@@ -3,12 +3,15 @@
 
 import { createPlayer, validateHandle, getPlayStyles } from '../api/playerApi.js';
 import { $ } from '../core/utils.js';
+import Cropper from 'cropperjs';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
 
 let onPlayerCreatedCallback = null;
 let modalElement = null;
+let cropperInstance = null;
+let selectedPhotoBase64 = null;
 
 /**
  * Initialize player creation modal
@@ -82,19 +85,68 @@ export function showCreateModal() {
           />
         </div>
 
-        <!-- Emoji -->
+        <!-- Emoji & Photo -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
             头像 <span style="color: #ef4444;">*</span>
           </label>
-          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
-            ${ANIMAL_EMOJIS.map(emoji => `
-              <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: transparent; border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-                ${emoji}
-              </button>
-            `).join('')}
+          
+          <!-- Toggle between emoji and photo -->
+          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+            <button type="button" id="useEmojiBtn" class="avatar-mode-btn active" style="flex: 1; padding: 8px; background: #3b82f6; border: none; border-radius: 6px; color: white; cursor: pointer; transition: all 0.2s;">
+              😊 使用表情
+            </button>
+            <button type="button" id="usePhotoBtn" class="avatar-mode-btn" style="flex: 1; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
+              📷 上传照片
+            </button>
           </div>
-          <input type="hidden" id="emojiInput" required />
+
+          <!-- Emoji selector (default visible) -->
+          <div id="emojiSelectorContainer">
+            <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
+              ${ANIMAL_EMOJIS.map(emoji => `
+                <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: transparent; border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                  ${emoji}
+                </button>
+              `).join('')}
+            </div>
+            <input type="hidden" id="emojiInput" required />
+          </div>
+
+          <!-- Photo upload section (initially hidden) -->
+          <div id="photoUploadContainer" style="display: none;">
+            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
+            <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
+              📁 选择图片文件
+            </button>
+            
+            <!-- Crop container (shown after file selection) -->
+            <div id="cropContainer" style="margin-top: 12px; display: none;">
+              <div style="max-width: 100%; max-height: 300px; overflow: hidden; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
+                <img id="cropImage" style="max-width: 100%; display: block;" />
+              </div>
+              <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <button type="button" id="rotateLeftBtn" style="padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: white; cursor: pointer;">
+                  ↺ 左转
+                </button>
+                <button type="button" id="rotateRightBtn" style="padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: white; cursor: pointer;">
+                  ↻ 右转
+                </button>
+                <button type="button" id="applyCropBtn" style="flex: 1; padding: 8px 12px; background: #22c55e; border: none; border-radius: 6px; color: white; cursor: pointer;">
+                  ✓ 确认裁剪
+                </button>
+              </div>
+            </div>
+
+            <!-- Photo preview (shown after crop) -->
+            <div id="photoPreview" style="margin-top: 12px; display: none; text-align: center;">
+              <div style="color: #22c55e; margin-bottom: 8px;">✓ 照片已准备</div>
+              <img id="croppedPreview" style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid #22c55e; object-fit: cover;" />
+              <button type="button" id="changePhotoBtn" style="margin-top: 8px; padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
+                更换照片
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Play Style -->
@@ -207,6 +259,173 @@ function setupModalHandlers() {
     });
   });
 
+  // Avatar mode toggle (emoji vs photo)
+  const useEmojiBtn = $('useEmojiBtn');
+  const usePhotoBtn = $('usePhotoBtn');
+  const emojiSelectorContainer = $('emojiSelectorContainer');
+  const photoUploadContainer = $('photoUploadContainer');
+
+  if (useEmojiBtn) {
+    useEmojiBtn.addEventListener('click', () => {
+      // Switch to emoji mode
+      useEmojiBtn.style.background = '#3b82f6';
+      useEmojiBtn.style.color = 'white';
+      useEmojiBtn.style.border = 'none';
+      usePhotoBtn.style.background = '#1a1a1a';
+      usePhotoBtn.style.color = '#888';
+      usePhotoBtn.style.border = '1px solid #333';
+      
+      emojiSelectorContainer.style.display = 'block';
+      photoUploadContainer.style.display = 'none';
+      
+      // Clear photo selection
+      selectedPhotoBase64 = null;
+    });
+  }
+
+  if (usePhotoBtn) {
+    usePhotoBtn.addEventListener('click', () => {
+      // Switch to photo mode
+      usePhotoBtn.style.background = '#3b82f6';
+      usePhotoBtn.style.color = 'white';
+      usePhotoBtn.style.border = 'none';
+      useEmojiBtn.style.background = '#1a1a1a';
+      useEmojiBtn.style.color = '#888';
+      useEmojiBtn.style.border = '1px solid #333';
+      
+      emojiSelectorContainer.style.display = 'none';
+      photoUploadContainer.style.display = 'block';
+    });
+  }
+
+  // Photo upload handlers
+  const photoInput = $('photoInput');
+  const selectPhotoBtn = $('selectPhotoBtn');
+  const cropContainer = $('cropContainer');
+  const cropImage = $('cropImage');
+  const rotateLeftBtn = $('rotateLeftBtn');
+  const rotateRightBtn = $('rotateRightBtn');
+  const applyCropBtn = $('applyCropBtn');
+  const photoPreview = $('photoPreview');
+  const croppedPreview = $('croppedPreview');
+  const changePhotoBtn = $('changePhotoBtn');
+
+  if (selectPhotoBtn && photoInput) {
+    selectPhotoBtn.addEventListener('click', () => {
+      photoInput.click();
+    });
+  }
+
+  if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('请选择图片文件');
+        return;
+      }
+
+      // Validate file size (max 5MB original)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('图片太大，请选择小于5MB的文件');
+        return;
+      }
+
+      // Read file as data URL
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (cropImage) {
+          cropImage.src = event.target.result;
+          cropContainer.style.display = 'block';
+          photoPreview.style.display = 'none';
+          selectPhotoBtn.style.display = 'none';
+
+          // Destroy existing cropper if any
+          if (cropperInstance) {
+            cropperInstance.destroy();
+          }
+
+          // Initialize Cropper.js
+          cropperInstance = new Cropper(cropImage, {
+            aspectRatio: 1,  // Square
+            viewMode: 1,
+            autoCropArea: 1,
+            responsive: true,
+            guides: true,
+            center: true,
+            highlight: true,
+            background: false,
+            zoomable: true,
+            scalable: true,
+            cropBoxResizable: true,
+            minCropBoxWidth: 100,
+            minCropBoxHeight: 100
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Rotation controls
+  if (rotateLeftBtn) {
+    rotateLeftBtn.addEventListener('click', () => {
+      if (cropperInstance) {
+        cropperInstance.rotate(-90);
+      }
+    });
+  }
+
+  if (rotateRightBtn) {
+    rotateRightBtn.addEventListener('click', () => {
+      if (cropperInstance) {
+        cropperInstance.rotate(90);
+      }
+    });
+  }
+
+  // Apply crop
+  if (applyCropBtn) {
+    applyCropBtn.addEventListener('click', () => {
+      if (!cropperInstance) return;
+
+      // Get cropped canvas (400x400 max)
+      const canvas = cropperInstance.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+      });
+
+      // Convert to JPEG base64 (80% quality)
+      selectedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+      // Show preview
+      if (croppedPreview) {
+        croppedPreview.src = selectedPhotoBase64;
+      }
+      cropContainer.style.display = 'none';
+      photoPreview.style.display = 'block';
+
+      console.log('Photo cropped, base64 size:', selectedPhotoBase64.length, 'bytes');
+    });
+  }
+
+  // Change photo (reset)
+  if (changePhotoBtn) {
+    changePhotoBtn.addEventListener('click', () => {
+      photoPreview.style.display = 'none';
+      selectPhotoBtn.style.display = 'block';
+      selectedPhotoBase64 = null;
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+      }
+    });
+  }
+
   // Cancel button
   if (cancelButton) {
     cancelButton.addEventListener('click', closeModal);
@@ -264,7 +483,8 @@ function setupModalHandlers() {
           displayName,
           emoji,
           playStyle,
-          tagline
+          tagline,
+          ...(selectedPhotoBase64 && { photoBase64: selectedPhotoBase64 })  // Include photo if uploaded
         });
 
         if (result.success && onPlayerCreatedCallback) {

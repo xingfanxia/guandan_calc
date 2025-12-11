@@ -136,6 +136,7 @@
 <script type="module">
 import { searchPlayers, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { initializeCreateModal, showCreateModal } from '/src/player/playerCreateModal.js';
+import { renderProfileAvatar } from '/src/player/photoRenderer.js';
 
 let currentPage = 0;
 const pageSize = 20;
@@ -182,7 +183,7 @@ function renderPlayers() {
   container.innerHTML = playersToShow.map(player => `
     <div class="player-card" onclick="location.href='/player-profile.html?handle=${player.handle}'">
       <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        <span style="font-size: 48px; margin-right: 16px;">${player.emoji}</span>
+        ${renderProfileAvatar(player, 64)}
         <div style="flex: 1;">
           <h3 style="margin: 0 0 4px 0; font-size: 24px;">${player.displayName}</h3>
           <div style="color: #888; font-size: 0.9em;">@${player.handle}</div>

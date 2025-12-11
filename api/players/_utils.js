@@ -83,6 +83,19 @@ export function validatePlayerData(data) {
     return { valid: false, error: 'Tagline must be 50 characters or less' };
   }
 
+  // Validate photoBase64 if provided (optional field)
+  if (data.photoBase64) {
+    // Check if it's a valid data URL
+    if (!data.photoBase64.startsWith('data:image/')) {
+      return { valid: false, error: 'Invalid photo format. Must be a data URL' };
+    }
+    
+    // Check size (limit to ~100KB base64 to avoid bloat)
+    if (data.photoBase64.length > 150000) {
+      return { valid: false, error: 'Photo too large. Please use a smaller image (max ~100KB)' };
+    }
+  }
+
   return { valid: true };
 }
 

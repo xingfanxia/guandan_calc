@@ -59,15 +59,21 @@ Allow users to upload and crop square profile photos to replace emojis throughou
 
 ## Display Sizes by Context
 
-| Context | Size | Shape | Border |
-|---------|------|-------|--------|
-| Player tiles | 32x32px | Circular | 2px solid |
-| Ranking tiles | 32x32px | Circular | 2px solid |
-| Profile header | 72x72px | Circular | 3px solid |
-| Profile browser | 48x48px | Circular | 2px solid |
-| Compact roster | 24x24px | Circular | 1px solid |
-| History display | 20x20px | Circular | 1px solid |
-| Victory modal | 40x40px | Circular | 2px solid |
+| Context | Avatar Type | Size | Shape | Border |
+|---------|-------------|------|-------|--------|
+| Player tiles | **Emoji only** | 32px | - | - |
+| Ranking tiles | **Emoji only** | 32px | - | - |
+| Profile browser (players.html) | **Photo or Emoji** | 64px | Circular | 2px solid |
+| Profile page header (player-profile.html) | **Photo or Emoji** | 120px | Circular | 3px solid |
+| Compact roster | **Emoji only** | 24px | - | - |
+| History display | **Emoji only** | 20px | - | - |
+| Victory modal | **Emoji only** | 40px | - | - |
+| PNG export | **Emoji only** | - | - | - |
+
+**Rationale:** 
+- Small contexts (tiles, history, roster) look better with emoji
+- Large contexts (browser cards, profile header) showcase photos nicely
+- Simpler implementation - only 2 places to update
 
 ## Data Structure
 
