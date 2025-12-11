@@ -419,10 +419,11 @@ function formatTime(isoString) {
   return date.toLocaleDateString('zh-CN');
 }
 
-function joinRoom(roomCode) {
+// Make joinRoom globally accessible for onclick handlers
+window.joinRoom = function(roomCode) {
   // Navigate to main page with room code
   window.location.href = `/?room=${roomCode}`;
-}
+};
 
 // Initial load
 loadRooms();

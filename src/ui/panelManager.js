@@ -14,28 +14,34 @@ export function lockTeamAssignmentPanel() {
   const playerSetupSection = $('playerSetupSection');
   if (!playerSetupSection) return;
 
-  // Collapse the panel
-  playerSetupSection.style.maxHeight = '60px';
-  playerSetupSection.style.overflow = 'hidden';
-  playerSetupSection.style.transition = 'max-height 0.3s ease';
+  // First show the compact roster
+  showCompactTeamRoster();
 
-  // Add expand button
-  const expandBtn = document.createElement('button');
-  expandBtn.id = 'expandPlayerSetup';
-  expandBtn.textContent = '▼ 展开玩家设置';
-  expandBtn.style.cssText = 'margin-top: 8px; padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;';
+  // Collapse the details element
+  const details = playerSetupSection.querySelector('details');
+  if (details) {
+    details.open = false;
+  }
 
-  expandBtn.onclick = () => {
-    if (playerSetupSection.style.maxHeight === '60px') {
-      playerSetupSection.style.maxHeight = '2000px';
-      expandBtn.textContent = '▲ 收起玩家设置';
-    } else {
-      playerSetupSection.style.maxHeight = '60px';
-      expandBtn.textContent = '▼ 展开玩家设置';
+  // Prevent opening the details
+  const summary = playerSetupSection.querySelector('summary');
+  if (summary) {
+    summary.style.cursor = 'not-allowed';
+    summary.onclick = (e) => {
+      e.preventDefault();
+      return false;
+    };
+
+    // Add lock icon
+    if (!summary.querySelector('.lock-indicator')) {
+      const lockIcon = document.createElement('span');
+      lockIcon.className = 'lock-indicator';
+      lockIcon.textContent = ' 🔒';
+      lockIcon.style.color = '#f59e0b';
+      lockIcon.title = '游戏进行中，玩家设置已锁定';
+      summary.appendChild(lockIcon);
     }
-  };
-
-  playerSetupSection.appendChild(expandBtn);
+  }
 }
 
 /**
@@ -45,15 +51,30 @@ export function unlockTeamAssignmentPanel() {
   const playerSetupSection = $('playerSetupSection');
   if (!playerSetupSection) return;
 
-  // Remove expand button
-  const expandBtn = $('expandPlayerSetup');
-  if (expandBtn) {
-    expandBtn.remove();
+  // Remove lock icon
+  const lockIcon = playerSetupSection.querySelector('.lock-indicator');
+  if (lockIcon) {
+    lockIcon.remove();
   }
 
-  // Restore full height
-  playerSetupSection.style.maxHeight = 'none';
-  playerSetupSection.style.overflow = 'visible';
+  // Re-enable summary click
+  const summary = playerSetupSection.querySelector('summary');
+  if (summary) {
+    summary.style.cursor = 'pointer';
+    summary.onclick = null;
+  }
+
+  // Remove compact roster
+  const compactRoster = $('compactRoster');
+  if (compactRoster) {
+    compactRoster.remove();
+  }
+
+  // Expand details
+  const details = playerSetupSection.querySelector('details');
+  if (details) {
+    details.open = true;
+  }
 }
 
 /**

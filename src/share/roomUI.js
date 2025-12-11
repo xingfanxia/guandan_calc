@@ -48,6 +48,8 @@ export function showRoomUI() {
  * Disable all controls for viewers (read-only mode)
  */
 export function disableViewerControls() {
+  const { showCompactTeamRoster } = require('../ui/panelManager.js');
+  
   // Disable all buttons and inputs
   const allButtons = document.querySelectorAll('button:not(#leaveRoom):not(.vote-btn)');
   const allInputs = document.querySelectorAll('input, select');
@@ -88,6 +90,9 @@ export function disableViewerControls() {
     settingsSection.style.display = 'none';
   }
 
+  // Show compact team roster for viewers
+  showCompactTeamRoster();
+
   // Show viewer tip
   const rankingArea = $('rankingArea');
   if (rankingArea) {
@@ -125,10 +130,32 @@ export function showHostBanner(roomCode, authToken) {
 
   const shareURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
 
-  banner.innerHTML = `
-    📺 <span style="font-size: 24px; letter-spacing: 3px; margin: 0 12px;">${roomCode}</span>
-    <span style="font-size: 14px; opacity: 0.9; margin-left: 12px;">点击复制观众链接</span>
-  `;
+  const updateBanner = () => {
+    const duration = state.getSessionDuration();
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    banner.innerHTML = `
+      📺 <span style="font-size: 24px; letter-spacing: 3px; margin: 0 12px;">${roomCode}</span>
+      | ⏱️ <strong>${timeStr}</strong>
+      <span style="font-size: 14px; opacity: 0.9; margin-left: 12px;">点击复制观众链接</span>
+    `;
+  };
+
+  updateBanner();
+  
+  // Update timer every second
+  const timerInterval = setInterval(() => {
+    const { checkGameEnded } = require('../ranking/rankingRenderer.js');
+    if (checkGameEnded()) {
+      clearInterval(timerInterval);
+      updateBanner();
+      banner.innerHTML += ' ✅ <span style="font-size: 14px;">游戏已结束</span>';
+    } else {
+      updateBanner();
+    }
+  }, 1000);
 
   banner.onclick = () => {
     navigator.clipboard.writeText(shareURL).then(() => {
@@ -170,9 +197,31 @@ export function showViewerBanner(roomCode) {
     z-index: 1000;
   `;
 
-  banner.innerHTML = `
-    👁️ 观看模式 - 房间代码: <span style="font-size: 22px; letter-spacing: 2px; margin: 0 8px;">${roomCode}</span>
-  `;
+  const updateBanner = () => {
+    const duration = state.getSessionDuration();
+    const mins = Math.floor(duration / 60);
+    const secs = duration % 60;
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    banner.innerHTML = `
+      👁️ 观看模式 - 房间代码: <span style="font-size: 22px; letter-spacing: 2px; margin: 0 8px;">${roomCode}</span>
+      | ⏱️ <strong>${timeStr}</strong>
+    `;
+  };
+
+  updateBanner();
+  
+  // Update timer every second
+  const timerInterval = setInterval(() => {
+    const { checkGameEnded } = require('../ranking/rankingRenderer.js');
+    if (checkGameEnded()) {
+      clearInterval(timerInterval);
+      updateBanner();
+      banner.innerHTML += ' ✅ <span style="font-size: 14px;">游戏已结束</span>';
+    } else {
+      updateBanner();
+    }
+  }, 1000);
 
   document.body.insertBefore(banner, document.body.firstChild);
 }
