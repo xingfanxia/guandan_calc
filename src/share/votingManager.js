@@ -535,11 +535,15 @@ export function unlockViewerVoting() {
  * Show end-game voting UI for viewers
  */
 export function showEndGameVotingForViewers() {
+  console.log('🎉 Showing end-game voting for viewers');
   unlockViewerVoting();
   
   // Calculate and display winning team MVP + teammates
   const history = state.getHistory();
-  if (history.length === 0) return;
+  if (history.length === 0) {
+    console.log('No history, skipping winner display');
+    return;
+  }
   
   const latestGame = history[history.length - 1];
   const winningTeamKey = latestGame.winKey;
@@ -550,6 +554,8 @@ export function showEndGameVotingForViewers() {
   const players = getPlayers();
   const playerStats = state.getPlayerStats();
   const teamPlayers = players.filter(p => p.team === winningTeamNum);
+  
+  console.log('Winning team:', winningTeamName, 'Players:', teamPlayers.length);
   
   // Find MVP (lowest average ranking)
   let mvpPlayer = null;
