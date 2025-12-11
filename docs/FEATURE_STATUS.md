@@ -3,20 +3,32 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2024-12-09
-**Architecture**: 20 ES6 modules + 6 API endpoints
-**Version**: v9.0 (Modular)
+**Last Updated**: 2025-12-11
+**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs
+**Version**: v10.0
 
 ---
 
 ## Completed Features
 
 ### Core Architecture (100%)
-- [x] Modular refactoring: 20 ES6 modules with clean separation
+- [x] Modular refactoring: 38 ES6 modules with clean separation
+- [x] Controller pattern: 5 specialized controllers
+- [x] main.js optimization: 1,607 → 509 lines (-69%)
 - [x] Vite build system with HMR development
 - [x] UTF-8 support for Chinese characters
 - [x] State management with pub/sub events
 - [x] Fresh localStorage keys (`gd_v9_*`)
+
+### v10.0 New Features (100%)
+- [x] Room Browser with player filtering
+- [x] Profile photo upload system (base64, auto-resize)
+- [x] Enhanced partner/rival bar charts (Chart.js)
+- [x] Modern pill-style navigation tabs
+- [x] Admin mode (password-protected delete/reset)
+- [x] Server-side timer tracking (finishedAt timestamps)
+- [x] MVP photos in victory modal and PNG export
+- [x] Viewer voting winner display
 
 ### Game Modes (100%)
 - [x] 4-player mode with fixed upgrade table

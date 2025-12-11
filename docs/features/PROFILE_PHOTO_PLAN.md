@@ -1,5 +1,26 @@
 # Profile Photo Feature - Implementation Plan
 
+**Status**: ✅ COMPLETE  
+**Implemented**: 2025-12-11  
+**Commits**: 15+ commits  
+**Bundle Impact**: playerCreateModal 14KB → 18KB (+4KB)
+
+## Implementation Status
+
+- ✅ **Phase 1**: Backend Schema (Complete)
+- ✅ **Phase 2**: Upload UI (Complete - Simplified, no cropper)
+- ✅ **Phase 3**: Display Helper (Complete - photoRenderer.js)
+- ✅ **Phase 4**: Display Contexts (Complete - 2 pages only)
+- ✅ **Phase 5**: PNG Export (Complete - async with 320px photo)
+
+**Final Implementation**: Simpler than planned!
+- Removed Cropper.js (complex, 60KB)
+- Simple square image upload with auto-crop center
+- Canvas-based resize to 400x400 JPEG
+- Display only in profile pages (not game tiles)
+
+---
+
 ## Overview
 Allow users to upload and crop square profile photos to replace emojis throughout the app.
 
