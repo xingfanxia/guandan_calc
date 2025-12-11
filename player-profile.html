@@ -84,6 +84,10 @@
 <script type="module">
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { ACHIEVEMENTS } from '/src/stats/achievements.js';
+import { Chart, registerables } from 'chart.js';
+
+// Register Chart.js components
+Chart.register(...registerables);
 
 // Format duration in seconds to readable string
 function formatDuration(seconds) {
@@ -272,6 +276,95 @@ function viewProfile(handle) {
   window.location.href = '/player-profile.html?handle=' + handle;
 }
 
+function renderRecentRankingsChart(recentRankings) {
+  const canvas = document.getElementById('recentRankingsChart');
+  if (!canvas || !recentRankings || recentRankings.length === 0) return;
+
+  const ctx = canvas.getContext('2d');
+  
+  // Reverse so oldest is on the left, newest on the right
+  const rankings = [...recentRankings].reverse();
+  
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rankings.map((_, i) => `第${i + 1}场`),
+      datasets: [{
+        label: '排名',
+        data: rankings,
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: rankings.map(rank => 
+          rank === 1 ? '#22c55e' : rank <= 3 ? '#3b82f6' : '#ef4444'
+        ),
+        pointBorderColor: '#fff',
+        pointBorderWidth: 2,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      aspectRatio: 2.5,
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `排名: #${context.parsed.y}`;
+            }
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 10,
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#333',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        y: {
+          reverse: true, // Lower ranking number is better
+          min: 1,
+          max: 8,
+          ticks: {
+            stepSize: 1,
+            color: '#888',
+            callback: function(value) {
+              return '#' + value;
+            }
+          },
+          grid: {
+            color: '#333',
+            drawBorder: false
+          }
+        },
+        x: {
+          ticks: {
+            color: '#888',
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 10
+          },
+          grid: {
+            display: false
+          }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
 function setupPartnerRivalHandlers(player) {
   const partners = player.stats.partners || {};
   const opponents = player.stats.opponents || {};
@@ -422,21 +515,9 @@ async function loadProfile(handle) {
         </div>
 
         ${player.stats.recentRankings && player.stats.recentRankings.length > 0 ? `
-          <div style="margin-top: 16px;">
-            <h4 style="font-size: 14px; color: #888; margin-bottom: 8px;">最近10场对局内排名</h4>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-              ${player.stats.recentRankings.map(rank => `
-                <span style="
-                  background: ${rank === 1 ? '#22c55e' : rank <= 3 ? '#3b82f6' : '#666'};
-                  color: white;
-                  padding: 4px 10px;
-                  border-radius: 4px;
-                  font-weight: bold;
-                ">
-                  #${rank}
-                </span>
-              `).join('')}
-            </div>
+          <div style="margin-top: 16px; background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
+            <h4 style="font-size: 14px; color: #888; margin-bottom: 12px;">最近${player.stats.recentRankings.length}场对局排名趋势</h4>
+            <canvas id="recentRankingsChart" style="max-height: 200px;"></canvas>
           </div>
         ` : ''}
       </div>
@@ -540,6 +621,9 @@ async function loadProfile(handle) {
 
     // Setup event handlers for partner/rival sorting after HTML is inserted
     setupPartnerRivalHandlers(player);
+
+    // Render recent rankings chart
+    renderRecentRankingsChart(player.stats.recentRankings);
 
   } catch (error) {
     console.error('Failed to load profile:', error);
