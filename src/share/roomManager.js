@@ -13,6 +13,7 @@ let currentRoomCode = null;
 let authToken = null;
 let isHost = false;
 let isViewer = false;
+let roomCreatedAt = null;  // Track room creation time for timer
 let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
@@ -214,6 +215,7 @@ function loadRoomData(roomData) {
   }
 
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
+  roomCreatedAt = roomData.createdAt || null; // Update creation time
 
   emit('room:dataLoaded', { roomData });
 
@@ -419,7 +421,8 @@ export function getRoomInfo() {
     roomCode: currentRoomCode,
     isHost,
     isViewer,
-    authToken: isHost ? authToken : null
+    authToken: isHost ? authToken : null,
+    createdAt: roomCreatedAt
   };
 }
 

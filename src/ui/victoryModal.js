@@ -9,6 +9,7 @@ import { getPlayers } from '../player/playerManager.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
+import { renderProfileAvatar } from '../player/photoRenderer.js';
 
 // In-memory voting data (cleared on modal close)
 let votes = {
@@ -110,8 +111,14 @@ export function showVictoryModal(teamName) {
         text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
       `;
       taglineEl.innerHTML = `
-        <strong style="color: ${winningTeamColor};">MVP ${mvpPlayer.emoji} ${mvpPlayer.name}</strong> (平均 ${bestAvg.toFixed(2)}名)<br>
-        "${mvpPlayer.tagline}"
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
+          ${renderProfileAvatar(mvpPlayer, 64, { marginRight: false })}
+          <div style="text-align: left;">
+            <div style="color: ${winningTeamColor}; font-weight: bold; font-size: 18px;">MVP ${mvpPlayer.name}</div>
+            <div style="color: #888; font-size: 14px;">平均 ${bestAvg.toFixed(2)}名</div>
+          </div>
+        </div>
+        <div style="font-style: italic;">"${mvpPlayer.tagline}"</div>
       `;
       
       // Insert after team name
