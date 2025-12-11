@@ -271,12 +271,6 @@ export async function syncToRoom() {
       endGameVotes: existingRoom.endGameVotes || { mvp: {}, burden: {} }
     };
 
-    // Update local finishedAt if game just ended
-    if (!roomFinishedAt && roomData.finishedAt) {
-      roomFinishedAt = roomData.finishedAt;
-      console.log('🎉 Game finished! Setting finishedAt:', roomFinishedAt);
-    }
-
     const response = await fetch(`/api/rooms/${currentRoomCode}`, {
       method: 'PUT',
       headers: {
