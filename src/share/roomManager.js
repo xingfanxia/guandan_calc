@@ -7,6 +7,7 @@ import state from '../core/state.js';
 import config from '../core/config.js';
 import { getPlayers } from '../player/playerManager.js';
 import { emit } from '../core/events.js';
+import { checkGameEnded } from '../ranking/rankingRenderer.js';
 
 // Room state
 let currentRoomCode = null;
@@ -14,6 +15,7 @@ let authToken = null;
 let isHost = false;
 let isViewer = false;
 let roomCreatedAt = null;  // Track room creation time for timer
+let roomFinishedAt = null;  // Track game finish time for timer
 let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
@@ -216,6 +218,7 @@ function loadRoomData(roomData) {
 
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
   roomCreatedAt = roomData.createdAt || null; // Update creation time
+  roomFinishedAt = roomData.finishedAt || null; // Update finish time
 
   console.log('Room data loaded, createdAt:', roomCreatedAt, 'roomData:', { 
     code: roomData.roomCode, 
@@ -262,6 +265,7 @@ export async function syncToRoom() {
       playerStats: state.getPlayerStats(),
       currentRanking: state.getCurrentRanking(),
       createdAt: existingRoom.createdAt || roomCreatedAt || new Date().toISOString(),  // Preserve creation time
+      finishedAt: existingRoom.finishedAt || (checkGameEnded() ? new Date().toISOString() : null),  // Set when game ends
       lastUpdated: new Date().toISOString(),
       // PRESERVE VOTES!
       endGameVotes: existingRoom.endGameVotes || { mvp: {}, burden: {} }
@@ -433,7 +437,8 @@ export function getRoomInfo() {
     isHost,
     isViewer,
     authToken: isHost ? authToken : null,
-    createdAt: roomCreatedAt
+    createdAt: roomCreatedAt,
+    finishedAt: roomFinishedAt
   };
 }
 

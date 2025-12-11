@@ -151,14 +151,12 @@ export function showHostBanner(roomCode, authToken) {
   `;
 
   const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
+  const roomInfo = getRoomInfo();
 
   const updateBannerContent = () => {
-    // Stop timer if game has ended
-    if (checkGameEnded()) {
-      // Use room createdAt for accurate session duration
-      const roomInfo = getRoomInfo();
-      const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
-      const duration = Math.floor((Date.now() - sessionStart) / 1000);
+    // Check if game is finished (static time)
+    if (roomInfo.finishedAt && roomInfo.createdAt) {
+      const duration = Math.floor((new Date(roomInfo.finishedAt).getTime() - new Date(roomInfo.createdAt).getTime()) / 1000);
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -171,8 +169,7 @@ export function showHostBanner(roomCode, authToken) {
       return true; // Signal to stop interval
     }
     
-    // Use room createdAt for accurate session duration
-    const roomInfo = getRoomInfo();
+    // Game still running - calculate from createdAt
     const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
     const duration = Math.floor((Date.now() - sessionStart) / 1000);
     const mins = Math.floor(duration / 60);
@@ -189,15 +186,17 @@ export function showHostBanner(roomCode, authToken) {
 
   updateBannerContent();
   
-  // Update duration every second (stop when game ends)
-  const timerInterval = setInterval(() => {
-    const gameEnded = checkGameEnded();
-    const shouldStop = updateBannerContent();
-    if (shouldStop) {
-      console.log('⏱️ Timer stopped - game ended:', gameEnded);
-      clearInterval(timerInterval);
-    }
-  }, 1000);
+  // Only run interval if game not finished
+  if (!roomInfo.finishedAt) {
+    const timerInterval = setInterval(() => {
+      const gameEnded = checkGameEnded();
+      const shouldStop = updateBannerContent();
+      if (shouldStop) {
+        console.log('⏱️ Timer stopped - game ended:', gameEnded);
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  }
 
   banner.onclick = async () => {
     try {
@@ -227,13 +226,12 @@ export function showViewerBanner(roomCode) {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
   `;
 
+  const roomInfo = getRoomInfo();
+
   const updateBannerContent = () => {
-    // Stop timer if game has ended
-    if (checkGameEnded()) {
-      // Use room createdAt for accurate session duration
-      const roomInfo = getRoomInfo();
-      const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
-      const duration = Math.floor((Date.now() - sessionStart) / 1000);
+    // Check if game is finished (static time)
+    if (roomInfo.finishedAt && roomInfo.createdAt) {
+      const duration = Math.floor((new Date(roomInfo.finishedAt).getTime() - new Date(roomInfo.createdAt).getTime()) / 1000);
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -246,8 +244,7 @@ export function showViewerBanner(roomCode) {
       return true; // Signal to stop interval
     }
     
-    // Use room createdAt for accurate session duration
-    const roomInfo = getRoomInfo();
+    // Game still running - calculate from createdAt
     const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
     const duration = Math.floor((Date.now() - sessionStart) / 1000);
     const mins = Math.floor(duration / 60);
@@ -264,15 +261,17 @@ export function showViewerBanner(roomCode) {
 
   updateBannerContent();
   
-  // Update duration every second (stop when game ends)
-  const timerInterval = setInterval(() => {
-    const gameEnded = checkGameEnded();
-    const shouldStop = updateBannerContent();
-    if (shouldStop) {
-      console.log('⏱️ Timer stopped - game ended:', gameEnded);
-      clearInterval(timerInterval);
-    }
-  }, 1000);
+  // Only run interval if game not finished
+  if (!roomInfo.finishedAt) {
+    const timerInterval = setInterval(() => {
+      const gameEnded = checkGameEnded();
+      const shouldStop = updateBannerContent();
+      if (shouldStop) {
+        console.log('⏱️ Timer stopped - game ended:', gameEnded);
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  }
 
   document.body.insertBefore(banner, document.body.firstChild);
 }
