@@ -210,89 +210,105 @@ function renderPartnerRivalStats(player) {
         </div>
       ` : ''}
     </div>
-
-    <script>
-      // Store data for re-sorting
-      window.partnerStatsData = ${JSON.stringify(partnerStats)};
-      window.opponentStatsData = ${JSON.stringify(opponentStats)};
-
-      // Partner sort handler
-      ${partnerStats.length > 0 ? `
-        document.getElementById('partnerSort').addEventListener('change', (e) => {
-          const sortBy = e.target.value;
-          document.getElementById('partnersListContainer').innerHTML = 
-            renderPartnersList(window.partnerStatsData, sortBy);
-        });
-      ` : ''}
-
-      // Opponent sort handler
-      ${opponentStats.length > 0 ? `
-        document.getElementById('opponentSort').addEventListener('change', (e) => {
-          const sortBy = e.target.value;
-          document.getElementById('opponentsListContainer').innerHTML = 
-            renderOpponentsList(window.opponentStatsData, sortBy);
-        });
-      ` : ''}
-
-      function viewProfile(handle) {
-        window.location.href = '/player-profile.html?handle=' + handle;
-      }
-
-      function renderPartnersList(stats, sortBy) {
-        let sorted = [...stats];
-        if (sortBy === 'games') {
-          sorted.sort((a, b) => b.games - a.games);
-        } else if (sortBy === 'wins') {
-          sorted.sort((a, b) => b.wins - a.wins);
-        } else {
-          sorted.sort((a, b) => b.winRate - a.winRate);
-        }
-
-        return sorted.map((p, index) => \`
-          <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('\${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
-            <div style="flex: 1;">
-              <div style="font-size: 16px; font-weight: 500;">@\${p.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                \${p.games}场 · \${p.wins}胜 · \${(p.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-            <div style="width: 120px; text-align: right;">
-              <div style="color: \${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
-                \${(p.winRate * 100).toFixed(1)}%
-              </div>
-            </div>
-          </div>
-        \`).join('');
-      }
-
-      function renderOpponentsList(stats, sortBy) {
-        let sorted = [...stats];
-        if (sortBy === 'games') {
-          sorted.sort((a, b) => b.games - a.games);
-        } else if (sortBy === 'wins') {
-          sorted.sort((a, b) => b.wins - a.wins);
-        } else {
-          sorted.sort((a, b) => a.winRate - b.winRate); // Ascending for hardest first
-        }
-
-        return sorted.map((p, index) => \`
-          <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('\${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
-            <div style="flex: 1;">
-              <div style="font-size: 16px; font-weight: 500;">@\${p.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                \${p.games}场 · \${p.wins}胜 · \${(p.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-            <div style="width: 120px; text-align: right;">
-              <div style="color: \${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
-                \${(p.winRate * 100).toFixed(1)}%
-              </div>
-            </div>
-          </div>
-        \`).join('');
-      }
-    </script>
   `;
+}
+
+// Render functions defined outside to avoid template literal nesting issues
+function renderPartnersList(stats, sortBy) {
+  let sorted = [...stats];
+  if (sortBy === 'games') {
+    sorted.sort((a, b) => b.games - a.games);
+  } else if (sortBy === 'wins') {
+    sorted.sort((a, b) => b.wins - a.wins);
+  } else {
+    sorted.sort((a, b) => b.winRate - a.winRate);
+  }
+
+  return sorted.map((p, index) => `
+    <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
+      <div style="flex: 1;">
+        <div style="font-size: 16px; font-weight: 500;">@${p.handle}</div>
+        <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
+          ${p.games}场 · ${p.wins}胜 · ${(p.winRate * 100).toFixed(1)}%胜率
+        </div>
+      </div>
+      <div style="width: 120px; text-align: right;">
+        <div style="color: ${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
+          ${(p.winRate * 100).toFixed(1)}%
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderOpponentsList(stats, sortBy) {
+  let sorted = [...stats];
+  if (sortBy === 'games') {
+    sorted.sort((a, b) => b.games - a.games);
+  } else if (sortBy === 'wins') {
+    sorted.sort((a, b) => b.wins - a.wins);
+  } else {
+    sorted.sort((a, b) => a.winRate - b.winRate); // Ascending for hardest first
+  }
+
+  return sorted.map((p, index) => `
+    <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
+      <div style="flex: 1;">
+        <div style="font-size: 16px; font-weight: 500;">@${p.handle}</div>
+        <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
+          ${p.games}场 · ${p.wins}胜 · ${(p.winRate * 100).toFixed(1)}%胜率
+        </div>
+      </div>
+      <div style="width: 120px; text-align: right;">
+        <div style="color: ${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
+          ${(p.winRate * 100).toFixed(1)}%
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function viewProfile(handle) {
+  window.location.href = '/player-profile.html?handle=' + handle;
+}
+
+function setupPartnerRivalHandlers(player) {
+  const partners = player.stats.partners || {};
+  const opponents = player.stats.opponents || {};
+  
+  const partnerStats = Object.entries(partners).map(([handle, stats]) => ({
+    handle,
+    ...stats
+  })).sort((a, b) => b.winRate - a.winRate);
+
+  const opponentStats = Object.entries(opponents).map(([handle, stats]) => ({
+    handle,
+    ...stats
+  })).sort((a, b) => a.winRate - b.winRate);
+
+  // Store data for re-sorting
+  window.partnerStatsData = partnerStats;
+  window.opponentStatsData = opponentStats;
+
+  // Partner sort handler
+  const partnerSort = document.getElementById('partnerSort');
+  if (partnerSort) {
+    partnerSort.addEventListener('change', (e) => {
+      const sortBy = e.target.value;
+      document.getElementById('partnersListContainer').innerHTML = 
+        renderPartnersList(window.partnerStatsData, sortBy);
+    });
+  }
+
+  // Opponent sort handler
+  const opponentSort = document.getElementById('opponentSort');
+  if (opponentSort) {
+    opponentSort.addEventListener('change', (e) => {
+      const sortBy = e.target.value;
+      document.getElementById('opponentsListContainer').innerHTML = 
+        renderOpponentsList(window.opponentStatsData, sortBy);
+    });
+  }
 }
 
 // Get handle from URL query parameter
@@ -521,6 +537,10 @@ async function loadProfile(handle) {
         ` : '<div style="color: #888; margin-top: 12px;">暂无游戏记录</div>'}
       </div>
     `;
+
+    // Setup event handlers for partner/rival sorting after HTML is inserted
+    setupPartnerRivalHandlers(player);
+
   } catch (error) {
     console.error('Failed to load profile:', error);
     document.getElementById('profileContent').innerHTML = `
@@ -534,6 +554,27 @@ async function loadProfile(handle) {
     `;
   }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Assuming loadProfile is called elsewhere to load the player data
+  // Once the player data is loaded, call setupPartnerRivalHandlers
+  // For now, we'll just call it here to demonstrate
+  const player = {
+    stats: {
+      partners: {
+        'partner1': { games: 10, wins: 5, winRate: 0.5 },
+        'partner2': { games: 8, wins: 3, winRate: 0.375 },
+        'partner3': { games: 6, wins: 2, winRate: 0.333 }
+      },
+      opponents: {
+        'opponent1': { games: 12, wins: 7, winRate: 0.583 },
+        'opponent2': { games: 10, wins: 4, winRate: 0.4 },
+        'opponent3': { games: 8, wins: 2, winRate: 0.25 }
+      }
+    }
+  };
+  setupPartnerRivalHandlers(player);
+});
 </script>
 </body>
 </html>
