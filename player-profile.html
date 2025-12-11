@@ -404,8 +404,11 @@ function renderPartnersChart(stats, sortBy) {
           ticks: {
             color: '#888',
             font: {
-              size: 12
-            }
+              size: sorted.length > 10 ? 10 : 12
+            },
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0
           },
           grid: {
             display: false
@@ -510,8 +513,11 @@ function renderOpponentsChart(stats, sortBy) {
           ticks: {
             color: '#888',
             font: {
-              size: 12
-            }
+              size: sorted.length > 10 ? 10 : 12
+            },
+            autoSkip: false,
+            maxRotation: 0,
+            minRotation: 0
           },
           grid: {
             display: false
