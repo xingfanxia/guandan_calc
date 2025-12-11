@@ -1,11 +1,30 @@
 # Guandan Calculator - Development TODO
 
-**Last Updated**: 2025-12-10
-**Current Phase**: Player Profile System Complete ✅
+**Last Updated**: 2025-12-11
+**Current Phase**: v10.0 Feature Complete ✅
 
 ---
 
-## ✅ Recently Completed (2025-12-10)
+## ✅ Recently Completed (2025-12-11)
+
+### v10.0 Major Update - 57 Commits
+- [x] Room Browser with player filtering
+- [x] Enhanced Partner/Rival bar charts (Chart.js)
+- [x] Modern navigation tabs (pill style)
+- [x] Profile photo upload system
+- [x] Admin mode (delete/reset with password)
+- [x] Server-side timer tracking (finishedAt)
+- [x] MVP photos (victory modal + PNG export)
+- [x] Major refactoring (main.js -69%)
+- [x] Security (admin token protection)
+- [x] Chart visualizations (3 charts)
+- [x] All UX improvements
+
+**Code**: +7 modules | **Bundle**: 96KB | **Status**: Production Ready
+
+---
+
+## ✅ Previously Completed (2025-12-10)
 
 ### Player Profile System MVP - 33 Commits
 - [x] Complete backend (10 APIs)
@@ -38,22 +57,21 @@
 
 **Effort**: Small | **Impact**: High
 
-#### 2. Room Browser with Player Filter
-- [ ] Implement `GET /api/rooms/list` endpoint
-- [ ] Create `/rooms.html` page
-- [ ] Filter by player handle
-- [ ] Show last 20 rooms + favorites
-- [ ] Click room → join/view
+#### 2. Season System
+- [ ] Define season periods (monthly/quarterly)
+- [ ] Season leaderboards
+- [ ] Season achievements
+- [ ] Historical season data
 
-**Effort**: Medium | **Impact**: High
+**Effort**: Large | **Impact**: Medium
 
-#### 3. Enhanced Partner/Rival Display
-- [ ] Win rate trend charts (last 10 games)
-- [ ] Click partner → view their profile
-- [ ] Show all partners (not just best/worst)
-- [ ] Sortable by games/winrate
+#### 3. Mobile Optimizations
+- [ ] Touch-optimized profile cards
+- [ ] Swipe navigation between pages
+- [ ] Mobile-specific layouts
+- [ ] Better emoji selector on mobile
 
-**Effort**: Small | **Impact**: Medium
+**Effort**: Medium | **Impact**: Medium
 
 ---
 
@@ -75,27 +93,11 @@
 
 **Effort**: Small | **Impact**: Medium
 
-#### 6. Mobile Optimizations
-- [ ] Touch-optimized profile cards
-- [ ] Swipe navigation between pages
-- [ ] Mobile-specific layouts
-- [ ] Better emoji selector on mobile
-
-**Effort**: Medium | **Impact**: Medium
-
 ---
 
 ### Low Priority - Future Features
 
-#### 7. Season System
-- [ ] Define season periods (monthly/quarterly)
-- [ ] Season leaderboards
-- [ ] Season achievements
-- [ ] Historical season data
-
-**Effort**: Large | **Impact**: Medium
-
-#### 8. Authentication
+#### 6. Authentication
 - [ ] OAuth integration (optional)
 - [ ] Profile claiming system
 - [ ] Password protection
@@ -103,7 +105,7 @@
 
 **Effort**: Large | **Impact**: Low (works well without it)
 
-#### 9. Advanced Analytics
+#### 7. Advanced Analytics
 - [ ] Performance trends over time
 - [ ] Honor frequency analysis
 - [ ] Optimal team composition suggester
