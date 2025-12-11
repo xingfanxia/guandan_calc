@@ -302,25 +302,27 @@ function startAutoSync() {
 }
 
 /**
- * Start polling for viewers (every 5 seconds)
+ * Start polling for updates (viewer mode)
  */
 function startPolling() {
+  console.log('Starting viewer polling...');
   if (pollInterval) clearInterval(pollInterval);
 
-  // Initial poll immediately
-  pollForUpdates();
+  // Initial poll immediately - always load data on first call
+  pollForUpdates(true);  // Pass true to force load on first poll
 
   // Then poll every 2 seconds
   pollInterval = setInterval(async () => {
-    await pollForUpdates();
+    await pollForUpdates(false);  // Normal polling with change detection
   }, 2000); // 2 seconds (faster for better UX)
 
 }
 
 /**
  * Poll for updates (viewer mode)
+ * @param {boolean} forceLoad - Force load even if no changes (for initial poll)
  */
-async function pollForUpdates() {
+async function pollForUpdates(forceLoad = false) {
   if (!currentRoomCode || isHost) return;
 
   try {
@@ -354,14 +356,16 @@ async function pollForUpdates() {
     const hasChanged = newUpdate !== lastKnownUpdate;
     lastKnownUpdate = newUpdate;
 
-    if (hasChanged) {
+    if (hasChanged || forceLoad) {
       loadRoomData(roomData);
 
-      // Use requestAnimationFrame to avoid blocking polling
-      requestAnimationFrame(() => {
-        emit('room:updated', { roomData });
-        showUpdateNotification();
-      });
+      if (hasChanged) {
+        // Use requestAnimationFrame to avoid blocking polling
+        requestAnimationFrame(() => {
+          emit('room:updated', { roomData });
+          showUpdateNotification();
+        });
+      }
     }
   } catch (error) {
     console.error('Error polling room:', error);
