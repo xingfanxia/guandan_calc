@@ -131,7 +131,8 @@ export function addPlayerFromProfile(profile) {
     handle: profile.handle,         // Link to profile
     playerId: profile.id,          // For stats updates
     playStyle: profile.playStyle,  // From profile
-    tagline: profile.tagline       // For victory screen
+    tagline: profile.tagline,       // For victory screen
+    photoBase64: profile.photoBase64  // Profile photo (optional)
   };
 
   // Add to players array
