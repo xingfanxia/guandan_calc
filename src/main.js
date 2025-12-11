@@ -138,6 +138,12 @@ function initializeUI() {
     honorHeading.parentElement.style.display = 'block';
   }
 
+  // Show voting section (人民的声音) - now implemented!
+  const votingSection = $('votingSection');
+  if (votingSection) {
+    votingSection.style.display = 'block';
+  }
+
   // Render initial honors
   renderHonors();
 }

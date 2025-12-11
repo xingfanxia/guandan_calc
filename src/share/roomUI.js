@@ -7,6 +7,8 @@ import { $ } from '../core/utils.js';
 import { getRoomInfo } from './roomManager.js';
 import { initializeViewerVotingSection, showEndGameVotingForViewers, showHostVoting, updateVoteLeaderboard } from './votingManager.js';
 import state from '../core/state.js';
+import { checkGameEnded } from '../ranking/rankingRenderer.js';
+import { showCompactTeamRoster } from '../ui/panelManager.js';
 
 /**
  * Show room-specific UI (banner, voting section)
@@ -48,8 +50,6 @@ export function showRoomUI() {
  * Disable all controls for viewers (read-only mode)
  */
 export function disableViewerControls() {
-  const { showCompactTeamRoster } = require('../ui/panelManager.js');
-  
   // Disable all buttons and inputs
   const allButtons = document.querySelectorAll('button:not(#leaveRoom):not(.vote-btn)');
   const allInputs = document.querySelectorAll('input, select');
@@ -147,7 +147,6 @@ export function showHostBanner(roomCode, authToken) {
   
   // Update timer every second
   const timerInterval = setInterval(() => {
-    const { checkGameEnded } = require('../ranking/rankingRenderer.js');
     if (checkGameEnded()) {
       clearInterval(timerInterval);
       updateBanner();
@@ -213,7 +212,6 @@ export function showViewerBanner(roomCode) {
   
   // Update timer every second
   const timerInterval = setInterval(() => {
-    const { checkGameEnded } = require('../ranking/rankingRenderer.js');
     if (checkGameEnded()) {
       clearInterval(timerInterval);
       updateBanner();
