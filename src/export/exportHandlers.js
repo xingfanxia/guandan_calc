@@ -225,8 +225,8 @@ import { exportMobilePNG as exportMobilePNGImpl } from './exportMobile.js';
 /**
  * Export mobile PNG - NOW IMPLEMENTED!
  */
-export function exportMobilePNG() {
-  exportMobilePNGImpl();
+export async function exportMobilePNG() {
+  await exportMobilePNGImpl();
 }
 
 /**

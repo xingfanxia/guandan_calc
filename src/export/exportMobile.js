@@ -1,16 +1,70 @@
 /**
- * Mobile PNG Export - EXACT REPLICATION of original detailed version
- * 600px width with comprehensive sections
+ * Mobile PNG Export
+ * Exports game data as mobile-optimized long image
  */
 
 import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
-import { now } from '../core/utils.js';
-// Don't import calculateHonors - causes circular dependency
+import { getPlayersByTeam } from '../player/playerManager.js';
 
-export function exportMobilePNG() {
+/**
+ * Load image from base64 data URL
+ * @param {string} dataUrl - Base64 data URL
+ * @returns {Promise<HTMLImageElement>}
+ */
+function loadImage(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = dataUrl;
+  });
+}
+
+/**
+ * Draw player avatar (photo or emoji) to canvas
+ * @param {CanvasRenderingContext2D} ctx - Canvas context
+ * @param {Object} player - Player object
+ * @param {number} x - X position
+ * @param {number} y - Y position (baseline for text, or center for image)
+ * @param {number} size - Size for photo (ignored for emoji)
+ */
+async function drawPlayerAvatar(ctx, player, x, y, size = 40) {
+  if (player.photoBase64) {
+    try {
+      const img = await loadImage(player.photoBase64);
+      
+      // Save context
+      ctx.save();
+      
+      // Draw circular photo
+      ctx.beginPath();
+      ctx.arc(x + size/2, y - size/2, size/2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(img, x, y - size, size, size);
+      
+      // Restore and draw border
+      ctx.restore();
+      ctx.beginPath();
+      ctx.arc(x + size/2, y - size/2, size/2, 0, Math.PI * 2);
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      return size + 10; // Return width used (photo + margin)
+    } catch (error) {
+      console.warn('Failed to draw photo, using emoji:', error);
+    }
+  }
+  
+  // Fallback to emoji
+  ctx.fillText(player.emoji, x, y);
+  return 0; // No extra width
+}
+
+export async function exportMobilePNG() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -77,9 +131,17 @@ export function exportMobilePNG() {
     if (mvpPlayer && mvpPlayer.tagline) {
       ctx.font = 'italic 22px Arial';
       ctx.fillStyle = '#fbbf24';
-      ctx.fillText(`MVP ${mvpPlayer.emoji} ${mvpPlayer.name} (平均${bestAvg.toFixed(2)}名)`, 40, currentY);
+      
+      // Draw MVP photo or emoji
+      const photoX = 40;
+      const photoY = currentY + 30;
+      await drawPlayerAvatar(ctx, mvpPlayer, photoX, photoY, 50);
+      
+      // Draw MVP text beside photo
+      const textX = photoX + 60;
+      ctx.fillText(`MVP ${mvpPlayer.name} (平均${bestAvg.toFixed(2)}名)`, textX, currentY);
       currentY += 30;
-      ctx.fillText(`"${mvpPlayer.tagline}"`, 40, currentY);
+      ctx.fillText(`"${mvpPlayer.tagline}"`, textX, currentY);
       currentY += 45;
     }
 
