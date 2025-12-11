@@ -129,20 +129,33 @@ export async function exportMobilePNG() {
     });
     
     if (mvpPlayer && mvpPlayer.tagline) {
+      // Draw MVP photo centered on its own row (larger)
+      if (mvpPlayer.photoBase64) {
+        const photoSize = 80;
+        const photoX = (W - photoSize) / 2;  // Center horizontally
+        await drawPlayerAvatar(ctx, mvpPlayer, photoX, currentY + photoSize, photoSize);
+        currentY += photoSize + 20;
+      }
+      
+      // Draw MVP text
+      ctx.font = 'bold 24px Arial';
+      ctx.fillStyle = '#fbbf24';
+      ctx.textAlign = 'center';
+      ctx.fillText(`MVP ${mvpPlayer.photoBase64 ? '' : mvpPlayer.emoji + ' '}${mvpPlayer.name}`, W/2, currentY);
+      currentY += 30;
+      
+      ctx.font = 'italic 20px Arial';
+      ctx.fillStyle = '#888';
+      ctx.fillText(`平均 ${bestAvg.toFixed(2)} 名`, W/2, currentY);
+      currentY += 35;
+      
       ctx.font = 'italic 22px Arial';
       ctx.fillStyle = '#fbbf24';
-      
-      // Draw MVP photo or emoji
-      const photoX = 40;
-      const photoY = currentY + 30;
-      await drawPlayerAvatar(ctx, mvpPlayer, photoX, photoY, 50);
-      
-      // Draw MVP text beside photo
-      const textX = photoX + 60;
-      ctx.fillText(`MVP ${mvpPlayer.name} (平均${bestAvg.toFixed(2)}名)`, textX, currentY);
-      currentY += 30;
-      ctx.fillText(`"${mvpPlayer.tagline}"`, textX, currentY);
+      ctx.fillText(`"${mvpPlayer.tagline}"`, W/2, currentY);
       currentY += 45;
+      
+      // Reset text alignment
+      ctx.textAlign = 'left';
     }
 
     // Show session duration
