@@ -198,6 +198,43 @@ if (adminModeButton) {
 if (adminTokenInput) {
   adminTokenInput.addEventListener('input', (e) => {
     adminToken = e.target.value;
+    
+    // Visual feedback for correct password
+    const container = document.getElementById('adminTokenContainer');
+    const containerInner = container?.querySelector('div');
+    
+    if (adminToken === 'xiaofei0214') {
+      if (containerInner) {
+        containerInner.style.borderColor = '#22c55e';
+        containerInner.style.background = '#1a2e1a';
+      }
+      adminTokenInput.style.borderColor = '#22c55e';
+      
+      // Show success message
+      let successMsg = container?.querySelector('.admin-success-msg');
+      if (!successMsg) {
+        successMsg = document.createElement('div');
+        successMsg.className = 'admin-success-msg';
+        successMsg.style.cssText = 'color: #22c55e; font-size: 0.85em; margin-top: 6px; font-weight: bold;';
+        successMsg.textContent = '✓ 管理员权限已激活';
+        containerInner?.appendChild(successMsg);
+      }
+      
+      // Re-render to show admin buttons
+      renderPlayers();
+    } else {
+      if (containerInner) {
+        containerInner.style.borderColor = '#ef4444';
+        containerInner.style.background = '#2a1a1a';
+      }
+      adminTokenInput.style.borderColor = '#ef4444';
+      
+      // Remove success message
+      const successMsg = container?.querySelector('.admin-success-msg');
+      if (successMsg) {
+        successMsg.remove();
+      }
+    }
   });
 }
 
