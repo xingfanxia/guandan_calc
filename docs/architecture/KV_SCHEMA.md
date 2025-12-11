@@ -32,6 +32,7 @@ All keys use prefixes for namespace organization and efficient querying.
   handle: "xiaoming",            // Unique, lowercase, URL-safe
   displayName: "小明",           // Can be duplicated
   emoji: "🐱",                   // Avatar from 77+ options
+  photoBase64: "data:image/jpeg;base64,/9j/4AAQ...",  // Optional profile photo (NEW v10.0)
   playStyle: "gambler",          // One of 8 predefined styles
   tagline: "运筹帷幄，决胜千里",  // Personal motto (max 50 chars)
   createdAt: "2024-12-09T10:30:00Z",
@@ -117,8 +118,9 @@ All keys use prefixes for namespace organization and efficient querying.
   // Room identity
   roomCode: "A1B2C3",
   createdAt: "2024-12-08T20:00:00Z",
+  finishedAt: "2024-12-08T21:25:00Z",  // Set when A级通关 (NEW v10.0)
   lastUpdated: "2024-12-08T21:30:00Z",
-  version: "v9.0",
+  version: "v10.0",
 
   // Game configuration
   settings: {

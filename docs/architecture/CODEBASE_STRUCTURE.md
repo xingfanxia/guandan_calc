@@ -2,9 +2,9 @@
 
 > Comprehensive guide to every file in the codebase
 
-**Last Updated**: 2025-12-10
-**Version**: 9.0 (Modular + Player Profiles)
-**Total Files**: 50+ modules
+**Last Updated**: 2025-12-11
+**Version**: 10.0 (Modular + Refactored + Profile Photos)
+**Total Files**: 65+ modules (38 source modules + APIs + pages)
 
 ---
 
@@ -12,30 +12,23 @@
 
 ```
 /
-├── index.html              # Main game entry point
-├── players.html            # Player browser page
-├── player-profile.html     # Individual profile page
+├── index.html              # Main game entry point (v10.0 navigation)
+├── players.html            # Player browser page (with admin mode)
+├── player-profile.html     # Individual profile page (with photos)
+├── rooms.html              # Room browser page (NEW v10.0)
 ├── package.json            # Dependencies and scripts
 ├── vite.config.js          # Multi-page build configuration
 ├── vercel.json             # Deployment settings
-├── TODO.md                 # Implementation tracker
-├── CLAUDE.md               # AI coding instructions
-└── README.md               # Project overview
+├── TODO.md                 # Implementation tracker (v10.0 updated)
+├── CLAUDE.md               # AI coding instructions (v10.0 updated)
+└── README.md               # Project overview (v10.0)
 ```
 
 ### `index.html` (Main Game)
 - Entry point for the game application
-- Loads `src/main.js` as ES6 module
+- Loads `src/main.js` as ES6 module (509 lines, refactored)
 - Contains all UI structure:
-  - Navigation links (👥 浏览玩家)
-  - Room controls (创建房间, 加入房间)
-  - **Player setup** with profile search
-  - Team assignment zones
-  - Ranking system
-  - Statistics display
-  - Victory modal
-  - Voting section (人民的声音)
-  - Export buttons
+  - Modern pill navigation (👥 浏览玩家 | 🏠 浏览房间 | 🎮 游戏)
 
 **Key Sections**:
 - Lines 34-64: Player profile search UI
@@ -62,7 +55,7 @@
 
 ### Entry Point
 
-#### `main.js` (1,500+ lines) - Application Orchestrator
+#### `main.js` (509 lines) - Application Orchestrator
 **Purpose**: Wire up all modules and handle events
 
 **Key Responsibilities**:
