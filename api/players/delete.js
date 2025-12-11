@@ -13,13 +13,23 @@ export default async function handler(request) {
   }
 
   try {
-    const { handle } = await request.json();
+    const { handle, adminToken } = await request.json();
 
     if (!handle) {
       return new Response(JSON.stringify({
         error: 'Missing handle'
       }), {
         status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Require admin token for deletion
+    if (adminToken !== 'xiaofei0214') {
+      return new Response(JSON.stringify({
+        error: 'Unauthorized - Invalid admin token'
+      }), {
+        status: 403,
         headers: { 'Content-Type': 'application/json' }
       });
     }
