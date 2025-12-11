@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>房间浏览器 - 掼蛋计分器</title>
+<meta name="theme-color" content="#0b0b0c">
+<link rel="stylesheet" href="/src/style.css">
+<style>
+  .room-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .room-card:hover {
+    background: #252525;
+    border-color: #444;
+    transform: translateY(-2px);
+  }
+  .room-card.favorite {
+    border-color: #fbbf24;
+  }
+  .room-card.favorite::before {
+    content: '⭐';
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 1.2em;
+  }
+  .room-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .room-code {
+    font-size: 1.3em;
+    font-weight: bold;
+    color: #3b82f6;
+    margin-bottom: 8px;
+  }
+  .room-info {
+    color: #888;
+    font-size: 0.9em;
+    margin: 4px 0;
+  }
+  .player-tag {
+    display: inline-block;
+    background: #2a2a2a;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    margin: 2px;
+    color: #3b82f6;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 500;
+  }
+  .status-active {
+    background: #22c55e;
+    color: white;
+  }
+  .status-finished {
+    background: #888;
+    color: white;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .filter-tab {
+    padding: 8px 16px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-tab:hover {
+    background: #252525;
+  }
+  .filter-tab.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+    <h1>🏠 房间浏览器</h1>
+    <a href="/" style="color: #3b82f6; text-decoration: none;">← 返回游戏</a>
+  </div>
+
+  <div class="card">
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="all">全部房间</button>
+      <button class="filter-tab" data-filter="favorites">收藏房间</button>
+    </div>
+
+    <div class="row" style="margin-bottom: 16px;">
+      <input
+        type="text"
+        id="playerFilterInput"
+        placeholder="按玩家筛选 (例如: @fufu)..."
+        style="flex: 1; padding: 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
+      />
+      <button id="filterButton" style="padding: 12px 24px; background: #3b82f6; color: white;">筛选</button>
+      <button id="clearFilterButton" style="padding: 12px 24px; background: #6b7280; color: white; margin-left: 8px;">清除</button>
+    </div>
+
+    <div style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
+      <span id="roomCount">加载中...</span>
+    </div>
+
+    <div id="roomsList" class="room-grid">
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+        加载中...
+      </div>
+    </div>
+
+    <div id="pagination" style="margin-top: 20px; text-align: center; display: none;">
+      <button id="prevPage" style="margin-right: 8px;" disabled>← 上一页</button>
+      <span id="pageInfo" style="color: #888; margin: 0 16px;"></span>
+      <button id="nextPage" disabled>下一页 →</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+let currentPage = 1;
+let currentFilter = 'all';
+let playerFilter = '';
+let totalRooms = 0;
+let hasNextPage = false;
+
+// Filter tab handling
+document.querySelectorAll('.filter-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentFilter = tab.dataset.filter;
+    currentPage = 1;
+    loadRooms();
+  });
+});
+
+// Player filter handling
+document.getElementById('filterButton').addEventListener('click', () => {
+  const input = document.getElementById('playerFilterInput').value.trim();
+  playerFilter = input.replace('@', ''); // Remove @ prefix if present
+  currentPage = 1;
+  loadRooms();
+});
+
+document.getElementById('clearFilterButton').addEventListener('click', () => {
+  document.getElementById('playerFilterInput').value = '';
+  playerFilter = '';
+  currentPage = 1;
+  loadRooms();
+});
+
+document.getElementById('playerFilterInput').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    document.getElementById('filterButton').click();
+  }
+});
+
+// Pagination
+document.getElementById('prevPage').addEventListener('click', () => {
+  if (currentPage > 1) {
+    currentPage--;
+    loadRooms();
+  }
+});
+
+document.getElementById('nextPage').addEventListener('click', () => {
+  if (hasNextPage) {
+    currentPage++;
+    loadRooms();
+  }
+});
+
+async function loadRooms() {
+  try {
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+      limit: '20'
+    });
+
+    if (currentFilter === 'favorites') {
+      params.set('favorites', 'true');
+    }
+
+    if (playerFilter) {
+      params.set('player', playerFilter);
+    }
+
+    const response = await fetch(`/api/rooms/list?${params}`);
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to load rooms');
+    }
+
+    totalRooms = result.pagination.total;
+    hasNextPage = result.pagination.hasNext;
+
+    // Update count
+    let countText = `共 ${totalRooms} 个房间`;
+    if (playerFilter) {
+      countText += ` (玩家: @${playerFilter})`;
+    }
+    if (currentFilter === 'favorites') {
+      countText += ' (仅收藏)';
+    }
+    document.getElementById('roomCount').textContent = countText;
+
+    // Render rooms
+    renderRooms(result.rooms);
+
+    // Update pagination
+    updatePagination();
+
+  } catch (error) {
+    console.error('Failed to load rooms:', error);
+    document.getElementById('roomsList').innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ef4444;">
+        加载失败: ${error.message}
+      </div>
+    `;
+  }
+}
+
+function renderRooms(rooms) {
+  const container = document.getElementById('roomsList');
+
+  if (rooms.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
+        ${playerFilter ? '没有找到匹配的房间' : '暂无房间'}
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = rooms.map(room => `
+    <div class="room-card ${room.isFavorite ? 'favorite' : ''}" onclick="joinRoom('${room.roomCode}')">
+      <div class="room-code">${room.roomCode}</div>
+
+      <div style="margin-bottom: 8px;">
+        <span class="status-badge ${room.isFinished ? 'status-finished' : 'status-active'}">
+          ${room.isFinished ? '已结束' : '进行中'}
+        </span>
+        <span style="color: #888; font-size: 0.9em; margin-left: 8px;">
+          第 ${room.currentRound} 局
+        </span>
+      </div>
+
+      ${room.teamNames && room.teamNames.length > 0 ? `
+        <div class="room-info">
+          队伍: ${room.teamNames.join(' vs ')}
+        </div>
+      ` : ''}
+
+      <div class="room-info">
+        玩家: ${room.playerCount} 人
+      </div>
+
+      ${room.playerHandles && room.playerHandles.length > 0 ? `
+        <div style="margin-top: 8px;">
+          ${room.playerHandles.map(handle =>
+            `<span class="player-tag">@${handle}</span>`
+          ).join('')}
+        </div>
+      ` : ''}
+
+      <div class="room-info" style="margin-top: 8px;">
+        更新: ${formatTime(room.lastUpdated || room.createdAt)}
+      </div>
+    </div>
+  `).join('');
+}
+
+function updatePagination() {
+  const paginationDiv = document.getElementById('pagination');
+  const prevBtn = document.getElementById('prevPage');
+  const nextBtn = document.getElementById('nextPage');
+  const pageInfo = document.getElementById('pageInfo');
+
+  if (totalRooms === 0) {
+    paginationDiv.style.display = 'none';
+    return;
+  }
+
+  paginationDiv.style.display = 'block';
+  prevBtn.disabled = currentPage === 1;
+  nextBtn.disabled = !hasNextPage;
+  pageInfo.textContent = `第 ${currentPage} 页`;
+}
+
+function formatTime(isoString) {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = now - date;
+
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 1) return '刚刚';
+  if (minutes < 60) return `${minutes}分钟前`;
+  if (hours < 24) return `${hours}小时前`;
+  if (days < 7) return `${days}天前`;
+
+  return date.toLocaleDateString('zh-CN');
+}
+
+function joinRoom(roomCode) {
+  // Navigate to main page with room code
+  window.location.href = `/?room=${roomCode}`;
+}
+
+// Initial load
+loadRooms();
+</script>
+</body>
+</html>

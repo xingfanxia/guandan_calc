@@ -71,6 +71,32 @@ export default async function handler(request) {
     // Store in Vercel KV with 1 year expiration (can be made permanent via favorite)
     await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(roomData)); // 365 days
 
+    // Add to rooms index for browsing
+    try {
+      const roomsIndexKey = 'rooms:index';
+      let roomsIndex = await kv.get(roomsIndexKey) || [];
+      
+      if (!Array.isArray(roomsIndex)) {
+        roomsIndex = [];
+      }
+      
+      // Add new room to index (with limit to prevent unbounded growth)
+      roomsIndex.unshift({
+        roomCode: roomCode,
+        createdAt: roomData.createdAt
+      });
+      
+      // Keep only last 100 rooms in index
+      if (roomsIndex.length > 100) {
+        roomsIndex = roomsIndex.slice(0, 100);
+      }
+      
+      await kv.set(roomsIndexKey, roomsIndex);
+    } catch (indexError) {
+      console.error('Failed to update rooms index:', indexError);
+      // Non-critical error, room still created successfully
+    }
+
     // Return room code
     return new Response(JSON.stringify({
       success: true,
