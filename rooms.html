@@ -288,8 +288,23 @@ async function loadRooms() {
     }
     document.getElementById('roomCount').textContent = countText;
 
-    // Render rooms
-    renderRooms(result.rooms);
+    // Render rooms and get valid count
+    const validCount = renderRooms(result.rooms);
+    
+    // Update count with valid rooms
+    if (validCount < result.rooms.length) {
+      countText = `共 ${validCount} 个有效房间`;
+      if (result.rooms.length - validCount > 0) {
+        countText += ` (已过滤 ${result.rooms.length - validCount} 个无效房间)`;
+      }
+      if (playerFilter) {
+        countText += ` · 玩家: @${playerFilter}`;
+      }
+      if (currentFilter === 'favorites') {
+        countText += ' · 仅收藏';
+      }
+      document.getElementById('roomCount').textContent = countText;
+    }
 
     // Update pagination
     updatePagination();
@@ -307,16 +322,31 @@ async function loadRooms() {
 function renderRooms(rooms) {
   const container = document.getElementById('roomsList');
 
-  if (rooms.length === 0) {
+  // Filter out rooms with invalid data
+  const validRooms = rooms.filter(room => {
+    // Check for required fields
+    if (!room.roomCode) return false;
+    if (room.currentRound === undefined || room.currentRound === null) return false;
+    if (!room.lastUpdated && !room.createdAt) return false;
+    
+    // Check for valid date
+    const dateStr = room.lastUpdated || room.createdAt;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return false;
+    
+    return true;
+  });
+
+  if (validRooms.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
-        ${playerFilter ? '没有找到匹配的房间' : '暂无房间'}
+        ${playerFilter ? '没有找到匹配的房间' : '暂无有效房间'}
       </div>
     `;
-    return;
+    return 0;
   }
 
-  container.innerHTML = rooms.map(room => `
+  container.innerHTML = validRooms.map(room => `
     <div class="room-card ${room.isFavorite ? 'favorite' : ''}" onclick="joinRoom('${room.roomCode}')">
       <div class="room-code">${room.roomCode}</div>
 
@@ -352,6 +382,7 @@ function renderRooms(rooms) {
       </div>
     </div>
   `).join('');
+  return validRooms.length;
 }
 
 function updatePagination() {
