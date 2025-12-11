@@ -78,10 +78,10 @@ async function init() {
       config.hydrate();
     }
 
-    // Start session timer (for local games or new sessions)
-    if (!state.getSessionStartTime()) {
+    // Start session timer (for local games only, not room mode)
+    if (!isRoomMode && !state.getSessionStartTime()) {
       state.setSessionStartTime(Date.now());
-      console.log('⏱️ Session timer started');
+      console.log('⏱️ Session timer started (local mode)');
     }
 
     // Setup UI
