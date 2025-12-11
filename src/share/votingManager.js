@@ -349,28 +349,28 @@ export function unlockViewerVoting() {
     
     if (mvpPlayer) {
       winnerSection = `
-        <div style="background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <div style="background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
           <div style="color: ${winningTeamColor}; font-size: 24px; font-weight: bold; margin-bottom: 16px; text-align: center;">
             🎉 ${winningTeamName} 通关！
           </div>
           
           <div style="text-align: center; margin-bottom: 16px;">
-            <div style="color: #fbbf24; font-weight: bold; margin-bottom: 12px;">MVP</div>
+            <div style="color: #d97706; font-weight: bold; margin-bottom: 12px; font-size: 16px;">MVP</div>
             <div style="display: flex; justify-content: center; margin-bottom: 8px;">
               ${renderProfileAvatar(mvpPlayer, 80, { marginRight: false })}
             </div>
-            <div style="font-size: 18px; font-weight: bold; color: #fff;">${mvpPlayer.name}</div>
-            <div style="color: #ccc; font-size: 14px;">平均 ${bestAvg.toFixed(2)} 名</div>
-            ${mvpPlayer.tagline ? `<div style="font-style: italic; color: #fbbf24; margin-top: 8px;">"${mvpPlayer.tagline}"</div>` : ''}
+            <div style="font-size: 18px; font-weight: bold; color: #000;">${mvpPlayer.name}</div>
+            <div style="color: #666; font-size: 14px;">平均 ${bestAvg.toFixed(2)} 名</div>
+            ${mvpPlayer.tagline ? `<div style="font-style: italic; color: #d97706; margin-top: 8px;">"${mvpPlayer.tagline}"</div>` : ''}
           </div>
           
           <div style="text-align: center;">
-            <div style="color: #ccc; font-size: 14px; margin-bottom: 8px;">队友</div>
+            <div style="color: #666; font-size: 14px; margin-bottom: 8px;">队友</div>
             <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
               ${teamPlayers.filter(p => p.id !== mvpPlayer.id).map(p => `
                 <div style="text-align: center;">
                   <div style="font-size: 24px;">${p.emoji}</div>
-                  <div style="font-size: 11px; color: #ccc;">${p.name}</div>
+                  <div style="font-size: 11px; color: #666;">${p.name}</div>
                 </div>
               `).join('')}
             </div>

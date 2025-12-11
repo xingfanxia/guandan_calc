@@ -191,8 +191,10 @@ export function showHostBanner(roomCode, authToken) {
   
   // Update duration every second (stop when game ends)
   const timerInterval = setInterval(() => {
+    const gameEnded = checkGameEnded();
     const shouldStop = updateBannerContent();
     if (shouldStop) {
+      console.log('⏱️ Timer stopped - game ended:', gameEnded);
       clearInterval(timerInterval);
     }
   }, 1000);
@@ -264,8 +266,10 @@ export function showViewerBanner(roomCode) {
   
   // Update duration every second (stop when game ends)
   const timerInterval = setInterval(() => {
+    const gameEnded = checkGameEnded();
     const shouldStop = updateBannerContent();
     if (shouldStop) {
+      console.log('⏱️ Timer stopped - game ended:', gameEnded);
       clearInterval(timerInterval);
     }
   }, 1000);
