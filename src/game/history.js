@@ -35,7 +35,7 @@ export function renderHistory() {
 
     // Upgrade display - show "X队获胜" for A-level wins (通关)
     let upgradeText;
-    if (entry.aNote && entry.aNote.includes('通关')) {
+    if (entry.aNote && entry.aNote.includes('A级通关')) {
       upgradeText = `${entry.win}通关`;
     } else if (entry.up) {
       upgradeText = `${entry.win} 升${entry.up}级`;
