@@ -261,6 +261,7 @@ export async function syncToRoom() {
       players: getPlayers(),
       playerStats: state.getPlayerStats(),
       currentRanking: state.getCurrentRanking(),
+      createdAt: existingRoom.createdAt || roomCreatedAt || new Date().toISOString(),  // Preserve creation time
       lastUpdated: new Date().toISOString(),
       // PRESERVE VOTES!
       endGameVotes: existingRoom.endGameVotes || { mvp: {}, burden: {} }
