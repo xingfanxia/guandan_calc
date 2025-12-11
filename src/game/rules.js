@@ -212,6 +212,7 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
     round: thisRound,
     aNote: aLevelResult.aNote,
     sessionDuration: state.getSessionDuration(),  // Add session duration
+    gameEndedAt: aLevelResult.finalWin ? new Date().toISOString() : null,  // Track game end time
     ...snapshot,
     playerRankings: playerRankingData || {}
   };
