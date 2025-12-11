@@ -4,7 +4,7 @@
  */
 
 import { $ } from '../core/utils.js';
-import { getPlayers } from '../player/playerManager.js';
+import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import config from '../core/config.js';
 
 /**
@@ -65,7 +65,7 @@ export function unlockTeamAssignmentPanel() {
   }
 
   // Remove compact roster
-  const compactRoster = $('compactRoster');
+  const compactRoster = playerSetupSection.querySelector('.compact-team-roster');
   if (compactRoster) {
     compactRoster.remove();
   }
@@ -81,41 +81,56 @@ export function unlockTeamAssignmentPanel() {
  * Show compact team roster (player count summary)
  */
 export function showCompactTeamRoster() {
+  const playerSetupSection = $('playerSetupSection');
+  if (!playerSetupSection) return;
+
   const players = getPlayers();
   const t1Players = players.filter(p => p.team === 't1');
   const t2Players = players.filter(p => p.team === 't2');
 
-  const existing = $('compactRoster');
+  // Remove existing roster if present
+  const existing = playerSetupSection.querySelector('.compact-team-roster');
   if (existing) {
     existing.remove();
   }
 
-  const rankingArea = $('rankingArea');
-  if (!rankingArea) return;
-
   const compactDiv = document.createElement('div');
-  compactDiv.id = 'compactRoster';
-  compactDiv.style.cssText = 'background: #1a1a1a; padding: 12px; margin-bottom: 16px; border-radius: 8px; display: flex; justify-content: space-around; border: 1px solid #333;';
+  compactDiv.className = 'compact-team-roster';
+  compactDiv.style.cssText = 'padding: 12px; margin-top: 8px; background: #1a1b1c; border-radius: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;';
 
   const t1Color = config.getTeamColor('t1');
   const t2Color = config.getTeamColor('t2');
   const t1Name = config.getTeamName('t1');
   const t2Name = config.getTeamName('t2');
 
-  compactDiv.innerHTML = `
-    <div style="text-align: center;">
-      <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 4px;">${t1Name}</div>
-      <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
-        ${t1Players.map(p => `<span style="background: ${t1Color}22; border: 1px solid ${t1Color}; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${p.emoji} ${p.name}</span>`).join('')}
-      </div>
-    </div>
-    <div style="text-align: center;">
-      <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 4px;">${t2Name}</div>
-      <div style="display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
-        ${t2Players.map(p => `<span style="background: ${t2Color}22; border: 1px solid ${t2Color}; padding: 4px 8px; border-radius: 4px; font-size: 13px;">${p.emoji} ${p.name}</span>`).join('')}
-      </div>
-    </div>
+  // Team 1 roster
+  const team1Div = document.createElement('div');
+  team1Div.innerHTML = `
+    <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 6px;">${t1Name}</div>
+    ${t1Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+      <span style="font-size: 16px;">${p.emoji}</span>
+      <span>${p.name}</span>
+    </div>`).join('')}
   `;
 
-  rankingArea.insertBefore(compactDiv, rankingArea.firstChild);
+  // Team 2 roster
+  const team2Div = document.createElement('div');
+  team2Div.innerHTML = `
+    <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 6px;">${t2Name}</div>
+    ${t2Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+      <span style="font-size: 16px;">${p.emoji}</span>
+      <span>${p.name}</span>
+    </div>`).join('')}
+  `;
+
+  compactDiv.appendChild(team1Div);
+  compactDiv.appendChild(team2Div);
+
+  // Insert after the details element (not inside it)
+  const details = playerSetupSection.querySelector('details');
+  if (details && details.nextSibling) {
+    playerSetupSection.insertBefore(compactDiv, details.nextSibling);
+  } else {
+    playerSetupSection.appendChild(compactDiv);
+  }
 }
