@@ -191,8 +191,8 @@ function renderPartnerRivalStats(player) {
               <option value="wins">按胜场排序</option>
             </select>
           </div>
-          <div id="partnersListContainer">
-            ${renderPartnersList(partnerStats, 'winrate')}
+          <div style="background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
+            <canvas id="partnersChart" style="max-height: 400px;"></canvas>
           </div>
         </div>
       ` : ''}
@@ -208,68 +208,13 @@ function renderPartnerRivalStats(player) {
               <option value="wins">按胜场排序</option>
             </select>
           </div>
-          <div id="opponentsListContainer">
-            ${renderOpponentsList(opponentStats, 'winrate')}
+          <div style="background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
+            <canvas id="opponentsChart" style="max-height: 400px;"></canvas>
           </div>
         </div>
       ` : ''}
     </div>
   `;
-}
-
-// Render functions defined outside to avoid template literal nesting issues
-function renderPartnersList(stats, sortBy) {
-  let sorted = [...stats];
-  if (sortBy === 'games') {
-    sorted.sort((a, b) => b.games - a.games);
-  } else if (sortBy === 'wins') {
-    sorted.sort((a, b) => b.wins - a.wins);
-  } else {
-    sorted.sort((a, b) => b.winRate - a.winRate);
-  }
-
-  return sorted.map((p, index) => `
-    <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
-      <div style="flex: 1;">
-        <div style="font-size: 16px; font-weight: 500;">@${p.handle}</div>
-        <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-          ${p.games}场 · ${p.wins}胜 · ${(p.winRate * 100).toFixed(1)}%胜率
-        </div>
-      </div>
-      <div style="width: 120px; text-align: right;">
-        <div style="color: ${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
-          ${(p.winRate * 100).toFixed(1)}%
-        </div>
-      </div>
-    </div>
-  `).join('');
-}
-
-function renderOpponentsList(stats, sortBy) {
-  let sorted = [...stats];
-  if (sortBy === 'games') {
-    sorted.sort((a, b) => b.games - a.games);
-  } else if (sortBy === 'wins') {
-    sorted.sort((a, b) => b.wins - a.wins);
-  } else {
-    sorted.sort((a, b) => a.winRate - b.winRate); // Ascending for hardest first
-  }
-
-  return sorted.map((p, index) => `
-    <div style="display: flex; align-items: center; padding: 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;" onclick="viewProfile('${p.handle}')" onmouseover="this.style.background='#252525'" onmouseout="this.style.background='#1a1a1a'">
-      <div style="flex: 1;">
-        <div style="font-size: 16px; font-weight: 500;">@${p.handle}</div>
-        <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-          ${p.games}场 · ${p.wins}胜 · ${(p.winRate * 100).toFixed(1)}%胜率
-        </div>
-      </div>
-      <div style="width: 120px; text-align: right;">
-        <div style="color: ${p.winRate >= 0.5 ? '#22c55e' : '#ef4444'}; font-size: 20px; font-weight: bold;">
-          ${(p.winRate * 100).toFixed(1)}%
-        </div>
-      </div>
-    </div>
-  `).join('');
 }
 
 function viewProfile(handle) {
@@ -365,6 +310,218 @@ function renderRecentRankingsChart(recentRankings) {
   });
 }
 
+function renderPartnersChart(stats, sortBy) {
+  const canvas = document.getElementById('partnersChart');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  
+  // Sort data
+  let sorted = [...stats];
+  if (sortBy === 'games') {
+    sorted.sort((a, b) => b.games - a.games);
+  } else if (sortBy === 'wins') {
+    sorted.sort((a, b) => b.wins - a.wins);
+  } else {
+    sorted.sort((a, b) => b.winRate - a.winRate);
+  }
+
+  // Destroy previous chart if exists
+  if (window.partnersChartInstance) {
+    window.partnersChartInstance.destroy();
+  }
+
+  window.partnersChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(p => `@${p.handle}`),
+      datasets: [{
+        label: '胜率',
+        data: sorted.map(p => (p.winRate * 100).toFixed(1)),
+        backgroundColor: sorted.map(p => 
+          p.winRate >= 0.6 ? 'rgba(34, 197, 94, 0.8)' :
+          p.winRate >= 0.5 ? 'rgba(59, 130, 246, 0.8)' :
+          'rgba(239, 68, 68, 0.8)'
+        ),
+        borderColor: sorted.map(p => 
+          p.winRate >= 0.6 ? '#22c55e' :
+          p.winRate >= 0.5 ? '#3b82f6' :
+          '#ef4444'
+        ),
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          const handle = sorted[index].handle;
+          viewProfile(handle);
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const data = sorted[context.dataIndex];
+              return [
+                `胜率: ${context.parsed.x}%`,
+                `场次: ${data.games}场`,
+                `胜场: ${data.wins}胜`
+              ];
+            }
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#333',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: 100,
+          ticks: {
+            color: '#888',
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            color: '#333',
+            drawBorder: false
+          }
+        },
+        y: {
+          ticks: {
+            color: '#888',
+            font: {
+              size: 12
+            }
+          },
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderOpponentsChart(stats, sortBy) {
+  const canvas = document.getElementById('opponentsChart');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  
+  // Sort data - for opponents, lower win rate means tougher opponent
+  let sorted = [...stats];
+  if (sortBy === 'games') {
+    sorted.sort((a, b) => b.games - a.games);
+  } else if (sortBy === 'wins') {
+    sorted.sort((a, b) => b.wins - a.wins);
+  } else {
+    sorted.sort((a, b) => a.winRate - b.winRate); // Ascending - hardest first
+  }
+
+  // Destroy previous chart if exists
+  if (window.opponentsChartInstance) {
+    window.opponentsChartInstance.destroy();
+  }
+
+  window.opponentsChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(p => `@${p.handle}`),
+      datasets: [{
+        label: '对手胜率',
+        data: sorted.map(p => (p.winRate * 100).toFixed(1)),
+        backgroundColor: sorted.map(p => 
+          p.winRate <= 0.4 ? 'rgba(34, 197, 94, 0.8)' :  // You win a lot = green
+          p.winRate <= 0.5 ? 'rgba(59, 130, 246, 0.8)' :
+          'rgba(239, 68, 68, 0.8)'  // They win a lot = red (tough)
+        ),
+        borderColor: sorted.map(p => 
+          p.winRate <= 0.4 ? '#22c55e' :
+          p.winRate <= 0.5 ? '#3b82f6' :
+          '#ef4444'
+        ),
+        borderWidth: 2
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          const handle = sorted[index].handle;
+          viewProfile(handle);
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const data = sorted[context.dataIndex];
+              return [
+                `你的胜率: ${context.parsed.x}%`,
+                `场次: ${data.games}场`,
+                `胜场: ${data.wins}胜`
+              ];
+            }
+          },
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleColor: '#fff',
+          bodyColor: '#fff',
+          borderColor: '#333',
+          borderWidth: 1
+        }
+      },
+      scales: {
+        x: {
+          min: 0,
+          max: 100,
+          ticks: {
+            color: '#888',
+            callback: function(value) {
+              return value + '%';
+            }
+          },
+          grid: {
+            color: '#333',
+            drawBorder: false
+          }
+        },
+        y: {
+          ticks: {
+            color: '#888',
+            font: {
+              size: 12
+            }
+          },
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+}
+
 function setupPartnerRivalHandlers(player) {
   const partners = player.stats.partners || {};
   const opponents = player.stats.opponents || {};
@@ -388,8 +545,7 @@ function setupPartnerRivalHandlers(player) {
   if (partnerSort) {
     partnerSort.addEventListener('change', (e) => {
       const sortBy = e.target.value;
-      document.getElementById('partnersListContainer').innerHTML = 
-        renderPartnersList(window.partnerStatsData, sortBy);
+      renderPartnersChart(window.partnerStatsData, sortBy);
     });
   }
 
@@ -398,8 +554,7 @@ function setupPartnerRivalHandlers(player) {
   if (opponentSort) {
     opponentSort.addEventListener('change', (e) => {
       const sortBy = e.target.value;
-      document.getElementById('opponentsListContainer').innerHTML = 
-        renderOpponentsList(window.opponentStatsData, sortBy);
+      renderOpponentsChart(window.opponentStatsData, sortBy);
     });
   }
 }
@@ -624,6 +779,14 @@ async function loadProfile(handle) {
 
     // Render recent rankings chart
     renderRecentRankingsChart(player.stats.recentRankings);
+
+    // Render initial partner/opponent charts
+    if (window.partnerStatsData && window.partnerStatsData.length > 0) {
+      renderPartnersChart(window.partnerStatsData, 'winrate');
+    }
+    if (window.opponentStatsData && window.opponentStatsData.length > 0) {
+      renderOpponentsChart(window.opponentStatsData, 'winrate');
+    }
 
   } catch (error) {
     console.error('Failed to load profile:', error);
