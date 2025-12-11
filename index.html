@@ -6,23 +6,71 @@
 <title>闹麻家族掼蛋计分器 v9.0</title>
 <meta name="theme-color" content="#0b0b0c">
 <link rel="stylesheet" href="/src/style.css">
+<style>
+  /* Modern Tab Navigation */
+  .nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 6px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  
+  .nav-tab:not(.active) {
+    color: #888;
+    background: transparent;
+  }
+  
+  .nav-tab:not(.active):hover {
+    color: #fff;
+    background: #252525;
+  }
+  
+  .nav-tab.active {
+    color: #fff;
+    background: #3b82f6;
+  }
+  
+  .nav-tab-icon {
+    font-size: 18px;
+  }
+</style>
 </head>
 <body>
 <div class="wrap">
   <h1>闹麻家族掼蛋计分器 v9.0 <span class="badge">开闹</span></h1>
 
-  <!-- Navigation Links -->
-  <div style="text-align: center; margin-bottom: 16px;">
-    <a href="/players.html" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 14px;">
-      👥 浏览玩家
+  <!-- Modern Navigation Tabs -->
+  <div class="nav-tabs">
+    <a href="/players.html" class="nav-tab">
+      <span class="nav-tab-icon">👥</span>
+      <span>浏览玩家</span>
     </a>
-    <span style="color: #666;">|</span>
-    <a href="/rooms.html" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 14px;">
-      🏠 浏览房间
+    <a href="/rooms.html" class="nav-tab">
+      <span class="nav-tab-icon">🏠</span>
+      <span>浏览房间</span>
     </a>
-    <span style="color: #666;">|</span>
-    <a href="/" style="color: #888; text-decoration: none; margin: 0 12px; font-size: 14px;">
-      🎮 游戏
+    <a href="/" class="nav-tab active">
+      <span class="nav-tab-icon">🎮</span>
+      <span>游戏</span>
     </a>
   </div>
 
@@ -33,7 +81,7 @@
       <button id="createRoom" style="background:#22c55e;color:white;padding:12px 20px;font-size:16px;">📺 创建房间</button>
       <button id="joinRoom" style="background:#3b82f6;color:white;padding:12px 20px;font-size:16px;">🔗 加入房间</button>
       <button id="favoriteRoomTop" style="background:#f59e0b;color:white;padding:12px 20px;font-size:16px;display:none;">⭐ 收藏房间</button>
-      <button id="browseRooms" style="background:#8b5cf6;color:white;padding:12px 20px;font-size:16px;">📋 精选回顾</button>
+      <button id="browseRooms" style="background:#8b5cf6;color:white;padding:12px 20px;font-size:16px;">📋 浏览房间</button>
       <span class="small muted" style="margin-left:16px;">
         创建房间与朋友实时共享比赛，或输入房间代码观看他人比赛
       </span>

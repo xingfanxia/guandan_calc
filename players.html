@@ -7,6 +7,52 @@
 <meta name="theme-color" content="#0b0b0c">
 <link rel="stylesheet" href="/src/style.css">
 <style>
+  /* Modern Tab Navigation */
+  .nav-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding: 6px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .nav-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  
+  .nav-tab:not(.active) {
+    color: #888;
+    background: transparent;
+  }
+  
+  .nav-tab:not(.active):hover {
+    color: #fff;
+    background: #252525;
+  }
+  
+  .nav-tab.active {
+    color: #fff;
+    background: #3b82f6;
+  }
+  
+  .nav-tab-icon {
+    font-size: 18px;
+  }
+
   .player-card {
     background: #1a1a1a;
     border: 1px solid #333;
@@ -39,9 +85,22 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-    <h1>👥 玩家浏览器</h1>
-    <a href="/" style="color: #3b82f6; text-decoration: none;">← 返回游戏</a>
+  <h1>👥 玩家浏览器</h1>
+
+  <!-- Modern Navigation Tabs -->
+  <div class="nav-tabs">
+    <a href="/players.html" class="nav-tab active">
+      <span class="nav-tab-icon">👥</span>
+      <span>浏览玩家</span>
+    </a>
+    <a href="/rooms.html" class="nav-tab">
+      <span class="nav-tab-icon">🏠</span>
+      <span>浏览房间</span>
+    </a>
+    <a href="/" class="nav-tab">
+      <span class="nav-tab-icon">🎮</span>
+      <span>游戏</span>
+    </a>
   </div>
 
   <div class="card">
