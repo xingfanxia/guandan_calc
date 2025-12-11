@@ -18,9 +18,10 @@ import { setupSettingsControls, updateBulkNamesPlaceholder } from './controllers
 
 // Game logic
 import { renderHistory } from './game/history.js';
+import { applyGameResult } from './game/rules.js';
 
 // Player system
-import { generatePlayers, getPlayers } from './player/playerManager.js';
+import { generatePlayers, getPlayers, removePlayer } from './player/playerManager.js';
 import { renderPlayers, updateTeamLabels } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
 
@@ -36,12 +37,13 @@ import {
   calculateFromRanking,
   getPlayerRankingData
 } from './ranking/rankingCalculator.js';
+import { clearRanking as clearRankingState } from './ranking/rankingManager.js';
 
 // Statistics and UI
-import { renderStatistics } from './stats/statistics.js';
-import { renderHonors } from './stats/honors.js';
+import { renderStatistics, updatePlayerStats } from './stats/statistics.js';
+import { renderHonors, calculateHonors } from './stats/honors.js';
 import { applyTeamStyles, renderTeams, updateRuleHint } from './ui/teamDisplay.js';
-import { closeVictoryModal } from './ui/victoryModal.js';
+import { closeVictoryModal, showVictoryModal, getVotingResults } from './ui/victoryModal.js';
 
 // Share and room features
 import {
@@ -51,6 +53,8 @@ import {
 import { loadFromShareURL } from './share/shareManager.js';
 import { initializeViewerVotingSection } from './share/votingManager.js';
 import { showRoomUI, showHostBanner, showViewerBanner, disableViewerControls } from './share/roomUI.js';
+import { scheduleAutoVotingSync } from './share/votingSync.js';
+import { syncProfileStats } from './api/playerApi.js';
 
 // UI management
 import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRoster } from './ui/panelManager.js';
