@@ -404,14 +404,21 @@ function setupModalHandlers() {
       }
 
       try {
-        const result = await createPlayer({
+        const payload = {
           handle,
           displayName,
           emoji,
           playStyle,
           tagline,
           ...(selectedPhotoBase64 && { photoBase64: selectedPhotoBase64 })  // Include photo if uploaded
+        };
+        
+        console.log('Creating player with payload:', {
+          ...payload,
+          photoBase64: payload.photoBase64 ? `${payload.photoBase64.substring(0, 50)}... (${payload.photoBase64.length} bytes)` : 'none'
         });
+        
+        const result = await createPlayer(payload);
 
         if (result.success && onPlayerCreatedCallback) {
           onPlayerCreatedCallback(result.player);
