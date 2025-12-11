@@ -131,10 +131,10 @@ export async function exportMobilePNG() {
     if (mvpPlayer && mvpPlayer.tagline) {
       // Draw MVP photo centered on its own row (larger)
       if (mvpPlayer.photoBase64) {
-        const photoSize = 80;
+        const photoSize = 320;  // 4x larger for prominence
         const photoX = (W - photoSize) / 2;  // Center horizontally
         await drawPlayerAvatar(ctx, mvpPlayer, photoX, currentY + photoSize, photoSize);
-        currentY += photoSize + 20;
+        currentY += photoSize + 30;
       }
       
       // Draw MVP text
