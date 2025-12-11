@@ -349,19 +349,26 @@ function setupModalHandlers() {
 
           // Initialize Cropper.js
           cropperInstance = new Cropper(cropImage, {
-            aspectRatio: 1,  // Square
-            viewMode: 1,
-            autoCropArea: 1,
-            responsive: true,
+            aspectRatio: 1,  // Square (1:1)
+            viewMode: 2,  // Restrict crop box to container
+            dragMode: 'move',  // Move image, not crop box
+            autoCropArea: 0.9,  // Crop box fills 90% of image
+            restore: false,
             guides: true,
             center: true,
-            highlight: true,
-            background: false,
-            zoomable: true,
-            scalable: true,
+            highlight: false,
+            cropBoxMovable: true,
             cropBoxResizable: true,
+            toggleDragModeOnDblclick: false,
             minCropBoxWidth: 100,
-            minCropBoxHeight: 100
+            minCropBoxHeight: 100,
+            responsive: true,
+            background: true,
+            modal: true,
+            scalable: true,
+            zoomable: true,
+            zoomOnWheel: true,
+            wheelZoomRatio: 0.1
           });
         }
       };
