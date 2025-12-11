@@ -17,7 +17,8 @@ import { setupRoomControls } from './controllers/roomControls.js';
 import { setupSettingsControls, updateBulkNamesPlaceholder } from './controllers/settingsControls.js';
 
 // Game logic
-import { renderHistory } from './game/history.js';
+import { calculateUpgrade } from './game/calculator.js';
+import { renderHistory, undoLast, resetAll } from './game/history.js';
 import { applyGameResult } from './game/rules.js';
 
 // Player system
@@ -37,7 +38,7 @@ import {
   calculateFromRanking,
   getPlayerRankingData
 } from './ranking/rankingCalculator.js';
-import { clearRanking as clearRankingState } from './ranking/rankingManager.js';
+import { clearRanking as clearRankingState, getRanking } from './ranking/rankingManager.js';
 
 // Statistics and UI
 import { renderStatistics, updatePlayerStats } from './stats/statistics.js';

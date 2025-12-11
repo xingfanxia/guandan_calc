@@ -193,4 +193,45 @@ export function setupGameControls(renderInitialState) {
       }
     });
   }
+
+  // Manual calc button - Trigger calculation manually
+  const manualCalcBtn = $('manualCalc');
+  if (manualCalcBtn) {
+    on(manualCalcBtn, 'click', () => {
+      // Check if game has ended (A级通关)
+      if (checkGameEnded()) {
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '比赛已结束';
+        return;
+      }
+
+      const mode = parseInt($('mode').value);
+      const result = calculateFromRanking(mode);
+
+      if (result.ok && config.getPreference('autoApply')) {
+        const playerRankingData = getPlayerRankingData();
+
+        // Merge ranks into calcResult for applyGameResult
+        const fullCalcResult = {
+          ...result.calcResult,
+          ranks: result.ranks,
+          mode: String(mode)
+        };
+
+        applyGameResult(fullCalcResult, result.winner, playerRankingData);
+        updatePlayerStats(mode);
+        clearRankingState();
+
+        const applyTip = $('applyTip');
+        if (applyTip) applyTip.textContent = '已应用';
+
+        renderTeams();
+        renderHistory();
+        renderPlayerPool();
+        renderRankingSlots();
+        renderStatistics();
+        attachTouchHandlersToAllTiles();
+      }
+    });
+  }
 }
