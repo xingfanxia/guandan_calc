@@ -1,13 +1,15 @@
 /**
- * Voting Manager - End-Game Remote Voting for Room Viewers
- * Allows viewers to vote when game ends (A-level victory)
+ * Voting Manager - Community Voting System
+ * Handles end-game MVP and burden voting for viewers and host
  */
 
-import { currentRoomCode, isHost, isViewer, getRoomInfo } from './roomManager.js';
-import { getPlayers } from '../player/playerManager.js';
-import state from '../core/state.js';
 import { $ } from '../core/utils.js';
-import { emit, on as onEvent } from '../core/events.js';
+import { on as onEvent, emit } from '../core/events.js';
+import { getRoomInfo } from './roomManager.js';
+import state from '../core/state.js';
+import config from '../core/config.js';
+import { getPlayers } from '../player/playerManager.js';
+import { renderProfileAvatar } from '../player/photoRenderer.js';
 
 // Track if voting has been unlocked (prevent re-locking on refresh)
 let votingUnlocked = false;
@@ -534,6 +536,83 @@ export function unlockViewerVoting() {
  */
 export function showEndGameVotingForViewers() {
   unlockViewerVoting();
+  
+  // Calculate and display winning team MVP + teammates
+  const history = state.getHistory();
+  if (history.length === 0) return;
+  
+  const latestGame = history[history.length - 1];
+  const winningTeamKey = latestGame.winKey;
+  const winningTeamName = latestGame.win;
+  const winningTeamColor = winningTeamKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+  const winningTeamNum = winningTeamKey === 't1' ? 1 : 2;
+  
+  const players = getPlayers();
+  const playerStats = state.getPlayerStats();
+  const teamPlayers = players.filter(p => p.team === winningTeamNum);
+  
+  // Find MVP (lowest average ranking)
+  let mvpPlayer = null;
+  let bestAvg = Infinity;
+  
+  teamPlayers.forEach(player => {
+    const stats = playerStats[player.id];
+    if (stats && stats.games > 0) {
+      const avgRank = stats.totalRank / stats.games;
+      if (avgRank < bestAvg) {
+        bestAvg = avgRank;
+        mvpPlayer = player;
+      }
+    }
+  });
+  
+  // Create winner display section
+  const votingSection = $('votingSection');
+  if (votingSection && mvpPlayer) {
+    let winnerDisplay = votingSection.querySelector('.winner-display');
+    if (!winnerDisplay) {
+      winnerDisplay = document.createElement('div');
+      winnerDisplay.className = 'winner-display';
+      winnerDisplay.style.cssText = 'background: #1a2e1a; border: 2px solid #22c55e; padding: 20px; border-radius: 12px; margin-bottom: 20px; text-align: center;';
+      votingSection.insertBefore(winnerDisplay, votingSection.firstChild);
+    }
+    
+    winnerDisplay.innerHTML = `
+      <div style="color: ${winningTeamColor}; font-size: 28px; font-weight: bold; margin-bottom: 16px;">
+        🎉 ${winningTeamName} 通关！
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <div style="color: #fbbf24; font-weight: bold; margin-bottom: 12px; font-size: 18px;">MVP</div>
+        <div style="display: flex; justify-content: center; margin-bottom: 8px;">
+          ${renderProfileAvatar(mvpPlayer, 80, { marginRight: false })}
+        </div>
+        <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 4px;">
+          ${mvpPlayer.name}
+        </div>
+        <div style="color: #888; font-size: 14px;">
+          平均 ${bestAvg.toFixed(2)} 名
+        </div>
+        ${mvpPlayer.tagline ? `
+          <div style="font-style: italic; color: #fbbf24; margin-top: 8px;">
+            "${mvpPlayer.tagline}"
+          </div>
+        ` : ''}
+      </div>
+      
+      <div>
+        <div style="color: #888; font-size: 14px; margin-bottom: 8px;">队友</div>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          ${teamPlayers.filter(p => p.id !== mvpPlayer.id).map(p => `
+            <div style="text-align: center;">
+              <div style="font-size: 28px; margin-bottom: 4px;">${p.emoji}</div>
+              <div style="font-size: 12px; color: #888;">${p.name}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
 }
 
 onEvent('game:victoryForVoting', () => {
