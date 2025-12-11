@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         players: resolve(__dirname, 'players.html'),
+        rooms: resolve(__dirname, 'rooms.html'),
         profile: resolve(__dirname, 'player-profile.html')
       }
     }
