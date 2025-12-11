@@ -217,6 +217,12 @@ function loadRoomData(roomData) {
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
   roomCreatedAt = roomData.createdAt || null; // Update creation time
 
+  console.log('Room data loaded, createdAt:', roomCreatedAt, 'roomData:', { 
+    code: roomData.roomCode, 
+    created: roomData.createdAt,
+    updated: roomData.lastUpdated 
+  });
+
   emit('room:dataLoaded', { roomData });
 
   // ALSO emit room:updated for initial load (triggers UI updates)
