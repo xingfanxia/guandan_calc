@@ -3,7 +3,7 @@
  * Exports game data as mobile-optimized long image
  */
 
-import { $ } from '../core/utils.js';
+import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
