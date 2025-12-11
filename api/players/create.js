@@ -77,6 +77,7 @@ export default async function handler(request) {
       emoji: playerData.emoji,
       playStyle: playerData.playStyle,
       tagline: playerData.tagline,
+      ...(playerData.photoBase64 && { photoBase64: playerData.photoBase64 }),  // Optional photo
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
       stats: initializePlayerStats(),
