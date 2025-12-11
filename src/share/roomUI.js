@@ -188,14 +188,19 @@ export function showHostBanner(roomCode, authToken) {
 
   updateBannerContent();
   
-  // Always run interval (it will stop itself when finishedAt is detected)
-  const timerInterval = setInterval(() => {
-    const shouldStop = updateBannerContent();
-    if (shouldStop) {
-      console.log('⏱️ Host timer stopped - finishedAt detected');
-      clearInterval(timerInterval);
-    }
-  }, 1000);
+  // Only create interval if game not already finished
+  const initialRoomInfo = getRoomInfo();
+  if (!initialRoomInfo.finishedAt) {
+    const timerInterval = setInterval(() => {
+      const shouldStop = updateBannerContent();
+      if (shouldStop) {
+        console.log('⏱️ Host timer stopped - finishedAt detected');
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  } else {
+    console.log('⏱️ Game already finished, no timer interval needed');
+  }
 
   banner.onclick = async () => {
     try {
@@ -261,14 +266,19 @@ export function showViewerBanner(roomCode) {
 
   updateBannerContent();
   
-  // Always run interval (it will stop itself when finishedAt is detected)
-  const timerInterval = setInterval(() => {
-    const shouldStop = updateBannerContent();
-    if (shouldStop) {
-      console.log('⏱️ Viewer timer stopped - finishedAt detected');
-      clearInterval(timerInterval);
-    }
-  }, 1000);
+  // Only create interval if game not already finished
+  const initialRoomInfo = getRoomInfo();
+  if (!initialRoomInfo.finishedAt) {
+    const timerInterval = setInterval(() => {
+      const shouldStop = updateBannerContent();
+      if (shouldStop) {
+        console.log('⏱️ Viewer timer stopped - finishedAt detected');
+        clearInterval(timerInterval);
+      }
+    }, 1000);
+  } else {
+    console.log('⏱️ Game already finished, no timer interval needed');
+  }
 
   document.body.insertBefore(banner, document.body.firstChild);
 }
