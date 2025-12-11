@@ -3,14 +3,12 @@
 
 import { createPlayer, validateHandle, getPlayStyles } from '../api/playerApi.js';
 import { $ } from '../core/utils.js';
-import Cropper from 'cropperjs';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
 
 let onPlayerCreatedCallback = null;
 let modalElement = null;
-let cropperInstance = null;
 let selectedPhotoBase64 = null;
 
 /**
@@ -117,34 +115,21 @@ export function showCreateModal() {
           <div id="photoUploadContainer" style="display: none;">
             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
             <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
-              📁 选择图片文件
+              📁 选择正方形图片 (1:1比例)
             </button>
-            
-            <!-- Crop container (shown after file selection) -->
-            <div id="cropContainer" style="margin-top: 12px; display: none;">
-              <div style="max-width: 100%; max-height: 400px; overflow: hidden; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
-                <img id="cropImage" style="max-width: 100%; display: block;" />
-              </div>
-              <div style="display: flex; gap: 8px; margin-top: 12px;">
-                <button type="button" id="rotateLeftBtn" style="padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: white; cursor: pointer;">
-                  ↺ 左转
-                </button>
-                <button type="button" id="rotateRightBtn" style="padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: white; cursor: pointer;">
-                  ↻ 右转
-                </button>
-                <button type="button" id="applyCropBtn" style="flex: 1; padding: 8px 12px; background: #22c55e; border: none; border-radius: 6px; color: white; cursor: pointer;">
-                  ✓ 确认裁剪
-                </button>
-              </div>
+            <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+              仅接受正方形图片，将自动压缩至400x400
             </div>
-
-            <!-- Photo preview (shown after crop) -->
+            
+            <!-- Photo preview (shown after upload) -->
             <div id="photoPreview" style="margin-top: 12px; display: none; text-align: center;">
               <div style="color: #22c55e; margin-bottom: 8px;">✓ 照片已准备</div>
-              <img id="croppedPreview" style="width: 72px; height: 72px; border-radius: 50%; border: 2px solid #22c55e; object-fit: cover;" />
-              <button type="button" id="changePhotoBtn" style="margin-top: 8px; padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
-                更换照片
-              </button>
+              <img id="photoPreviewImg" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <div style="margin-top: 8px;">
+                <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
+                  更换照片
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -301,13 +286,8 @@ function setupModalHandlers() {
   // Photo upload handlers
   const photoInput = $('photoInput');
   const selectPhotoBtn = $('selectPhotoBtn');
-  const cropContainer = $('cropContainer');
-  const cropImage = $('cropImage');
-  const rotateLeftBtn = $('rotateLeftBtn');
-  const rotateRightBtn = $('rotateRightBtn');
-  const applyCropBtn = $('applyCropBtn');
   const photoPreview = $('photoPreview');
-  const croppedPreview = $('croppedPreview');
+  const photoPreviewImg = $('photoPreviewImg');
   const changePhotoBtn = $('changePhotoBtn');
 
   if (selectPhotoBtn && photoInput) {
@@ -336,101 +316,30 @@ function setupModalHandlers() {
       // Read file as data URL
       const reader = new FileReader();
       reader.onload = (event) => {
-        const cropImage = $('cropImage');
-        if (cropImage) {
-          cropImage.src = event.target.result;
-          
-          // Wait for image to load
-          cropImage.onload = () => {
-            cropContainer.style.display = 'block';
-            photoPreview.style.display = 'none';
-            selectPhotoBtn.style.display = 'none';
+        const img = document.createElement('img');
+        img.src = event.target.result;
+        img.onload = () => {
+          // Resize to 400x400 (maintain aspect ratio)
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const size = Math.min(img.width, img.height);
+          canvas.width = 400;
+          canvas.height = 400;
+          ctx.drawImage(img, (img.width - size) / 2, (img.height - size) / 2, size, size, 0, 0, 400, 400);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
 
-            // Destroy existing cropper if any
-            if (cropperInstance) {
-              cropperInstance.destroy();
-            }
+          // Set preview
+          photoPreviewImg.src = dataUrl;
+          photoPreview.style.display = 'block';
+          changePhotoBtn.style.display = 'block';
 
-            // Initialize Cropper.js v2 (supports both class API and web components)
-            cropperInstance = new Cropper(cropImage, {
-              template: `
-                <cropper-canvas background>
-                  <cropper-image></cropper-image>
-                  <cropper-shade hidden></cropper-shade>
-                  <cropper-handle action="select" plain></cropper-handle>
-                  <cropper-selection aspect-ratio="1" initial-coverage="0.9" movable resizable outlined>
-                    <cropper-grid role="grid" bordered covered></cropper-grid>
-                    <cropper-crosshair centered></cropper-crosshair>
-                    <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
-                    <cropper-handle action="n-resize"></cropper-handle>
-                    <cropper-handle action="e-resize"></cropper-handle>
-                    <cropper-handle action="s-resize"></cropper-handle>
-                    <cropper-handle action="w-resize"></cropper-handle>
-                    <cropper-handle action="ne-resize"></cropper-handle>
-                    <cropper-handle action="nw-resize"></cropper-handle>
-                    <cropper-handle action="se-resize"></cropper-handle>
-                    <cropper-handle action="sw-resize"></cropper-handle>
-                  </cropper-selection>
-                </cropper-canvas>
-              `
-            });
-          };
-        }
+          // Store base64
+          selectedPhotoBase64 = dataUrl;
+
+          console.log('Photo uploaded, base64 size:', selectedPhotoBase64.length, 'bytes');
+        };
       };
       reader.readAsDataURL(file);
-    });
-  }
-
-  // Rotation controls
-  if (rotateLeftBtn) {
-    rotateLeftBtn.addEventListener('click', () => {
-      if (cropperInstance) {
-        cropperInstance.rotate(-90);
-      }
-    });
-  }
-
-  if (rotateRightBtn) {
-    rotateRightBtn.addEventListener('click', () => {
-      if (cropperInstance) {
-        cropperInstance.rotate(90);
-      }
-    });
-  }
-
-  // Apply crop
-  if (applyCropBtn) {
-    applyCropBtn.addEventListener('click', async () => {
-      if (!cropperInstance) return;
-
-      try {
-        // Get cropped canvas (400x400)
-        const canvas = cropperInstance.getCroppedCanvas({
-          width: 400,
-          height: 400,
-          imageSmoothingEnabled: true,
-          imageSmoothingQuality: 'high'
-        });
-
-        if (!canvas) {
-          throw new Error('Failed to get cropped canvas');
-        }
-
-        // Convert to JPEG base64 (80% quality)
-        selectedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-
-        // Show preview
-        if (croppedPreview) {
-          croppedPreview.src = selectedPhotoBase64;
-        }
-        cropContainer.style.display = 'none';
-        photoPreview.style.display = 'block';
-
-        console.log('Photo cropped, base64 size:', selectedPhotoBase64.length, 'bytes');
-      } catch (error) {
-        console.error('Failed to crop image:', error);
-        alert('裁剪失败，请重试');
-      }
     });
   }
 
@@ -440,11 +349,6 @@ function setupModalHandlers() {
       photoPreview.style.display = 'none';
       selectPhotoBtn.style.display = 'block';
       selectedPhotoBase64 = null;
-      
-      if (cropperInstance) {
-        cropperInstance.destroy();
-        cropperInstance = null;
-      }
     });
   }
 

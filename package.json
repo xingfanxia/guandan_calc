@@ -15,7 +15,6 @@
   "license": "MIT",
   "dependencies": {
     "@vercel/kv": "^3.0.0",
-    "chart.js": "^4.5.1",
-    "cropperjs": "^2.1.0"
+    "chart.js": "^4.5.1"
   }
 }
