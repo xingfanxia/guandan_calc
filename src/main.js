@@ -1,5 +1,5 @@
 /**
- * Guandan Calculator v9.0 - Main Entry Point
+ * Guandan Calculator v10.0 - Main Entry Point
  * Modular ES6 rewrite - orchestrates all modules
  */
 
@@ -9,39 +9,22 @@ import state from './core/state.js';
 import config from './core/config.js';
 import { on as onEvent, emit } from './core/events.js';
 
-// Game logic
-import { calculateUpgrade } from './game/calculator.js';
-import { applyGameResult, advanceToNextRound } from './game/rules.js';
-import { renderHistory, undoLast, resetAll } from './game/history.js';
+// Controllers (NEW - extracted for maintainability)
+import { setupGameControls, attachTouchHandlersToAllTiles } from './controllers/gameControls.js';
+import { setupPlayerControls } from './controllers/playerControls.js';
+import { setupExportControls } from './controllers/exportControls.js';
+import { setupRoomControls } from './controllers/roomControls.js';
+import { setupSettingsControls, updateBulkNamesPlaceholder } from './controllers/settingsControls.js';
 
-// API clients
-import { searchPlayers } from './api/playerApi.js';
-import { syncProfileStats } from './api/playerApi.js';
+// Game logic
+import { renderHistory } from './game/history.js';
 
 // Player system
-import {
-  generatePlayers,
-  getPlayers,
-  getPlayersByTeam,
-  shuffleTeams,
-  applyBulkNames,
-  areAllPlayersAssigned,
-  addPlayerFromProfile,
-  removePlayer
-} from './player/playerManager.js';
-import { renderPlayers, updateTeamLabels, attachTouchHandlers } from './player/playerRenderer.js';
+import { generatePlayers, getPlayers } from './player/playerManager.js';
+import { renderPlayers, updateTeamLabels } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
-import { handleTouchStart, handleTouchMove, handleTouchEnd } from './player/touchHandler.js';
-import { initializePlayerSearch, showInitialPlayers, clearSearchResults } from './player/playerSearch.js';
-import { initializeCreateModal, showCreateModal } from './player/playerCreateModal.js';
 
 // Ranking system
-import {
-  getRanking,
-  clearRanking as clearRankingState,
-  randomizeRanking,
-  isRankingComplete
-} from './ranking/rankingManager.js';
 import {
   renderRankingArea,
   renderPlayerPool,
@@ -55,26 +38,18 @@ import {
 } from './ranking/rankingCalculator.js';
 
 // Statistics and UI
-import { updatePlayerStats, renderStatistics } from './stats/statistics.js';
-import { renderHonors, calculateHonors } from './stats/honors.js';
-import { applyTeamStyles, renderTeams, updateRuleHint, refreshPreviewOnly } from './ui/teamDisplay.js';
-import { showVictoryModal, closeVictoryModal, getVotingResults } from './ui/victoryModal.js';
-
-// Export
-import { exportTXT, exportCSV, exportLongPNG, exportMobilePNG } from './export/exportHandlers.js';
+import { renderStatistics } from './stats/statistics.js';
+import { renderHonors } from './stats/honors.js';
+import { applyTeamStyles, renderTeams, updateRuleHint } from './ui/teamDisplay.js';
+import { closeVictoryModal } from './ui/victoryModal.js';
 
 // Share and room features
 import {
-  createRoom,
-  joinRoom,
   checkURLForRoom,
-  getRoomInfo,
-  syncNow,
-  leaveRoom
+  getRoomInfo
 } from './share/roomManager.js';
-import { generateShareURL, loadFromShareURL, showShareModal } from './share/shareManager.js';
-import { initializeViewerVotingSection, showEndGameVotingForViewers, showHostVoting, updateVoteLeaderboard } from './share/votingManager.js';
-import { syncVotingToProfiles, scheduleAutoVotingSync } from './share/votingSync.js';
+import { loadFromShareURL } from './share/shareManager.js';
+import { initializeViewerVotingSection } from './share/votingManager.js';
 
 /**
  * Initialize application
@@ -162,530 +137,12 @@ function initializeUI() {
  * Setup DOM event listeners
  */
 function setupEventListeners() {
-  // Mode change
-  const modeSelect = $('mode');
-  if (modeSelect) {
-    on(modeSelect, 'change', (e) => {
-      const newMode = e.target.value;
-      updateRuleHint(newMode);
-      updateBulkNamesPlaceholder(newMode);
-      generatePlayers(parseInt(newMode), false);
-      emit('ui:modeChanged', { mode: newMode });
-    });
-  }
-
-  // Game controls
-  const applyBtn = $('apply');
-  const advanceBtn = $('advance');
-  const undoBtn = $('undo');
-  const resetBtn = $('resetMatch');
-
-  if (applyBtn) {
-    on(applyBtn, 'click', () => {
-      // Check if game has ended (A级通关)
-      const victory = checkGameEnded();
-      if (victory) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束，请重置游戏开始新一局';
-        return;
-      }
-
-      const mode = $('mode').value;
-      const result = calculateFromRanking(parseInt(mode));
-
-      if (result.ok) {
-        const playerRankingData = getPlayerRankingData();
-
-        // Merge ranks into calcResult for applyGameResult
-        const fullCalcResult = {
-          ...result.calcResult,
-          ranks: result.ranks,
-          mode: String(mode)
-        };
-
-        const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
-
-        if (applyResult && applyResult.applied) {
-          // Update player stats
-          updatePlayerStats(parseInt(mode));
-
-          // Clear ranking for next round
-          clearRankingState();
-
-          // Show message
-          const applyTip = $('applyTip');
-          if (applyTip) {
-            applyTip.textContent = applyResult.message;
-          }
-
-          // Render updates
-          renderTeams();
-          renderHistory();
-          renderPlayerPool();
-          renderRankingSlots();
-          renderStatistics();
-          attachTouchHandlersToAllTiles();
-
-          console.log('Game applied, finalWin:', applyResult.finalWin);
-
-          // Handle final win (A-level victory)
-          if (applyResult.finalWin) {
-            const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-            
-            // Show victory celebration first
-            showVictoryModal(winnerName);
-            
-            // Schedule auto-sync of voting results (5 minutes)
-            scheduleAutoVotingSync();
-            
-            // Wait a moment for potential voting, then sync stats
-            setTimeout(() => {
-              // Calculate session honors
-              const sessionHonors = calculateHonors(parseInt(mode));
-              
-              // Get voting results (local voting only)
-              const votingResults = getVotingResults();
-              
-              // Sync profile stats to database (non-blocking)
-              const roomInfo = getRoomInfo();
-              const allPlayers = getPlayers();
-              const sessionStats = state.getPlayerStats();
-              syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
-            }, 2000); // Wait 2 seconds for voting
-          }
-        }
-      } else {
-        // Show error message
-        const applyTip = $('applyTip');
-        if (applyTip) {
-          applyTip.textContent = result.message || '请先完成排名';
-        }
-      }
-    });
-  }
-
-  if (advanceBtn) {
-    on(advanceBtn, 'click', () => {
-      const result = advanceToNextRound();
-      const applyTip = $('applyTip');
-      if (applyTip) {
-        applyTip.textContent = result.message;
-      }
-      renderTeams();
-    });
-  }
-
-  if (undoBtn) {
-    on(undoBtn, 'click', () => {
-      undoLast();
-      const applyTip = $('applyTip');
-      if (applyTip) applyTip.textContent = '已撤销。';
-      renderTeams();
-      renderHistory();
-      renderStatistics();
-    });
-  }
-
-  if (resetBtn) {
-    on(resetBtn, 'click', () => {
-      const result = resetAll(true);
-      if (result.success) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = result.message;
-        renderInitialState();
-        closeVictoryModal();
-      }
-    });
-  }
-
-  // Player controls
-  const generateBtn = $('generatePlayers');
-  const shuffleBtn = $('shuffleTeams');
-  const clearRankingBtn = $('clearRanking');
-  const randomRankingBtn = $('randomRanking');
-
-  if (generateBtn) {
-    on(generateBtn, 'click', () => {
-      const mode = parseInt($('mode').value);
-      generatePlayers(mode, true);
-    });
-  }
-
-  if (shuffleBtn) {
-    on(shuffleBtn, 'click', () => {
-      const mode = parseInt($('mode').value);
-      shuffleTeams(mode);
-    });
-  }
-
-  // Player profile search and creation
-  initializePlayerSearch(
-    // onPlayerSelected callback
-    (player) => {
-      const addedPlayer = addPlayerFromProfile(player);
-      if (addedPlayer) {
-        renderPlayers();
-        console.log('Player added from profile:', addedPlayer);
-      }
-    },
-    // onCreatePlayer callback
-    () => {
-      showCreateModal();
-    }
-  );
-
-  initializeCreateModal((createdPlayer) => {
-    // Auto-add newly created player to game
-    const addedPlayer = addPlayerFromProfile(createdPlayer);
-    if (addedPlayer) {
-      renderPlayers();
-      clearSearchResults();
-      console.log('Player created and added:', addedPlayer);
-    }
-  });
-
-  // Show initial players in search on load
-  const searchResults = $('playerSearchResults');
-  if (searchResults) {
-    showInitialPlayers();
-  }
-
-  if (clearRankingBtn) {
-    on(clearRankingBtn, 'click', () => {
-      // Check if game has ended (A级通关)
-      if (checkGameEnded()) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束';
-        return;
-      }
-      clearRankingState();
-    });
-  }
-
-  if (randomRankingBtn) {
-    on(randomRankingBtn, 'click', () => {
-      // Check if game has ended (A级通关)
-      const gameEnded = checkGameEnded();
-      if (gameEnded) {
-        console.log('Random ranking blocked - game ended:', gameEnded);
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束';
-        return;
-      }
-
-      if (!areAllPlayersAssigned()) {
-        alert('请先分配所有玩家到队伍');
-        return;
-      }
-
-      const mode = parseInt($('mode').value);
-      const players = getPlayers();
-      const playerIds = players.map(p => p.id);
-
-      randomizeRanking(playerIds, mode);
-    });
-  }
-
-  // Manual calc button
-  const manualCalcBtn = $('manualCalc');
-  if (manualCalcBtn) {
-    on(manualCalcBtn, 'click', () => {
-      // Check if game has ended (A级通关)
-      if (checkGameEnded()) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束';
-        return;
-      }
-
-      const mode = parseInt($('mode').value);
-      const result = calculateFromRanking(mode);
-
-      if (result.ok && config.getPreference('autoApply')) {
-        const playerRankingData = getPlayerRankingData();
-        applyGameResult(result.calcResult, result.winner, playerRankingData);
-        updatePlayerStats(mode);
-        clearRankingState();
-
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '已应用';
-
-        renderTeams();
-        renderHistory();
-        renderPlayerPool();
-        renderRankingSlots();
-        renderStatistics();
-      }
-    });
-  }
-
-  // Share game button - NOW WORKS!
-  const shareGameBtn = $('shareGame');
-  if (shareGameBtn) {
-    on(shareGameBtn, 'click', () => {
-      showShareModal();
-    });
-  }
-
-  // Export mobile PNG button - NOW WORKS!
-  const exportMobilePngBtn = $('exportMobilePng');
-  if (exportMobilePngBtn) {
-    on(exportMobilePngBtn, 'click', exportMobilePNG);
-  }
-
-  // Room buttons - NOW IMPLEMENTED!
-  const createRoomBtn = $('createRoom');
-  const joinRoomBtn = $('joinRoom');
-  const browseRoomsBtn = $('browseRooms');
-
-  if (createRoomBtn) {
-    on(createRoomBtn, 'click', async () => {
-      if (!confirm('创建房间将重置当前游戏数据，确定继续？')) {
-        return;
-      }
-
-      // Reset game before creating room
-      state.resetAll();
-
-      const roomInfo = await createRoom();
-
-      if (roomInfo) {
-        // Redirect to room URL with auth token
-        const roomURL = `${window.location.origin}${window.location.pathname}?room=${roomInfo.roomCode}&auth=${roomInfo.authToken}`;
-        window.location.href = roomURL;
-      } else {
-        alert('创建房间失败，请稍后重试');
-      }
-    });
-  }
-
-  if (joinRoomBtn) {
-    on(joinRoomBtn, 'click', () => {
-      const roomCode = prompt('请输入6位房间代码 (例如: A1B2C3):');
-      if (roomCode && roomCode.trim().length === 6) {
-        const code = roomCode.trim().toUpperCase();
-        window.location.href = `${window.location.pathname}?room=${code}`;
-      }
-    });
-  }
-
-  if (browseRoomsBtn) {
-    on(browseRoomsBtn, 'click', () => {
-      alert('浏览收藏房间功能开发中');
-    });
-  }
-
-  // Show voting section (人民的声音) - now implemented!
-  const votingSection = $('votingSection');
-  if (votingSection) {
-    votingSection.style.display = 'block';
-  }
-
-  // Manual voting sync button
-  const syncVotingBtn = $('syncVotingButton');
-  if (syncVotingBtn) {
-    on(syncVotingBtn, 'click', async () => {
-      const statusEl = $('syncVotingStatus');
-      
-      syncVotingBtn.disabled = true;
-      syncVotingBtn.textContent = '同步中...';
-      if (statusEl) statusEl.textContent = '正在同步投票结果到玩家资料...';
-      
-      const result = await syncVotingToProfiles();
-      
-      if (result.success) {
-        if (statusEl) {
-          statusEl.style.color = '#22c55e';
-          statusEl.textContent = `✅ 同步成功！MVP: ${result.mvpPlayer?.name || '无'} (${result.mvpVotes}票), 累赘: ${result.burdenPlayer?.name || '无'} (${result.burdenVotes}票)`;
-        }
-        syncVotingBtn.textContent = '✅ 已同步';
-        setTimeout(() => {
-          syncVotingBtn.disabled = false;
-          syncVotingBtn.textContent = '🔄 同步投票到玩家资料';
-        }, 3000);
-      } else {
-        if (statusEl) {
-          statusEl.style.color = '#ef4444';
-          statusEl.textContent = `❌ 同步失败: ${result.reason || 'unknown'}`;
-        }
-        syncVotingBtn.disabled = false;
-        syncVotingBtn.textContent = '🔄 重试同步';
-      }
-    });
-  }
-
-  // Bulk name input
-  const applyBulkNamesBtn = $('applyBulkNames');
-  const quickStartBtn = $('quickStart');
-
-  if (applyBulkNamesBtn) {
-    on(applyBulkNamesBtn, 'click', () => {
-      const bulkNames = $('bulkNames');
-      if (bulkNames && bulkNames.value) {
-        const success = applyBulkNames(bulkNames.value);
-        if (success) {
-          renderPlayers();
-          bulkNames.value = '';
-        } else {
-          alert('姓名数量不匹配玩家数量');
-        }
-      }
-    });
-  }
-
-  if (quickStartBtn) {
-    on(quickStartBtn, 'click', async () => {
-      const mode = parseInt($('mode').value);
-      
-      // Try to load recent players from profile database
-      try {
-        const { players: allPlayers } = await searchPlayers('', 100);
-        
-        if (allPlayers.length >= mode) {
-          // Players are already sorted by lastActiveAt DESC from API
-          // Just take the first N most recently active players
-          const recentPlayers = allPlayers.slice(0, mode);
-          
-          // Clear existing players first
-          state.setPlayers([]);
-          
-          // Add recent profile players
-          recentPlayers.forEach(profile => {
-            addPlayerFromProfile(profile);
-          });
-          
-          // Shuffle into teams
-          shuffleTeams(mode);
-          renderPlayers();
-          renderRankingArea(mode);
-          
-          console.log('Quick start with recent players:', recentPlayers.map(p => `${p.displayName}(@${p.handle})`));
-          return;
-        }
-      } catch (error) {
-        console.warn('Failed to load profile players, falling back to session mode:', error);
-      }
-      
-      // Fallback: Generate session players with quick names
-      generatePlayers(mode, true);
-      const quickNames = mode === 4 ? '豪 小 大 姐' :
-                          mode === 6 ? '豪 小 大 姐 夫 塞' :
-                          '豪 小 大 姐 夫 塾 帆 鱼';
-
-      const success = applyBulkNames(quickNames);
-      if (success) {
-        shuffleTeams(mode);
-        renderPlayers();
-        renderRankingArea(mode);
-      }
-    });
-  }
-
-  // Settings
-  const must1 = $('must1');
-  const autoNext = $('autoNext');
-  const autoApply = $('autoApply');
-  const strictA = $('strictA');
-
-  if (must1) {
-    on(must1, 'change', (e) => {
-      config.setPreference('must1', e.target.checked);
-    });
-  }
-
-  if (autoNext) {
-    on(autoNext, 'change', (e) => {
-      config.setPreference('autoNext', e.target.checked);
-    });
-  }
-
-  if (autoApply) {
-    on(autoApply, 'change', (e) => {
-      config.setPreference('autoApply', e.target.checked);
-    });
-  }
-
-  if (strictA) {
-    on(strictA, 'change', (e) => {
-      config.setPreference('strictA', e.target.checked);
-    });
-  }
-
-  // Custom rules save buttons
-  const save4Btn = $('save4');
-  const save6Btn = $('save6');
-  const save8Btn = $('save8');
-  const reset4Btn = $('reset4');
-  const reset6Btn = $('reset6');
-  const reset8Btn = $('reset8');
-
-  if (save4Btn) {
-    on(save4Btn, 'click', () => {
-      config.collectAndSaveRulesFromDOM('4');
-      updateRuleHint('4');
-      refreshPreviewOnly();
-      alert('4人规则已保存到本地浏览器');
-    });
-  }
-
-  if (save6Btn) {
-    on(save6Btn, 'click', () => {
-      config.collectAndSaveRulesFromDOM('6');
-      updateRuleHint('6');
-      refreshPreviewOnly();
-      alert('6人规则已保存到本地浏览器');
-    });
-  }
-
-  if (save8Btn) {
-    on(save8Btn, 'click', () => {
-      config.collectAndSaveRulesFromDOM('8');
-      updateRuleHint('8');
-      refreshPreviewOnly();
-      alert('8人规则已保存到本地浏览器');
-    });
-  }
-
-  if (reset4Btn) {
-    on(reset4Btn, 'click', () => {
-      if (confirm('恢复4人规则到默认值？')) {
-        config.resetModeToDefaults('4');
-        updateRuleHint('4');
-        refreshPreviewOnly();
-        alert('4人规则已恢复默认');
-      }
-    });
-  }
-
-  if (reset6Btn) {
-    on(reset6Btn, 'click', () => {
-      if (confirm('恢复6人规则到默认值？')) {
-        config.resetModeToDefaults('6');
-        updateRuleHint('6');
-        refreshPreviewOnly();
-        alert('6人规则已恢复默认');
-      }
-    });
-  }
-
-  if (reset8Btn) {
-    on(reset8Btn, 'click', () => {
-      if (confirm('恢复8人规则到默认值？')) {
-        config.resetModeToDefaults('8');
-        updateRuleHint('8');
-        refreshPreviewOnly();
-        alert('8人规则已恢复默认');
-      }
-    });
-  }
-
-  // Export buttons
-  const exportTxtBtn = $('exportTxt');
-  const exportCsvBtn = $('exportCsv');
-  const exportPngBtn = $('exportLongPng');
-
-  if (exportTxtBtn) on(exportTxtBtn, 'click', exportTXT);
-  if (exportCsvBtn) on(exportCsvBtn, 'click', exportCSV);
-  if (exportPngBtn) on(exportPngBtn, 'click', exportLongPNG);
+  // Delegate to controller modules
+  setupGameControls(renderInitialState);
+  setupPlayerControls();
+  setupExportControls();
+  setupRoomControls();
+  setupSettingsControls();
 }
 
 /**
@@ -1208,19 +665,7 @@ function showViewerBanner(roomCode) {
   document.body.insertBefore(banner, document.body.firstChild);
 }
 
-/**
- * Update bulk names input placeholder based on mode
- */
-function updateBulkNamesPlaceholder(mode) {
-  const bulkNamesInput = $('bulkNames');
-  if (!bulkNamesInput) return;
-
-  const placeholder = mode === '4' ? '豪 小 大 姐' :
-                      mode === '6' ? '豪 小 大 姐 夫 塞' :
-                      '豪 小 大 姐 夫 塾 帆 鱼';
-
-  bulkNamesInput.placeholder = placeholder;
-}
+// updateBulkNamesPlaceholder is now imported from controllers/settingsControls.js
 
 /**
  * Lock and collapse team assignment panel after game starts
@@ -1481,46 +926,7 @@ function unlockTeamAssignmentPanel() {
   }
 }
 
-/**
- * Attach touch handlers to all player and ranking tiles
- * Uses a data attribute to prevent double-attachment
- */
-function attachTouchHandlersToAllTiles() {
-  // Attach to player tiles (team assignment area)
-  const playerTiles = document.querySelectorAll('.player-tile');
-
-  playerTiles.forEach(tile => {
-    // Skip if already has handlers attached
-    if (tile.dataset.touchHandlersAttached === 'true') return;
-
-    const playerData = JSON.parse(tile.dataset.playerData || '{}');
-    if (playerData.id) {
-      const player = getPlayers().find(p => p.id === playerData.id);
-      if (player) {
-        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
-        tile.dataset.touchHandlersAttached = 'true';
-      }
-    }
-  });
-
-  // Attach to ranking tiles (ranking area)
-  // This is needed because iOS WebKit has issues with inline handlers in some cases
-  const rankingTiles = document.querySelectorAll('.ranking-player-tile');
-
-  rankingTiles.forEach(tile => {
-    // Skip if already has handlers attached
-    if (tile.dataset.touchHandlersAttached === 'true') return;
-
-    const playerId = parseInt(tile.dataset.playerId);
-    if (playerId) {
-      const player = getPlayers().find(p => p.id === playerId);
-      if (player) {
-        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
-        tile.dataset.touchHandlersAttached = 'true';
-      }
-    }
-  });
-}
+// attachTouchHandlersToAllTiles is now imported from controllers/gameControls.js
 
 /**
  * Render initial application state
