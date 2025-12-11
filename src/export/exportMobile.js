@@ -6,7 +6,7 @@
 import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getPlayersByTeam } from '../player/playerManager.js';
+import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 
 /**
  * Load image from base64 data URL
