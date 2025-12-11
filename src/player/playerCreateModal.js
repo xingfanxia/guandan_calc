@@ -3,14 +3,14 @@
 
 import { createPlayer, validateHandle, getPlayStyles } from '../api/playerApi.js';
 import { $ } from '../core/utils.js';
-// Import Cropper.js v2 to register web components (cropper-canvas, cropper-image, cropper-selection, etc.)
-import 'cropperjs';
+import Cropper from 'cropperjs';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
 
 let onPlayerCreatedCallback = null;
 let modalElement = null;
+let cropperInstance = null;
 let selectedPhotoBase64 = null;
 
 /**
@@ -123,22 +123,7 @@ export function showCreateModal() {
             <!-- Crop container (shown after file selection) -->
             <div id="cropContainer" style="margin-top: 12px; display: none;">
               <div style="max-width: 100%; max-height: 400px; overflow: hidden; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
-                <cropper-canvas background>
-                  <cropper-image id="cropperImage"></cropper-image>
-                  <cropper-selection id="cropperSelection" aspect-ratio="1" initial-coverage="0.9" movable resizable outlined>
-                    <cropper-grid role="grid" covered></cropper-grid>
-                    <cropper-crosshair centered></cropper-crosshair>
-                    <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
-                    <cropper-handle action="n-resize"></cropper-handle>
-                    <cropper-handle action="e-resize"></cropper-handle>
-                    <cropper-handle action="s-resize"></cropper-handle>
-                    <cropper-handle action="w-resize"></cropper-handle>
-                    <cropper-handle action="ne-resize"></cropper-handle>
-                    <cropper-handle action="nw-resize"></cropper-handle>
-                    <cropper-handle action="se-resize"></cropper-handle>
-                    <cropper-handle action="sw-resize"></cropper-handle>
-                  </cropper-selection>
-                </cropper-canvas>
+                <img id="cropImage" style="max-width: 100%; display: block;" />
               </div>
               <div style="display: flex; gap: 8px; margin-top: 12px;">
                 <button type="button" id="rotateLeftBtn" style="padding: 8px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: white; cursor: pointer;">
@@ -351,15 +336,24 @@ function setupModalHandlers() {
       // Read file as data URL
       const reader = new FileReader();
       reader.onload = (event) => {
-        const cropperImage = $('cropperImage');
-        if (cropperImage) {
-          // Set the image source on the cropper-image element
-          cropperImage.src = event.target.result;
+        const cropImage = $('cropImage');
+        if (cropImage) {
+          cropImage.src = event.target.result;
           
-          // Show crop container
-          cropContainer.style.display = 'block';
-          photoPreview.style.display = 'none';
-          selectPhotoBtn.style.display = 'none';
+          // Wait for image to load
+          cropImage.onload = () => {
+            cropContainer.style.display = 'block';
+            photoPreview.style.display = 'none';
+            selectPhotoBtn.style.display = 'none';
+
+            // Destroy existing cropper if any
+            if (cropperInstance) {
+              cropperInstance.destroy();
+            }
+
+            // Initialize Cropper.js v2 (supports both class API and web components)
+            cropperInstance = new Cropper(cropImage);
+          };
         }
       };
       reader.readAsDataURL(file);
@@ -369,18 +363,16 @@ function setupModalHandlers() {
   // Rotation controls
   if (rotateLeftBtn) {
     rotateLeftBtn.addEventListener('click', () => {
-      const cropperImage = $('cropperImage');
-      if (cropperImage && cropperImage.$rotate) {
-        cropperImage.$rotate(-90);
+      if (cropperInstance) {
+        cropperInstance.rotate(-90);
       }
     });
   }
 
   if (rotateRightBtn) {
     rotateRightBtn.addEventListener('click', () => {
-      const cropperImage = $('cropperImage');
-      if (cropperImage && cropperImage.$rotate) {
-        cropperImage.$rotate(90);
+      if (cropperInstance) {
+        cropperInstance.rotate(90);
       }
     });
   }
@@ -388,15 +380,20 @@ function setupModalHandlers() {
   // Apply crop
   if (applyCropBtn) {
     applyCropBtn.addEventListener('click', async () => {
-      const cropperSelection = $('cropperSelection');
-      if (!cropperSelection) return;
+      if (!cropperInstance) return;
 
       try {
-        // Get cropped canvas using web component API
-        const canvas = await cropperSelection.$toCanvas({
+        // Get cropped canvas (400x400)
+        const canvas = cropperInstance.getCroppedCanvas({
           width: 400,
-          height: 400
+          height: 400,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high'
         });
+
+        if (!canvas) {
+          throw new Error('Failed to get cropped canvas');
+        }
 
         // Convert to JPEG base64 (80% quality)
         selectedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
@@ -423,10 +420,9 @@ function setupModalHandlers() {
       selectPhotoBtn.style.display = 'block';
       selectedPhotoBase64 = null;
       
-      // Clear the cropper image
-      const cropperImage = $('cropperImage');
-      if (cropperImage) {
-        cropperImage.src = '';
+      if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
       }
     });
   }
