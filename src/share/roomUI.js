@@ -155,7 +155,10 @@ export function showHostBanner(roomCode, authToken) {
   const updateBannerContent = () => {
     // Stop timer if game has ended
     if (checkGameEnded()) {
-      const duration = state.getSessionDuration();
+      // Use room createdAt for accurate session duration
+      const roomInfo = getRoomInfo();
+      const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
+      const duration = Math.floor((Date.now() - sessionStart) / 1000);
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -168,7 +171,10 @@ export function showHostBanner(roomCode, authToken) {
       return true; // Signal to stop interval
     }
     
-    const duration = state.getSessionDuration();
+    // Use room createdAt for accurate session duration
+    const roomInfo = getRoomInfo();
+    const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
+    const duration = Math.floor((Date.now() - sessionStart) / 1000);
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -222,7 +228,10 @@ export function showViewerBanner(roomCode) {
   const updateBannerContent = () => {
     // Stop timer if game has ended
     if (checkGameEnded()) {
-      const duration = state.getSessionDuration();
+      // Use room createdAt for accurate session duration
+      const roomInfo = getRoomInfo();
+      const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
+      const duration = Math.floor((Date.now() - sessionStart) / 1000);
       const mins = Math.floor(duration / 60);
       const secs = duration % 60;
       const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -235,7 +244,10 @@ export function showViewerBanner(roomCode) {
       return true; // Signal to stop interval
     }
     
-    const duration = state.getSessionDuration();
+    // Use room createdAt for accurate session duration
+    const roomInfo = getRoomInfo();
+    const sessionStart = roomInfo.createdAt ? new Date(roomInfo.createdAt).getTime() : Date.now();
+    const duration = Math.floor((Date.now() - sessionStart) / 1000);
     const mins = Math.floor(duration / 60);
     const secs = duration % 60;
     const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
