@@ -86,33 +86,35 @@ export function showCreateModal() {
         <!-- Emoji & Photo -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            头像 <span style="color: #ef4444;">*</span>
+            头像表情 <span style="color: #ef4444;">*</span>
           </label>
           
-          <!-- Toggle between emoji and photo -->
-          <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-            <button type="button" id="useEmojiBtn" class="avatar-mode-btn active" style="flex: 1; padding: 8px; background: #3b82f6; border: none; border-radius: 6px; color: white; cursor: pointer; transition: all 0.2s;">
-              😊 使用表情
-            </button>
-            <button type="button" id="usePhotoBtn" class="avatar-mode-btn" style="flex: 1; padding: 8px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
-              📷 上传照片
-            </button>
+          <!-- Emoji selector (always visible, required) -->
+          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
+            ${ANIMAL_EMOJIS.map(emoji => `
+              <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: transparent; border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                ${emoji}
+              </button>
+            `).join('')}
+          </div>
+          <input type="hidden" id="emojiInput" required />
+          <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+            必选 - 用于游戏中显示，也是照片加载失败时的备用头像
+          </div>
+        </div>
+
+        <!-- Optional Profile Photo -->
+        <div style="margin-bottom: 16px;">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="enablePhotoUpload" style="width: 18px; height: 18px; cursor: pointer;">
+            <span style="font-weight: bold;">📷 上传个人照片 (可选)</span>
+          </label>
+          <div style="color: #888; font-size: 0.85em; margin-top: 4px; margin-left: 26px;">
+            照片将显示在玩家浏览器和个人资料页
           </div>
 
-          <!-- Emoji selector (default visible) -->
-          <div id="emojiSelectorContainer">
-            <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
-              ${ANIMAL_EMOJIS.map(emoji => `
-                <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: transparent; border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
-                  ${emoji}
-                </button>
-              `).join('')}
-            </div>
-            <input type="hidden" id="emojiInput" required />
-          </div>
-
-          <!-- Photo upload section (initially hidden) -->
-          <div id="photoUploadContainer" style="display: none;">
+          <!-- Photo upload section (hidden until checkbox enabled) -->
+          <div id="photoUploadContainer" style="display: none; margin-top: 12px;">
             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
             <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
               📁 选择正方形图片 (1:1比例)
@@ -244,42 +246,23 @@ function setupModalHandlers() {
     });
   });
 
-  // Avatar mode toggle (emoji vs photo)
-  const useEmojiBtn = $('useEmojiBtn');
-  const usePhotoBtn = $('usePhotoBtn');
-  const emojiSelectorContainer = $('emojiSelectorContainer');
+  // Photo upload checkbox toggle
+  const enablePhotoUpload = $('enablePhotoUpload');
   const photoUploadContainer = $('photoUploadContainer');
 
-  if (useEmojiBtn) {
-    useEmojiBtn.addEventListener('click', () => {
-      // Switch to emoji mode
-      useEmojiBtn.style.background = '#3b82f6';
-      useEmojiBtn.style.color = 'white';
-      useEmojiBtn.style.border = 'none';
-      usePhotoBtn.style.background = '#1a1a1a';
-      usePhotoBtn.style.color = '#888';
-      usePhotoBtn.style.border = '1px solid #333';
-      
-      emojiSelectorContainer.style.display = 'block';
-      photoUploadContainer.style.display = 'none';
-      
-      // Clear photo selection
-      selectedPhotoBase64 = null;
-    });
-  }
-
-  if (usePhotoBtn) {
-    usePhotoBtn.addEventListener('click', () => {
-      // Switch to photo mode
-      usePhotoBtn.style.background = '#3b82f6';
-      usePhotoBtn.style.color = 'white';
-      usePhotoBtn.style.border = 'none';
-      useEmojiBtn.style.background = '#1a1a1a';
-      useEmojiBtn.style.color = '#888';
-      useEmojiBtn.style.border = '1px solid #333';
-      
-      emojiSelectorContainer.style.display = 'none';
-      photoUploadContainer.style.display = 'block';
+  if (enablePhotoUpload && photoUploadContainer) {
+    enablePhotoUpload.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        photoUploadContainer.style.display = 'block';
+      } else {
+        photoUploadContainer.style.display = 'none';
+        // Clear photo if unchecked
+        selectedPhotoBase64 = null;
+        const photoPreview = $('photoPreview');
+        if (photoPreview) {
+          photoPreview.style.display = 'none';
+        }
+      }
     });
   }
 
