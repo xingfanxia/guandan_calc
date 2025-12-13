@@ -31,75 +31,82 @@ export async function syncVotingToProfiles() {
 
     const players = getPlayers();
 
-    // Find top-voted MVP
-    let mvpId = null;
-    let maxMVP = 0;
-    Object.entries(data.votes.mvp || {}).forEach(([playerId, count]) => {
-      if (count > maxMVP) {
-        maxMVP = count;
-        mvpId = parseInt(playerId);
-      }
-    });
+    console.log('Syncing ALL voting results to profiles');
 
-    // Find top-voted burden
-    let burdenId = null;
-    let maxBurden = 0;
-    Object.entries(data.votes.burden || {}).forEach(([playerId, count]) => {
-      if (count > maxBurden) {
-        maxBurden = count;
-        burdenId = parseInt(playerId);
-      }
-    });
-
-    console.log('Syncing voting results:', { mvpId, maxMVP, burdenId, maxBurden });
-
-    // Update profiles for voted players
+    // Update profiles for ALL players who received votes
     const updates = [];
 
-    if (mvpId) {
-      const mvpPlayer = players.find(p => p.id === mvpId);
-      if (mvpPlayer && mvpPlayer.handle) {
-        const update = updatePlayerStats(mvpPlayer.handle, {
-          votedMVP: true,
-          votedBurden: false,
-          roomCode: roomInfo.roomCode,
-          ranking: 0,  // Not used for voting-only update
-          team: mvpPlayer.team,
-          teamWon: false,
-          gamesInSession: 0,
-          mode: 'VOTE_ONLY'
-        });
-        updates.push(update);
-        console.log(`✅ Syncing MVP vote for @${mvpPlayer.handle}`);
+    // Sync all MVP votes
+    Object.entries(data.votes.mvp || {}).forEach(([playerId, voteCount]) => {
+      if (voteCount > 0) {
+        const player = players.find(p => p.id === parseInt(playerId));
+        if (player && player.handle) {
+          const update = updatePlayerStats(player.handle, {
+            votedMVP: true,
+            votedBurden: false,
+            mvpVoteCount: voteCount,  // Actual vote count
+            roomCode: roomInfo.roomCode,
+            ranking: 0,
+            team: player.team,
+            teamWon: false,
+            gamesInSession: 0,
+            mode: 'VOTE_ONLY'
+          });
+          updates.push(update);
+          console.log(`✅ Syncing ${voteCount} MVP votes for @${player.handle}`);
+        }
       }
-    }
+    });
 
-    if (burdenId) {
-      const burdenPlayer = players.find(p => p.id === burdenId);
-      if (burdenPlayer && burdenPlayer.handle) {
-        const update = updatePlayerStats(burdenPlayer.handle, {
-          votedMVP: false,
-          votedBurden: true,
-          roomCode: roomInfo.roomCode,
-          ranking: 0,
-          team: burdenPlayer.team,
-          teamWon: false,
-          gamesInSession: 0,
-          mode: 'VOTE_ONLY'
-        });
-        updates.push(update);
-        console.log(`✅ Syncing burden vote for @${burdenPlayer.handle}`);
+    // Sync all burden votes
+    Object.entries(data.votes.burden || {}).forEach(([playerId, voteCount]) => {
+      if (voteCount > 0) {
+        const player = players.find(p => p.id === parseInt(playerId));
+        if (player && player.handle) {
+          // Check if already updated as MVP (same player)
+          const alreadyUpdated = updates.find(u => 
+            u.then && player.handle === players.find(p => p.id === parseInt(playerId))?.handle
+          );
+          
+          if (alreadyUpdated) {
+            console.log(`⚠️ ${player.name} received both MVP and burden votes - skipping burden`);
+          } else {
+            const update = updatePlayerStats(player.handle, {
+              votedMVP: false,
+              votedBurden: true,
+              burdenVoteCount: voteCount,  // Actual vote count
+              roomCode: roomInfo.roomCode,
+              ranking: 0,
+              team: player.team,
+              teamWon: false,
+              gamesInSession: 0,
+              mode: 'VOTE_ONLY'
+            });
+            updates.push(update);
+            console.log(`✅ Syncing ${voteCount} burden votes for @${player.handle}`);
+          }
+        }
       }
-    }
+    });
 
     await Promise.all(updates);
 
+    // Find top voted for return message
+    const topMVP = Object.entries(data.votes.mvp || {})
+      .sort((a, b) => b[1] - a[1])[0];
+    const topBurden = Object.entries(data.votes.burden || {})
+      .sort((a, b) => b[1] - a[1])[0];
+
+    const mvpPlayer = topMVP ? players.find(p => p.id === parseInt(topMVP[0])) : null;
+    const burdenPlayer = topBurden ? players.find(p => p.id === parseInt(topBurden[0])) : null;
+
     return {
       success: true,
-      mvpPlayer: players.find(p => p.id === mvpId),
-      burdenPlayer: players.find(p => p.id === burdenId),
-      mvpVotes: maxMVP,
-      burdenVotes: maxBurden
+      mvpPlayer: mvpPlayer,
+      burdenPlayer: burdenPlayer,
+      mvpVotes: topMVP ? topMVP[1] : 0,
+      burdenVotes: topBurden ? topBurden[1] : 0,
+      totalPlayersSynced: updates.length
     };
 
   } catch (error) {

@@ -194,12 +194,15 @@ export default async function handler(request) {
           });
         }
 
-        // Update community voting stats
-        if (gameResult.votedMVP) {
-          player.stats.mvpVotes = (player.stats.mvpVotes || 0) + 1;
+        // Update community voting stats with actual vote counts
+        const mvpCount = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
+        const burdenCount = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+
+        if (mvpCount > 0) {
+          player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpCount;
         }
-        if (gameResult.votedBurden) {
-          player.stats.burdenVotes = (player.stats.burdenVotes || 0) + 1;
+        if (burdenCount > 0) {
+          player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenCount;
         }
 
         // Update partner/opponent tracking
@@ -296,9 +299,12 @@ export default async function handler(request) {
           }
         });
       } else {
-        // Vote-only mode: only update voting stats
-        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + (gameResult.votedMVP ? 1 : 0);
-        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + (gameResult.votedBurden ? 1 : 0);
+        // Vote-only mode: only update voting stats with actual vote counts
+        const mvpCount = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
+        const burdenCount = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+
+        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpCount;
+        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenCount;
 
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));
