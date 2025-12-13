@@ -116,7 +116,7 @@ export async function exportMobilePNG() {
     // Show MVP tagline if available (lowest average ranking)
     let mvpPlayer = null;
     let bestAvg = Infinity;
-    
+
     teamPlayers.forEach(player => {
       const stats = playerStats[player.id];
       if (stats && stats.games > 0) {
@@ -127,7 +127,13 @@ export async function exportMobilePNG() {
         }
       }
     });
-    
+
+    // Fetch current profile data for MVP (with fallback to stored data)
+    if (mvpPlayer) {
+      const { getPlayerDisplayData } = await import('../api/playerApi.js');
+      mvpPlayer = await getPlayerDisplayData(mvpPlayer);
+    }
+
     if (mvpPlayer && mvpPlayer.tagline) {
       // Draw MVP photo centered on its own row (larger)
       if (mvpPlayer.photoBase64) {

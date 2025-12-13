@@ -10,6 +10,7 @@ import config from '../core/config.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
 import { renderProfileAvatar } from '../player/photoRenderer.js';
+import { getPlayerDisplayData } from '../api/playerApi.js';
 
 // In-memory voting data (cleared on modal close)
 let votes = {
@@ -49,7 +50,7 @@ export function getVotingResults() {
  * Show victory modal with celebration and voting
  * @param {string} teamName - Winning team name
  */
-export function showVictoryModal(teamName) {
+export async function showVictoryModal(teamName) {
   const modal = $('victoryModal');
   if (!modal) return;
 
@@ -77,14 +78,14 @@ export function showVictoryModal(teamName) {
     const players = state.getPlayers();
     const playerStats = state.getPlayerStats();
     const winningTeamNum = teamName === config.getTeamName('t1') ? 1 : 2;
-    
+
     // Get winning team players
     const winningPlayers = players.filter(p => p.team === winningTeamNum);
-    
+
     // Find MVP: player with LOWEST average ranking (best performance)
     let mvpPlayer = null;
     let bestAvg = Infinity;
-    
+
     winningPlayers.forEach(player => {
       const stats = playerStats[player.id];
       if (stats && stats.games > 0) {
@@ -95,7 +96,12 @@ export function showVictoryModal(teamName) {
         }
       }
     });
-    
+
+    // Fetch current profile data for MVP (with fallback to stored data)
+    if (mvpPlayer) {
+      mvpPlayer = await getPlayerDisplayData(mvpPlayer);
+    }
+
     // Show tagline if MVP has profile
     if (mvpPlayer && mvpPlayer.tagline) {
       const existingTagline = modal.querySelector('.mvp-tagline');

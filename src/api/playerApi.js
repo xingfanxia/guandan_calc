@@ -331,6 +331,47 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
 }
 
 /**
+ * Get current profile display data for a player (with fallback)
+ * Fetches latest profile data if handle exists, falls back to stored snapshot
+ * @param {Object} playerSnapshot - Player data stored in game history
+ * @returns {Promise<Object>} - Current profile data or snapshot
+ */
+export async function getPlayerDisplayData(playerSnapshot) {
+  // If no handle, return stored snapshot (session-only player)
+  if (!playerSnapshot.handle) {
+    return playerSnapshot;
+  }
+
+  try {
+    // Fetch current profile
+    const result = await getPlayer(playerSnapshot.handle);
+
+    // Return merged data: current profile + stored game data
+    return {
+      ...playerSnapshot,  // Keep game-specific data (team, etc.)
+      displayName: result.player.displayName,
+      emoji: result.player.emoji,
+      tagline: result.player.tagline,
+      photoBase64: result.player.photoBase64,
+      playStyle: result.player.playStyle
+    };
+  } catch (error) {
+    // Profile not found or API error - use stored snapshot
+    console.warn(`Failed to fetch profile for @${playerSnapshot.handle}, using stored data:`, error.message);
+    return playerSnapshot;
+  }
+}
+
+/**
+ * Get current profile display data for multiple players in parallel
+ * @param {Array<Object>} players - Array of player snapshots
+ * @returns {Promise<Array<Object>>} - Array of current profile data
+ */
+export async function getPlayersDisplayData(players) {
+  return Promise.all(players.map(player => getPlayerDisplayData(player)));
+}
+
+/**
  * Update player profile fields (NOT stats)
  * @param {string} handle - Player handle (immutable identifier)
  * @param {Object} updates - Fields to update
