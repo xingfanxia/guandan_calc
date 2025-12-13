@@ -389,63 +389,83 @@ export async function exportMobilePNG() {
 
   currentY += 40;
 
-  // === VIEWER VOTES (parse divs properly) ===
-  const mvpStatsTable = document.getElementById('mvpStatsTable');
-  const burdenStatsTable = document.getElementById('burdenStatsTable');
+  // === VIEWER VOTES (fetch from API for accuracy) ===
+  const roomInfo = await (async () => {
+    try {
+      const { getRoomInfo } = await import('../share/roomManager.js');
+      return getRoomInfo();
+    } catch (e) {
+      return { roomCode: null };
+    }
+  })();
 
-  if (mvpStatsTable && mvpStatsTable.children.length > 0) {
-    const mvpDivs = Array.from(mvpStatsTable.children);
-    const burdenDivs = burdenStatsTable ? Array.from(burdenStatsTable.children) : [];
+  if (roomInfo.roomCode) {
+    try {
+      const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
+      const voteData = await response.json();
 
-    if (mvpDivs.length > 0 || burdenDivs.length > 0) {
-      ctx.font = 'bold 28px Arial';
-      ctx.fillStyle = '#f5f6f8';
-      ctx.fillText('🗳️ 观众投票', 40, currentY);
-      currentY += 40;
+      if (voteData.success && voteData.votes) {
+        const mvpVotes = Object.entries(voteData.votes.mvp || {})
+          .map(([id, count]) => {
+            const player = getPlayers().find(p => p.id === parseInt(id));
+            return player ? { name: player.name, emoji: player.emoji, count } : null;
+          })
+          .filter(v => v)
+          .sort((a, b) => b.count - a.count);
 
-      // MVP votes (parse each div)
-      if (mvpDivs.length > 0) {
-        ctx.font = 'bold 20px Arial';
-        ctx.fillStyle = '#22c55e';
-        ctx.fillText('MVP:', 40, currentY);
-        currentY += 35;
+        const burdenVotes = Object.entries(voteData.votes.burden || {})
+          .map(([id, count]) => {
+            const player = getPlayers().find(p => p.id === parseInt(id));
+            return player ? { name: player.name, emoji: player.emoji, count } : null;
+          })
+          .filter(v => v)
+          .sort((a, b) => b.count - a.count);
 
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#b4b8bf';
+        if (mvpVotes.length > 0 || burdenVotes.length > 0) {
+          ctx.font = 'bold 28px Arial';
+          ctx.fillStyle = '#f5f6f8';
+          ctx.fillText('🗳️ 观众投票', 40, currentY);
+          currentY += 40;
 
-        mvpDivs.slice(0, 5).forEach(div => {
-          const text = div.textContent.trim();
-          if (text && text !== '暂无数据') {
-            ctx.fillText(text, 60, currentY);
-            currentY += 28;
+          // MVP votes
+          if (mvpVotes.length > 0) {
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#22c55e';
+            ctx.fillText('MVP:', 40, currentY);
+            currentY += 35;
+
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#b4b8bf';
+
+            mvpVotes.forEach(v => {
+              ctx.fillText(`${v.emoji} ${v.name}: ${v.count}票`, 60, currentY);
+              currentY += 28;
+            });
+
+            currentY += 15;
           }
-        });
 
-        currentY += 15;
-      }
+          // Burden votes
+          if (burdenVotes.length > 0) {
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#ef4444';
+            ctx.fillText('最闹:', 40, currentY);
+            currentY += 35;
 
-      // Burden votes
-      if (burdenDivs.length > 0) {
-        ctx.font = 'bold 20px Arial';
-        ctx.fillStyle = '#ef4444';
-        ctx.fillText('最闹:', 40, currentY);
-        currentY += 35;
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#b4b8bf';
 
-        ctx.font = '16px Arial';
-        ctx.fillStyle = '#b4b8bf';
+            burdenVotes.forEach(v => {
+              ctx.fillText(`${v.emoji} ${v.name}: ${v.count}票`, 60, currentY);
+              currentY += 28;
+            });
 
-        burdenDivs.slice(0, 5).forEach(div => {
-          const text = div.textContent.trim();
-          if (text && text !== '暂无数据') {
-            ctx.fillText(text, 60, currentY);
-            currentY += 28;
+            currentY += 15;
           }
-        });
-
-        currentY += 15;
+        }
       }
-
-      currentY += 20;
+    } catch (error) {
+      console.warn('Failed to fetch vote data for PNG export:', error);
     }
   }
 
