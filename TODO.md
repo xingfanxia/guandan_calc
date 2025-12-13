@@ -15,12 +15,14 @@
 - [x] Admin mode (delete/reset with password)
 - [x] Server-side timer tracking (finishedAt)
 - [x] MVP photos (victory modal + PNG export)
+- [x] Voting system enhancements (idempotent, all-player sync)
 - [x] Major refactoring (main.js -69%)
 - [x] Security (admin token protection)
 - [x] Chart visualizations (3 charts)
 - [x] All UX improvements
+- [x] PNG export vote accuracy fix
 
-**Code**: +7 modules | **Bundle**: 96KB | **Status**: Production Ready
+**Code**: +7 modules | **Bundle**: 97KB | **Status**: Production Ready
 
 ---
 
