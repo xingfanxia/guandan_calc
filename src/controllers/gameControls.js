@@ -74,7 +74,7 @@ export function setupGameControls(renderInitialState) {
 
   // Apply button - Apply calculated results
   if (applyBtn) {
-    on(applyBtn, 'click', () => {
+    on(applyBtn, 'click', async () => {
       // Check if game has ended (A级通关)
       const victory = checkGameEnded();
       if (victory) {
@@ -125,8 +125,8 @@ export function setupGameControls(renderInitialState) {
           if (applyResult.finalWin) {
             const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
 
-            // Show victory celebration first
-            showVictoryModal(winnerName);
+            // Show victory celebration first (await to fetch current profile)
+            await showVictoryModal(winnerName);
 
             // Schedule auto-sync of voting results (5 minutes)
             scheduleAutoVotingSync();

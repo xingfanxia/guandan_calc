@@ -165,7 +165,7 @@ function setupEventListeners() {
  */
 function setupModuleEventHandlers() {
   // Ranking events
-  onEvent('ranking:updated', () => {
+  onEvent('ranking:updated', async () => {
     renderPlayerPool();
     renderRankingSlots();
     attachTouchHandlersToAllTiles();
@@ -245,9 +245,9 @@ function setupModuleEventHandlers() {
             if (applyResult.finalWin) {
               console.log('🎉 Final win detected! Showing victory modal...');
               // winnerName already calculated above at line 656
-              
-              // Show victory celebration first
-              showVictoryModal(winnerName);
+
+              // Show victory celebration first (await to fetch current profile)
+              await showVictoryModal(winnerName);
               
               // Schedule auto-sync of voting results (5 minutes)
               scheduleAutoVotingSync();
