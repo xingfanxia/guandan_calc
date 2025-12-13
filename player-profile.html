@@ -69,6 +69,14 @@
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
     <h1>玩家资料</h1>
     <div>
+      <button
+        id="editProfileBtn"
+        style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 16px; font-size: 14px; font-weight: 500; transition: all 0.2s;"
+        onmouseover="this.style.background='#2563eb'"
+        onmouseout="this.style.background='#3b82f6'"
+      >
+        ✏️ 编辑资料
+      </button>
       <a href="/players.html" style="color: #3b82f6; text-decoration: none; margin-right: 16px;">浏览所有玩家</a>
       <a href="/" style="color: #3b82f6; text-decoration: none;">返回游戏</a>
     </div>
@@ -86,6 +94,7 @@ import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { ACHIEVEMENTS } from '/src/stats/achievements.js';
 import { Chart, registerables } from 'chart.js';
 import { renderProfileAvatar } from '/src/player/photoRenderer.js';
+import { showEditModal, initializeEditModal } from '/src/player/playerEditModal.js';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -795,6 +804,21 @@ async function loadProfile(handle) {
     }
     if (window.opponentStatsData && window.opponentStatsData.length > 0) {
       renderOpponentsChart(window.opponentStatsData, 'winrate');
+    }
+
+    // Setup edit profile button
+    const editBtn = document.getElementById('editProfileBtn');
+    if (editBtn && player) {
+      // Initialize edit modal with callback
+      initializeEditModal((updatedPlayer) => {
+        console.log('Profile updated:', updatedPlayer);
+        // Reload page to show updated data
+        window.location.reload();
+      });
+
+      editBtn.addEventListener('click', () => {
+        showEditModal(player);
+      });
     }
 
   } catch (error) {

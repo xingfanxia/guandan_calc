@@ -100,8 +100,78 @@ export default async function handler(request) {
       });
 
     } else if (request.method === 'PUT') {
-      // Update player stats after game
-      const gameResult = await request.json();
+      // Parse request body
+      const requestData = await request.json();
+
+      // Check if this is a profile update (not a game stats update)
+      if (requestData.mode === 'PROFILE_UPDATE') {
+        // ===== PROFILE UPDATE MODE =====
+        const updates = requestData;
+
+        // Validate fields (but don't require all - only validate what's provided)
+        const { validatePlayerData } = await import('./_utils.js');
+        const validation = validatePlayerData({
+          handle,  // For validation only (not updated)
+          displayName: updates.displayName || 'dummy',  // Required for validation
+          emoji: updates.emoji || '🐶',  // Required for validation
+          photoBase64: updates.photoBase64,  // Optional
+          playStyle: updates.playStyle || 'steady',  // Required for validation
+          tagline: updates.tagline || 'dummy'  // Required for validation
+        });
+
+        if (!validation.valid) {
+          return new Response(JSON.stringify({
+            error: validation.error
+          }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        // Get existing player
+        const playerData = await kv.get(`player:${handle}`);
+        if (!playerData) {
+          return new Response(JSON.stringify({
+            error: 'Player not found'
+          }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+
+        const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+
+        // Update ONLY profile fields (not stats, not handle)
+        if (updates.displayName !== undefined) player.displayName = updates.displayName;
+        if (updates.emoji !== undefined) player.emoji = updates.emoji;
+        if (updates.photoBase64 !== undefined) player.photoBase64 = updates.photoBase64;  // Can be null to remove
+        if (updates.playStyle !== undefined) player.playStyle = updates.playStyle;
+        if (updates.tagline !== undefined) player.tagline = updates.tagline;
+
+        // Update lastActiveAt
+        player.lastActiveAt = new Date().toISOString();
+
+        // Save to KV
+        await kv.set(`player:${handle}`, JSON.stringify(player));
+
+        console.log(`Profile updated for @${handle}`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          player: player
+        }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+          }
+        });
+      }
+
+      // ===== GAME STATS UPDATE MODE (existing logic) =====
+      const gameResult = requestData;
 
       // Validate required fields
       if (!gameResult.roomCode || gameResult.ranking === undefined || !gameResult.team) {

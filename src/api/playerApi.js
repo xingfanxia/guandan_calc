@@ -327,3 +327,40 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     });
   }
 }
+
+/**
+ * Update player profile fields (NOT stats)
+ * @param {string} handle - Player handle (immutable identifier)
+ * @param {Object} updates - Fields to update
+ * @param {string} updates.displayName - New display name
+ * @param {string} updates.emoji - New emoji avatar
+ * @param {string} updates.photoBase64 - New photo (or null to remove)
+ * @param {string} updates.playStyle - New play style
+ * @param {string} updates.tagline - New tagline
+ * @returns {Promise<{success: boolean, player: Object}>}
+ */
+export async function updatePlayerProfile(handle, updates) {
+  try {
+    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        mode: 'PROFILE_UPDATE',  // New mode to distinguish from stats updates
+        ...updates
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `Update profile failed: ${response.statusText}`);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('updatePlayerProfile error:', error);
+    throw error;
+  }
+}
