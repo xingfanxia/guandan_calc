@@ -35,6 +35,7 @@ export async function syncVotingToProfiles() {
 
     // Update profiles for ALL players who received votes
     const updates = [];
+    const syncedPlayerIds = new Set();  // Track which players we've synced
 
     // Sync all MVP votes
     Object.entries(data.votes.mvp || {}).forEach(([playerId, voteCount]) => {
@@ -53,6 +54,7 @@ export async function syncVotingToProfiles() {
             mode: 'VOTE_ONLY'
           });
           updates.push(update);
+          syncedPlayerIds.add(player.id);
           console.log(`✅ Syncing ${voteCount} MVP votes for @${player.handle}`);
         }
       }
@@ -63,13 +65,9 @@ export async function syncVotingToProfiles() {
       if (voteCount > 0) {
         const player = players.find(p => p.id === parseInt(playerId));
         if (player && player.handle) {
-          // Check if already updated as MVP (same player)
-          const alreadyUpdated = updates.find(u => 
-            u.then && player.handle === players.find(p => p.id === parseInt(playerId))?.handle
-          );
-          
-          if (alreadyUpdated) {
-            console.log(`⚠️ ${player.name} received both MVP and burden votes - skipping burden`);
+          // Skip if already synced as MVP (prevent double-sync of same player)
+          if (syncedPlayerIds.has(player.id)) {
+            console.log(`⚠️ ${player.name} already synced as MVP, skipping burden votes`);
           } else {
             const update = updatePlayerStats(player.handle, {
               votedMVP: false,
