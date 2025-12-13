@@ -707,24 +707,24 @@ async function loadProfile(handle) {
 
       <!-- Community Voting -->
       <div class="card">
-        <h3>🗳️ 票选荣誉</h3>
+        <h3>🗳️ 观众投票</h3>
         <div class="stat-grid">
           <div class="stat-item">
             <span class="stat-value" style="color: #22c55e;">${player.stats.mvpVotes || 0}</span>
-            <span class="stat-label">获选 MVP (最C)</span>
+            <span class="stat-label">MVP 得票</span>
           </div>
           <div class="stat-item">
             <span class="stat-value" style="color: #ef4444;">${player.stats.burdenVotes || 0}</span>
-            <span class="stat-label">获选累赘 (最闹)</span>
+            <span class="stat-label">累赘 得票</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">${((player.stats.mvpVotes || 0) + (player.stats.burdenVotes || 0))}</span>
-            <span class="stat-label">总票选次数</span>
+            <span class="stat-label">总得票数</span>
           </div>
         </div>
         ${(player.stats.mvpVotes || 0) === 0 && (player.stats.burdenVotes || 0) === 0 ? `
           <div style="color: #888; margin-top: 12px; font-size: 0.9em;">
-            暂无票选记录。在房间模式中，观众可以投票选出 MVP 和累赘。
+            暂无投票记录。在房间模式中，观众可以为喜欢的玩家投票。
           </div>
         ` : ''}
       </div>
