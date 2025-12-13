@@ -32,6 +32,11 @@ export function showRoomUI() {
     disableViewerControls();
     // Initialize locked voting section
     initializeViewerVotingSection();
+    
+    // Also poll vote leaderboard for viewers
+    setInterval(() => {
+      updateVoteLeaderboard();
+    }, 3000); // Poll every 3s
 
     // Check if game already ended (manual check for instant unlock)
     setTimeout(() => {
