@@ -29,6 +29,7 @@
 - [x] Server-side timer tracking (finishedAt timestamps)
 - [x] MVP photos in victory modal and PNG export
 - [x] Viewer voting winner display
+- [x] Voting system enhancements (idempotent, all-player sync)
 
 ### Game Modes (100%)
 - [x] 4-player mode with fixed upgrade table
