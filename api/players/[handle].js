@@ -194,16 +194,26 @@ export default async function handler(request) {
           });
         }
 
-        // Update community voting stats with actual vote counts
-        const mvpCount = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
-        const burdenCount = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+        // Update community voting stats (idempotent with votingHistory)
+        const roomCode = gameResult.roomCode;
+        player.stats.votingHistory = player.stats.votingHistory || {};
 
-        if (mvpCount > 0) {
-          player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpCount;
-        }
-        if (burdenCount > 0) {
-          player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenCount;
-        }
+        const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
+        const newMvpVotes = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
+        const newBurdenVotes = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+
+        const mvpDelta = newMvpVotes - oldVotes.mvp;
+        const burdenDelta = newBurdenVotes - oldVotes.burden;
+
+        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpDelta;
+        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenDelta;
+
+        // Update room history (overwrite)
+        player.stats.votingHistory[roomCode] = {
+          mvp: newMvpVotes,
+          burden: newBurdenVotes,
+          lastSynced: new Date().toISOString()
+        };
 
         // Update partner/opponent tracking
         player.stats.partners = player.stats.partners || {};
@@ -299,12 +309,26 @@ export default async function handler(request) {
           }
         });
       } else {
-        // Vote-only mode: only update voting stats with actual vote counts
-        const mvpCount = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
-        const burdenCount = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+        // Vote-only mode: only update voting stats (idempotent with votingHistory)
+        const roomCode = gameResult.roomCode;
+        player.stats.votingHistory = player.stats.votingHistory || {};
 
-        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpCount;
-        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenCount;
+        const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
+        const newMvpVotes = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
+        const newBurdenVotes = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+
+        const mvpDelta = newMvpVotes - oldVotes.mvp;
+        const burdenDelta = newBurdenVotes - oldVotes.burden;
+
+        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpDelta;
+        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenDelta;
+
+        // Update room history (overwrite)
+        player.stats.votingHistory[roomCode] = {
+          mvp: newMvpVotes,
+          burden: newBurdenVotes,
+          lastSynced: new Date().toISOString()
+        };
 
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));

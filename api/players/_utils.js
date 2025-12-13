@@ -125,6 +125,7 @@ export function initializePlayerStats() {
     // Community voting
     mvpVotes: 0,       // Times voted as MVP (最C)
     burdenVotes: 0,    // Times voted as burden (最闹)
+    votingHistory: {}, // Per-room vote tracking: { roomCode: { mvp: count, burden: count, lastSynced: ISO } }
     
     // Partner/Opponent tracking
     partners: {},      // { handle: { games, wins, winRate } }
