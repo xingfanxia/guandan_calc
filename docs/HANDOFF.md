@@ -1,8 +1,8 @@
 # v10.0 Session Handoff Document
 
-**Session Date**: 2025-12-11
-**Commits**: 63 commits
-**Duration**: Extended session
+**Session Date**: 2025-12-11 - 2025-12-13
+**Commits**: 70+ commits
+**Duration**: Extended multi-day session
 **Status**: ✅ Production Ready
 
 ---
@@ -302,6 +302,40 @@
 - Better contrast (dark text on light background)
 - Simplified photo upload (no confusing crop UI)
 - Emoji always visible (can't forget to select)
+
+---
+
+### 11. Voting System Enhancements
+
+**Status**: ✅ Complete
+
+**What Was Improved:**
+- Sync ALL players who received votes (not just top MVP/burden)
+- Idempotent sync with votingHistory tracking
+- Actual vote counts tracked (3 votes = +3, not +1)
+- Vote leaderboard updates for both host and viewer (every 3s)
+- PNG export fetches votes from API (not DOM)
+
+**Files Modified:**
+- `src/share/votingSync.js` - Sync all players with vote counts
+- `api/players/[handle].js` - Delta-based idempotent updates
+- `api/players/_utils.js` - Added votingHistory field
+- `src/share/roomUI.js` - Vote leaderboard for viewers
+- `src/export/exportMobile.js` - Fetch votes from API
+- `player-profile.html` - Updated labels (得票 not 获选)
+- `src/controllers/settingsControls.js` - Better sync success message
+
+**Implementation:**
+- votingHistory: `{ roomCode: { mvp: count, burden: count, lastSynced: ISO } }`
+- Delta calculation: newVotes - oldVotes
+- Safe to sync multiple times (latest votes replace room's contribution)
+- All vote recipients get credit
+
+**Benefits:**
+- ✅ Accurate vote tracking for all participants
+- ✅ Idempotent (no duplicates)
+- ✅ Fair recognition
+- ✅ PNG export accuracy
 
 ---
 
