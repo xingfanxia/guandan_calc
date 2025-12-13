@@ -538,10 +538,14 @@ export async function exportMobilePNG() {
   // Footer
   ctx.fillStyle = '#666';
   ctx.font = '12px Arial';
-  ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v9.0', 40, finalContentY);
+  ctx.textAlign = 'center';
+  ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v10.0', W/2, finalContentY);
+  ctx.fillText('Made with ❤️ by Xingfan Xia', W/2, finalContentY + 16);
+  ctx.fillText('Claude Sonnet 4.5 1M Context & Claude Opus 4.5', W/2, finalContentY + 32);
+  ctx.textAlign = 'left';
 
-  // Create optimally-sized final canvas
-  const optimalHeight = finalContentY + 50;
+  // Create optimally-sized final canvas (extra space for 3-line footer)
+  const optimalHeight = finalContentY + 80;
   const finalCanvas = document.createElement('canvas');
   finalCanvas.width = W;
   finalCanvas.height = optimalHeight;
