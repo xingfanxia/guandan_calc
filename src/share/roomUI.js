@@ -134,12 +134,6 @@ export function disableViewerControls() {
     zone.style.pointerEvents = 'none';
     zone.style.opacity = '0.7';
   });
-  
-  // Hide voting stats section for viewers (they see results in voting card)
-  const votingStats = document.getElementById('votingStats');
-  if (votingStats) {
-    votingStats.style.display = 'none';
-  }
 }
 
 /**
