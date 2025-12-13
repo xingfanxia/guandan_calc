@@ -156,7 +156,7 @@ export function setupSettingsControls() {
       if (result.success) {
         if (statusEl) {
           statusEl.style.color = '#22c55e';
-          statusEl.textContent = `✅ 同步成功！MVP: ${result.mvpPlayer?.name || '无'} (${result.mvpVotes}票), 累赘: ${result.burdenPlayer?.name || '无'} (${result.burdenVotes}票)`;
+          statusEl.textContent = `✅ 同步成功！已同步 ${result.totalPlayersSynced || 0} 位玩家的投票数据 | 最高: MVP ${result.mvpPlayer?.name || '无'} (${result.mvpVotes}票), 累赘 ${result.burdenPlayer?.name || '无'} (${result.burdenVotes}票)`;
         }
         syncVotingBtn.textContent = '✅ 已同步';
         setTimeout(() => {
