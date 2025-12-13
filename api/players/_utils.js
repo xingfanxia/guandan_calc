@@ -66,10 +66,10 @@ export function validatePlayerData(data) {
     };
   }
 
-  // Validate play style (must be one of 8 predefined)
+  // Validate play style (must be one of 9 predefined)
   const validPlayStyles = [
     'gambler', 'chill', 'scapegoat', 'tilt',
-    'steady', 'yolo', 'secondPlace', 'mystery'
+    'steady', 'yolo', 'secondPlace', 'mystery', 'lao8Hunter'
   ];
   if (!validPlayStyles.includes(data.playStyle)) {
     return {

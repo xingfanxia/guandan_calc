@@ -120,7 +120,8 @@ export function getPlayStyleLabel(playStyle) {
     'steady': '稳如老狗 🐕',
     'yolo': '冲就完事 🚀',
     'secondPlace': '千年老二 🥈',
-    'mystery': '神秘高手 🎭'
+    'mystery': '神秘高手 🎭',
+    'lao8Hunter': '老8猎手 🎯'
   };
   return labels[playStyle] || playStyle;
 }
@@ -138,7 +139,8 @@ export function getPlayStyles() {
     { value: 'steady', label: '稳如老狗 🐕' },
     { value: 'yolo', label: '冲就完事 🚀' },
     { value: 'secondPlace', label: '千年老二 🥈' },
-    { value: 'mystery', label: '神秘高手 🎭' }
+    { value: 'mystery', label: '神秘高手 🎭' },
+    { value: 'lao8Hunter', label: '老8猎手 🎯' }
   ];
 }
 
