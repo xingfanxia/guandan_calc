@@ -16,6 +16,7 @@ let touchClone = null;
 let touchStartTimer = null;
 let touchStartPos = null;
 let isDragging = false;  // Track if actively dragging
+let touchOffset = null; // Store offset from touch point to tile origin
 
 /**
  * Handle touch start (long-press detection)
@@ -37,6 +38,13 @@ export function handleTouchStart(e, player) {
   // Store initial touch position
   touchStartPos = { x: touch.clientX, y: touch.clientY };
 
+  // Calculate offset from touch point to tile's top-left corner
+  const tileRect = tile.getBoundingClientRect();
+  touchOffset = {
+    x: touch.clientX - tileRect.left,
+    y: touch.clientY - tileRect.top
+  };
+
   // Set up delayed drag start (long press)
   touchStartTimer = setTimeout(() => {
     // Start drag after delay
@@ -53,17 +61,18 @@ export function handleTouchStart(e, player) {
     touchClone.style.opacity = '0.8';
     touchClone.style.pointerEvents = 'none';
     touchClone.style.transform = 'scale(1.1)';
+    touchClone.style.transformOrigin = `${touchOffset.x}px ${touchOffset.y}px`; // Scale from touch point
     touchClone.classList.add('dragging', 'touch-clone');
+    
+    // Set explicit width/height to prevent size changes
+    touchClone.style.width = tileRect.width + 'px';
+    touchClone.style.height = tileRect.height + 'px';
+    
     document.body.appendChild(touchClone);
 
-    // Get dimensions AFTER appending to DOM (so offsetWidth/Height are available)
-    // Account for the 1.1x scale transform
-    const cloneWidth = tile.offsetWidth * 1.1;
-    const cloneHeight = tile.offsetHeight * 1.1;
-
-    // Position clone centered under finger
-    touchClone.style.left = (touch.clientX - cloneWidth / 2) + 'px';
-    touchClone.style.top = (touch.clientY - cloneHeight / 2) + 'px';
+    // Position clone so touch point stays under finger (accounting for scale)
+    touchClone.style.left = (touch.clientX - touchOffset.x * 1.1) + 'px';
+    touchClone.style.top = (touch.clientY - touchOffset.y * 1.1) + 'px';
 
     // Hide original tile
     tile.style.opacity = '0.3';
@@ -100,16 +109,14 @@ export function handleTouchMove(e) {
   }
 
   // Only prevent default and update if actively dragging
-  if (!isDragging || !touchClone) return;
+  if (!isDragging || !touchClone || !touchOffset) return;
   
   e.preventDefault();
   e.stopPropagation();
 
-  // Update clone position - account for scale
-  const cloneWidth = touchClone.offsetWidth;
-  const cloneHeight = touchClone.offsetHeight;
-  touchClone.style.left = (touch.clientX - cloneWidth / 2) + 'px';
-  touchClone.style.top = (touch.clientY - cloneHeight / 2) + 'px';
+  // Update clone position - keep touch point under finger
+  touchClone.style.left = (touch.clientX - touchOffset.x * 1.1) + 'px';
+  touchClone.style.top = (touch.clientY - touchOffset.y * 1.1) + 'px';
 
   // Find element under touch point (use visibility instead of display)
   touchClone.style.visibility = 'hidden';

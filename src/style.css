@@ -281,6 +281,7 @@ details + details {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: white; /* Explicit color for consistency across devices */
 }
 
 .player-tile input {
@@ -477,6 +478,7 @@ details + details {
 
 .ranking-player-tile .name {
   font-size: 13px;
+  color: white; /* Explicit color for consistency across devices */
 }
 
 /* Mobile Responsive */
