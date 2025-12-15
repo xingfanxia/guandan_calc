@@ -56,9 +56,14 @@ export function handleTouchStart(e, player) {
     touchClone.classList.add('dragging', 'touch-clone');
     document.body.appendChild(touchClone);
 
-    // Position clone at touch point
-    touchClone.style.left = (touch.clientX - tile.offsetWidth / 2) + 'px';
-    touchClone.style.top = (touch.clientY - tile.offsetHeight / 2) + 'px';
+    // Get dimensions AFTER appending to DOM (so offsetWidth/Height are available)
+    // Account for the 1.1x scale transform
+    const cloneWidth = tile.offsetWidth * 1.1;
+    const cloneHeight = tile.offsetHeight * 1.1;
+
+    // Position clone centered under finger
+    touchClone.style.left = (touch.clientX - cloneWidth / 2) + 'px';
+    touchClone.style.top = (touch.clientY - cloneHeight / 2) + 'px';
 
     // Hide original tile
     tile.style.opacity = '0.3';
@@ -100,9 +105,11 @@ export function handleTouchMove(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  // Update clone position
-  touchClone.style.left = (touch.clientX - touchClone.offsetWidth / 2) + 'px';
-  touchClone.style.top = (touch.clientY - touchClone.offsetHeight / 2) + 'px';
+  // Update clone position - account for scale
+  const cloneWidth = touchClone.offsetWidth;
+  const cloneHeight = touchClone.offsetHeight;
+  touchClone.style.left = (touch.clientX - cloneWidth / 2) + 'px';
+  touchClone.style.top = (touch.clientY - cloneHeight / 2) + 'px';
 
   // Find element under touch point (use visibility instead of display)
   touchClone.style.visibility = 'hidden';
