@@ -15,6 +15,7 @@ let touchDraggedElement = null;
 let touchClone = null;
 let touchStartTimer = null;
 let touchStartPos = null;
+let isDragging = false;  // Track if actively dragging
 
 /**
  * Handle touch start (long-press detection)
@@ -27,6 +28,9 @@ export function handleTouchStart(e, player) {
     return;
   }
 
+  // Force cleanup any previous drag state
+  cleanupTouchDrag();
+
   const touch = e.touches[0];
   const tile = e.currentTarget;
 
@@ -37,17 +41,19 @@ export function handleTouchStart(e, player) {
   touchStartTimer = setTimeout(() => {
     // Start drag after delay
     e.preventDefault();
+    isDragging = true;
     setDraggedPlayer(player);
     touchDraggedElement = tile;
 
     // Create clone for visual feedback
     touchClone = tile.cloneNode(true);
+    touchClone.id = 'touch-drag-clone-' + Date.now(); // Unique ID for tracking
     touchClone.style.position = 'fixed';
     touchClone.style.zIndex = '1000';
     touchClone.style.opacity = '0.8';
     touchClone.style.pointerEvents = 'none';
     touchClone.style.transform = 'scale(1.1)';
-    touchClone.classList.add('dragging');
+    touchClone.classList.add('dragging', 'touch-clone');
     document.body.appendChild(touchClone);
 
     // Position clone at touch point
@@ -75,7 +81,7 @@ export function handleTouchMove(e) {
   const touch = e.touches[0];
 
   // If not dragging yet, check for movement that should cancel long-press
-  if (!touchClone && touchStartTimer && touchStartPos) {
+  if (!isDragging && touchStartTimer && touchStartPos) {
     const dx = Math.abs(touch.clientX - touchStartPos.x);
     const dy = Math.abs(touch.clientY - touchStartPos.y);
 
@@ -88,18 +94,20 @@ export function handleTouchMove(e) {
     }
   }
 
-  // Only prevent default if actively dragging
-  if (!touchClone) return;
+  // Only prevent default and update if actively dragging
+  if (!isDragging || !touchClone) return;
+  
   e.preventDefault();
+  e.stopPropagation();
 
   // Update clone position
   touchClone.style.left = (touch.clientX - touchClone.offsetWidth / 2) + 'px';
   touchClone.style.top = (touch.clientY - touchClone.offsetHeight / 2) + 'px';
 
-  // Find element under touch point
-  touchClone.style.display = 'none';
+  // Find element under touch point (use visibility instead of display)
+  touchClone.style.visibility = 'hidden';
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.display = 'block';
+  touchClone.style.visibility = 'visible';
 
   // Highlight drop zones
   const dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
@@ -127,24 +135,21 @@ export function handleTouchEnd(e) {
   touchStartPos = null;
 
   // If not dragging, just cleanup
-  if (!touchClone || !getDraggedPlayer()) {
-    if (touchDraggedElement) {
-      touchDraggedElement.style.opacity = '';
-      touchDraggedElement.classList.remove('dragging');
-      touchDraggedElement = null;
-    }
+  if (!isDragging || !touchClone || !getDraggedPlayer()) {
+    cleanupTouchDrag();
     return null;
   }
 
   e.preventDefault();
+  e.stopPropagation();
 
   const touch = e.changedTouches[0];
   const player = getDraggedPlayer();
 
   // Find element under touch point
-  touchClone.style.display = 'none';
+  touchClone.style.visibility = 'hidden';
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.display = 'block';
+  touchClone.style.visibility = 'visible';
 
   let dropTarget = null;
 
@@ -158,24 +163,20 @@ export function handleTouchEnd(e) {
 
     if (rankSlot) {
       console.log('Dropping on rank slot:', rankSlot.dataset.rank);
-      // Handle rank drop
       const currentRanking = state.getCurrentRanking();
       const newRanking = handleRankDrop(rankSlot, player, currentRanking);
       state.setCurrentRanking(newRanking);
-      emit('ranking:updated'); // Trigger re-render
+      emit('ranking:updated');
       dropTarget = { type: 'rank', element: rankSlot, player };
     } else if (pool) {
-      // Handle pool drop
       const currentRanking = state.getCurrentRanking();
       const newRanking = handlePoolDrop(player, currentRanking);
       state.setCurrentRanking(newRanking);
       dropTarget = { type: 'pool', element: pool, player };
     } else if (unassignedZone) {
-      // Move to unassigned
       assignPlayerToTeam(player.id, null);
       dropTarget = { type: 'unassigned', element: unassignedZone, player };
     } else if (teamZone) {
-      // Assign to team
       const team = parseInt(teamZone.dataset.team);
       if (team) {
         assignPlayerToTeam(player.id, team);
@@ -193,21 +194,66 @@ export function handleTouchEnd(e) {
 }
 
 /**
- * Cleanup touch drag state
+ * Handle touch cancel (when touch is interrupted)
+ * @param {TouchEvent} e - Touch event
+ */
+export function handleTouchCancel(e) {
+  console.log('Touch cancelled, cleaning up');
+  if (touchStartTimer) {
+    clearTimeout(touchStartTimer);
+    touchStartTimer = null;
+  }
+  cleanupTouchDrag();
+}
+
+/**
+ * Cleanup touch drag state (more aggressive)
  */
 function cleanupTouchDrag() {
-  // Remove clone
-  if (touchClone && touchClone.parentNode) {
-    touchClone.parentNode.removeChild(touchClone);
-  }
-  touchClone = null;
+  // Clear dragging flag first
+  isDragging = false;
 
-  // Clean up any other floating clones
-  const floatingClones = document.querySelectorAll('.dragging');
-  floatingClones.forEach(clone => {
-    if (clone.style.position === 'fixed' && clone !== touchDraggedElement) {
+  // Clear timer
+  if (touchStartTimer) {
+    clearTimeout(touchStartTimer);
+    touchStartTimer = null;
+  }
+  touchStartPos = null;
+
+  // Remove the specific clone
+  if (touchClone) {
+    try {
+      if (touchClone.parentNode) {
+        touchClone.parentNode.removeChild(touchClone);
+      }
+    } catch (e) {
+      console.warn('Failed to remove clone:', e);
+    }
+    touchClone = null;
+  }
+
+  // Aggressively clean up ANY lingering touch clones
+  const allClones = document.querySelectorAll('.touch-clone');
+  allClones.forEach(clone => {
+    try {
       if (clone.parentNode) {
         clone.parentNode.removeChild(clone);
+      }
+    } catch (e) {
+      console.warn('Failed to remove lingering clone:', e);
+    }
+  });
+
+  // Clean up dragging class from fixed elements
+  const draggingElements = document.querySelectorAll('.dragging');
+  draggingElements.forEach(elem => {
+    if (elem.style.position === 'fixed') {
+      try {
+        if (elem.parentNode) {
+          elem.parentNode.removeChild(elem);
+        }
+      } catch (e) {
+        // Ignore
       }
     }
   });
@@ -217,6 +263,7 @@ function cleanupTouchDrag() {
     touchDraggedElement.classList.remove('dragging');
     touchDraggedElement.style.opacity = '';
     touchDraggedElement.style.display = '';
+    touchDraggedElement.style.visibility = '';
     touchDraggedElement = null;
   }
 
@@ -231,9 +278,14 @@ function cleanupTouchDrag() {
  * Cancel current touch drag
  */
 export function cancelTouchDrag() {
-  if (touchStartTimer) {
-    clearTimeout(touchStartTimer);
-    touchStartTimer = null;
-  }
   cleanupTouchDrag();
+}
+
+// Global cleanup on visibility change (tab switch, etc.)
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      cleanupTouchDrag();
+    }
+  });
 }

@@ -20,7 +20,7 @@ import { syncProfileStats } from '../api/playerApi.js';
 import { getPlayers } from '../player/playerManager.js';
 import { getRoomInfo } from '../share/roomManager.js';
 import { scheduleAutoVotingSync } from '../share/votingSync.js';
-import { handleTouchStart, handleTouchMove, handleTouchEnd } from '../player/touchHandler.js';
+import { handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } from '../player/touchHandler.js';
 import { attachTouchHandlers } from '../player/playerRenderer.js';
 
 /**
@@ -39,7 +39,7 @@ export function attachTouchHandlersToAllTiles() {
     if (playerData.id) {
       const player = getPlayers().find(p => p.id === playerData.id);
       if (player) {
-        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel);
         tile.dataset.touchHandlersAttached = 'true';
       }
     }
@@ -56,7 +56,7 @@ export function attachTouchHandlersToAllTiles() {
     if (playerId) {
       const player = getPlayers().find(p => p.id === playerId);
       if (player) {
-        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd);
+        attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel);
         tile.dataset.touchHandlersAttached = 'true';
       }
     }

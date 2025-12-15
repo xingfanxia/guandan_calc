@@ -186,8 +186,9 @@ export function createPlayerTile(player, onDragStart, onDragEnd) {
  * @param {Function} handleTouchStart - Touch start handler
  * @param {Function} handleTouchMove - Touch move handler
  * @param {Function} handleTouchEnd - Touch end handler
+ * @param {Function} handleTouchCancel - Touch cancel handler (optional)
  */
-export function attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd) {
+export function attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel = null) {
   // Attach with passive:false to allow preventDefault
   const startHandler = (e) => {
     handleTouchStart(e, player);
@@ -196,7 +197,7 @@ export function attachTouchHandlers(tile, player, handleTouchStart, handleTouchM
   tile.addEventListener('touchstart', startHandler, { passive: false });
   tile.addEventListener('touchmove', handleTouchMove, { passive: false });
   tile.addEventListener('touchend', handleTouchEnd, { passive: false });
-  tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  tile.addEventListener('touchcancel', handleTouchCancel || handleTouchEnd, { passive: false });
 }
 
 /**
