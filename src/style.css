@@ -296,6 +296,14 @@ details + details {
   -webkit-user-select: text;
 }
 
+/* Override disabled input default grey color (especially on iOS) */
+.player-tile input:disabled,
+.ranking-player-tile input:disabled {
+  color: white;
+  -webkit-text-fill-color: white; /* iOS Safari override */
+  opacity: 1; /* Prevent iOS opacity reduction */
+}
+
 /* Team Drop Zones */
 .team-drop-zone {
   min-height: 80px;

@@ -118,10 +118,8 @@ export function handleTouchMove(e) {
   touchClone.style.left = (touch.clientX - touchOffset.x * 1.1) + 'px';
   touchClone.style.top = (touch.clientY - touchOffset.y * 1.1) + 'px';
 
-  // Find element under touch point (use visibility instead of display)
-  touchClone.style.visibility = 'hidden';
+  // Find element under touch point (pointer-events: none means we can see through clone)
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.visibility = 'visible';
 
   // Highlight drop zones
   const dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
@@ -160,10 +158,8 @@ export function handleTouchEnd(e) {
   const touch = e.changedTouches[0];
   const player = getDraggedPlayer();
 
-  // Find element under touch point
-  touchClone.style.visibility = 'hidden';
+  // Find element under touch point (pointer-events: none means we can see through clone)
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-  touchClone.style.visibility = 'visible';
 
   let dropTarget = null;
 
