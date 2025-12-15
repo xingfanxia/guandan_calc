@@ -39,8 +39,8 @@ class GameConfig {
       // 8-player mode thresholds and points
       t8: {
         g3: 11,  // Score difference ≥11 = upgrade 3 levels
-        g2: 6,   // Score difference ≥6 = upgrade 2 levels
-        g1: 1    // Score difference ≥1 = upgrade 1 level
+        g2: 5,   // Score difference ≥5 = upgrade 2 levels (adjusted from 6)
+        g1: 0    // Score difference ≥0 = upgrade 1 level (adjusted from 1)
       },
       p8: {
         1: 7, 2: 6, 3: 5, 4: 4, 5: 3, 6: 2, 7: 1, 8: 0
