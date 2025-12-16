@@ -526,4 +526,55 @@ if (typeof window !== 'undefined') {
         });
     });
   }
+
+  // PWA Install Prompt Handler
+  let deferredPrompt = null;
+  const installButton = document.getElementById('installPWA');
+
+  // Capture the install prompt event
+  window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('📱 PWA install prompt available');
+    e.preventDefault(); // Prevent automatic prompt
+    deferredPrompt = e; // Store for later use
+
+    // Show install button
+    if (installButton) {
+      installButton.style.display = 'block';
+    }
+  });
+
+  // Handle install button click
+  if (installButton) {
+    installButton.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        console.log('No install prompt available');
+        alert('此浏览器不支持安装，请使用 Safari (iOS) 或 Chrome (Android/Desktop)');
+        return;
+      }
+
+      // Show install prompt
+      deferredPrompt.prompt();
+
+      // Wait for user choice
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response: ${outcome}`);
+
+      if (outcome === 'accepted') {
+        console.log('✅ PWA installed!');
+      }
+
+      // Clear the prompt
+      deferredPrompt = null;
+      installButton.style.display = 'none';
+    });
+  }
+
+  // Detect if already installed
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA successfully installed');
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+    deferredPrompt = null;
+  });
 }
