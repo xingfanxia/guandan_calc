@@ -38,13 +38,6 @@ export function handleTouchStart(e, player) {
   // Store initial touch position
   touchStartPos = { x: touch.clientX, y: touch.clientY };
 
-  // Calculate offset from touch point to tile's top-left corner
-  const tileRect = tile.getBoundingClientRect();
-  touchOffset = {
-    x: touch.clientX - tileRect.left,
-    y: touch.clientY - tileRect.top
-  };
-
   // Set up delayed drag start (long press)
   touchStartTimer = setTimeout(() => {
     // Start drag after delay
@@ -55,24 +48,21 @@ export function handleTouchStart(e, player) {
 
     // Create clone for visual feedback
     touchClone = tile.cloneNode(true);
-    touchClone.id = 'touch-drag-clone-' + Date.now(); // Unique ID for tracking
+    touchClone.id = 'touch-drag-clone-' + Date.now();
     touchClone.style.position = 'fixed';
     touchClone.style.zIndex = '1000';
     touchClone.style.opacity = '0.8';
     touchClone.style.pointerEvents = 'none';
-    touchClone.style.transform = 'scale(1.1)';
-    touchClone.style.transformOrigin = `${touchOffset.x}px ${touchOffset.y}px`; // Scale from touch point
+    touchClone.style.transform = 'scale(1.05)'; // Subtle scale, less offset issues
     touchClone.classList.add('dragging', 'touch-clone');
-    
-    // Set explicit width/height to prevent size changes
-    touchClone.style.width = tileRect.width + 'px';
-    touchClone.style.height = tileRect.height + 'px';
-    
     document.body.appendChild(touchClone);
 
-    // Position clone so touch point stays under finger (accounting for scale)
-    touchClone.style.left = (touch.clientX - touchOffset.x * 1.1) + 'px';
-    touchClone.style.top = (touch.clientY - touchOffset.y * 1.1) + 'px';
+    // Get actual rendered dimensions of the clone
+    const cloneRect = touchClone.getBoundingClientRect();
+    
+    // Center the clone under finger
+    touchClone.style.left = (touch.clientX - cloneRect.width / 2) + 'px';
+    touchClone.style.top = (touch.clientY - cloneRect.height / 2) + 'px';
 
     // Hide original tile
     tile.style.opacity = '0.3';
@@ -84,7 +74,7 @@ export function handleTouchStart(e, player) {
     }
 
     emit('touch:dragStarted', { player });
-  }, 200); // 200ms delay for long press
+  }, 200);
 }
 
 /**
@@ -99,7 +89,6 @@ export function handleTouchMove(e) {
     const dx = Math.abs(touch.clientX - touchStartPos.x);
     const dy = Math.abs(touch.clientY - touchStartPos.y);
 
-    // Cancel drag start if finger moved significantly
     if (dx > 10 || dy > 10) {
       clearTimeout(touchStartTimer);
       touchStartTimer = null;
@@ -109,14 +98,17 @@ export function handleTouchMove(e) {
   }
 
   // Only prevent default and update if actively dragging
-  if (!isDragging || !touchClone || !touchOffset) return;
+  if (!isDragging || !touchClone) return;
   
   e.preventDefault();
   e.stopPropagation();
 
-  // Update clone position - keep touch point under finger
-  touchClone.style.left = (touch.clientX - touchOffset.x * 1.1) + 'px';
-  touchClone.style.top = (touch.clientY - touchOffset.y * 1.1) + 'px';
+  // Get current dimensions (accounts for scale)
+  const cloneRect = touchClone.getBoundingClientRect();
+  
+  // Update clone position - keep centered under finger
+  touchClone.style.left = (touch.clientX - cloneRect.width / 2) + 'px';
+  touchClone.style.top = (touch.clientY - cloneRect.height / 2) + 'px';
 
   // Find element under touch point (pointer-events: none means we can see through clone)
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
