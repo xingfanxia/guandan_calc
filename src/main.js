@@ -552,14 +552,63 @@ if (typeof window !== 'undefined') {
         const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
         if (isIOS || isSafari) {
-          alert('📱 iOS/Safari 安装方法：\n\n1. 点击底部 分享 按钮 (□↑)\n2. 滚动找到 "添加到主屏幕"\n3. 点击 "添加"\n4. 完成！');
+          // Create visual instruction modal for iOS
+          const modal = document.createElement('div');
+          modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          `;
+          
+          modal.innerHTML = `
+            <div style="background: #1a1a1a; border-radius: 16px; padding: 24px; max-width: 400px; border: 2px solid #22c55e;">
+              <h2 style="color: #22c55e; margin-top: 0;">📱 iOS 安装指南</h2>
+              
+              <div style="background: #0b0b0c; padding: 16px; border-radius: 8px; margin: 16px 0; line-height: 1.8;">
+                <p style="margin: 8px 0;"><strong style="color: #22c55e;">第1步:</strong> 点击底部 <span style="background: #333; padding: 2px 8px; border-radius: 4px;">分享</span> 按钮</p>
+                <p style="margin: 8px 0; font-size: 32px; text-align: center;">□↑</p>
+                
+                <p style="margin: 8px 0;"><strong style="color: #22c55e;">第2步:</strong> 向上滚动菜单</p>
+                
+                <p style="margin: 8px 0;"><strong style="color: #22c55e;">第3步:</strong> 找到 <span style="background: #333; padding: 2px 8px; border-radius: 4px;">添加到主屏幕</span></p>
+                
+                <p style="margin: 8px 0;"><strong style="color: #22c55e;">第4步:</strong> 点击 <span style="background: #22c55e; color: black; padding: 2px 8px; border-radius: 4px; font-weight: bold;">添加</span></p>
+              </div>
+              
+              <div style="background: #2a1a1a; padding: 12px; border-radius: 8px; border-left: 3px solid #fbbf24; margin: 16px 0;">
+                <p style="color: #fbbf24; margin: 0; font-size: 13px;">
+                  💡 提示: Safari浏览器目前不支持一键安装，需要手动操作
+                </p>
+              </div>
+              
+              <button onclick="this.closest('div').parentElement.remove()" style="width: 100%; padding: 12px; background: #22c55e; color: black; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+                知道了
+              </button>
+            </div>
+          `;
+          
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              modal.remove();
+            }
+          });
+          
+          document.body.appendChild(modal);
         } else {
           alert('💻 安装方法：\n\n1. Chrome: 地址栏右侧的安装图标\n2. 或浏览器菜单 → "安装应用"\n\n如已安装，此按钮不会显示安装提示。');
         }
         return;
       }
 
-      // Show native install prompt
+      // Show native install prompt (Chrome/Edge)
       deferredPrompt.prompt();
 
       // Wait for user choice
