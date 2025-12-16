@@ -111,19 +111,8 @@ export function handleTouchMove(e) {
   touchClone.style.left = (touch.clientX - cloneHalfWidth) + 'px';
   touchClone.style.top = (touch.clientY - cloneHalfHeight) + 'px';
 
-  // Find element under touch point
-  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-
-  // Highlight drop zones
-  const dropZones = document.querySelectorAll('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
-  dropZones.forEach(zone => zone.classList.remove('drag-over'));
-
-  if (elementBelow) {
-    const dropZone = elementBelow.closest('.rank-slot, .team-drop-zone, #playerPool, #unassignedPlayers');
-    if (dropZone) {
-      dropZone.classList.add('drag-over');
-    }
-  }
+  // Skip expensive drop zone highlighting during drag - only check on drop
+  // This eliminates querySelectorAll + classList manipulation 60x per second
 }
 
 /**
