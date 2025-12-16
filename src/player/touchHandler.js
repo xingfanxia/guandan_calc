@@ -17,6 +17,8 @@ let touchStartTimer = null;
 let touchStartPos = null;
 let isDragging = false;  // Track if actively dragging
 let touchOffset = null; // Store offset from touch point to tile origin
+let cloneHalfWidth = 0;  // Store clone dimensions to avoid getBoundingClientRect in touchmove
+let cloneHalfHeight = 0;
 
 /**
  * Handle touch start (long-press detection)
@@ -53,16 +55,18 @@ export function handleTouchStart(e, player) {
     touchClone.style.zIndex = '1000';
     touchClone.style.opacity = '0.8';
     touchClone.style.pointerEvents = 'none';
-    touchClone.style.transform = 'scale(1.05)'; // Subtle scale, less offset issues
+    touchClone.style.transform = 'scale(1.05)';
     touchClone.classList.add('dragging', 'touch-clone');
     document.body.appendChild(touchClone);
 
-    // Get actual rendered dimensions of the clone
+    // Calculate dimensions ONCE (avoid getBoundingClientRect in touchmove)
     const cloneRect = touchClone.getBoundingClientRect();
+    cloneHalfWidth = cloneRect.width / 2;
+    cloneHalfHeight = cloneRect.height / 2;
     
     // Center the clone under finger
-    touchClone.style.left = (touch.clientX - cloneRect.width / 2) + 'px';
-    touchClone.style.top = (touch.clientY - cloneRect.height / 2) + 'px';
+    touchClone.style.left = (touch.clientX - cloneHalfWidth) + 'px';
+    touchClone.style.top = (touch.clientY - cloneHalfHeight) + 'px';
 
     // Hide original tile
     tile.style.opacity = '0.3';
@@ -103,14 +107,11 @@ export function handleTouchMove(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  // Get current dimensions (accounts for scale)
-  const cloneRect = touchClone.getBoundingClientRect();
-  
-  // Update clone position - keep centered under finger
-  touchClone.style.left = (touch.clientX - cloneRect.width / 2) + 'px';
-  touchClone.style.top = (touch.clientY - cloneRect.height / 2) + 'px';
+  // Update clone position using cached dimensions (NO getBoundingClientRect!)
+  touchClone.style.left = (touch.clientX - cloneHalfWidth) + 'px';
+  touchClone.style.top = (touch.clientY - cloneHalfHeight) + 'px';
 
-  // Find element under touch point (pointer-events: none means we can see through clone)
+  // Find element under touch point
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
 
   // Highlight drop zones
@@ -150,7 +151,7 @@ export function handleTouchEnd(e) {
   const touch = e.changedTouches[0];
   const player = getDraggedPlayer();
 
-  // Find element under touch point (pointer-events: none means we can see through clone)
+  // Find element under touch point
   const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
 
   let dropTarget = null;
