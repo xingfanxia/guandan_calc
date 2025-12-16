@@ -547,12 +547,19 @@ if (typeof window !== 'undefined') {
   if (installButton) {
     installButton.addEventListener('click', async () => {
       if (!deferredPrompt) {
-        console.log('No install prompt available');
-        alert('此浏览器不支持安装，请使用 Safari (iOS) 或 Chrome (Android/Desktop)');
+        // No native prompt available - show platform-specific instructions
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+        if (isIOS || isSafari) {
+          alert('📱 iOS/Safari 安装方法：\n\n1. 点击底部 分享 按钮 (□↑)\n2. 滚动找到 "添加到主屏幕"\n3. 点击 "添加"\n4. 完成！');
+        } else {
+          alert('💻 安装方法：\n\n1. Chrome: 地址栏右侧的安装图标\n2. 或浏览器菜单 → "安装应用"\n\n如已安装，此按钮不会显示安装提示。');
+        }
         return;
       }
 
-      // Show install prompt
+      // Show native install prompt
       deferredPrompt.prompt();
 
       // Wait for user choice
@@ -565,7 +572,6 @@ if (typeof window !== 'undefined') {
 
       // Clear the prompt
       deferredPrompt = null;
-      installButton.style.display = 'none';
     });
   }
 
