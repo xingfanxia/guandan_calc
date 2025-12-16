@@ -304,6 +304,11 @@ details + details {
   opacity: 1; /* Prevent iOS opacity reduction */
 }
 
+/* Disable transitions on touch clones for instant drag response */
+.touch-clone {
+  transition: none !important; /* Remove 200ms transition delay */
+}
+
 /* Team Drop Zones */
 .team-drop-zone {
   min-height: 80px;
