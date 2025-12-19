@@ -623,9 +623,27 @@ async function loadProfile(handle) {
         </div>
       </div>
 
-      <!-- Career Stats -->
-      <div class="card">
-        <h3>📊 生涯统计</h3>
+      <!-- Mode Switcher Tabs -->
+      <div class="card" style="padding: 16px;">
+        <div class="mode-tabs" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+          <button class="mode-tab active" data-mode="all" style="padding: 8px 16px; background: #22c55e; color: black; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
+            全部
+          </button>
+          <button class="mode-tab" data-mode="4P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+            4人
+          </button>
+          <button class="mode-tab" data-mode="6P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+            6人
+          </button>
+          <button class="mode-tab" data-mode="8P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+            8人
+          </button>
+        </div>
+      </div>
+
+      <!-- Career Stats (will be dynamically updated) -->
+      <div class="card" id="statsCard">
+        <h3 id="statsTitle">📊 生涯统计 (全部模式)</h3>
         
         <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏场次 (完整对局)</h4>
         <div class="stat-grid">

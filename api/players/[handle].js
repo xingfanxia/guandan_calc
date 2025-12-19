@@ -45,6 +45,82 @@ function checkAchievements(stats, lastSession = null) {
   return earned;
 }
 
+// Migrate historical games to mode-specific stats (runs once per player)
+function migrateToModeStats(player) {
+  // Check if already migrated
+  if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+    return false; // Already migrated
+  }
+
+  console.log(`Migrating historical games for @${player.handle}`);
+
+  const { initializePlayerStats } = require('./_utils.js');
+  
+  // Initialize mode-specific stats
+  const freshStats = initializePlayerStats();
+  player.stats.stats4P = { ...freshStats.stats4P };
+  player.stats.stats6P = { ...freshStats.stats6P };
+  player.stats.stats8P = { ...freshStats.stats8P };
+  player.stats.modeBreakdown = { '4P': 0, '6P': 0, '8P': 0 };
+
+  // Replay recent games to populate mode stats
+  if (player.recentGames && Array.isArray(player.recentGames)) {
+    player.recentGames.forEach(game => {
+      const mode = game.mode; // '4P', '6P', '8P'
+      if (!mode) return; // Skip if no mode info
+
+      const modeStats = player.stats[`stats${mode}`];
+      if (!modeStats) return; // Safety check
+
+      // Increment session counter
+      modeStats.sessionsPlayed++;
+      if (game.teamWon) modeStats.sessionsWon++;
+
+      // Update win rate
+      modeStats.sessionWinRate = modeStats.sessionsWon / modeStats.sessionsPlayed;
+
+      // Update average ranking per session
+      const prevTotal = modeStats.avgRankingPerSession * (modeStats.sessionsPlayed - 1);
+      modeStats.avgRankingPerSession = (prevTotal + game.ranking) / modeStats.sessionsPlayed;
+
+      // Update rounds tracking
+      if (game.rounds) {
+        modeStats.roundsPlayed += game.rounds;
+        const prevRoundsTotal = modeStats.avgRoundsPerSession * (modeStats.sessionsPlayed - 1);
+        modeStats.avgRoundsPerSession = (prevRoundsTotal + game.rounds) / modeStats.sessionsPlayed;
+        
+        if (game.rounds > modeStats.longestSessionRounds) {
+          modeStats.longestSessionRounds = game.rounds;
+        }
+      }
+
+      // Update time tracking
+      if (game.duration) {
+        modeStats.totalPlayTimeSeconds += game.duration;
+        if (game.duration > modeStats.longestSessionSeconds) {
+          modeStats.longestSessionSeconds = game.duration;
+        }
+        modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
+      }
+
+      // Add to recent rankings (keep last 10 per mode)
+      if (!modeStats.recentRankings) modeStats.recentRankings = [];
+      const relativeRank = game.relativeRank || Math.round(game.ranking);
+      modeStats.recentRankings.push(relativeRank);
+      if (modeStats.recentRankings.length > 10) {
+        modeStats.recentRankings = modeStats.recentRankings.slice(-10);
+      }
+
+      // Update mode breakdown
+      player.stats.modeBreakdown[mode]++;
+    });
+
+    console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
+  }
+
+  return true; // Migration performed
+}
+
 export default async function handler(request) {
   // Only allow GET and PUT requests
   if (request.method !== 'GET' && request.method !== 'PUT') {
@@ -196,13 +272,20 @@ export default async function handler(request) {
 
       const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
 
+      // Run migration if needed (once per player)
+      const migrated = migrateToModeStats(player);
+      if (migrated) {
+        console.log(`✅ Migrated @${player.handle} to mode-specific stats`);
+      }
+
       // Update stats - now receiving SESSION stats (multiple rounds)
       const gamesInSession = gameResult.gamesInSession || 1;
-      
+
       // Check if this is vote-only update
       const isVoteOnly = gameResult.mode === 'VOTE_ONLY';
       
       if (!isVoteOnly) {
+        // ===== UPDATE OVERALL STATS =====
         // Session-level stats
         player.stats.sessionsPlayed = (player.stats.sessionsPlayed || 0) + 1;
         if (gameResult.teamWon) {
@@ -361,6 +444,77 @@ export default async function handler(request) {
         const newAchievements = checkAchievements(player.stats, gameResult);
         player.achievements = newAchievements;
         const unlockedAchievements = newAchievements.filter(id => !oldAchievements.includes(id));
+
+        // ===== UPDATE MODE-SPECIFIC STATS =====
+        const gameMode = gameResult.mode; // '4P', '6P', '8P'
+        if (gameMode && player.stats[`stats${gameMode}`]) {
+          const modeStats = player.stats[`stats${gameMode}`];
+          
+          // Session-level stats for this mode
+          modeStats.sessionsPlayed = (modeStats.sessionsPlayed || 0) + 1;
+          if (gameResult.teamWon) {
+            modeStats.sessionsWon = (modeStats.sessionsWon || 0) + 1;
+          }
+          modeStats.sessionWinRate = modeStats.sessionsPlayed > 0
+            ? modeStats.sessionsWon / modeStats.sessionsPlayed
+            : 0;
+          
+          // Update avgRankingPerSession for this mode
+          const mPrevSessionTotal = (modeStats.avgRankingPerSession || 0) * ((modeStats.sessionsPlayed || 1) - 1);
+          modeStats.avgRankingPerSession = (mPrevSessionTotal + gameResult.ranking) / modeStats.sessionsPlayed;
+          
+          // Update avgRoundsPerSession for this mode
+          const mPrevRoundsTotal = (modeStats.avgRoundsPerSession || 0) * ((modeStats.sessionsPlayed || 1) - 1);
+          modeStats.avgRoundsPerSession = (mPrevRoundsTotal + gamesInSession) / modeStats.sessionsPlayed;
+          
+          // Update longest session by rounds
+          if (gamesInSession > (modeStats.longestSessionRounds || 0)) {
+            modeStats.longestSessionRounds = gamesInSession;
+          }
+          
+          // Round-level stats
+          modeStats.roundsPlayed = (modeStats.roundsPlayed || 0) + gamesInSession;
+          const mPrevRoundTotal = (modeStats.avgRankingPerRound || 0) * ((modeStats.roundsPlayed || gamesInSession) - gamesInSession);
+          modeStats.avgRankingPerRound = (mPrevRoundTotal + (gameResult.ranking * gamesInSession)) / modeStats.roundsPlayed;
+          
+          // Time tracking
+          const sessionDuration = gameResult.sessionDuration || 0;
+          if (sessionDuration > 0) {
+            modeStats.totalPlayTimeSeconds = (modeStats.totalPlayTimeSeconds || 0) + sessionDuration;
+            
+            if (sessionDuration > (modeStats.longestSessionSeconds || 0)) {
+              modeStats.longestSessionSeconds = sessionDuration;
+            }
+            
+            modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
+          }
+          
+          // Update mode breakdown counter
+          player.stats.modeBreakdown = player.stats.modeBreakdown || { '4P': 0, '6P': 0, '8P': 0 };
+          player.stats.modeBreakdown[gameMode] = (player.stats.modeBreakdown[gameMode] || 0) + 1;
+          
+          // Add to mode-specific recent rankings
+          modeStats.recentRankings = modeStats.recentRankings || [];
+          modeStats.recentRankings.unshift(gameResult.relativeRank || Math.round(gameResult.ranking));
+          if (modeStats.recentRankings.length > 10) {
+            modeStats.recentRankings = modeStats.recentRankings.slice(0, 10);
+          }
+          
+          // Update streaks for this mode
+          if (gameResult.teamWon) {
+            modeStats.currentWinStreak = (modeStats.currentWinStreak || 0) + 1;
+            modeStats.currentLossStreak = 0;
+            if (modeStats.currentWinStreak > (modeStats.longestWinStreak || 0)) {
+              modeStats.longestWinStreak = modeStats.currentWinStreak;
+            }
+          } else {
+            modeStats.currentLossStreak = (modeStats.currentLossStreak || 0) + 1;
+            modeStats.currentWinStreak = 0;
+            if (modeStats.currentLossStreak > (modeStats.longestLossStreak || 0)) {
+              modeStats.longestLossStreak = modeStats.currentLossStreak;
+            }
+          }
+        }
 
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));

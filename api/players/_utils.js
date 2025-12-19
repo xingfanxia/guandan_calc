@@ -104,40 +104,54 @@ export function validatePlayerData(data) {
  * @returns {object} Stats object with all honors at 0
  */
 export function initializePlayerStats() {
-  return {
+  const baseStatsStructure = {
     // Session-level stats (complete games)
     sessionsPlayed: 0,
     sessionsWon: 0,
     sessionWinRate: 0,
     avgRankingPerSession: 0,
     avgRoundsPerSession: 0,
-    longestSessionRounds: 0,    // Most rounds in a single session
+    longestSessionRounds: 0,
     
     // Round-level stats (individual rounds)
     roundsPlayed: 0,
     avgRankingPerRound: 0,
     
     // Time tracking
-    totalPlayTimeSeconds: 0,      // Total time spent playing (all sessions)
-    longestSessionSeconds: 0,     // Longest single session
-    avgSessionSeconds: 0,         // Average session duration
+    totalPlayTimeSeconds: 0,
+    longestSessionSeconds: 0,
+    avgSessionSeconds: 0,
+    
+    // Recent rankings (relative positions)
+    recentRankings: [],
+    
+    // Streaks
+    currentWinStreak: 0,
+    longestWinStreak: 0,
+    currentLossStreak: 0,
+    longestLossStreak: 0
+  };
+
+  return {
+    // Overall stats (aggregated across all modes)
+    ...baseStatsStructure,
     
     // Community voting
-    mvpVotes: 0,       // Times voted as MVP (最C)
-    burdenVotes: 0,    // Times voted as burden (最闹)
-    votingHistory: {}, // Per-room vote tracking: { roomCode: { mvp: count, burden: count, lastSynced: ISO } }
+    mvpVotes: 0,
+    burdenVotes: 0,
+    votingHistory: {},
     
-    // Partner/Opponent tracking
-    partners: {},      // { handle: { games, wins, winRate } }
-    opponents: {},     // { handle: { games, wins, winRate } }
+    // Partner/Opponent tracking (aggregated)
+    partners: {},
+    opponents: {},
     
-    // Legacy fields (deprecated but kept for compatibility)
+    // Legacy fields
     gamesPlayed: 0,
     wins: 0,
     winRate: 0,
     avgRanking: 0,
     
-    recentRankings: [],
+    // Honors (aggregated across all modes)
     honors: {
       '吕布': 0,
       '阿斗': 0,
@@ -154,9 +168,17 @@ export function initializePlayerStats() {
       '慢热王': 0,
       '闪电侠': 0
     },
-    currentWinStreak: 0,
-    longestWinStreak: 0,
-    currentLossStreak: 0,
-    longestLossStreak: 0
+    
+    // Mode-specific stats (NEW!)
+    stats4P: { ...baseStatsStructure },
+    stats6P: { ...baseStatsStructure },
+    stats8P: { ...baseStatsStructure },
+    
+    // Mode distribution counter
+    modeBreakdown: {
+      '4P': 0,
+      '6P': 0,
+      '8P': 0
+    }
   };
 }
