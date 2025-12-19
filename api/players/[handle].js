@@ -161,6 +161,16 @@ export default async function handler(request) {
       // Parse player data (might be string or object)
       const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
 
+      // Check if migration requested via query param
+      const url = new URL(request.url);
+      if (url.searchParams.get('migrate') === 'true') {
+        const migrated = migrateToModeStats(player);
+        if (migrated) {
+          await kv.set(`player:${handle}`, JSON.stringify(player));
+          console.log(`✅ Migrated @${handle} via GET param`);
+        }
+      }
+
       // Return full player profile
       return new Response(JSON.stringify({
         success: true,
