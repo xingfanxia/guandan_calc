@@ -863,11 +863,26 @@ async function loadProfile(handle) {
         });
 
         // Get stats for selected mode
-        const stats = selectedMode === 'all' ? player.stats : player.stats[`stats${selectedMode}`];
+        let stats;
+        if (selectedMode === 'all') {
+          stats = player.stats;
+        } else {
+          // Check if mode stats exist (migration may not have run yet)
+          stats = player.stats[`stats${selectedMode}`];
 
-        if (!stats) {
-          console.warn(`No stats found for mode: ${selectedMode}`);
-          return;
+          if (!stats || stats.sessionsPlayed === undefined) {
+            console.log(`No ${selectedMode} data yet - showing zeros (migration pending)`);
+            // Show zeros for unmigrated mode
+            stats = {
+              sessionsPlayed: 0,
+              sessionsWon: 0,
+              sessionWinRate: 0,
+              avgRankingPerSession: 0,
+              avgRoundsPerSession: 0,
+              longestSessionRounds: 0,
+              recentRankings: []
+            };
+          }
         }
 
         // Update stats title
