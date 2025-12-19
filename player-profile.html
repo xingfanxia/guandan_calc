@@ -843,6 +843,71 @@ async function loadProfile(handle) {
       });
     }
 
+    // Setup mode tab switcher
+    const modeTabs = document.querySelectorAll('.mode-tab');
+    modeTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const selectedMode = tab.dataset.mode;
+
+        // Update active tab styling
+        modeTabs.forEach(t => {
+          if (t === tab) {
+            t.style.background = '#22c55e';
+            t.style.color = 'black';
+            t.classList.add('active');
+          } else {
+            t.style.background = '#333';
+            t.style.color = 'white';
+            t.classList.remove('active');
+          }
+        });
+
+        // Get stats for selected mode
+        const stats = selectedMode === 'all' ? player.stats : player.stats[`stats${selectedMode}`];
+
+        if (!stats) {
+          console.warn(`No stats found for mode: ${selectedMode}`);
+          return;
+        }
+
+        // Update stats title
+        const statsTitle = document.getElementById('statsTitle');
+        if (statsTitle) {
+          const modeLabel = {
+            'all': '全部模式',
+            '4P': '4人模式',
+            '6P': '6人模式',
+            '8P': '8人模式'
+          }[selectedMode];
+          statsTitle.textContent = `📊 生涯统计 (${modeLabel})`;
+        }
+
+        // Update stat values (reuse existing DOM elements)
+        const statValues = document.querySelectorAll('.stat-value');
+        const statData = [
+          stats.sessionsPlayed || stats.gamesPlayed || 0,
+          stats.sessionsWon || stats.wins || 0,
+          ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%',
+          (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2),
+          Math.round(stats.avgRoundsPerSession || 30),
+          stats.longestSessionRounds || 0
+        ];
+
+        statValues.forEach((el, i) => {
+          if (statData[i] !== undefined) {
+            el.textContent = statData[i];
+          }
+        });
+
+        // Update recent rankings chart with mode-specific data
+        if (stats.recentRankings) {
+          renderRecentRankingsChart(stats.recentRankings);
+        }
+
+        console.log(`Switched to ${selectedMode} mode:`, stats);
+      });
+    });
+
   } catch (error) {
     console.error('Failed to load profile:', error);
     document.getElementById('profileContent').innerHTML = `
