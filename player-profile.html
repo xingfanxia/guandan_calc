@@ -648,27 +648,27 @@ async function loadProfile(handle) {
         <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏场次 (完整对局)</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <span class="stat-value">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</span>
+            <span class="stat-value" id="statSessions">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</span>
             <span class="stat-label">游戏场次</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.sessionsWon || player.stats.wins || 0}</span>
+            <span class="stat-value" id="statWins">${player.stats.sessionsWon || player.stats.wins || 0}</span>
             <span class="stat-label">获胜场次</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
+            <span class="stat-value" id="statWinRate">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
             <span class="stat-label">胜率</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</span>
+            <span class="stat-value" id="statAvgRank">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</span>
             <span class="stat-label">场均排名</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${Math.round(player.stats.avgRoundsPerSession || 30)}</span>
+            <span class="stat-value" id="statAvgRounds">${Math.round(player.stats.avgRoundsPerSession || 30)}</span>
             <span class="stat-label">场均局数</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.longestSessionRounds || 0}</span>
+            <span class="stat-value" id="statLongestRounds">${player.stats.longestSessionRounds || 0}</span>
             <span class="stat-label">最长局数</span>
           </div>
           <div class="stat-item">
@@ -882,22 +882,13 @@ async function loadProfile(handle) {
           statsTitle.textContent = `📊 生涯统计 (${modeLabel})`;
         }
 
-        // Update stat values (reuse existing DOM elements)
-        const statValues = document.querySelectorAll('.stat-value');
-        const statData = [
-          stats.sessionsPlayed || stats.gamesPlayed || 0,
-          stats.sessionsWon || stats.wins || 0,
-          ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%',
-          (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2),
-          Math.round(stats.avgRoundsPerSession || 30),
-          stats.longestSessionRounds || 0
-        ];
-
-        statValues.forEach((el, i) => {
-          if (statData[i] !== undefined) {
-            el.textContent = statData[i];
-          }
-        });
+        // Update stat values using specific IDs
+        document.getElementById('statSessions').textContent = stats.sessionsPlayed || stats.gamesPlayed || 0;
+        document.getElementById('statWins').textContent = stats.sessionsWon || stats.wins || 0;
+        document.getElementById('statWinRate').textContent = ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%';
+        document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
+        document.getElementById('statAvgRounds').textContent = Math.round(stats.avgRoundsPerSession || 30);
+        document.getElementById('statLongestRounds').textContent = stats.longestSessionRounds || 0;
 
         // Update recent rankings chart with mode-specific data
         if (stats.recentRankings) {
