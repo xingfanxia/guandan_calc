@@ -602,6 +602,15 @@ async function loadProfile(handle) {
     const result = await getPlayer(handle);
     const player = result.player;
 
+    // DEBUG: Check if migration data exists
+    console.log('Player data loaded:', {
+      handle: player.handle,
+      hasStats4P: !!player.stats.stats4P,
+      hasStats8P: !!player.stats.stats8P,
+      stats8P_sessions: player.stats.stats8P?.sessionsPlayed,
+      modeBreakdown: player.stats.modeBreakdown
+    });
+
     const topHonors = Object.entries(player.stats.honors)
       .filter(([_, count]) => count > 0)
       .sort((a, b) => b[1] - a[1])
