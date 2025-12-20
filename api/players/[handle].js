@@ -47,10 +47,11 @@ function checkAchievements(stats, lastSession = null) {
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
+  // TEMP: Final fix for time stats initialization
   // Check if already migrated
-  if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-    return false; // Already migrated
-  }
+  // if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+  //   return false; // Already migrated
+  // }
 
   console.log(`Migrating historical games for @${player.handle}`);
 
@@ -105,8 +106,8 @@ function migrateToModeStats(player) {
 
       // Update time tracking
       if (game.duration) {
-        modeStats.totalPlayTimeSeconds += game.duration;
-        if (game.duration > modeStats.longestSessionSeconds) {
+        modeStats.totalPlayTimeSeconds = (modeStats.totalPlayTimeSeconds || 0) + game.duration;
+        if (game.duration > (modeStats.longestSessionSeconds || 0)) {
           modeStats.longestSessionSeconds = game.duration;
         }
         modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
