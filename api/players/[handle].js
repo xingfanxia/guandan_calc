@@ -47,7 +47,7 @@ function checkAchievements(stats, lastSession = null) {
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
-  // TEMP: Force re-migration to add time stats
+  // TEMP: Force final re-migration with full aggregation
   // Check if already migrated
   // if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
   //   return false; // Already migrated
@@ -142,21 +142,90 @@ function migrateToModeStats(player) {
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
 
-    // Update overall stats by aggregating from mode-specific stats
-    player.stats.totalPlayTimeSeconds =
-      (player.stats.stats4P?.totalPlayTimeSeconds || 0) +
-      (player.stats.stats6P?.totalPlayTimeSeconds || 0) +
-      (player.stats.stats8P?.totalPlayTimeSeconds || 0);
+    // ===== AGGREGATE ALL STATS FROM MODE-SPECIFIC TO OVERALL =====
+    const s4 = player.stats.stats4P || {};
+    const s6 = player.stats.stats6P || {};
+    const s8 = player.stats.stats8P || {};
 
-    player.stats.longestSessionSeconds = Math.max(
-      player.stats.stats4P?.longestSessionSeconds || 0,
-      player.stats.stats6P?.longestSessionSeconds || 0,
-      player.stats.stats8P?.longestSessionSeconds || 0
+    // Session stats (sum across modes)
+    player.stats.sessionsPlayed = (s4.sessionsPlayed || 0) + (s6.sessionsPlayed || 0) + (s8.sessionsPlayed || 0);
+    player.stats.sessionsWon = (s4.sessionsWon || 0) + (s6.sessionsWon || 0) + (s8.sessionsWon || 0);
+    player.stats.sessionWinRate = player.stats.sessionsPlayed > 0
+      ? player.stats.sessionsWon / player.stats.sessionsPlayed
+      : 0;
+
+    // Avg ranking per session (weighted average)
+    const totalRankingSum =
+      (s4.avgRankingPerSession || 0) * (s4.sessionsPlayed || 0) +
+      (s6.avgRankingPerSession || 0) * (s6.sessionsPlayed || 0) +
+      (s8.avgRankingPerSession || 0) * (s8.sessionsPlayed || 0);
+    player.stats.avgRankingPerSession = player.stats.sessionsPlayed > 0
+      ? totalRankingSum / player.stats.sessionsPlayed
+      : 0;
+
+    // Avg rounds per session (weighted average)
+    const totalRoundsSum =
+      (s4.avgRoundsPerSession || 0) * (s4.sessionsPlayed || 0) +
+      (s6.avgRoundsPerSession || 0) * (s6.sessionsPlayed || 0) +
+      (s8.avgRoundsPerSession || 0) * (s8.sessionsPlayed || 0);
+    player.stats.avgRoundsPerSession = player.stats.sessionsPlayed > 0
+      ? totalRoundsSum / player.stats.sessionsPlayed
+      : 0;
+
+    // Longest session (max across modes)
+    player.stats.longestSessionRounds = Math.max(
+      s4.longestSessionRounds || 0,
+      s6.longestSessionRounds || 0,
+      s8.longestSessionRounds || 0
     );
 
-    if (player.stats.sessionsPlayed > 0) {
-      player.stats.avgSessionSeconds = player.stats.totalPlayTimeSeconds / player.stats.sessionsPlayed;
-    }
+    // Round stats (sum across modes)
+    player.stats.roundsPlayed = (s4.roundsPlayed || 0) + (s6.roundsPlayed || 0) + (s8.roundsPlayed || 0);
+    const totalRoundRankSum =
+      (s4.avgRankingPerRound || 0) * (s4.roundsPlayed || 0) +
+      (s6.avgRankingPerRound || 0) * (s6.roundsPlayed || 0) +
+      (s8.avgRankingPerRound || 0) * (s8.roundsPlayed || 0);
+    player.stats.avgRankingPerRound = player.stats.roundsPlayed > 0
+      ? totalRoundRankSum / player.stats.roundsPlayed
+      : 0;
+
+    // Time stats (sum and max)
+    player.stats.totalPlayTimeSeconds =
+      (s4.totalPlayTimeSeconds || 0) +
+      (s6.totalPlayTimeSeconds || 0) +
+      (s8.totalPlayTimeSeconds || 0);
+
+    player.stats.longestSessionSeconds = Math.max(
+      s4.longestSessionSeconds || 0,
+      s6.longestSessionSeconds || 0,
+      s8.longestSessionSeconds || 0
+    );
+
+    player.stats.avgSessionSeconds = player.stats.sessionsPlayed > 0
+      ? player.stats.totalPlayTimeSeconds / player.stats.sessionsPlayed
+      : 0;
+
+    // Streaks (use overall, not mode-specific)
+    // Current streaks are per-mode, overall tracks the latest game across all modes
+    // For now, use the most recent mode's streak (can enhance later)
+    const modes = ['4P', '6P', '8P'];
+    let maxLongestWin = 0;
+    let maxLongestLoss = 0;
+    modes.forEach(mode => {
+      const mStats = player.stats[`stats${mode}`];
+      if (mStats) {
+        maxLongestWin = Math.max(maxLongestWin, mStats.longestWinStreak || 0);
+        maxLongestLoss = Math.max(maxLongestLoss, mStats.longestLossStreak || 0);
+      }
+    });
+    player.stats.longestWinStreak = maxLongestWin;
+    player.stats.longestLossStreak = maxLongestLoss;
+
+    // Legacy fields (for backward compat)
+    player.stats.gamesPlayed = player.stats.sessionsPlayed;
+    player.stats.wins = player.stats.sessionsWon;
+    player.stats.winRate = player.stats.sessionWinRate;
+    player.stats.avgRanking = player.stats.avgRankingPerSession;
   }
 
   return true; // Migration performed
