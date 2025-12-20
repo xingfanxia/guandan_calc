@@ -264,7 +264,23 @@ function setupModuleEventHandlers() {
                 const roomInfo = getRoomInfo();
                 const allPlayers = getPlayers();
                 const sessionStats = state.getPlayerStats();
-                syncProfileStats(applyResult.historyEntry, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
+
+                // Calculate session duration from room timestamps if available
+                let sessionDuration = applyResult.historyEntry.sessionDuration || 0;
+                if (roomInfo.createdAt && roomInfo.finishedAt) {
+                  sessionDuration = Math.floor(
+                    (new Date(roomInfo.finishedAt).getTime() - new Date(roomInfo.createdAt).getTime()) / 1000
+                  );
+                  console.log(`✅ Calculated session duration from room: ${sessionDuration}s`);
+                }
+
+                // Update history entry with calculated duration
+                const historyWithDuration = {
+                  ...applyResult.historyEntry,
+                  sessionDuration
+                };
+
+                syncProfileStats(historyWithDuration, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
               }, 2000); // Wait 2 seconds for voting
             }
           }

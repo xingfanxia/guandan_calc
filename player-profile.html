@@ -235,16 +235,25 @@ function viewProfile(handle) {
   window.location.href = '/player-profile.html?handle=' + handle;
 }
 
+// Store chart instances to destroy before re-creating
+let recentRankingsChartInstance = null;
+
 function renderRecentRankingsChart(recentRankings) {
   const canvas = document.getElementById('recentRankingsChart');
   if (!canvas || !recentRankings || recentRankings.length === 0) return;
 
+  // Destroy existing chart before creating new one
+  if (recentRankingsChartInstance) {
+    recentRankingsChartInstance.destroy();
+    recentRankingsChartInstance = null;
+  }
+
   const ctx = canvas.getContext('2d');
-  
+
   // Reverse so oldest is on the left, newest on the right
   const rankings = [...recentRankings].reverse();
-  
-  new Chart(ctx, {
+
+  recentRankingsChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels: rankings.map((_, i) => `第${i + 1}场`),
