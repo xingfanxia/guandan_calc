@@ -68,8 +68,10 @@ function migrateToModeStats(player) {
   // Note: recentGames is stored newest-first, so reverse for chronological replay
   if (player.recentGames && Array.isArray(player.recentGames)) {
     const gamesOldestFirst = [...player.recentGames].reverse();
+    const overallRecentRankings = player.stats.recentRankings || [];
+    const rankingsByMode = { '4P': [], '6P': [], '8P': [] }; // Collect rankings per mode
 
-    gamesOldestFirst.forEach(game => {
+    gamesOldestFirst.forEach((game, gameIndex) => {
       const mode = game.mode; // '4P', '6P', '8P'
       if (!mode) return; // Skip if no mode info
 
@@ -139,6 +141,22 @@ function migrateToModeStats(player) {
     });
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
+
+    // Update overall stats by aggregating from mode-specific stats
+    player.stats.totalPlayTimeSeconds =
+      (player.stats.stats4P?.totalPlayTimeSeconds || 0) +
+      (player.stats.stats6P?.totalPlayTimeSeconds || 0) +
+      (player.stats.stats8P?.totalPlayTimeSeconds || 0);
+
+    player.stats.longestSessionSeconds = Math.max(
+      player.stats.stats4P?.longestSessionSeconds || 0,
+      player.stats.stats6P?.longestSessionSeconds || 0,
+      player.stats.stats8P?.longestSessionSeconds || 0
+    );
+
+    if (player.stats.sessionsPlayed > 0) {
+      player.stats.avgSessionSeconds = player.stats.totalPlayTimeSeconds / player.stats.sessionsPlayed;
+    }
   }
 
   return true; // Migration performed
