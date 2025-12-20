@@ -870,6 +870,13 @@ async function loadProfile(handle) {
           // Check if mode stats exist (migration may not have run yet)
           stats = player.stats[`stats${selectedMode}`];
 
+          console.log(`Checking ${selectedMode}:`, {
+            exists: !!stats,
+            hasSessionsPlayed: stats?.sessionsPlayed !== undefined,
+            sessionsValue: stats?.sessionsPlayed,
+            fullStats: stats
+          });
+
           if (!stats || stats.sessionsPlayed === undefined) {
             console.log(`No ${selectedMode} data yet - showing zeros (migration pending)`);
             // Show zeros for unmigrated mode
