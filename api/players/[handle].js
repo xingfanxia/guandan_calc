@@ -88,7 +88,11 @@ function migrateToModeStats(player) {
         modeStats.roundsPlayed += game.rounds;
         const prevRoundsTotal = modeStats.avgRoundsPerSession * (modeStats.sessionsPlayed - 1);
         modeStats.avgRoundsPerSession = (prevRoundsTotal + game.rounds) / modeStats.sessionsPlayed;
-        
+
+        // Update avgRankingPerRound (weighted by rounds in this session)
+        const prevRoundRankTotal = modeStats.avgRankingPerRound * (modeStats.roundsPlayed - game.rounds);
+        modeStats.avgRankingPerRound = (prevRoundRankTotal + (game.ranking * game.rounds)) / modeStats.roundsPlayed;
+
         if (game.rounds > modeStats.longestSessionRounds) {
           modeStats.longestSessionRounds = game.rounds;
         }
