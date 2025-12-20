@@ -944,8 +944,13 @@ async function loadProfile(handle) {
         document.getElementById('statAvgTime').textContent = formatDuration(stats.avgSessionSeconds || 0);
 
         // Update recent rankings chart with mode-specific data
-        if (stats.recentRankings) {
+        const chartContainer = document.getElementById('recentRankingsChart')?.closest('div');
+        if (stats.recentRankings && stats.recentRankings.length > 0) {
+          if (chartContainer) chartContainer.style.display = 'block';
           renderRecentRankingsChart(stats.recentRankings);
+        } else {
+          // Hide chart if no data for this mode
+          if (chartContainer) chartContainer.style.display = 'none';
         }
 
         console.log(`Switched to ${selectedMode} mode:`, stats);
