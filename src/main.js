@@ -336,6 +336,7 @@ function setupModuleEventHandlers() {
 
   onEvent('player:updated', () => {
     renderPlayers();
+    attachTouchHandlersToAllTiles();
     renderStatistics();
   });
 
