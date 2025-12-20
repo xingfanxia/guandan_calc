@@ -672,7 +672,7 @@ async function loadProfile(handle) {
             <span class="stat-label">最长局数</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.currentWinStreak}</span>
+            <span class="stat-value" id="statCurrentStreak">${player.stats.currentWinStreak || 0}</span>
             <span class="stat-label">当前连胜</span>
           </div>
         </div>
@@ -904,17 +904,20 @@ async function loadProfile(handle) {
           statsTitle.textContent = `📊 生涯统计 (${modeLabel})`;
         }
 
-        // Update session stats
-        document.getElementById('statSessions').textContent = stats.sessionsPlayed || stats.gamesPlayed || 0;
+        // Update session stats (NO fallback defaults for mode-specific!)
+        const sessions = stats.sessionsPlayed || stats.gamesPlayed || 0;
+        document.getElementById('statSessions').textContent = sessions;
         document.getElementById('statWins').textContent = stats.sessionsWon || stats.wins || 0;
         document.getElementById('statWinRate').textContent = ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%';
         document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
-        document.getElementById('statAvgRounds').textContent = Math.round(stats.avgRoundsPerSession || 30);
+        // Only use 30 default if overall mode, otherwise use actual value
+        document.getElementById('statAvgRounds').textContent = selectedMode === 'all' ? Math.round(stats.avgRoundsPerSession || 30) : Math.round(stats.avgRoundsPerSession || 0);
         document.getElementById('statLongestRounds').textContent = stats.longestSessionRounds || 0;
+        document.getElementById('statCurrentStreak').textContent = stats.currentWinStreak || 0;
 
-        // Update round stats
+        // Update round stats (use 0 if no data)
         document.getElementById('statRounds').textContent = stats.roundsPlayed || 0;
-        document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || stats.avgRanking || 0).toFixed(2);
+        document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || 0).toFixed(2);
         document.getElementById('statWinStreak').textContent = stats.longestWinStreak || 0;
 
         // Update time stats
