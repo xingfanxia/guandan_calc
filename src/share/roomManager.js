@@ -188,22 +188,24 @@ function loadRoomData(roomData) {
     // Load history (use setHistory to avoid emitting individual historyAdded events)
     if (s.history && Array.isArray(s.history)) {
       state.setHistory(s.history);
-
-      // Check if latest history entry is an A-level victory
-      if (s.history.length > 0) {
-        const latestGame = s.history[s.history.length - 1];
-
-        // Check if this is an A-level victory (aNote contains "通关")
-        if (latestGame.aNote && latestGame.aNote.includes('通关')) {
-          emit('game:victoryForVoting', { teamName: latestGame.win });
-        }
-      }
     }
   }
 
-  // Load players
+  // Load players FIRST (before emitting victory event!)
   if (roomData.players) {
     state.setPlayers(roomData.players);
+  }
+
+  // THEN check for A-level victory and emit (after players are loaded)
+  if (roomData.state && roomData.state.history && Array.isArray(roomData.state.history)) {
+    if (roomData.state.history.length > 0) {
+      const latestGame = roomData.state.history[roomData.state.history.length - 1];
+
+      // Check if this is an A-level victory (aNote contains "通关")
+      if (latestGame.aNote && latestGame.aNote.includes('通关')) {
+        emit('game:victoryForVoting', { teamName: latestGame.win });
+      }
+    }
   }
 
   // Load stats
