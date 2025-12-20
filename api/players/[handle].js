@@ -47,11 +47,10 @@ function checkAchievements(stats, lastSession = null) {
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
-  // TEMP: Force final migration with working time stats
   // Check if already migrated
-  // if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-  //   return false; // Already migrated
-  // }
+  if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+    return false; // Already migrated
+  }
 
   console.log(`Migrating historical games for @${player.handle}`);
 
