@@ -47,10 +47,11 @@ function checkAchievements(stats, lastSession = null) {
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
+  // TEMP: Force final recentRankings fix
   // Check if already migrated
-  if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-    return false; // Already migrated
-  }
+  // if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+  //   return false; // Already migrated
+  // }
 
   console.log(`Migrating historical games for @${player.handle}`);
 
@@ -112,12 +113,12 @@ function migrateToModeStats(player) {
         modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
       }
 
-      // Add to recent rankings (keep last 10 per mode)
-      if (!modeStats.recentRankings) modeStats.recentRankings = [];
-      const relativeRank = game.relativeRank || Math.round(game.ranking);
-      modeStats.recentRankings.push(relativeRank);
-      if (modeStats.recentRankings.length > 10) {
-        modeStats.recentRankings = modeStats.recentRankings.slice(-10);
+      // Add to recent rankings per mode (collect, will trim to 10 later)
+      // Use overall recentRankings at corresponding index (they're in same order)
+      const rankingIndex = player.recentGames.length - 1 - gameIndex; // Convert to index in original array
+      const ranking = overallRecentRankings[rankingIndex];
+      if (ranking !== undefined) {
+        rankingsByMode[mode].push(ranking);
       }
 
       // Update mode breakdown
@@ -138,6 +139,11 @@ function migrateToModeStats(player) {
         }
       }
     });
+
+    // Assign collected rankings to each mode (keep last 10, newest first)
+    player.stats.stats4P.recentRankings = rankingsByMode['4P'].slice(-10).reverse();
+    player.stats.stats6P.recentRankings = rankingsByMode['6P'].slice(-10).reverse();
+    player.stats.stats8P.recentRankings = rankingsByMode['8P'].slice(-10).reverse();
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
 
