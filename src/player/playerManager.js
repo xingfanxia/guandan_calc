@@ -64,9 +64,14 @@ export function generatePlayers(count, forceNew = false) {
       state.setPlayers(players);
       return players;
     }
+
+    // If no saved players and not forcing new, return empty array (use player search instead)
+    console.log('No existing players - start with empty pool (use player search to add)');
+    state.setPlayers([]);
+    return [];
   }
 
-  // Generate new players
+  // Generate new players (only when forceNew = true)
   players = [];
 
   // Shuffle emojis for variety
