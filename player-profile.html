@@ -735,6 +735,16 @@ async function loadProfile(handle) {
         ` : ''}
       </div>
 
+      <!-- Lifetime Career Stats Divider -->
+      <div style="margin: 32px 0; padding: 16px; background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%); border-radius: 12px; border: 2px solid #333;">
+        <h2 style="text-align: center; margin: 0; font-size: 20px; color: #fbbf24;">
+          ⭐ 生涯成就统计 (全模式汇总)
+        </h2>
+        <p style="text-align: center; margin: 8px 0 0 0; color: #888; font-size: 14px;">
+          以下数据为所有游戏模式的总和，不受上方模式切换影响
+        </p>
+      </div>
+
       <!-- Honor Collection -->
       <div class="card">
         <h3>🏆 荣誉收藏 (${topHonors.length > 0 ? topHonors.reduce((sum, [_, count]) => sum + count, 0) : 0} 个)</h3>
