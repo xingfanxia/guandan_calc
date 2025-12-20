@@ -680,15 +680,15 @@ async function loadProfile(handle) {
         <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">单局数据 (所有轮次)</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <span class="stat-value">${player.stats.roundsPlayed || 0}</span>
+            <span class="stat-value" id="statRounds">${player.stats.roundsPlayed || 0}</span>
             <span class="stat-label">总轮次</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</span>
+            <span class="stat-value" id="statAvgRankRound">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</span>
             <span class="stat-label">局均排名</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${player.stats.longestWinStreak}</span>
+            <span class="stat-value" id="statWinStreak">${player.stats.longestWinStreak || 0}</span>
             <span class="stat-label">最长连胜</span>
           </div>
         </div>
@@ -696,15 +696,15 @@ async function loadProfile(handle) {
         <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏时长</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <span class="stat-value">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</span>
+            <span class="stat-value" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</span>
             <span class="stat-label">总游戏时长</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${formatDuration(player.stats.longestSessionSeconds || 0)}</span>
+            <span class="stat-value" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds || 0)}</span>
             <span class="stat-label">最长对局</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">${formatDuration(player.stats.avgSessionSeconds || 0)}</span>
+            <span class="stat-value" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds || 0)}</span>
             <span class="stat-label">场均时长</span>
           </div>
         </div>
@@ -904,13 +904,23 @@ async function loadProfile(handle) {
           statsTitle.textContent = `📊 生涯统计 (${modeLabel})`;
         }
 
-        // Update stat values using specific IDs
+        // Update session stats
         document.getElementById('statSessions').textContent = stats.sessionsPlayed || stats.gamesPlayed || 0;
         document.getElementById('statWins').textContent = stats.sessionsWon || stats.wins || 0;
         document.getElementById('statWinRate').textContent = ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%';
         document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
         document.getElementById('statAvgRounds').textContent = Math.round(stats.avgRoundsPerSession || 30);
         document.getElementById('statLongestRounds').textContent = stats.longestSessionRounds || 0;
+
+        // Update round stats
+        document.getElementById('statRounds').textContent = stats.roundsPlayed || 0;
+        document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || stats.avgRanking || 0).toFixed(2);
+        document.getElementById('statWinStreak').textContent = stats.longestWinStreak || 0;
+
+        // Update time stats
+        document.getElementById('statTotalTime').textContent = formatDuration(stats.totalPlayTimeSeconds || 0);
+        document.getElementById('statLongestTime').textContent = formatDuration(stats.longestSessionSeconds || 0);
+        document.getElementById('statAvgTime').textContent = formatDuration(stats.avgSessionSeconds || 0);
 
         // Update recent rankings chart with mode-specific data
         if (stats.recentRankings) {
