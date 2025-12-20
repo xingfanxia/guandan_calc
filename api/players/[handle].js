@@ -106,11 +106,16 @@ function migrateToModeStats(player) {
 
       // Update time tracking
       if (game.duration) {
-        modeStats.totalPlayTimeSeconds = (modeStats.totalPlayTimeSeconds || 0) + game.duration;
+        const before = modeStats.totalPlayTimeSeconds || 0;
+        modeStats.totalPlayTimeSeconds = before + game.duration;
+        console.log(`[${mode}] Time: ${before} + ${game.duration} = ${modeStats.totalPlayTimeSeconds}`);
+
         if (game.duration > (modeStats.longestSessionSeconds || 0)) {
           modeStats.longestSessionSeconds = game.duration;
         }
         modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
+      } else {
+        console.log(`[${mode}] No duration for game`);
       }
 
       // Add to recent rankings per mode (collect, will trim to 10 later)
