@@ -73,10 +73,18 @@ function migrateToModeStats(player) {
 
     gamesOldestFirst.forEach((game, gameIndex) => {
       const mode = game.mode; // '4P', '6P', '8P'
-      if (!mode) return; // Skip if no mode info
+      if (!mode) {
+        console.log(`Skipping game ${gameIndex}: no mode`);
+        return;
+      }
 
       const modeStats = player.stats[`stats${mode}`];
-      if (!modeStats) return; // Safety check
+      if (!modeStats) {
+        console.log(`Skipping game ${gameIndex}: no stats for ${mode}`);
+        return;
+      }
+
+      console.log(`Processing game ${gameIndex}: ${mode}, room=${game.roomCode}, duration=${game.duration}`);
 
       // Increment session counter
       modeStats.sessionsPlayed++;
@@ -151,6 +159,7 @@ function migrateToModeStats(player) {
     player.stats.stats8P.recentRankings = rankingsByMode['8P'].slice(-10).reverse();
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
+    console.log(`Time stats BEFORE aggregation: 6P=${player.stats.stats6P?.totalPlayTimeSeconds}, 8P=${player.stats.stats8P?.totalPlayTimeSeconds}`);
 
     // ===== AGGREGATE ALL STATS FROM MODE-SPECIFIC TO OVERALL =====
     const s4 = player.stats.stats4P || {};
