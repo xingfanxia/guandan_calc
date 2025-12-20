@@ -47,10 +47,11 @@ function checkAchievements(stats, lastSession = null) {
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
+  // TEMP: Force re-migration to add streak stats
   // Check if already migrated
-  if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-    return false; // Already migrated
-  }
+  // if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+  //   return false; // Already migrated
+  // }
 
   console.log(`Migrating historical games for @${player.handle}`);
 
@@ -64,8 +65,11 @@ function migrateToModeStats(player) {
   player.stats.modeBreakdown = { '4P': 0, '6P': 0, '8P': 0 };
 
   // Replay recent games to populate mode stats
+  // Note: recentGames is stored newest-first, so reverse for chronological replay
   if (player.recentGames && Array.isArray(player.recentGames)) {
-    player.recentGames.forEach(game => {
+    const gamesOldestFirst = [...player.recentGames].reverse();
+
+    gamesOldestFirst.forEach(game => {
       const mode = game.mode; // '4P', '6P', '8P'
       if (!mode) return; // Skip if no mode info
 
@@ -117,6 +121,21 @@ function migrateToModeStats(player) {
 
       // Update mode breakdown
       player.stats.modeBreakdown[mode]++;
+
+      // Update win/loss streaks (calculate from game outcomes in chronological order)
+      if (game.teamWon) {
+        modeStats.currentWinStreak = (modeStats.currentWinStreak || 0) + 1;
+        modeStats.currentLossStreak = 0;
+        if (modeStats.currentWinStreak > (modeStats.longestWinStreak || 0)) {
+          modeStats.longestWinStreak = modeStats.currentWinStreak;
+        }
+      } else {
+        modeStats.currentLossStreak = (modeStats.currentLossStreak || 0) + 1;
+        modeStats.currentWinStreak = 0;
+        if (modeStats.currentLossStreak > (modeStats.longestLossStreak || 0)) {
+          modeStats.longestLossStreak = modeStats.currentLossStreak;
+        }
+      }
     });
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
