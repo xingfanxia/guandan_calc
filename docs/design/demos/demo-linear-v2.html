@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guandan · Console — Active Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     LINEAR / VERCEL CONSOLE — v2 (active game hero)
+     Palette: deep neutral oklch(14% 0.008 270) base
+     Surfaces stay near-equal lightness (14/18/22/26%)
+     Depth via 1px borders, single Linear-purple accent
+     ========================================================= */
+  :root{
+    /* surfaces — near equal lightness, depth via borders */
+    --bg: oklch(14% 0.008 270);
+    --surface: oklch(18% 0.008 270);
+    --surface-2: oklch(22% 0.008 270);
+    --surface-3: oklch(26% 0.008 270);
+    /* ink */
+    --ink: oklch(95% 0.005 270);
+    --ink-dim: oklch(68% 0.005 270);
+    --ink-dimmer: oklch(48% 0.005 270);
+    --ink-faint: oklch(34% 0.005 270);
+    /* single accent — Linear purple */
+    --accent: oklch(70% 0.20 280);
+    --accent-dim: oklch(45% 0.15 280);
+    --accent-bg: oklch(22% 0.04 280);
+    --accent-glow: oklch(60% 0.18 280);
+    /* teams */
+    --team-a: oklch(64% 0.20 25);
+    --team-a-dim: oklch(40% 0.15 25);
+    --team-a-bg: oklch(20% 0.04 25);
+    --team-b: oklch(64% 0.18 250);
+    --team-b-dim: oklch(40% 0.13 250);
+    --team-b-bg: oklch(20% 0.04 250);
+    /* status */
+    --win: oklch(72% 0.18 145);
+    --win-dim: oklch(45% 0.13 145);
+    --win-bg: oklch(20% 0.04 145);
+    --loss: oklch(64% 0.20 25);
+    /* rules */
+    --rule: oklch(26% 0.008 270);
+    --rule-strong: oklch(38% 0.008 270);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{
+    background:var(--bg); color:var(--ink);
+    font-family:'Geist',system-ui,sans-serif; font-size:14px; line-height:1.5;
+    -webkit-font-smoothing:antialiased; font-feature-settings:'cv11','ss01';
+  }
+  .mono{font-family:'Geist Mono',monospace; font-variant-numeric:tabular-nums}
+
+  /* ===== LAYOUT ===== */
+  .app{display:grid; grid-template-columns:240px 1fr; max-width:1440px; min-height:100vh; margin:0 auto}
+
+  /* ===== SIDEBAR ===== */
+  .sidebar{background:var(--bg); border-right:1px solid var(--rule); padding:16px 12px; position:sticky; top:0; height:100vh; display:flex; flex-direction:column}
+  .logo{display:flex; align-items:center; gap:10px; padding:6px 8px 16px; border-bottom:1px solid var(--rule); margin-bottom:14px}
+  .logo-mark{width:24px; height:24px; border-radius:6px; background:linear-gradient(135deg,var(--accent),var(--accent-dim)); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px}
+  .logo-text{font-weight:600; font-size:13px; color:var(--ink); display:flex; flex-direction:column; line-height:1.2}
+  .logo-text small{color:var(--ink-dimmer); font-size:11px; font-weight:400; font-family:'Geist Mono',monospace; margin-top:2px}
+  .nav-section{padding:4px 0 8px}
+  .nav-section-label{padding:8px 8px 4px; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em; font-weight:500}
+  .nav-item{display:flex; align-items:center; justify-content:space-between; padding:7px 8px 7px 12px; border-radius:6px; color:var(--ink-dim); font-size:13px; cursor:pointer; transition:all 0.15s ease-out; margin-bottom:1px; position:relative}
+  .nav-item:hover{background:var(--surface); color:var(--ink)}
+  .nav-item.active{background:var(--surface-2); color:var(--ink); font-weight:500}
+  .nav-item.active::before{content:''; position:absolute; left:0; top:8px; bottom:8px; width:2px; background:var(--accent); border-radius:2px}
+  .nav-item-left{display:flex; align-items:center; gap:9px}
+  .nav-icon{width:14px; height:14px; opacity:0.85; color:currentColor}
+  .nav-shortcut{font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer); padding:1px 5px; background:var(--surface); border:1px solid var(--rule); border-radius:3px}
+  .nav-item.active .nav-shortcut{background:var(--surface-3); color:var(--ink-dim)}
+  .sidebar-bottom{margin-top:auto; padding-top:12px; border-top:1px solid var(--rule); display:flex; flex-direction:column; gap:4px}
+  .settings-item{display:flex; align-items:center; gap:9px; padding:7px 12px; border-radius:6px; color:var(--ink-dim); font-size:13px; cursor:pointer; transition:background 0.15s}
+  .settings-item:hover{background:var(--surface); color:var(--ink)}
+  .user-chip{display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; transition:background 0.15s}
+  .user-chip:hover{background:var(--surface)}
+  .user-avatar{width:26px; height:26px; border-radius:50%; background:linear-gradient(135deg,var(--team-a),var(--accent)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:white}
+  .user-info{display:flex; flex-direction:column; line-height:1.2; min-width:0; flex:1}
+  .user-name{font-size:12px; color:var(--ink); font-weight:500}
+  .user-handle{font-size:11px; color:var(--ink-dimmer); font-family:'Geist Mono',monospace}
+
+  /* ===== MAIN ===== */
+  .main{display:flex; flex-direction:column; min-width:0}
+
+  /* ===== COMMAND PALETTE ===== */
+  .palette-bar{padding:12px 24px; border-bottom:1px solid var(--rule); background:var(--bg); position:sticky; top:0; z-index:30; position:relative}
+  .palette-input{display:flex; align-items:center; background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:8px 12px; transition:border-color 0.2s ease-out; cursor:text}
+  .palette-input:hover, .palette-input.is-open{border-color:var(--rule-strong)}
+  .palette-input.is-open{border-color:var(--accent-dim)}
+  .palette-icon{width:14px; height:14px; color:var(--ink-dimmer); margin-right:10px}
+  .palette-text{color:var(--ink-dim); font-size:13px; flex:1}
+  .palette-text .typed{color:var(--ink); font-family:'Geist Mono',monospace}
+  .palette-cursor{display:inline-block; width:1px; height:14px; background:var(--accent); margin-left:1px; vertical-align:middle; animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .palette-kbd{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer); background:var(--surface-2); border:1px solid var(--rule-strong); border-radius:4px; padding:1px 6px}
+  .palette-dropdown{position:absolute; left:24px; right:24px; top:calc(100% - 6px); background:var(--surface); border:1px solid var(--rule-strong); border-radius:8px; box-shadow:0 16px 48px rgba(0,0,0,0.45); overflow:hidden; z-index:40}
+  .palette-section-label{padding:6px 12px; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em; background:var(--surface-2); border-bottom:1px solid var(--rule)}
+  .palette-result{display:flex; align-items:center; gap:10px; padding:8px 12px; cursor:pointer; border-bottom:1px solid var(--rule)}
+  .palette-result:last-child{border-bottom:none}
+  .palette-result:hover, .palette-result.highlighted{background:var(--surface-2)}
+  .palette-result.highlighted{box-shadow:inset 2px 0 0 var(--accent)}
+  .palette-result-icon{width:20px; height:20px; border-radius:4px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:10px; font-family:'Geist Mono',monospace; color:var(--ink-dim)}
+  .palette-result-text{flex:1; font-size:13px; color:var(--ink)}
+  .palette-result-handle, .palette-result-shortcut{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer)}
+
+  /* ===== HEADER STRIP ===== */
+  .header-strip{display:flex; align-items:center; gap:14px; padding:12px 24px; border-bottom:1px solid var(--rule); background:var(--bg); flex-wrap:wrap}
+  .header-block{display:flex; align-items:center; gap:8px}
+  .header-label{font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em}
+  .header-value{font-family:'Geist Mono',monospace; font-size:13px; color:var(--ink); font-weight:500}
+  .header-value.team-a{color:var(--team-a)}
+  .header-divider{width:1px; height:14px; background:var(--rule)}
+  .sync-indicator{display:flex; align-items:center; gap:6px; margin-left:auto}
+  .sync-dot{width:6px; height:6px; border-radius:50%; background:var(--win); box-shadow:0 0 6px var(--win); animation:pulse 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+  .sync-text{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim)}
+  .header-icon-btn{width:28px; height:28px; border-radius:6px; border:1px solid var(--rule); background:transparent; color:var(--ink-dim); display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.15s ease-out}
+  .header-icon-btn:hover{background:var(--surface); color:var(--ink)}
+
+  /* ===== CONTENT ===== */
+  .content{padding:20px 24px 32px; display:flex; flex-direction:column; gap:20px}
+
+  /* ===== MODE SELECTOR ===== */
+  .mode-row{display:flex; align-items:center; justify-content:space-between; gap:14px}
+  .mode-meta{display:flex; align-items:center; gap:10px; color:var(--ink-dim); font-size:13px}
+  .mode-meta b{color:var(--ink); font-weight:500}
+  .mode-meta-sep{color:var(--ink-faint)}
+  .segmented{display:inline-flex; background:var(--surface); border:1px solid var(--rule); border-radius:8px; padding:3px; gap:2px}
+  .seg-btn{padding:5px 14px; font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim); background:transparent; border:none; border-radius:5px; cursor:pointer; transition:all 0.15s ease-out; letter-spacing:0.02em}
+  .seg-btn:hover{color:var(--ink)}
+  .seg-btn.active{background:var(--surface-3); color:var(--ink); box-shadow:0 0 0 1px var(--rule-strong)}
+  .seg-meta{font-size:10px; color:var(--ink-dimmer); margin-left:6px; font-family:'Geist Mono',monospace; text-transform:uppercase; letter-spacing:0.06em}
+
+  /* ===== TEAM PANELS ===== */
+  .teams-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  .team-card{background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:14px}
+  .team-card.is-owner{border-color:var(--rule-strong)}
+  .team-header{display:flex; align-items:flex-start; justify-content:space-between; gap:12px}
+  .team-id{display:flex; align-items:center; gap:8px}
+  .team-color{width:8px; height:24px; border-radius:2px}
+  .team-color.a{background:var(--team-a)} .team-color.b{background:var(--team-b)}
+  .team-name{font-size:15px; font-weight:600; color:var(--ink); letter-spacing:-0.01em}
+  .team-meta{margin-top:3px; display:flex; align-items:center; gap:8px}
+  .team-meta-item{font-size:11px; color:var(--ink-dimmer); font-family:'Geist Mono',monospace}
+
+  .level-pill{display:inline-flex; align-items:center; gap:8px; padding:6px 12px 6px 10px; background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; font-family:'Geist Mono',monospace}
+  .level-pill .level-dot{width:8px; height:8px; border-radius:50%; background:var(--ink-dimmer)}
+  .level-pill.a-level{border-color:var(--win-dim)}
+  .level-pill.a-level .level-dot{background:var(--win); box-shadow:0 0 6px var(--win)}
+  .level-pill .level-rank{font-size:24px; font-weight:600; color:var(--ink); line-height:1; letter-spacing:-0.01em}
+  .level-pill.a-level .level-rank{color:var(--win)}
+  .level-pill .level-label{font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em}
+
+  /* status pills shared */
+  .status-pill{display:inline-flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px; background:var(--surface-2); border:1px solid var(--rule); font-size:11px; color:var(--ink-dim); font-family:'Geist Mono',monospace}
+  .status-pill .dot{width:6px; height:6px; border-radius:50%; background:var(--ink-dim)}
+  .status-pill.accent{color:var(--accent); border-color:var(--accent-dim); background:var(--accent-bg)}
+  .status-pill.accent .dot{background:var(--accent)}
+  .status-pill.team-a{color:var(--team-a); border-color:var(--team-a-dim); background:var(--team-a-bg)}
+  .status-pill.team-a .dot{background:var(--team-a)}
+  .status-pill.win{color:var(--win); border-color:var(--win-dim); background:var(--win-bg)}
+  .status-pill.win .dot{background:var(--win)}
+
+  .roster{display:flex; flex-direction:column; border-top:1px solid var(--rule); margin:2px -18px 0; padding:0 18px}
+  .roster-row{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--rule); transition:background 0.15s ease-out}
+  .roster-row:last-child{border-bottom:none}
+  .roster-row:hover{background:var(--surface-2); margin:0 -18px; padding-left:18px; padding-right:18px}
+  .roster-avatar{width:32px; height:32px; border-radius:50%; background:var(--surface-3); border:1px solid var(--rule-strong); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:500; color:var(--ink-dim); flex-shrink:0}
+  .roster-name{font-size:14px; color:var(--ink); flex:1; font-weight:500}
+  .roster-handle{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dimmer)}
+
+  /* ===== ACTIVE GAME (HERO) ===== */
+  .active-section{background:var(--surface); border:1px solid var(--rule); border-radius:10px; overflow:hidden; position:relative}
+  .active-section::before{content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--accent)}
+  .active-header{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); gap:12px; flex-wrap:wrap}
+  .active-title{display:flex; align-items:center; gap:10px}
+  .active-live-dot{width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); animation:pulse 1.6s ease-in-out infinite}
+  .active-title-text{font-size:14px; font-weight:500; color:var(--ink)}
+  .active-meta{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim)}
+  .active-meta b{color:var(--ink); font-weight:500}
+  .active-meta .accent-text{color:var(--accent); font-weight:500}
+  .active-meta .team-a-text{color:var(--team-a); font-weight:500}
+
+  .active-body{padding:18px}
+
+  /* interaction annotation */
+  .interaction-hint{display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--surface-2); border:1px solid var(--rule); border-radius:6px; margin-bottom:14px; font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dim)}
+  .interaction-hint b{color:var(--ink); font-weight:500}
+  .interaction-hint .ih-icon{width:14px; height:14px; color:var(--accent)}
+  .interaction-hint .ih-divider{color:var(--ink-faint); margin:0 2px}
+  .interaction-hint .ih-kbd{font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer); background:var(--surface); border:1px solid var(--rule); border-radius:3px; padding:0 5px; line-height:14px}
+
+  /* SUB-SECTION HEADERS in active body */
+  .sub-label{display:flex; align-items:center; gap:8px; padding:0 0 8px; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em; font-family:'Geist Mono',monospace}
+  .sub-label .sub-count{color:var(--ink-dim); margin-left:auto; font-weight:500}
+
+  /* PLAYER POOL */
+  .pool-zone{margin-bottom:18px}
+  .pool-grid{display:flex; gap:10px; flex-wrap:wrap}
+  .pool-chip{display:flex; align-items:center; gap:9px; padding:8px 14px 8px 8px; background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; cursor:grab; transition:all 0.18s ease-out; position:relative; min-width:158px}
+  .pool-chip:hover{background:var(--surface-3); border-color:var(--rule-strong); transform:translateY(-1px)}
+  .pool-chip.dragging{background:var(--surface-3); border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-bg), 0 12px 32px rgba(0,0,0,0.5), 0 0 24px oklch(50% 0.18 280 / 0.35); transform:translateY(-6px) rotate(-1.2deg); cursor:grabbing; z-index:10}
+  .pool-chip.dragging::after{content:''; position:absolute; left:50%; bottom:-6px; transform:translateX(-50%); width:80%; height:8px; background:radial-gradient(ellipse, oklch(0% 0 0 / 0.4), transparent 70%); pointer-events:none}
+  .pool-chip-avatar{width:32px; height:32px; border-radius:50%; background:var(--surface-3); border:1px solid var(--rule-strong); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:500; color:var(--ink-dim); flex-shrink:0}
+  .pool-chip-avatar.team-a-bg{background:var(--team-a-bg); border-color:var(--team-a-dim); color:var(--team-a)}
+  .pool-chip-avatar.team-b-bg{background:var(--team-b-bg); border-color:var(--team-b-dim); color:var(--team-b)}
+  .pool-chip-info{display:flex; flex-direction:column; line-height:1.2; min-width:0}
+  .pool-chip-name{font-size:14px; color:var(--ink); font-weight:500}
+  .pool-chip-handle{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer); margin-top:1px}
+  .drag-cursor-pin{position:absolute; right:-2px; top:-6px; width:14px; height:14px; background:var(--accent); border:2px solid var(--bg); border-radius:50%; box-shadow:0 0 0 1px var(--accent-dim)}
+
+  /* RANKING SLOTS */
+  .slots-zone{margin-bottom:14px}
+  .slots-grid{display:grid; grid-template-columns:repeat(6, 1fr); gap:10px}
+  .slot{background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; padding:12px 10px; min-height:118px; display:flex; flex-direction:column; gap:8px; position:relative; transition:all 0.18s ease-out; overflow:hidden}
+  .slot-tag{display:flex; align-items:center; justify-content:space-between; gap:6px; font-family:'Geist Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-dimmer)}
+  .slot-tag .pos-num{font-size:14px; font-weight:600; color:var(--ink-dim); letter-spacing:0}
+  .slot-tag .pos-label{color:var(--ink-faint)}
+
+  /* slot states */
+  .slot.filled{background:var(--surface)}
+  .slot.filled.team-a{box-shadow:inset 2px 0 0 var(--team-a)}
+  .slot.filled.team-b{box-shadow:inset 2px 0 0 var(--team-b)}
+  .slot.empty{border-style:dashed; border-color:var(--rule); background:transparent}
+  .slot.drop-target{border:1.5px dashed var(--accent); background:oklch(22% 0.04 280 / 0.65); box-shadow:0 0 0 1px var(--accent-bg), inset 0 0 24px oklch(35% 0.10 280 / 0.4); animation:dropPulse 1.6s ease-in-out infinite}
+  @keyframes dropPulse{0%,100%{box-shadow:0 0 0 1px var(--accent-bg), inset 0 0 24px oklch(35% 0.10 280 / 0.35)} 50%{box-shadow:0 0 0 1px var(--accent-dim), inset 0 0 32px oklch(40% 0.12 280 / 0.55)}}
+
+  .slot-content{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px}
+  .slot-avatar{width:36px; height:36px; border-radius:50%; background:var(--surface-3); border:1px solid var(--rule-strong); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:500; color:var(--ink-dim)}
+  .slot-avatar.team-a-bg{background:var(--team-a-bg); border-color:var(--team-a-dim); color:var(--team-a)}
+  .slot-avatar.team-b-bg{background:var(--team-b-bg); border-color:var(--team-b-dim); color:var(--team-b)}
+  .slot-name{font-size:13px; color:var(--ink); font-weight:500}
+  .slot-handle{font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer)}
+  .slot-empty-text{font-size:11px; color:var(--ink-faint); text-align:center; line-height:1.4; font-family:'Geist Mono',monospace}
+  .slot-drop-text{font-size:11px; color:var(--accent); font-family:'Geist Mono',monospace; text-align:center; font-weight:500; line-height:1.3}
+  .slot-drop-icon{width:18px; height:18px; color:var(--accent); margin-bottom:2px; opacity:0.85}
+  .slot-clear{position:absolute; top:6px; right:6px; width:16px; height:16px; border-radius:3px; background:var(--surface-3); border:1px solid var(--rule); display:flex; align-items:center; justify-content:center; color:var(--ink-dimmer); cursor:pointer; opacity:0; transition:opacity 0.15s; font-family:'Geist Mono',monospace; font-size:10px; line-height:1}
+  .slot.filled:hover .slot-clear{opacity:1}
+
+  /* CALC PREVIEW */
+  .calc-preview{padding:10px 14px; background:var(--surface-2); border:1px solid var(--rule); border-radius:6px; font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim); display:flex; flex-wrap:wrap; gap:14px; align-items:center; margin-bottom:18px}
+  .calc-preview .calc-block{display:inline-flex; align-items:center; gap:6px}
+  .calc-preview .team-a-text{color:var(--team-a); font-weight:500}
+  .calc-preview .team-b-text{color:var(--team-b); font-weight:500}
+  .calc-preview .calc-sep{color:var(--ink-faint)}
+  .calc-preview .calc-pending{color:var(--accent); font-weight:500}
+  .calc-preview b{color:var(--ink); font-weight:500}
+
+  /* TOGGLES + ACTIONS */
+  .controls-row{display:grid; grid-template-columns:1fr auto; gap:18px; align-items:end; padding-top:16px; border-top:1px solid var(--rule)}
+  .toggles-grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:8px 18px}
+  .toggle-row{display:flex; align-items:center; gap:10px; padding:6px 0}
+  .toggle{width:30px; height:18px; background:var(--surface-3); border:1px solid var(--rule-strong); border-radius:10px; position:relative; cursor:pointer; flex-shrink:0; transition:background 0.15s}
+  .toggle.on{background:var(--accent-bg); border-color:var(--accent-dim)}
+  .toggle .knob{position:absolute; left:1px; top:1px; width:14px; height:14px; background:var(--ink-dim); border-radius:50%; transition:all 0.18s ease-out}
+  .toggle.on .knob{left:13px; background:var(--accent); box-shadow:0 0 6px var(--accent)}
+  .toggle-label{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim); display:flex; align-items:center; gap:8px; flex:1}
+  .toggle-label b{color:var(--ink); font-weight:500}
+  .toggle-label .toggle-aux{color:var(--ink-faint); font-size:11px}
+
+  .actions-cluster{display:flex; flex-direction:column; gap:6px; align-items:flex-end}
+  .actions-cluster-label{font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:2px}
+  .actions-row{display:flex; gap:6px}
+  .action-btn{display:inline-flex; align-items:center; gap:8px; padding:6px 12px; background:var(--surface-2); border:1px solid var(--rule); border-radius:6px; font-size:12px; color:var(--ink-dim); cursor:pointer; transition:all 0.15s ease-out; font-family:'Geist',sans-serif}
+  .action-btn:hover{background:var(--surface-3); color:var(--ink); border-color:var(--rule-strong)}
+  .action-btn.is-primary{background:var(--accent-bg); border-color:var(--accent-dim); color:var(--accent)}
+  .action-btn.is-primary:hover{background:oklch(28% 0.08 280); border-color:var(--accent)}
+  .action-btn.is-quiet{opacity:0.65}
+  .action-btn .action-kbd{font-family:'Geist Mono',monospace; font-size:10px; color:currentColor; opacity:0.55; background:transparent; border:1px solid currentColor; border-radius:3px; padding:0 5px; line-height:14px}
+
+  /* ===== SECTION SHELL (used for history, honors, custom rules, etc) ===== */
+  .section{background:var(--surface); border:1px solid var(--rule); border-radius:10px; overflow:hidden}
+  .section-header{display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--rule); gap:12px}
+  .section-title{display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; color:var(--ink)}
+  .section-title-meta{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dimmer)}
+  .section-actions{display:flex; align-items:center; gap:8px}
+  .small-btn{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; background:var(--surface-2); border:1px solid var(--rule); border-radius:6px; font-size:12px; color:var(--ink-dim); cursor:pointer; transition:all 0.15s ease-out}
+  .small-btn:hover{background:var(--surface-3); color:var(--ink); border-color:var(--rule-strong)}
+  .kbd-hint{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer); background:var(--surface); border:1px solid var(--rule); border-radius:3px; padding:0 5px; line-height:14px}
+
+  /* CUSTOM RULES PANEL (compact preview) */
+  .rules-section .rules-body{padding:14px 18px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px}
+  .rules-mode{padding:12px 14px; background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; display:flex; flex-direction:column; gap:6px}
+  .rules-mode-tag{display:inline-flex; align-items:center; gap:6px; font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em}
+  .rules-mode-tag.active{color:var(--accent)}
+  .rules-mode-tag .tag-dot{width:5px; height:5px; border-radius:50%; background:var(--ink-dimmer)}
+  .rules-mode-tag.active .tag-dot{background:var(--accent); box-shadow:0 0 4px var(--accent)}
+  .rules-mode-line{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim); display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; line-height:1.5}
+  .rules-mode-line .key{color:var(--ink-faint)}
+  .rules-mode-line .val{color:var(--ink); font-weight:500}
+  .rules-mode-line .arrow{color:var(--ink-dimmer)}
+  .rules-mode-line .hi{color:var(--accent); font-weight:500}
+
+  /* ===== HISTORY TABLE ===== */
+  table{width:100%; border-collapse:collapse}
+  th{text-align:left; padding:8px 18px; font-size:11px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.06em; font-weight:500; background:var(--surface-2); border-bottom:1px solid var(--rule)}
+  th.right, td.right{text-align:right}
+  td{padding:10px 18px; border-bottom:1px solid var(--rule); font-size:13px}
+  tr:last-child td{border-bottom:none}
+
+  .history-table tbody tr{position:relative; transition:background 0.15s; color:var(--ink-dim); font-family:'Geist Mono',monospace}
+  .history-table tbody tr:hover{background:var(--surface-2); color:var(--ink)}
+  .history-table tr.current{background:var(--accent-bg) !important; color:var(--ink)}
+  .history-table tr.current td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+  .history-round-num{color:var(--ink-dimmer)}
+  .history-table tr.current .history-round-num{color:var(--accent); font-weight:500}
+  .history-level{display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; border-radius:4px; background:var(--surface-2); border:1px solid var(--rule); font-size:11px; font-weight:500; color:var(--ink-dim)}
+  .history-level.a{color:var(--win); border-color:var(--win-dim); background:var(--win-bg)}
+  .history-winner-a{color:var(--team-a); font-weight:500}
+  .history-winner-b{color:var(--team-b); font-weight:500}
+  .history-winner-pending{color:var(--ink-faint)}
+  .history-status{display:inline-flex; align-items:center; gap:5px; padding:2px 6px; border-radius:3px; font-size:11px; font-weight:500; border:1px solid var(--rule); background:var(--surface-2); white-space:nowrap}
+  .history-status.no-up{color:var(--ink-faint)}
+  .history-status.upgrade{color:var(--win); border-color:var(--win-dim); background:var(--win-bg)}
+  .history-status.in-progress{color:var(--accent); border-color:var(--accent-dim); background:var(--accent-bg)}
+  .history-status.in-progress .dot{width:5px; height:5px; border-radius:50%; background:var(--accent); animation:pulse 1.6s ease-in-out infinite}
+
+  /* ===== HONORS GALLERY ===== */
+  .honors-grid{display:grid; grid-template-columns:repeat(2, 1fr); gap:0; padding:0}
+  .honor-row{display:flex; align-items:center; gap:14px; padding:11px 18px; border-bottom:1px solid var(--rule); transition:background 0.15s; cursor:pointer}
+  .honor-row:nth-child(odd){border-right:1px solid var(--rule)}
+  .honor-row:hover{background:var(--surface-2)}
+  .honor-pill{display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:4px; background:var(--surface-2); border:1px solid var(--rule-strong); font-size:12px; color:var(--ink); font-weight:500; flex-shrink:0; min-width:78px; justify-content:flex-start}
+  .honor-pill .pill-dot{width:6px; height:6px; border-radius:50%}
+  .honor-pill.gold .pill-dot{background:oklch(75% 0.15 80)}
+  .honor-pill.purple .pill-dot{background:var(--accent)}
+  .honor-pill.red .pill-dot{background:var(--team-a)}
+  .honor-pill.blue .pill-dot{background:var(--team-b)}
+  .honor-pill.green .pill-dot{background:var(--win)}
+  .honor-pill.grey .pill-dot{background:var(--ink-dimmer)}
+  .honor-pill.pending{color:var(--ink-dimmer); border-style:dashed; border-color:var(--rule)}
+  .honor-pill.pending .pill-dot{background:var(--ink-faint)}
+  .honor-stat{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dim); flex:1; line-height:1.4}
+  .honor-stat strong{color:var(--ink); font-weight:500}
+  .honor-stat .pending-text{color:var(--ink-faint)}
+  .honor-leader{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); flex-shrink:0}
+  .honor-leader .team-dot{width:5px; height:5px; border-radius:50%; flex-shrink:0}
+  .honor-leader .team-dot.a{background:var(--team-a)} .honor-leader .team-dot.b{background:var(--team-b)}
+  .honor-leader .handle{font-family:'Geist Mono',monospace; color:var(--ink-dimmer); font-size:11px; margin-left:2px}
+  .honor-progress{display:inline-flex; align-items:center; gap:5px; padding:1px 7px; border-radius:3px; background:var(--surface-2); border:1px solid var(--rule); font-family:'Geist Mono',monospace; font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.06em; flex-shrink:0}
+
+  /* ===== SAMPLE VICTORY ===== */
+  .sample-card{background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:14px 18px; display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; position:relative; overflow:hidden}
+  .sample-card::before{content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--win)}
+  .sample-tag{display:inline-flex; align-items:center; gap:6px; padding:3px 8px; background:var(--win-bg); border:1px solid var(--win-dim); border-radius:4px; font-family:'Geist Mono',monospace; font-size:10px; color:var(--win); text-transform:uppercase; letter-spacing:0.08em; flex-shrink:0}
+  .sample-tag .dot{width:6px; height:6px; border-radius:50%; background:var(--win)}
+  .sample-body{display:flex; flex-direction:column; gap:4px}
+  .sample-title{font-size:18px; font-weight:600; color:var(--ink); letter-spacing:-0.01em; display:flex; align-items:center; gap:10px}
+  .sample-title .team-mark{width:6px; height:18px; border-radius:2px; background:var(--team-a)}
+  .sample-subtitle{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim)}
+  .sample-subtitle b{color:var(--ink); font-weight:500}
+  .sample-subtitle .green{color:var(--win); font-weight:500}
+  .sample-card-art{width:54px; height:78px; background:var(--surface-2); border:1px solid var(--win-dim); border-radius:5px; padding:6px; display:flex; flex-direction:column; justify-content:space-between; color:var(--win); font-family:'Geist Mono',monospace; flex-shrink:0}
+  .sample-card-art .top, .sample-card-art .bot{display:flex; flex-direction:column; line-height:1}
+  .sample-card-art .bot{align-items:flex-end; transform:rotate(180deg)}
+  .sample-card-art .rank{font-size:18px; font-weight:600}
+  .sample-card-art .suit{font-size:10px}
+
+  /* ===== PROFILE ===== */
+  .profile-card{background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:20px}
+  .profile-header{display:flex; align-items:center; gap:14px; padding-bottom:16px; border-bottom:1px solid var(--rule); margin-bottom:18px}
+  .profile-avatar{width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg,var(--accent-dim),var(--accent)); display:flex; align-items:center; justify-content:center; color:white; font-size:18px; font-weight:600; flex-shrink:0}
+  .profile-id{flex:1; min-width:0}
+  .profile-name{font-size:18px; font-weight:600; color:var(--ink); letter-spacing:-0.01em}
+  .profile-handle{font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dimmer); margin-top:3px}
+  .profile-action{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; background:var(--surface-2); border:1px solid var(--rule-strong); border-radius:6px; font-size:12px; color:var(--ink-dim); cursor:pointer; transition:all 0.15s}
+  .profile-action:hover{background:var(--surface-3); color:var(--ink)}
+  .profile-stats-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:8px; overflow:hidden}
+  .stat-cell{background:var(--surface); padding:12px 14px; transition:background 0.15s}
+  .stat-cell:hover{background:var(--surface-2)}
+  .stat-label{font-size:10px; color:var(--ink-dimmer); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:6px; font-family:'Geist Mono',monospace}
+  .stat-value{font-family:'Geist Mono',monospace; font-size:20px; font-weight:600; color:var(--ink); line-height:1; letter-spacing:-0.01em}
+  .stat-sub{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer); margin-top:4px}
+
+  .relationships{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px}
+  .rel-block{background:var(--surface-2); border:1px solid var(--rule); border-radius:8px; padding:12px 14px}
+  .rel-label{display:flex; align-items:center; gap:6px; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--ink-dimmer); margin-bottom:10px; font-family:'Geist Mono',monospace}
+  .rel-label .dot{width:5px; height:5px; border-radius:50%}
+  .rel-label.partner .dot{background:var(--win)}
+  .rel-label.rival .dot{background:var(--loss)}
+  .rel-row{display:flex; align-items:center; gap:8px}
+  .rel-avatar{width:26px; height:26px; border-radius:50%; background:var(--surface-3); border:1px solid var(--rule-strong); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--ink-dim); font-weight:500}
+  .rel-name{font-size:13px; color:var(--ink); font-weight:500}
+  .rel-handle{font-family:'Geist Mono',monospace; font-size:11px; color:var(--ink-dimmer)}
+  .rel-stat{margin-left:auto; font-family:'Geist Mono',monospace; font-size:12px; color:var(--ink-dim)}
+  .rel-stat strong{color:var(--ink); font-weight:500}
+
+  /* ===== LOWER GRID ===== */
+  .lower-grid{display:grid; grid-template-columns:1.4fr 1fr; gap:18px}
+
+  /* ===== ICONS ===== */
+  .icon{width:14px; height:14px; stroke:currentColor; stroke-width:1.6; fill:none; stroke-linecap:round; stroke-linejoin:round}
+  .icon-12{width:12px; height:12px}
+  .icon-18{width:18px; height:18px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================================
+       SIDEBAR — Primary nav (240px sticky)
+       ============================================================ -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-mark">G</div>
+      <div class="logo-text">Guandan Console <small>v10.2 · A1B2C3</small></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Workspace</div>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><circle cx="17" cy="9" r="3"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2M16 21v-1a3 3 0 0 1 3-3h2"/></svg>
+          <span>玩家 Players</span>
+        </div>
+        <span class="nav-shortcut">⌘1</span>
+      </a>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          <span>房间 Rooms</span>
+        </div>
+        <span class="nav-shortcut">⌘2</span>
+      </a>
+      <a class="nav-item active">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/></svg>
+          <span>游戏 Game · Active</span>
+        </div>
+        <span class="nav-shortcut">⌘3</span>
+      </a>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 22c0-4 4-7 8-7s8 3 8 7"/></svg>
+          <span>我的资料 Profile</span>
+        </div>
+        <span class="nav-shortcut">⌘4</span>
+      </a>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-section-label">Match</div>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+          <span>历史战绩</span>
+        </div>
+        <span class="nav-shortcut">H</span>
+      </a>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><path d="M12 2l2.5 6.5L21 9l-5 4.5L17.5 21 12 17l-5.5 4 1.5-7.5L3 9l6.5-.5L12 2z"/></svg>
+          <span>特殊荣誉</span>
+        </div>
+        <span class="nav-shortcut">⌥H</span>
+      </a>
+      <a class="nav-item">
+        <div class="nav-item-left">
+          <svg class="icon nav-icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>人民的声音</span>
+        </div>
+        <span class="nav-shortcut">V</span>
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <a class="settings-item">
+        <svg class="icon nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2.1-1.6-2-3.4-2.5 1a7 7 0 0 0-2.1-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2.1 1.2l-2.5-1-2 3.4 2.1 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2.1 1.6 2 3.4 2.5-1a7 7 0 0 0 2.1 1.2L10 21h4l.4-2.6a7 7 0 0 0 2.1-1.2l2.5 1 2-3.4-2.1-1.6c.1-.4.1-.8.1-1.2z"/></svg>
+        <span>Settings</span>
+      </a>
+      <div class="user-chip">
+        <div class="user-avatar">阿</div>
+        <div class="user-info">
+          <div class="user-name">阿伟</div>
+          <div class="user-handle">@awei · host</div>
+        </div>
+        <svg class="icon icon-12" style="color:var(--ink-dimmer)" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============================================================
+       MAIN
+       ============================================================ -->
+  <main class="main">
+
+    <!-- ===== Command palette (mock active dropdown) ===== -->
+    <div class="palette-bar">
+      <div class="palette-input is-open">
+        <svg class="icon palette-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        <span class="palette-text"><span class="typed">大刘</span><span class="palette-cursor"></span></span>
+        <span class="palette-kbd">⌘K</span>
+      </div>
+      <div class="palette-dropdown">
+        <div class="palette-section-label">In this room</div>
+        <div class="palette-result highlighted">
+          <div class="palette-result-icon" style="background:var(--team-a-bg);color:var(--team-a)">大</div>
+          <span class="palette-result-text">大刘</span>
+          <span class="palette-result-handle">@daliu · 红队</span>
+          <span class="palette-result-shortcut">drop → slot 三  ↵</span>
+        </div>
+        <div class="palette-result">
+          <div class="palette-result-icon" style="background:var(--team-a-bg);color:var(--team-a)">老</div>
+          <span class="palette-result-text">老张</span>
+          <span class="palette-result-handle">@laozhang · 红队</span>
+          <span class="palette-result-shortcut">↵</span>
+        </div>
+        <div class="palette-section-label">Recent</div>
+        <div class="palette-result">
+          <div class="palette-result-icon">R</div>
+          <span class="palette-result-text">Rooms · Browse all active</span>
+          <span class="palette-result-handle">23 rooms</span>
+          <span class="palette-result-shortcut">⌘2</span>
+        </div>
+        <div class="palette-result">
+          <div class="palette-result-icon" style="color:var(--accent)">吕</div>
+          <span class="palette-result-text">吕布 — 最多第一名</span>
+          <span class="palette-result-handle">阿伟 leading 2/4</span>
+          <span class="palette-result-shortcut">→</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Header strip ===== -->
+    <div class="header-strip">
+      <div class="header-block"><span class="header-label">Room</span><span class="header-value">A1B2C3</span></div>
+      <div class="header-divider"></div>
+      <div class="header-block"><span class="header-label">Mode</span><span class="header-value">6P · 3v3</span></div>
+      <div class="header-divider"></div>
+      <div class="header-block"><span class="header-label">Round</span><span class="header-value">5</span></div>
+      <div class="header-divider"></div>
+      <div class="header-block"><span class="header-label">Level</span><span class="header-value">4</span></div>
+      <div class="header-divider"></div>
+      <div class="header-block"><span class="header-label">Owner</span><span class="header-value team-a">RED</span></div>
+      <div class="header-divider"></div>
+      <div class="header-block"><span class="header-label">Elapsed</span><span class="header-value">18:42</span></div>
+
+      <div class="sync-indicator">
+        <span class="sync-dot"></span>
+        <span class="sync-text">Synced 2s ago · 3 viewers</span>
+      </div>
+
+      <button class="header-icon-btn" title="Strict A-rule on">
+        <svg class="icon icon-12" viewBox="0 0 24 24"><path d="M12 22s8-4 8-12V5l-8-3-8 3v5c0 8 8 12 8 12z"/></svg>
+      </button>
+      <button class="header-icon-btn" title="Settings">
+        <svg class="icon icon-12" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4 12H1M23 12h-3M5.6 5.6L3.5 3.5M20.5 20.5l-2.1-2.1M5.6 18.4l-2.1 2.1M20.5 3.5l-2.1 2.1"/></svg>
+      </button>
+    </div>
+
+    <!-- ===== Content ===== -->
+    <div class="content">
+
+      <!-- ===== Mode selector + session note ===== -->
+      <div class="mode-row">
+        <div class="mode-meta">
+          <span>Mode</span>
+          <span class="mode-meta-sep">·</span>
+          <b>6 player · 3v3</b>
+          <span class="mode-meta-sep">·</span>
+          <span>Switching resets ranking</span>
+        </div>
+        <div class="segmented" role="tablist">
+          <button class="seg-btn">4P<span class="seg-meta">2v2</span></button>
+          <button class="seg-btn active">6P<span class="seg-meta">3v3</span></button>
+          <button class="seg-btn">8P<span class="seg-meta">4v4</span></button>
+        </div>
+      </div>
+
+      <!-- ===== Two team panels ===== -->
+      <div class="teams-grid">
+        <!-- Red team — owner this round -->
+        <div class="team-card is-owner">
+          <div class="team-header">
+            <div>
+              <div class="team-id">
+                <span class="team-color a"></span>
+                <span class="team-name">红队 Red</span>
+                <span class="status-pill team-a"><span class="dot"></span>Own Round</span>
+              </div>
+              <div class="team-meta">
+                <span class="team-meta-item">3 players</span>
+                <span style="color:var(--ink-faint)">·</span>
+                <span class="team-meta-item">+2 lvl this session</span>
+              </div>
+            </div>
+            <div class="level-pill">
+              <span class="level-dot"></span>
+              <span class="level-rank">4</span>
+              <span class="level-label">Lv</span>
+            </div>
+          </div>
+          <div class="roster">
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-a-bg);border-color:var(--team-a-dim);color:var(--team-a)">老</div><span class="roster-name">老张</span><span class="roster-handle">@laozhang</span></div>
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-a-bg);border-color:var(--team-a-dim);color:var(--team-a)">阿</div><span class="roster-name">阿伟</span><span class="roster-handle">@awei</span></div>
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-a-bg);border-color:var(--team-a-dim);color:var(--team-a)">大</div><span class="roster-name">大刘</span><span class="roster-handle">@daliu</span></div>
+          </div>
+        </div>
+
+        <!-- Blue team -->
+        <div class="team-card">
+          <div class="team-header">
+            <div>
+              <div class="team-id">
+                <span class="team-color b"></span>
+                <span class="team-name">蓝队 Blue</span>
+              </div>
+              <div class="team-meta">
+                <span class="team-meta-item">3 players</span>
+                <span style="color:var(--ink-faint)">·</span>
+                <span class="team-meta-item">+1 lvl this session</span>
+              </div>
+            </div>
+            <div class="level-pill">
+              <span class="level-dot"></span>
+              <span class="level-rank">3</span>
+              <span class="level-label">Lv</span>
+            </div>
+          </div>
+          <div class="roster">
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-b-bg);border-color:var(--team-b-dim);color:var(--team-b)">小</div><span class="roster-name">小王</span><span class="roster-handle">@xiaowang</span></div>
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-b-bg);border-color:var(--team-b-dim);color:var(--team-b)">明</div><span class="roster-name">阿明</span><span class="roster-handle">@aming</span></div>
+            <div class="roster-row"><div class="roster-avatar" style="background:var(--team-b-bg);border-color:var(--team-b-dim);color:var(--team-b)">美</div><span class="roster-name">小美</span><span class="roster-handle">@xiaomei</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           ACTIVE GAME — THE HERO
+           ==================================================================== -->
+      <div class="active-section">
+        <div class="active-header">
+          <div class="active-title">
+            <span class="active-live-dot"></span>
+            <span class="active-title-text">Active Round</span>
+            <span class="status-pill accent"><span class="dot"></span>Round 5</span>
+            <span class="status-pill"><span class="dot"></span>本局级牌 4</span>
+            <span class="status-pill team-a"><span class="dot"></span>红队的级</span>
+          </div>
+          <div class="active-meta">
+            <b>4</b> slots remaining<span style="margin:0 8px;color:var(--ink-faint)">·</span>winner becomes next round owner
+          </div>
+        </div>
+
+        <div class="active-body">
+
+          <!-- Interaction annotation -->
+          <div class="interaction-hint">
+            <svg class="icon ih-icon" viewBox="0 0 24 24"><path d="M5 9l7-7 7 7M5 15l7 7 7-7"/></svg>
+            <b>Drag-and-drop</b>
+            <span class="ih-divider">·</span>
+            or click slot then click player
+            <span class="ih-divider">·</span>
+            mobile: <b>long-press</b> 200 ms
+            <span style="margin-left:auto;display:inline-flex;gap:6px;align-items:center">
+              keyboard <span class="ih-kbd">↑↓</span> reorder, <span class="ih-kbd">⌘E</span> edit
+            </span>
+          </div>
+
+          <!-- ==== Player Pool (drag source) ==== -->
+          <div class="pool-zone">
+            <div class="sub-label">
+              <span>玩家池 · Player Pool</span>
+              <span class="sub-count">4 awaiting placement</span>
+            </div>
+            <div class="pool-grid">
+              <!-- 大刘 currently dragging -->
+              <div class="pool-chip dragging">
+                <div class="pool-chip-avatar team-a-bg">大</div>
+                <div class="pool-chip-info">
+                  <span class="pool-chip-name">大刘</span>
+                  <span class="pool-chip-handle">@daliu · 红</span>
+                </div>
+                <span class="drag-cursor-pin"></span>
+              </div>
+              <div class="pool-chip">
+                <div class="pool-chip-avatar team-b-bg">明</div>
+                <div class="pool-chip-info">
+                  <span class="pool-chip-name">阿明</span>
+                  <span class="pool-chip-handle">@aming · 蓝</span>
+                </div>
+              </div>
+              <div class="pool-chip">
+                <div class="pool-chip-avatar team-b-bg">美</div>
+                <div class="pool-chip-info">
+                  <span class="pool-chip-name">小美</span>
+                  <span class="pool-chip-handle">@xiaomei · 蓝</span>
+                </div>
+              </div>
+              <div class="pool-chip">
+                <div class="pool-chip-avatar team-a-bg">老</div>
+                <div class="pool-chip-info">
+                  <span class="pool-chip-name">老张</span>
+                  <span class="pool-chip-handle">@laozhang · 红</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ==== Ranking slots ==== -->
+          <div class="slots-zone">
+            <div class="sub-label">
+              <span>名次 · Ranking Slots</span>
+              <span class="sub-count">2 / 6 placed</span>
+            </div>
+            <div class="slots-grid">
+
+              <!-- Slot 一 (头游) — filled, 阿伟 Red -->
+              <div class="slot filled team-a">
+                <div class="slot-tag">
+                  <span><span class="pos-num">一</span> <span class="pos-label">头游</span></span>
+                  <span style="color:var(--win)">✓</span>
+                </div>
+                <div class="slot-content">
+                  <div class="slot-avatar team-a-bg">阿</div>
+                  <span class="slot-name">阿伟</span>
+                  <span class="slot-handle">@awei</span>
+                </div>
+                <div class="slot-clear">×</div>
+              </div>
+
+              <!-- Slot 二 — filled, 小王 Blue -->
+              <div class="slot filled team-b">
+                <div class="slot-tag">
+                  <span><span class="pos-num">二</span> <span class="pos-label">二游</span></span>
+                  <span style="color:var(--win)">✓</span>
+                </div>
+                <div class="slot-content">
+                  <div class="slot-avatar team-b-bg">小</div>
+                  <span class="slot-name">小王</span>
+                  <span class="slot-handle">@xiaowang</span>
+                </div>
+                <div class="slot-clear">×</div>
+              </div>
+
+              <!-- Slot 三 — DROP TARGET (大刘 mid-flight) -->
+              <div class="slot drop-target">
+                <div class="slot-tag">
+                  <span><span class="pos-num" style="color:var(--accent)">三</span> <span class="pos-label" style="color:var(--accent-dim)">三游</span></span>
+                  <span class="status-pill accent" style="padding:1px 5px;font-size:9px"><span class="dot"></span>DROP</span>
+                </div>
+                <div class="slot-content">
+                  <svg class="slot-drop-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12m0 0l-4-4m4 4l4-4"/><rect x="4" y="18" width="16" height="2" rx="1"/></svg>
+                  <span class="slot-drop-text">Drop player here</span>
+                </div>
+              </div>
+
+              <!-- Slot 四 -->
+              <div class="slot empty">
+                <div class="slot-tag">
+                  <span><span class="pos-num">四</span> <span class="pos-label">四游</span></span>
+                </div>
+                <div class="slot-content">
+                  <span class="slot-empty-text">empty</span>
+                </div>
+              </div>
+
+              <!-- Slot 五 -->
+              <div class="slot empty">
+                <div class="slot-tag">
+                  <span><span class="pos-num">五</span> <span class="pos-label">五游</span></span>
+                </div>
+                <div class="slot-content">
+                  <span class="slot-empty-text">empty</span>
+                </div>
+              </div>
+
+              <!-- Slot 六 (末游) -->
+              <div class="slot empty">
+                <div class="slot-tag">
+                  <span><span class="pos-num">六</span> <span class="pos-label">末游</span></span>
+                </div>
+                <div class="slot-content">
+                  <span class="slot-empty-text">empty</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ==== Live calc preview ==== -->
+          <div class="calc-preview">
+            <span class="calc-block"><b>Live calc</b></span>
+            <span class="calc-sep">·</span>
+            <span class="calc-block"><span class="team-a-text">RED</span> [1, _, _]</span>
+            <span class="calc-sep">·</span>
+            <span class="calc-block"><span class="team-b-text">BLUE</span> [2, _, _]</span>
+            <span class="calc-sep">·</span>
+            <span class="calc-block"><span class="calc-pending">4 slots pending</span></span>
+            <span class="calc-sep">·</span>
+            <span class="calc-block">threshold +3 ≥ <b>7</b> · +2 ≥ <b>4</b> · +1 ≥ <b>1</b></span>
+          </div>
+
+          <!-- ==== Toggles + Manual buttons ==== -->
+          <div class="controls-row">
+            <div class="toggles-grid">
+              <div class="toggle-row">
+                <div class="toggle on"><span class="knob"></span></div>
+                <span class="toggle-label"><b>Auto-apply</b> on completion <span class="toggle-aux">autoApply</span></span>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle on"><span class="knob"></span></div>
+                <span class="toggle-label"><b>Auto-advance</b> after apply <span class="toggle-aux">autoNext</span></span>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle on"><span class="knob"></span></div>
+                <span class="toggle-label"><b>Strict A-rule</b> · own round + no 末游 <span class="toggle-aux">strictA</span></span>
+              </div>
+              <div class="toggle-row">
+                <div class="toggle on"><span class="knob"></span></div>
+                <span class="toggle-label">Require <b>1st place</b> to upgrade <span class="toggle-aux">must1</span></span>
+              </div>
+            </div>
+
+            <div class="actions-cluster">
+              <span class="actions-cluster-label">Manual override · auto is on</span>
+              <div class="actions-row">
+                <button class="action-btn is-quiet">
+                  <svg class="icon icon-12" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  应用结果
+                  <span class="action-kbd">⌘↵</span>
+                </button>
+                <button class="action-btn is-quiet">
+                  下一局
+                  <svg class="icon icon-12" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                  <span class="action-kbd">⌘→</span>
+                </button>
+                <button class="action-btn">
+                  <svg class="icon icon-12" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                  撤销
+                  <span class="action-kbd">⌘Z</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           CUSTOM RULES DRAWER (collapsed preview)
+           ==================================================================== -->
+      <div class="section rules-section">
+        <div class="section-header">
+          <div class="section-title">
+            <svg class="icon" style="color:var(--ink-dim)" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2.1-1.6-2-3.4-2.5 1a7 7 0 0 0-2.1-1.2L14 3h-4l-.4 2.6a7 7 0 0 0-2.1 1.2l-2.5-1-2 3.4 2.1 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2.1 1.6 2 3.4 2.5-1a7 7 0 0 0 2.1 1.2L10 21h4l.4-2.6a7 7 0 0 0 2.1-1.2l2.5 1 2-3.4-2.1-1.6c.1-.4.1-.8.1-1.2z"/></svg>
+            <span>Custom Rules</span>
+            <span class="section-title-meta">defaults loaded · 0 overrides</span>
+          </div>
+          <div class="section-actions">
+            <button class="small-btn">Configure
+              <svg class="icon icon-12" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="rules-body">
+          <!-- 4P -->
+          <div class="rules-mode">
+            <span class="rules-mode-tag"><span class="tag-dot"></span>4P · 2v2</span>
+            <div class="rules-mode-line">
+              <span class="key">upgrade</span><span class="val">3·2·1</span>
+              <span class="arrow">·</span>
+              <span class="key">no 1st</span><span class="val">0</span>
+            </div>
+            <div class="rules-mode-line">
+              <span class="key">A-fail</span><span class="val">3 → demote 2</span>
+            </div>
+          </div>
+          <!-- 6P (active) -->
+          <div class="rules-mode">
+            <span class="rules-mode-tag active"><span class="tag-dot"></span>6P · 3v3 · ACTIVE</span>
+            <div class="rules-mode-line">
+              <span class="key">thresh</span>
+              <span class="val">≥7→<span class="hi">3</span></span>
+              <span class="arrow">/</span>
+              <span class="val">≥4→<span class="hi">2</span></span>
+              <span class="arrow">/</span>
+              <span class="val">≥1→<span class="hi">1</span></span>
+            </div>
+            <div class="rules-mode-line">
+              <span class="key">pts</span>
+              <span class="val">5·4·3·3·1·0</span>
+            </div>
+          </div>
+          <!-- 8P -->
+          <div class="rules-mode">
+            <span class="rules-mode-tag"><span class="tag-dot"></span>8P · 4v4</span>
+            <div class="rules-mode-line">
+              <span class="key">thresh</span>
+              <span class="val">≥11→3</span>
+              <span class="arrow">/</span>
+              <span class="val">≥5→2</span>
+              <span class="arrow">/</span>
+              <span class="val">≥0→1</span>
+            </div>
+            <div class="rules-mode-line">
+              <span class="key">sweep</span><span class="val">(1,2,3,4) → +4</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           LOWER GRID — History + Honors
+           ==================================================================== -->
+      <div class="lower-grid">
+
+        <!-- ===== HISTORY ===== -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">
+              <span>历史战绩 · Recent rounds</span>
+              <span class="section-title-meta">4 played · R5 in progress</span>
+            </div>
+            <div class="section-actions">
+              <button class="small-btn">Export <span class="kbd-hint">⌘E</span></button>
+            </div>
+          </div>
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th style="width:46px">#</th>
+                <th style="width:60px">级牌</th>
+                <th style="width:66px">胜方</th>
+                <th>组合</th>
+                <th>结果</th>
+                <th class="right" style="width:46px">红</th>
+                <th class="right" style="width:46px">蓝</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="history-round-num">R1</td>
+                <td><span class="history-level">2</span></td>
+                <td class="history-winner-a">红</td>
+                <td>(1,2,5)</td>
+                <td><span class="history-status upgrade">升 2 级</span></td>
+                <td class="right">4</td>
+                <td class="right">2</td>
+              </tr>
+              <tr>
+                <td class="history-round-num">R2</td>
+                <td><span class="history-level">4</span></td>
+                <td class="history-winner-b">蓝</td>
+                <td>(1,3,4)</td>
+                <td><span class="history-status upgrade">蓝升 1 级</span></td>
+                <td class="right">4</td>
+                <td class="right">3</td>
+              </tr>
+              <tr>
+                <td class="history-round-num">R3</td>
+                <td><span class="history-level">3</span></td>
+                <td class="history-winner-a">红</td>
+                <td>(1,2,4)</td>
+                <td><span class="history-status no-up">不升级 · must1</span></td>
+                <td class="right">4</td>
+                <td class="right">3</td>
+              </tr>
+              <tr>
+                <td class="history-round-num">R4</td>
+                <td><span class="history-level">3</span></td>
+                <td class="history-winner-a">红</td>
+                <td>(1,3,5)</td>
+                <td><span class="history-status no-up">不升级 · diff &lt; 1</span></td>
+                <td class="right">4</td>
+                <td class="right">3</td>
+              </tr>
+              <tr class="current">
+                <td class="history-round-num">R5</td>
+                <td><span class="history-level">4</span></td>
+                <td class="history-winner-pending">…</td>
+                <td>2 / 6 placed</td>
+                <td><span class="history-status in-progress"><span class="dot"></span>进行中</span></td>
+                <td class="right">—</td>
+                <td class="right">—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ===== HONORS ===== -->
+        <div class="section">
+          <div class="section-header">
+            <div class="section-title">
+              <span>特殊荣誉 · Honors</span>
+              <span class="section-title-meta">6 of 16 · early session</span>
+            </div>
+            <div class="section-actions">
+              <button class="small-btn">All 16 <span class="kbd-hint">⌥H</span></button>
+            </div>
+          </div>
+          <div class="honors-grid">
+            <div class="honor-row">
+              <span class="honor-pill gold"><span class="pill-dot"></span>吕布</span>
+              <span class="honor-stat"><strong>2/4</strong> 1st<br><span style="color:var(--ink-faint)">most first places</span></span>
+              <span class="honor-leader"><span class="team-dot a"></span>阿伟<span class="handle">@awei</span></span>
+            </div>
+            <div class="honor-row">
+              <span class="honor-pill purple"><span class="pill-dot"></span>闪电侠</span>
+              <span class="honor-stat">rank Δ in <strong>3/4</strong><br><span style="color:var(--ink-faint)">most volatile</span></span>
+              <span class="honor-leader"><span class="team-dot a"></span>老张<span class="handle">@laozhang</span></span>
+            </div>
+            <div class="honor-row">
+              <span class="honor-pill green"><span class="pill-dot"></span>石佛</span>
+              <span class="honor-stat">var <strong>0.50</strong> · top 25%<br><span style="color:var(--ink-faint)">stable excellence</span></span>
+              <span class="honor-leader"><span class="team-dot a"></span>阿伟<span class="handle">@awei</span></span>
+            </div>
+            <div class="honor-row">
+              <span class="honor-pill red pending"><span class="pill-dot"></span>阿斗</span>
+              <span class="honor-stat"><span class="pending-text">pending · 1/4 last</span><br><span style="color:var(--ink-faint)">most last places</span></span>
+              <span class="honor-progress">进行中</span>
+            </div>
+            <div class="honor-row">
+              <span class="honor-pill blue pending"><span class="pill-dot"></span>守门员</span>
+              <span class="honor-stat"><span class="pending-text">pending · 4 rounds</span><br><span style="color:var(--ink-faint)">prevent teammate-末游</span></span>
+              <span class="honor-progress">进行中</span>
+            </div>
+            <div class="honor-row">
+              <span class="honor-pill grey pending"><span class="pill-dot"></span>大满贯</span>
+              <span class="honor-stat"><span class="pending-text">3 / 6 positions hit</span><br><span style="color:var(--ink-faint)">all rankings 1–6</span></span>
+              <span class="honor-progress">进行中</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ====================================================================
+           SAMPLE · 通关时刻 (smaller secondary)
+           ==================================================================== -->
+      <div class="sample-card">
+        <span class="sample-tag"><span class="dot"></span>示例 · 通关时刻</span>
+        <div class="sample-body">
+          <div class="sample-title">
+            <span class="team-mark"></span>
+            A级通关 · 红队 — sample of championship moment
+          </div>
+          <div class="sample-subtitle">
+            22 rounds · 47:23 · diff <b>+8</b> ≥ 7 → <b>+3 levels</b> · K → A → <span class="green">通关</span> · own A round, no 末游
+          </div>
+        </div>
+        <div class="sample-card-art">
+          <div class="top"><span class="rank">A</span><span class="suit">♠</span></div>
+          <div class="bot"><span class="rank">A</span><span class="suit">♠</span></div>
+        </div>
+      </div>
+
+      <!-- ====================================================================
+           PROFILE — 阿伟
+           ==================================================================== -->
+      <div class="profile-card">
+        <div class="profile-header">
+          <div class="profile-avatar">阿</div>
+          <div class="profile-id">
+            <div class="profile-name">阿伟</div>
+            <div class="profile-handle">@awei · joined 2024 · 红队 in this session</div>
+          </div>
+          <button class="profile-action">View full profile <span class="kbd-hint">↵</span></button>
+        </div>
+
+        <div class="profile-stats-grid">
+          <div class="stat-cell"><div class="stat-label">Sessions</div><div class="stat-value">47</div><div class="stat-sub">29 won · 61.7%</div></div>
+          <div class="stat-cell"><div class="stat-label">Rounds</div><div class="stat-value">412</div><div class="stat-sub">all sessions</div></div>
+          <div class="stat-cell"><div class="stat-label">Avg Rank</div><div class="stat-value">2.84</div><div class="stat-sub">career · lower=better</div></div>
+          <div class="stat-cell"><div class="stat-label">Play Time</div><div class="stat-value">38h 22m</div><div class="stat-sub">cumulative</div></div>
+          <div class="stat-cell"><div class="stat-label">First Places</div><div class="stat-value">147</div><div class="stat-sub">35.7% of rounds</div></div>
+          <div class="stat-cell"><div class="stat-label">通关 wins</div><div class="stat-value">29</div><div class="stat-sub">A级 championship</div></div>
+          <div class="stat-cell"><div class="stat-label">最C votes</div><div class="stat-value">23</div><div class="stat-sub">人民的声音</div></div>
+          <div class="stat-cell"><div class="stat-label">最闹 votes</div><div class="stat-value">2</div><div class="stat-sub">人民的声音</div></div>
+        </div>
+
+        <div class="relationships">
+          <div class="rel-block">
+            <div class="rel-label partner"><span class="dot"></span>Top Partner</div>
+            <div class="rel-row">
+              <div class="rel-avatar">老</div>
+              <span class="rel-name">老张</span>
+              <span class="rel-handle">@laozhang</span>
+              <span class="rel-stat"><strong>24</strong> sessions · <strong>75%</strong> wr</span>
+            </div>
+          </div>
+          <div class="rel-block">
+            <div class="rel-label rival"><span class="dot"></span>Top Rival</div>
+            <div class="rel-row">
+              <div class="rel-avatar">小</div>
+              <span class="rel-name">小王</span>
+              <span class="rel-handle">@xiaowang</span>
+              <span class="rel-stat"><strong>31</strong> faced · lost <strong>58%</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>

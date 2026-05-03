@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="broadcast">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>闹麻家族掼蛋计分器 v10.0</title>
 
 <!-- PWA Configuration -->
-<meta name="theme-color" content="#0b0b0c">
+<meta name="theme-color" content="#1c1f29">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="掼蛋计分器">
@@ -17,7 +17,13 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
+<!-- Theme: Broadcast Editorial. Fonts loaded from Google for parity with the design ref. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
+
 <link rel="stylesheet" href="/src/style.css">
+<link rel="stylesheet" href="/src/themes/broadcast/theme.css">
 <style>
   /* Modern Tab Navigation */
   .nav-tabs {
@@ -236,6 +242,13 @@
       <span class="small muted" id="applyTip"></span>
     </div>
 
+  </div>
+
+  <div class="card" id="themePickerSection">
+    <details>
+      <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">🎨 主题</summary>
+      <div id="themePickerMount" style="margin-top:12px;"><!-- ThemePicker mounts here --></div>
+    </details>
   </div>
 
   <div class="card" id="customRulesSection">

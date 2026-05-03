@@ -402,6 +402,51 @@
 
 ---
 
+### Theme System (`src/themes/`) - NEW (Phase 0+1, 2026-05-03)
+
+5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. Currently
+Broadcast (the default) is the only registered theme; Phases 2-5 (Linear,
+Trading, Atelier, Tea-Table) ship as subsequent PRs.
+
+#### `themes/_shared/tokenSpec.js` - Token Contract
+**Exports**: `TOKEN_SPEC` (frozen Object: color/font/scale/radius lists),
+`cssVar(category, key)` (builds `--<name>` CSS custom-property names),
+`verifyTokensPresent(rootEl)` (runtime contract check across all categories).
+
+#### `themes/_shared/themeManager.js` - Theme Orchestration
+**Functions**:
+- `register(theme)` - Register a theme (tolerates `export default` shape)
+- `mount(themeName)` - Set `data-theme` attr, run `layout.mount`, persist to localStorage, emit `theme:changed`
+- `switchTo(themeName)` - No-op when current === target; otherwise `mount`
+- `listThemes()` / `getCurrent()` / `getManifest()` / `resolveBootTheme(default)`
+
+**Storage**: `gd_v9_theme` localStorage key (matches `gd_v9_*` convention).
+
+#### `themes/_shared/featureManifest.js` - Cross-Theme Behavior Contract
+Declares per-theme rendering choices: `navigation`, `rankingInteraction`,
+`victorySurface`, `sparklines`, `commandPalette`, `honorPortraits`,
+`customRulesUI`, `liveCalcStrip`. `resolveManifest(themeManifest)` merges
+with `DEFAULT_MANIFEST` for missing keys.
+
+#### `themes/_shared/ThemePicker.js` - Settings-Drawer Picker
+XSS-safe (createElement + textContent, no innerHTML). Renders a status row
+when only one theme is registered; flips to a radio group when 2+ exist.
+Captures and releases its `theme:changed` subscription across re-mounts.
+
+#### `themes/broadcast/theme.css` - Broadcast Palette + Typography
+Activates under `:root[data-theme="broadcast"]`. Each oklch() value is
+paired with a sRGB hex/rgb fallback so Safari iOS 15.0–15.3 (parsers that
+reject oklch) still gets a valid color. Defines:
+- 22 color tokens (bg/surface/ink/accent/team/win/loss/rule families)
+- 3 font tokens (Fraunces / Inter Tight / DM Mono)
+- 8 spacing tokens (`--s1` through `--s8`)
+- 5 radius tokens
+- Backward-compat aliases (`--card`/`--muted`/`--stroke`/`--chip`) for unmigrated rules
+
+#### `themes/broadcast/featureManifest.js` / `index.js`
+Broadcast's explicit manifest values + the theme barrel (name, displayName,
+description, stylesheet path, layout placeholder).
+
 ### Share & Room Features (`src/share/`)
 
 #### `roomManager.js` - Real-Time Rooms

@@ -1,0 +1,1408 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>掼蛋 · 广播版 v2 mobile — 第5局进行中</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* core dark palette */
+    --bg: oklch(18% 0.04 250); --bg-deep: oklch(13% 0.04 250);
+    --surface: oklch(22% 0.04 250); --surface-2: oklch(26% 0.04 250); --surface-3: oklch(30% 0.04 250);
+    --ink: oklch(95% 0.02 80); --ink-dim: oklch(70% 0.02 80); --ink-dimmer: oklch(50% 0.02 80);
+    /* ember accent */
+    --accent: oklch(70% 0.20 45);
+    --accent-soft: oklch(70% 0.20 45 / 0.12);
+    --accent-line: oklch(70% 0.20 45 / 0.45);
+    --accent-glow: oklch(70% 0.20 45 / 0.55);
+    /* teams */
+    --team-red: oklch(60% 0.22 25);
+    --team-red-soft: oklch(60% 0.22 25 / 0.10);
+    --team-red-line: oklch(60% 0.22 25 / 0.40);
+    --team-blue: oklch(60% 0.18 240);
+    --team-blue-soft: oklch(60% 0.18 240 / 0.10);
+    --team-blue-line: oklch(60% 0.18 240 / 0.35);
+    --win: oklch(70% 0.18 145); --loss: oklch(60% 0.22 25);
+    --rule: oklch(35% 0.04 250); --rule-soft: oklch(30% 0.04 250);
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+  /* ============== type primitives ============== */
+  .num { font-family: 'DM Mono', ui-monospace, monospace; font-weight: 500; font-feature-settings: 'tnum' 1; letter-spacing: -0.01em; }
+  .display { font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-variation-settings: 'opsz' 144; line-height: 0.92; letter-spacing: -0.02em; }
+  .serif { font-family: 'Fraunces', Georgia, serif; font-weight: 700; }
+
+  /* ============== iPhone 14 Pro frame ============== */
+  body { background: oklch(8% 0 0); display: grid; place-items: center; min-height: 100vh; padding: 32px; font-family: 'Inter Tight', system-ui, sans-serif; color: var(--ink); }
+  .iphone-frame { width: 414px; height: 896px; background: oklch(12% 0 0); border-radius: 56px; padding: 14px; box-shadow:
+    0 0 0 1px oklch(20% 0 0),
+    0 0 0 3px oklch(8% 0 0),
+    0 50px 100px -20px oklch(0% 0 0 / 0.6),
+    0 30px 60px -30px oklch(0% 0 0 / 0.5),
+    inset 0 0 0 1px oklch(25% 0 0);
+    position: relative;
+  }
+  .iphone-frame::before {
+    content: ''; position: absolute; left: -3px; top: 100px; width: 4px; height: 30px; background: oklch(15% 0 0); border-radius: 2px 0 0 2px;
+  }
+  .iphone-frame::after {
+    content: ''; position: absolute; right: -3px; top: 130px; width: 4px; height: 60px; background: oklch(15% 0 0); border-radius: 0 2px 2px 0;
+    box-shadow: 0 80px 0 oklch(15% 0 0), 0 160px 0 oklch(15% 0 0);
+  }
+  .iphone-screen {
+    width: 386px; height: 868px; background: var(--bg); border-radius: 44px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* status bar */
+  .status-bar {
+    height: 47px; flex-shrink: 0; padding: 14px 28px 0; display: flex; justify-content: space-between; align-items: flex-start;
+    font-family: 'SF Pro Display', 'Inter Tight', system-ui, sans-serif; font-weight: 600; font-size: 15px; color: var(--ink);
+    z-index: 10; position: relative;
+  }
+  .status-bar__time { font-feature-settings: 'tnum' 1; letter-spacing: -0.02em; padding-top: 2px; }
+  .status-bar__indicators { display: flex; align-items: center; gap: 6px; padding-top: 4px; }
+
+  /* dynamic island */
+  .dynamic-island {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 124px; height: 36px; background: oklch(0% 0 0); border-radius: 20px; z-index: 9;
+  }
+
+  /* ============== STICKY TOP HEADER (52px) ============== */
+  .top-header {
+    flex-shrink: 0; height: 52px; background: var(--bg-deep); border-bottom: 1px solid var(--rule);
+    padding: 0 var(--s4); display: flex; align-items: center; gap: var(--s3); position: relative; z-index: 5;
+  }
+  .top-header__brand-mark {
+    width: 22px; height: 22px; background: var(--accent); display: grid; place-items: center;
+    color: var(--bg-deep); font-family: 'Fraunces', serif; font-weight: 900; font-size: 13px; flex-shrink: 0;
+  }
+  .top-header__meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+  .top-header__row1 {
+    display: flex; align-items: center; gap: var(--s2); font-family: 'DM Mono', monospace; font-size: 9px;
+    color: var(--ink-dim); letter-spacing: 0.10em;
+  }
+  .top-header__room { color: var(--ink); font-weight: 500; letter-spacing: 0.14em; }
+  .top-header__row1 .sep { color: var(--ink-dimmer); }
+  .top-header__row2 {
+    display: flex; align-items: center; gap: 6px; font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px;
+    letter-spacing: 0.04em; color: var(--ink); white-space: nowrap; overflow: hidden;
+  }
+  .top-header__round { color: var(--accent); }
+  .top-header__lvl { font-family: 'Fraunces', serif; font-weight: 900; font-size: 14px; }
+  .top-header__owner { color: var(--team-red); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+  .top-header__row2 .micro-sep { color: var(--ink-dimmer); font-weight: 400; font-size: 10px; }
+  .top-header__live {
+    margin-left: auto; display: flex; align-items: center; gap: 5px; padding: 3px 7px; background: var(--accent-soft);
+    border: 1px solid var(--accent-line); flex-shrink: 0;
+  }
+  .top-header__live-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    animation: pulse 2.4s cubic-bezier(0.4,0,0.6,1) infinite;
+  }
+  .top-header__live-text {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 0.16em; font-weight: 500;
+  }
+  .top-header__time {
+    font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ink); letter-spacing: 0.04em; font-weight: 500; padding-left: var(--s2); border-left: 1px solid var(--rule);
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+    70% { box-shadow: 0 0 0 7px oklch(70% 0.20 45 / 0); }
+    100% { box-shadow: 0 0 0 0 oklch(70% 0.20 45 / 0); }
+  }
+  @keyframes pulse-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+
+  /* ============== SCROLL AREA ============== */
+  .scroll-area {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: var(--rule) transparent;
+  }
+  .scroll-area::-webkit-scrollbar { width: 4px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
+
+  /* ============== SECTION RULE ============== */
+  .section-rule { display: flex; align-items: center; gap: var(--s3); margin: var(--s5) var(--s4) var(--s3); }
+  .section-rule__bar { width: 3px; height: 12px; background: var(--accent); flex-shrink: 0; }
+  .section-rule__label {
+    font-size: 9px; font-weight: 600; letter-spacing: 0.20em; text-transform: uppercase; color: var(--ink); white-space: nowrap;
+  }
+  .section-rule__line { flex: 1; height: 1px; background: var(--rule-soft); }
+  .section-rule__meta {
+    font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.10em; flex-shrink: 0;
+  }
+
+  /* ============== MODE SELECTOR (segmented control) ============== */
+  .modeselect {
+    margin: var(--s2) var(--s4) 0; display: flex; border: 1px solid var(--rule); background: var(--surface);
+  }
+  .modeselect__opt {
+    flex: 1; padding: var(--s3) 0; border: 0; border-right: 1px solid var(--rule); background: transparent; color: var(--ink-dim);
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; letter-spacing: 0.04em;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1; cursor: pointer;
+  }
+  .modeselect__opt:last-child { border-right: 0; }
+  .modeselect__opt-meta { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.16em; text-transform: uppercase; }
+  .modeselect__opt--active { background: var(--accent-soft); color: var(--ink); position: relative; }
+  .modeselect__opt--active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--accent); }
+  .modeselect__opt--active .modeselect__opt-meta { color: var(--accent); }
+
+  /* ============== TEAM PANELS (stacked) ============== */
+  .scorer { margin: var(--s2) var(--s4) 0; display: flex; flex-direction: column; gap: var(--s2); }
+  .team {
+    background: var(--surface); border: 1px solid var(--rule); padding: var(--s4); position: relative; overflow: hidden;
+    display: grid; grid-template-columns: 1fr auto; gap: var(--s3); align-items: stretch;
+  }
+  .team--red { background: linear-gradient(180deg, oklch(60% 0.22 25 / 0.06), transparent 65%), var(--surface); }
+  .team--blue { background: linear-gradient(180deg, oklch(60% 0.18 240 / 0.06), transparent 65%), var(--surface); }
+  .team__left { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
+  .team__head { display: flex; align-items: baseline; gap: var(--s2); }
+  .team__name-cn { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; letter-spacing: 0.02em; line-height: 1; }
+  .team--red .team__name-cn { color: var(--team-red); }
+  .team--blue .team__name-cn { color: var(--team-blue); }
+  .team__name-en { font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.20em; text-transform: uppercase; }
+  .team__status {
+    display: inline-block; font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; padding: 3px 6px;
+    border: 1px solid var(--rule); width: fit-content;
+  }
+  .team__status--owner { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+  .team__status--neutral { color: var(--ink-dim); }
+  .team__roster { display: flex; flex-direction: column; gap: 5px; margin-top: var(--s1); }
+  .roster-row {
+    display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: var(--s2);
+    padding: 3px 6px; background: var(--surface-2); border: 1px solid var(--rule);
+  }
+  .roster-row__avatar {
+    width: 20px; height: 20px; display: grid; place-items: center; font-family: 'Fraunces', serif;
+    font-weight: 900; font-size: 10px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink);
+  }
+  .roster-row__avatar--red { color: var(--team-red); border-color: var(--team-red-line); }
+  .roster-row__avatar--blue { color: var(--team-blue); border-color: var(--team-blue-line); }
+  .roster-row__name { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+  .roster-row__display { font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px; }
+  .roster-row__handle { font-size: 8px; color: var(--ink-dimmer); }
+  .roster-row__tag {
+    font-family: 'DM Mono', monospace; font-size: 7px; padding: 1px 4px; background: var(--bg);
+    border: 1px solid var(--rule); color: var(--ink-dim); letter-spacing: 0.10em; text-transform: uppercase;
+  }
+  /* card glyph */
+  .card-level { position: relative; padding: 0 var(--s2); display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 100px; }
+  .card-level__glyph {
+    font-family: 'Fraunces', Georgia, serif; font-weight: 900; font-variation-settings: 'opsz' 144;
+    font-size: 96px; line-height: 0.85; letter-spacing: -0.04em; display: inline-block;
+  }
+  .team--red .card-level__glyph { color: var(--ink); text-shadow: 0 0 30px oklch(60% 0.22 25 / 0.40); }
+  .team--blue .card-level__glyph { color: var(--ink); text-shadow: 0 0 30px oklch(60% 0.18 240 / 0.35); }
+  .card-level__suit {
+    position: absolute; font-family: 'Fraunces', serif; font-size: 18px; line-height: 1;
+  }
+  .card-level__suit--tl { top: 4px; left: 4px; }
+  .card-level__suit--br { right: 4px; bottom: 18px; transform: rotate(180deg); }
+  .team--red .card-level__suit { color: var(--team-red); }
+  .team--blue .card-level__suit { color: var(--team-blue); }
+  .card-level__sub {
+    margin-top: 2px; font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dim); letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .card-level__sub .accent { color: var(--ink); }
+
+  /* ============== ACTIVE GAME — HERO ============== */
+  .activegame {
+    margin: var(--s3) var(--s4) 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, oklch(70% 0.20 45 / 0.10), transparent 65%), var(--surface);
+    border: 1px solid var(--accent-line);
+  }
+  .activegame__head {
+    display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); border-bottom: 1px solid var(--accent-line); background: oklch(20% 0.04 250);
+  }
+  .activegame__live-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+    animation: pulse 1.8s cubic-bezier(0.4,0,0.6,1) infinite;
+  }
+  .activegame__head-label { font-size: 9px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .activegame__head-divider { width: 1px; height: 12px; background: var(--rule); }
+  .activegame__head-line { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; color: var(--ink); letter-spacing: 0.02em; }
+  .activegame__head-line .accent { color: var(--accent); }
+  .activegame__head-line .glyph { font-family: 'Fraunces', serif; font-weight: 900; font-size: 16px; vertical-align: -1px; }
+  .activegame__head-meta {
+    margin-left: auto; font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.10em;
+  }
+  .activegame__body { padding: var(--s3); }
+
+  /* annotation */
+  .annotation {
+    margin-bottom: var(--s2); display: flex; align-items: center; gap: var(--s2); font-family: 'DM Mono', monospace;
+    font-size: 9px; color: var(--accent); letter-spacing: 0.20em; text-transform: uppercase;
+  }
+  .annotation::before { content: ''; width: 14px; height: 1px; background: var(--accent); }
+  .annotation__device {
+    margin-left: auto; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.16em;
+  }
+
+  /* PLAYER POOL */
+  .pool { margin-bottom: var(--s3); }
+  .pool__head, .slots__head {
+    display: flex; align-items: baseline; gap: var(--s2); margin-bottom: var(--s2); flex-wrap: wrap;
+  }
+  .pool__title, .slots__title { font-family: 'Fraunces', serif; font-weight: 900; font-size: 14px; letter-spacing: 0.04em; color: var(--ink); }
+  .pool__sub, .slots__sub { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.16em; text-transform: uppercase; }
+  .pool__count { margin-left: auto; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); }
+  .pool__count .accent { color: var(--accent); }
+  .pool__grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .pool-tile {
+    background: var(--surface-2); border: 1px solid var(--rule); padding: var(--s2) 10px;
+    display: flex; align-items: center; gap: var(--s2); position: relative; transition: all 0.15s; min-height: 50px;
+  }
+  .pool-tile__avatar {
+    width: 28px; height: 28px; flex-shrink: 0; display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-weight: 900; font-size: 13px;
+    border: 1px solid var(--rule); background: var(--bg); color: var(--ink);
+  }
+  .pool-tile--red .pool-tile__avatar { color: var(--team-red); border-color: var(--team-red-line); }
+  .pool-tile--blue .pool-tile__avatar { color: var(--team-blue); border-color: var(--team-blue-line); }
+  .pool-tile__body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .pool-tile__top { display: flex; align-items: center; gap: 5px; }
+  .pool-tile__dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .pool-tile--red .pool-tile__dot { background: var(--team-red); }
+  .pool-tile--blue .pool-tile__dot { background: var(--team-blue); }
+  .pool-tile__name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px; line-height: 1.1; }
+  .pool-tile__handle { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); }
+
+  /* SELECTED state for tap-to-select */
+  .pool-tile--selected {
+    background: oklch(28% 0.04 250); border-color: var(--accent);
+    box-shadow:
+      0 0 0 1px var(--accent),
+      0 0 18px oklch(70% 0.20 45 / 0.45),
+      inset 0 0 12px oklch(70% 0.20 45 / 0.15);
+    animation: pulse-soft 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse-soft {
+    0%, 100% { box-shadow: 0 0 0 1px var(--accent), 0 0 18px oklch(70% 0.20 45 / 0.45), inset 0 0 12px oklch(70% 0.20 45 / 0.15); }
+    50% { box-shadow: 0 0 0 1px var(--accent), 0 0 28px oklch(70% 0.20 45 / 0.65), inset 0 0 16px oklch(70% 0.20 45 / 0.25); }
+  }
+  .pool-tile--selected .pool-tile__avatar { color: var(--accent); border-color: var(--accent); }
+  .pool-tile--selected .pool-tile__check {
+    position: absolute; top: -8px; right: -6px; padding: 2px 6px; background: var(--accent); color: var(--bg-deep);
+    font-family: 'DM Mono', monospace; font-size: 8px; font-weight: 600; letter-spacing: 0.10em; line-height: 1;
+    border: 1px solid var(--accent); white-space: nowrap;
+  }
+
+  /* RANKING SLOTS — vertical list */
+  .slots__progress {
+    margin-left: auto; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim);
+    display: flex; align-items: center; gap: var(--s2);
+  }
+  .slots__progress-bar { width: 60px; height: 3px; background: var(--bg-deep); border: 1px solid var(--rule); position: relative; }
+  .slots__progress-bar-fill { height: 100%; background: var(--accent); width: 33%; }
+  .slots__list { display: flex; flex-direction: column; gap: 5px; }
+  .slot {
+    background: var(--bg-deep); border: 1px solid var(--rule-soft); padding: 8px var(--s3);
+    display: grid; grid-template-columns: 36px 1fr auto; gap: var(--s3); align-items: center;
+    transition: all 0.15s; min-height: 44px;
+  }
+  .slot__index-block { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+  .slot__rank-cn { font-family: 'Fraunces', serif; font-weight: 900; font-size: 16px; color: var(--ink-dim); line-height: 1; }
+  .slot__index { font-family: 'DM Mono', monospace; font-size: 7px; color: var(--ink-dimmer); letter-spacing: 0.14em; }
+  .slot__center { display: flex; align-items: center; gap: var(--s2); min-width: 0; }
+  .slot__avatar {
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-weight: 900; font-size: 11px;
+    border: 1px solid var(--rule); background: var(--surface-2);
+  }
+  .slot__player-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .slot__name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; line-height: 1; }
+  .slot__handle { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); }
+  .slot__check {
+    font-family: 'DM Mono', monospace; font-size: 11px; color: var(--win); padding: 0 4px; line-height: 1;
+  }
+
+  /* FILLED variants */
+  .slot--filled { background: var(--surface); border-color: var(--rule); }
+  .slot--filled .slot__rank-cn { color: var(--ink); }
+  .slot--filled-red { border-left: 3px solid var(--team-red); padding-left: 9px; }
+  .slot--filled-red .slot__avatar { color: var(--team-red); border-color: var(--team-red-line); }
+  .slot--filled-blue { border-left: 3px solid var(--team-blue); padding-left: 9px; }
+  .slot--filled-blue .slot__avatar { color: var(--team-blue); border-color: var(--team-blue-line); }
+
+  /* DROP TARGET (tap-to-place) */
+  .slot--target {
+    background: radial-gradient(ellipse 60% 80% at 50% 50%, var(--accent-soft), transparent 75%), var(--bg-deep);
+    border: 2px dashed var(--accent);
+    box-shadow: inset 0 0 18px oklch(70% 0.20 45 / 0.18), 0 0 14px oklch(70% 0.20 45 / 0.30);
+    animation: pulse-border 1.6s ease-in-out infinite;
+    padding: 7px var(--s3);
+  }
+  @keyframes pulse-border {
+    0%, 100% { box-shadow: inset 0 0 18px oklch(70% 0.20 45 / 0.18), 0 0 14px oklch(70% 0.20 45 / 0.30); }
+    50% { box-shadow: inset 0 0 24px oklch(70% 0.20 45 / 0.30), 0 0 22px oklch(70% 0.20 45 / 0.50); }
+  }
+  .slot--target .slot__rank-cn { color: var(--accent); font-size: 18px; }
+  .slot--target .slot__target-icon { font-family: 'Fraunces', serif; font-weight: 900; font-size: 18px; color: var(--accent); opacity: 0.7; }
+  .slot--target .slot__target-label {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .slot--target .slot__target-label .name { color: var(--ink); font-weight: 700; padding: 0 3px; }
+
+  /* EMPTY */
+  .slot--empty .slot__placeholder {
+    width: 26px; height: 26px; border-radius: 50%; border: 1px dashed var(--rule);
+  }
+  .slot--empty .slot__placeholder-label {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dimmer); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+
+  /* CALC PREVIEW */
+  .calcpreview {
+    margin-top: var(--s3); background: var(--surface-2); border: 1px solid var(--rule); padding: 10px var(--s3);
+    display: flex; flex-direction: column; gap: 5px; font-size: 11px;
+  }
+  .calcpreview__label {
+    font-size: 8px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--ink-dimmer);
+  }
+  .calcpreview__row { display: flex; align-items: center; gap: var(--s2); font-family: 'DM Mono', monospace; color: var(--ink-dim); flex-wrap: wrap; }
+  .calcpreview__row .key { color: var(--ink-dimmer); font-size: 9px; }
+  .calcpreview__row .red { color: var(--team-red); }
+  .calcpreview__row .blue { color: var(--team-blue); }
+  .calcpreview__row .pending { color: var(--accent); }
+  .calcpreview__sep { color: var(--ink-dimmer); }
+  .calcpreview__hint { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 0.04em; margin-top: 2px; }
+  .calcpreview__hint::before { content: '→ '; color: var(--ink-dimmer); }
+
+  /* TOGGLES (iOS style) */
+  .toggles { margin-top: var(--s3); display: flex; flex-direction: column; gap: 6px; padding: 10px var(--s3); background: var(--surface-2); border: 1px solid var(--rule); }
+  .toggles__head { font-size: 8px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--ink-dimmer); margin-bottom: 2px; }
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between; padding: 4px 0; gap: var(--s2);
+  }
+  .toggle-row__label {
+    flex: 1; font-family: 'Inter Tight', sans-serif; font-weight: 500; font-size: 11px; color: var(--ink); display: flex; flex-direction: column; gap: 1px;
+  }
+  .toggle-row__label .key { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.10em; }
+  .toggle-switch {
+    width: 36px; height: 20px; border-radius: 10px; background: var(--bg-deep); border: 1px solid var(--rule);
+    position: relative; flex-shrink: 0; transition: all 0.15s;
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--ink-dim); transition: all 0.15s;
+  }
+  .toggle-switch--on { background: var(--accent); border-color: var(--accent); }
+  .toggle-switch--on::after { left: 17px; background: var(--bg-deep); }
+
+  /* MANUAL BUTTONS */
+  .manualbtns { margin-top: var(--s3); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .btn {
+    display: flex; flex-direction: column; align-items: flex-start; padding: 8px 10px;
+    background: var(--surface-2); border: 1px solid var(--rule); color: var(--ink-dim); cursor: not-allowed;
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 11px; letter-spacing: 0.04em; line-height: 1.1;
+    opacity: 0.5; position: relative;
+  }
+  .btn small {
+    font-family: 'DM Mono', monospace; font-size: 7px; color: var(--ink-dimmer); letter-spacing: 0.16em;
+    margin-top: 2px; text-transform: uppercase; font-weight: 500;
+  }
+  .btn--disabled-note {
+    position: absolute; top: -7px; right: 6px; font-family: 'DM Mono', monospace; font-size: 7px;
+    background: var(--bg); color: var(--ink-dimmer); padding: 1px 4px; border: 1px solid var(--rule); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+
+  /* CUSTOM RULES DRAWER */
+  .rules-drawer {
+    margin: var(--s2) var(--s4) 0; background: var(--surface); border: 1px solid var(--rule); padding: 10px var(--s3);
+  }
+  .rules-drawer__title-row {
+    display: flex; align-items: center; gap: var(--s2); margin-bottom: 6px;
+  }
+  .rules-drawer__title { font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px; color: var(--ink); letter-spacing: 0.04em; }
+  .rules-drawer__title-meta {
+    font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .rules-drawer__expand {
+    margin-left: auto; font-family: 'Fraunces', serif; font-weight: 700; font-size: 10px; color: var(--accent);
+    padding: 3px 7px; border: 1px solid var(--accent-line); background: var(--accent-soft); display: flex; align-items: center; gap: 3px;
+  }
+  .rules-drawer__expand::after { content: '▾'; font-size: 8px; }
+  .rules-drawer__chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .rule-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 7px; background: var(--surface-2); border: 1px solid var(--rule);
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.04em;
+  }
+  .rule-chip__key { color: var(--accent); font-weight: 500; }
+
+  /* HISTORY */
+  .history { margin: var(--s2) var(--s4) 0; background: var(--surface); border: 1px solid var(--rule); }
+  .history__row {
+    display: grid; grid-template-columns: 28px 22px 38px 1fr 32px 32px; gap: var(--s2); padding: 7px var(--s3);
+    align-items: center; border-bottom: 1px solid var(--rule-soft); font-size: 11px;
+  }
+  .history__head {
+    background: var(--surface-2); font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dimmer);
+    border-bottom: 1px solid var(--rule); padding: 5px var(--s3);
+  }
+  .history__row:last-child { border-bottom: 0; }
+  .history__row--highlight {
+    background: linear-gradient(90deg, var(--accent-soft) 0%, transparent 80%);
+    border-left: 3px solid var(--accent); padding-left: calc(var(--s3) - 3px);
+  }
+  .history__round { font-family: 'DM Mono', monospace; color: var(--ink); font-size: 10px; }
+  .history__row--highlight .history__round { color: var(--accent); }
+  .history__levelcard { font-family: 'Fraunces', serif; font-weight: 900; font-size: 16px; color: var(--ink); }
+  .history__row--highlight .history__levelcard { color: var(--accent); }
+  .history__winner {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 10px; padding: 2px 5px; display: inline-block; line-height: 1;
+  }
+  .history__winner--red { color: var(--team-red); background: var(--team-red-soft); border: 1px solid var(--team-red-line); }
+  .history__winner--blue { color: var(--team-blue); background: var(--team-blue-soft); border: 1px solid var(--team-blue-line); }
+  .history__winner--inprog { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line); animation: pulse-text 2s ease-in-out infinite; }
+  .history__detail {
+    display: flex; flex-direction: column; gap: 1px; min-width: 0;
+  }
+  .history__combo { font-family: 'DM Mono', monospace; color: var(--ink-dim); font-size: 9px; line-height: 1.2; }
+  .history__upgrade { font-family: 'Fraunces', serif; font-weight: 700; font-size: 10px; color: var(--ink-dim); line-height: 1; }
+  .history__upgrade--zero { color: var(--ink-dimmer); font-style: italic; font-weight: 500; }
+  .history__upgrade--inprog { color: var(--accent); font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+  .history__lvl { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; text-align: center; }
+  .history__lvl--red { color: var(--team-red); }
+  .history__lvl--blue { color: var(--team-blue); }
+  .history__lvl--pending { color: var(--ink-dimmer); font-style: italic; }
+  .history__more {
+    padding: 7px var(--s3); display: flex; justify-content: center; align-items: center; gap: 5px;
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 0.10em;
+    background: var(--surface-2); border-top: 1px solid var(--rule);
+  }
+
+  /* HONORS */
+  .honors { margin: var(--s2) var(--s4) 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+  .honor {
+    background: var(--surface); border: 1px solid var(--rule); padding: 10px;
+    display: flex; flex-direction: column; gap: var(--s2); position: relative; overflow: hidden; min-height: 130px;
+  }
+  .honor::after { content: ''; position: absolute; bottom: 0; left: 10px; right: 10px; height: 2px; background: var(--rule); }
+  .honor--leading::after { background: var(--accent); }
+  .honor--inprog::after { background: oklch(50% 0.10 250); }
+  .honor__top { display: flex; justify-content: space-between; align-items: center; gap: 5px; }
+  .honor__index { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.14em; }
+  .honor__status {
+    font-family: 'DM Mono', monospace; font-size: 7px; padding: 2px 4px; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .honor__status--leading { color: var(--accent); border: 1px solid var(--accent-line); background: var(--accent-soft); }
+  .honor__status--inprog { color: var(--ink-dim); border: 1px solid var(--rule); background: var(--bg); }
+  .honor__name {
+    font-family: 'Fraunces', serif; font-weight: 900; font-size: 26px; line-height: 1; letter-spacing: -0.02em; color: var(--ink); margin-top: 2px;
+  }
+  .honor--inprog .honor__name { color: var(--ink-dim); }
+  .honor__cat {
+    font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .honor__recipient {
+    margin-top: auto; display: flex; align-items: center; gap: var(--s2); padding-top: 6px; border-top: 1px solid var(--rule-soft);
+  }
+  .honor__avatar {
+    width: 22px; height: 22px; display: grid; place-items: center; font-family: 'Fraunces', serif; font-weight: 900; font-size: 10px;
+    border: 1px solid var(--rule); background: var(--surface-2); flex-shrink: 0;
+  }
+  .honor__avatar--red { color: var(--team-red); border-color: var(--team-red-line); }
+  .honor__avatar--blue { color: var(--team-blue); border-color: var(--team-blue-line); }
+  .honor__avatar--empty { color: var(--ink-dimmer); border-style: dashed; }
+  .honor__player { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .honor__playername { font-family: 'Fraunces', serif; font-weight: 700; font-size: 11px; line-height: 1; }
+  .honor__playername--placeholder { color: var(--ink-dimmer); font-style: italic; }
+  .honor__handle { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); }
+  .honor__stat {
+    font-family: 'DM Mono', monospace; font-size: 9px; color: var(--accent); letter-spacing: 0.04em; text-align: right; line-height: 1.2;
+  }
+  .honor__stat--placeholder { color: var(--ink-dimmer); font-style: italic; }
+
+  /* SAMPLE 通关 */
+  .sample {
+    margin: var(--s2) var(--s4) 0; border: 1px dashed var(--accent-line);
+    background: radial-gradient(ellipse 70% 60% at 50% 0%, oklch(70% 0.20 45 / 0.10), transparent 60%), var(--surface);
+    padding: var(--s4) var(--s3); position: relative;
+  }
+  .sample__label {
+    position: absolute; top: -8px; left: var(--s3); background: var(--bg); padding: 1px 7px;
+    font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent-line);
+  }
+  .sample__pretitle {
+    font-size: 7px; letter-spacing: 0.30em; text-transform: uppercase; color: var(--accent); text-align: center; margin-bottom: var(--s2);
+  }
+  .sample__title {
+    font-family: 'Fraunces', serif; font-weight: 900; font-variation-settings: 'opsz' 144; font-size: 38px;
+    line-height: 0.95; letter-spacing: -0.04em; color: var(--ink); text-align: center; margin: 0;
+    text-shadow: 0 0 24px oklch(70% 0.20 45 / 0.30);
+  }
+  .sample__sub {
+    margin-top: var(--s2); font-family: 'Fraunces', serif; font-weight: 700; font-size: 11px; color: var(--team-red);
+    letter-spacing: 0.04em; text-align: center;
+  }
+  .sample__sub .sep { color: var(--ink-dimmer); margin: 0 4px; font-weight: 400; }
+  .sample__meta {
+    margin-top: var(--s2); padding: 5px 0; border-top: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft);
+    display: flex; justify-content: center; gap: var(--s3); font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dim); letter-spacing: 0.10em; text-transform: uppercase;
+  }
+  .sample__meta .accent { color: var(--accent); }
+  .sample__mvp {
+    margin-top: var(--s3); background: var(--surface-2); border: 1px solid var(--rule); padding: 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .sample__mvp-kicker {
+    font-size: 7px; letter-spacing: 0.20em; text-transform: uppercase; color: var(--accent); padding-bottom: 4px; border-bottom: 1px solid var(--rule-soft);
+  }
+  .sample__mvp-row { display: flex; align-items: center; gap: var(--s2); }
+  .sample__mvp-photo {
+    width: 38px; height: 38px;
+    background: radial-gradient(circle at 30% 30%, oklch(70% 0.18 45 / 0.40), transparent 60%), var(--bg);
+    border: 1px solid var(--rule); display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-weight: 900; font-size: 16px; color: var(--ink);
+  }
+  .sample__mvp-body { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+  .sample__mvp-name { font-family: 'Fraunces', serif; font-weight: 900; font-size: 13px; }
+  .sample__mvp-handle { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); }
+  .sample__mvp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-top: 5px; border-top: 1px dashed var(--rule-soft); }
+  .sample__mvp-stat { display: flex; flex-direction: column; gap: 1px; font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); }
+  .sample__mvp-stat .big { font-family: 'Fraunces', serif; font-weight: 900; font-size: 18px; color: var(--accent); letter-spacing: -0.02em; line-height: 1; }
+  .sample__mvp-stat .key { color: var(--ink-dimmer); font-size: 8px; letter-spacing: 0.10em; text-transform: uppercase; }
+
+  /* PROFILE */
+  .profile {
+    margin: var(--s2) var(--s4) 0; background: var(--surface); border: 1px solid var(--rule); padding: var(--s3);
+    display: flex; flex-direction: column; gap: var(--s3);
+  }
+  .profile__head { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding-bottom: var(--s2); border-bottom: 1px solid var(--rule-soft); }
+  .profile__avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, oklch(70% 0.18 45 / 0.30), transparent 60%), var(--surface-2);
+    border: 2px solid var(--accent-line); display: grid; place-items: center;
+    font-family: 'Fraunces', serif; font-weight: 900; font-size: 36px; color: var(--ink);
+    text-shadow: 0 0 18px oklch(0% 0 0 / 0.4);
+  }
+  .profile__namegrp { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .profile__name { font-family: 'Fraunces', serif; font-weight: 900; font-size: 22px; letter-spacing: 0.02em; line-height: 1; }
+  .profile__handle { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-dim); letter-spacing: 0.04em; }
+  .profile__badge {
+    font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent);
+    padding: 3px 8px; border: 1px solid var(--accent-line); background: var(--accent-soft); margin-top: 2px;
+  }
+  .profile__stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border: 1px solid var(--rule-soft); }
+  .profile__stat { padding: 8px 6px; border-right: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft); text-align: center; }
+  .profile__stat:nth-child(3n) { border-right: 0; }
+  .profile__stat:nth-child(n+4) { border-bottom: 0; }
+  .profile__stat-label { font-size: 7px; color: var(--ink-dimmer); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 3px; }
+  .profile__stat-val { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
+  .profile__stat-val .small { font-size: 9px; color: var(--ink-dim); margin-left: 1px; }
+  .profile__rels { display: flex; flex-direction: column; gap: 6px; }
+  .profile__rel {
+    background: var(--surface-2); border: 1px solid var(--rule); padding: 8px 10px;
+    display: grid; grid-template-columns: 1fr; gap: 5px;
+  }
+  .profile__rel-row1 { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+  .profile__rel-key { font-size: 7px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dimmer); }
+  .profile__rel-name { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; }
+  .profile__rel-name .handle { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); margin-left: 4px; font-weight: 500; }
+  .profile__rel-bar { height: 3px; background: var(--bg); position: relative; }
+  .profile__rel-bar-fill { height: 100%; }
+  .profile__rel-bar-fill--win { background: var(--win); }
+  .profile__rel-bar-fill--loss { background: var(--loss); }
+  .profile__rel-meta { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--ink-dim); display: flex; justify-content: space-between; }
+  .profile__rel-meta .pct { color: var(--ink); }
+
+  /* footer info */
+  .footer { padding: var(--s5) var(--s4) var(--s7); display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .footer__brand { font-family: 'Fraunces', serif; font-weight: 900; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.20em; text-transform: uppercase; }
+  .footer__meta { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.10em; }
+
+  /* ============== STICKY BOTTOM ACTION BAR (60px) ============== */
+  .bottom-action-bar {
+    flex-shrink: 0; height: 60px; background: linear-gradient(180deg, oklch(20% 0.04 250), var(--bg-deep));
+    border-top: 1px solid var(--accent-line);
+    padding: 0 var(--s3); display: flex; align-items: center; gap: var(--s3); position: relative;
+  }
+  .bottom-action-bar__live {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2.4s cubic-bezier(0.4,0,0.6,1) infinite; flex-shrink: 0;
+  }
+  .bottom-action-bar__msg { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+  .bottom-action-bar__title {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 12px; color: var(--ink); letter-spacing: 0.02em;
+  }
+  .bottom-action-bar__sub {
+    font-family: 'DM Mono', monospace; font-size: 8px; color: var(--ink-dimmer); letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .bottom-action-bar__sub .accent { color: var(--accent); }
+  .bottom-action-bar__cta {
+    padding: 7px 12px; background: var(--surface-2); border: 1px solid var(--rule); color: var(--ink-dim); opacity: 0.55;
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 10px; letter-spacing: 0.04em; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 1px; line-height: 1; cursor: not-allowed;
+  }
+  .bottom-action-bar__cta small {
+    font-family: 'DM Mono', monospace; font-size: 7px; color: var(--ink-dimmer); letter-spacing: 0.16em; text-transform: uppercase; font-weight: 500;
+  }
+
+  /* ============== STICKY BOTTOM TAB BAR (60px) ============== */
+  .tab-bar {
+    flex-shrink: 0; height: 60px; background: var(--bg-deep); border-top: 1px solid var(--rule);
+    display: flex; align-items: stretch; padding: 0; padding-bottom: 6px;
+  }
+  .tab-bar__item {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    text-decoration: none; color: var(--ink-dim); padding: 6px 0; border: 0; background: transparent;
+    position: relative;
+  }
+  .tab-bar__icon { width: 22px; height: 22px; display: grid; place-items: center; color: currentColor; }
+  .tab-bar__label {
+    font-family: 'Fraunces', serif; font-weight: 700; font-size: 10px; letter-spacing: 0.04em; line-height: 1;
+  }
+  .tab-bar__item--active { color: var(--accent); }
+  .tab-bar__item--active::before {
+    content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 2px; background: var(--accent);
+  }
+
+  /* home indicator */
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px; background: var(--ink); border-radius: 3px; opacity: 0.85; z-index: 11;
+  }
+</style>
+</head>
+<body>
+
+<div class="iphone-frame">
+  <div class="iphone-screen">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-bar__time">9:41</div>
+      <div class="status-bar__indicators">
+        <!-- signal -->
+        <svg width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="7" width="3" height="4" rx="0.7" fill="white"/>
+          <rect x="5" y="5" width="3" height="6" rx="0.7" fill="white"/>
+          <rect x="10" y="2.5" width="3" height="8.5" rx="0.7" fill="white"/>
+          <rect x="15" y="0" width="3" height="11" rx="0.7" fill="white"/>
+        </svg>
+        <!-- wifi -->
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 11L10 9C9.5 8.5 8.8 8.2 8 8.2C7.2 8.2 6.5 8.5 6 9L8 11Z"/>
+          <path d="M8 6.5C9.6 6.5 11.1 7.1 12.2 8.1L13.6 6.7C12.1 5.3 10.1 4.5 8 4.5C5.9 4.5 3.9 5.3 2.4 6.7L3.8 8.1C4.9 7.1 6.4 6.5 8 6.5Z" opacity="1"/>
+          <path d="M8 2C10.7 2 13.2 3 15 4.7L16.4 3.3C14.2 1.2 11.2 0 8 0C4.8 0 1.8 1.2 -0.4 3.3L1 4.7C2.8 3 5.3 2 8 2Z"/>
+        </svg>
+        <!-- battery -->
+        <svg width="27" height="11" viewBox="0 0 27 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="22" height="10" rx="2" stroke="white" stroke-opacity="0.5" fill="none"/>
+          <rect x="2" y="2" width="18" height="7" rx="1" fill="white"/>
+          <rect x="23.5" y="3.5" width="2" height="4" rx="0.5" fill="white" fill-opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dynamic island -->
+    <div class="dynamic-island"></div>
+
+    <!-- STICKY TOP HEADER -->
+    <div class="top-header">
+      <div class="top-header__brand-mark">A</div>
+      <div class="top-header__meta">
+        <div class="top-header__row1">
+          <span class="top-header__room">A1B2C3</span>
+          <span class="sep">·</span>
+          <span>6P · 3v3</span>
+          <span class="sep">·</span>
+          <span>SYNC 2s</span>
+        </div>
+        <div class="top-header__row2">
+          <span class="top-header__round">本局 5</span>
+          <span class="micro-sep">·</span>
+          <span>级</span>
+          <span class="top-header__lvl">4</span>
+          <span class="micro-sep">·</span>
+          <span class="top-header__owner">红队的级</span>
+        </div>
+      </div>
+      <div class="top-header__live">
+        <div class="top-header__live-dot"></div>
+        <div class="top-header__live-text">LIVE</div>
+      </div>
+      <div class="top-header__time">18:42</div>
+    </div>
+
+    <!-- SCROLLABLE MIDDLE -->
+    <div class="scroll-area">
+
+      <!-- MODE SELECTOR -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">游戏模式</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">SWITCH RESETS</span>
+      </div>
+      <div class="modeselect">
+        <button class="modeselect__opt"><span>4人</span><span class="modeselect__opt-meta">2v2</span></button>
+        <button class="modeselect__opt modeselect__opt--active"><span>6人</span><span class="modeselect__opt-meta">3v3 · ON</span></button>
+        <button class="modeselect__opt"><span>8人</span><span class="modeselect__opt-meta">4v4</span></button>
+      </div>
+
+      <!-- TWO TEAM PANELS (stacked) -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">主比分牌</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">A1B2C3 · R5 · LIVE</span>
+      </div>
+      <section class="scorer">
+        <article class="team team--red">
+          <div class="team__left">
+            <header class="team__head">
+              <span class="team__name-cn">红队</span>
+              <span class="team__name-en">Red</span>
+            </header>
+            <span class="team__status team__status--owner">本局红队的级</span>
+            <div class="team__roster">
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--red">张</div>
+                <div class="roster-row__name"><span class="roster-row__display">老张</span><span class="roster-row__handle">@laozhang</span></div>
+                <span class="roster-row__tag">POOL</span>
+              </div>
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--red">伟</div>
+                <div class="roster-row__name"><span class="roster-row__display">阿伟</span><span class="roster-row__handle">@awei</span></div>
+                <span class="roster-row__tag">头游</span>
+              </div>
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--red">刘</div>
+                <div class="roster-row__name"><span class="roster-row__display">大刘</span><span class="roster-row__handle">@daliu</span></div>
+                <span class="roster-row__tag">SEL</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-level">
+            <span class="card-level__suit card-level__suit--tl">&#9829;</span>
+            <span class="card-level__glyph">4</span>
+            <span class="card-level__suit card-level__suit--br">&#9829;</span>
+            <div class="card-level__sub"><span class="accent">L 4</span> · 03/13</div>
+          </div>
+        </article>
+
+        <article class="team team--blue">
+          <div class="team__left">
+            <header class="team__head">
+              <span class="team__name-cn">蓝队</span>
+              <span class="team__name-en">Blue</span>
+            </header>
+            <span class="team__status team__status--neutral">L 3 · 阻击位</span>
+            <div class="team__roster">
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--blue">王</div>
+                <div class="roster-row__name"><span class="roster-row__display">小王</span><span class="roster-row__handle">@xiaowang</span></div>
+                <span class="roster-row__tag">二游</span>
+              </div>
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--blue">明</div>
+                <div class="roster-row__name"><span class="roster-row__display">阿明</span><span class="roster-row__handle">@aming</span></div>
+                <span class="roster-row__tag">POOL</span>
+              </div>
+              <div class="roster-row">
+                <div class="roster-row__avatar roster-row__avatar--blue">美</div>
+                <div class="roster-row__name"><span class="roster-row__display">小美</span><span class="roster-row__handle">@xiaomei</span></div>
+                <span class="roster-row__tag">POOL</span>
+              </div>
+            </div>
+          </div>
+          <div class="card-level">
+            <span class="card-level__suit card-level__suit--tl">&#9830;</span>
+            <span class="card-level__glyph">3</span>
+            <span class="card-level__suit card-level__suit--br">&#9830;</span>
+            <div class="card-level__sub"><span class="accent">L 3</span> · 02/13</div>
+          </div>
+        </article>
+      </section>
+
+      <!-- ACTIVE GAME — HERO -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">本局排名 · R5</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">2 / 6 · IN PROGRESS</span>
+      </div>
+
+      <section class="activegame" style="margin-left: var(--s4); margin-right: var(--s4);">
+        <header class="activegame__head">
+          <div class="activegame__live-dot"></div>
+          <span class="activegame__head-label">ACTIVE</span>
+          <span class="activegame__head-divider"></span>
+          <span class="activegame__head-line">本局：<span class="glyph accent">4</span> · <span class="accent">红队的级</span></span>
+        </header>
+        <div class="activegame__body">
+
+          <div class="annotation">
+            TAP TO SELECT · 点击玩家入位
+            <span class="annotation__device">MOBILE</span>
+          </div>
+
+          <!-- POOL -->
+          <div class="pool">
+            <div class="pool__head">
+              <span class="pool__title">玩家池</span>
+              <span class="pool__sub">PLAYER POOL</span>
+              <span class="pool__count"><span class="accent">4</span> / 6 待排名</span>
+            </div>
+            <div class="pool__grid">
+              <article class="pool-tile pool-tile--red pool-tile--selected">
+                <span class="pool-tile__check">✓ 已选</span>
+                <div class="pool-tile__avatar">刘</div>
+                <div class="pool-tile__body">
+                  <div class="pool-tile__top"><span class="pool-tile__dot"></span><span class="pool-tile__name">大刘</span></div>
+                  <span class="pool-tile__handle">@daliu</span>
+                </div>
+              </article>
+              <article class="pool-tile pool-tile--blue">
+                <div class="pool-tile__avatar">明</div>
+                <div class="pool-tile__body">
+                  <div class="pool-tile__top"><span class="pool-tile__dot"></span><span class="pool-tile__name">阿明</span></div>
+                  <span class="pool-tile__handle">@aming</span>
+                </div>
+              </article>
+              <article class="pool-tile pool-tile--blue">
+                <div class="pool-tile__avatar">美</div>
+                <div class="pool-tile__body">
+                  <div class="pool-tile__top"><span class="pool-tile__dot"></span><span class="pool-tile__name">小美</span></div>
+                  <span class="pool-tile__handle">@xiaomei</span>
+                </div>
+              </article>
+              <article class="pool-tile pool-tile--red">
+                <div class="pool-tile__avatar">张</div>
+                <div class="pool-tile__body">
+                  <div class="pool-tile__top"><span class="pool-tile__dot"></span><span class="pool-tile__name">老张</span></div>
+                  <span class="pool-tile__handle">@laozhang</span>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <!-- SLOTS (vertical list) -->
+          <div class="slots">
+            <div class="slots__head">
+              <span class="slots__title">名次槽</span>
+              <span class="slots__sub">头游 → 末游</span>
+              <span class="slots__progress">
+                <span class="slots__progress-bar"><span class="slots__progress-bar-fill"></span></span>
+                <span><span style="color: var(--ink);">2</span>/6</span>
+              </span>
+            </div>
+            <div class="slots__list">
+              <article class="slot slot--filled slot--filled-red">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">一</span>
+                  <span class="slot__index">头游</span>
+                </div>
+                <div class="slot__center">
+                  <div class="slot__avatar">伟</div>
+                  <div class="slot__player-meta">
+                    <span class="slot__name">阿伟</span>
+                    <span class="slot__handle">@awei · 红</span>
+                  </div>
+                </div>
+                <span class="slot__check">✓</span>
+              </article>
+              <article class="slot slot--filled slot--filled-blue">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">二</span>
+                  <span class="slot__index">2nd</span>
+                </div>
+                <div class="slot__center">
+                  <div class="slot__avatar">王</div>
+                  <div class="slot__player-meta">
+                    <span class="slot__name">小王</span>
+                    <span class="slot__handle">@xiaowang · 蓝</span>
+                  </div>
+                </div>
+                <span class="slot__check">✓</span>
+              </article>
+              <article class="slot slot--target">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">三</span>
+                  <span class="slot__index">3rd</span>
+                </div>
+                <div class="slot__center">
+                  <span class="slot__target-icon">↳</span>
+                  <span class="slot__target-label">tap to place <span class="name">大刘</span></span>
+                </div>
+                <span class="slot__check" style="color: var(--accent);">↘</span>
+              </article>
+              <article class="slot slot--empty">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">四</span>
+                  <span class="slot__index">4th</span>
+                </div>
+                <div class="slot__center">
+                  <div class="slot__placeholder"></div>
+                  <span class="slot__placeholder-label">等候 · empty</span>
+                </div>
+                <span></span>
+              </article>
+              <article class="slot slot--empty">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">五</span>
+                  <span class="slot__index">5th</span>
+                </div>
+                <div class="slot__center">
+                  <div class="slot__placeholder"></div>
+                  <span class="slot__placeholder-label">等候 · empty</span>
+                </div>
+                <span></span>
+              </article>
+              <article class="slot slot--empty">
+                <div class="slot__index-block">
+                  <span class="slot__rank-cn">六</span>
+                  <span class="slot__index">末游</span>
+                </div>
+                <div class="slot__center">
+                  <div class="slot__placeholder"></div>
+                  <span class="slot__placeholder-label">等候 · empty</span>
+                </div>
+                <span></span>
+              </article>
+            </div>
+          </div>
+
+          <!-- CALC PREVIEW -->
+          <div class="calcpreview">
+            <span class="calcpreview__label">LIVE CALC · WAITING</span>
+            <div class="calcpreview__row">
+              <span class="key">红</span>
+              <span class="red">[1, ?, ?]</span>
+              <span class="calcpreview__sep">=</span>
+              <span>5+?+?</span>
+              <span class="calcpreview__sep">=</span>
+              <span class="pending">?</span>
+            </div>
+            <div class="calcpreview__row">
+              <span class="key">蓝</span>
+              <span class="blue">[2, ?, ?]</span>
+              <span class="calcpreview__sep">=</span>
+              <span>4+?+?</span>
+              <span class="calcpreview__sep">=</span>
+              <span class="pending">?</span>
+            </div>
+            <div class="calcpreview__hint">等待最后 4 位 · 阈值 +3≥7 · +2≥4 · +1≥1</div>
+          </div>
+
+          <!-- TOGGLES (iOS style) -->
+          <div class="toggles">
+            <span class="toggles__head">AUTOMATION · 默认全开</span>
+            <div class="toggle-row">
+              <div class="toggle-row__label">排名完成自动应用结果<span class="key">autoApply</span></div>
+              <span class="toggle-switch toggle-switch--on"></span>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-row__label">应用后自动进入下一局<span class="key">autoNext</span></div>
+              <span class="toggle-switch toggle-switch--on"></span>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-row__label">严格 A 级规则<span class="key">strictA</span></div>
+              <span class="toggle-switch toggle-switch--on"></span>
+            </div>
+            <div class="toggle-row">
+              <div class="toggle-row__label">仅有 1 方升级<span class="key">must1</span></div>
+              <span class="toggle-switch toggle-switch--on"></span>
+            </div>
+          </div>
+
+          <!-- MANUAL BUTTONS -->
+          <div class="manualbtns">
+            <button class="btn">
+              <span class="btn--disabled-note">AUTO</span>
+              <span>应用结果</span>
+              <small>APPLY RESULT</small>
+            </button>
+            <button class="btn">
+              <span class="btn--disabled-note">AUTO</span>
+              <span>进入下一局</span>
+              <small>NEXT ROUND</small>
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- CUSTOM RULES DRAWER -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">自定义规则</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">DRAWER · COLLAPSED</span>
+      </div>
+      <section class="rules-drawer">
+        <div class="rules-drawer__title-row">
+          <span class="rules-drawer__title">当前配置</span>
+          <span class="rules-drawer__title-meta">PREVIEW</span>
+          <button class="rules-drawer__expand">展开</button>
+        </div>
+        <div class="rules-drawer__chips">
+          <span class="rule-chip"><span class="rule-chip__key">c4:</span>3-2-1</span>
+          <span class="rule-chip"><span class="rule-chip__key">t6:</span>7/4/1</span>
+          <span class="rule-chip"><span class="rule-chip__key">p6:</span>5-4-3-3-1-0</span>
+          <span class="rule-chip"><span class="rule-chip__key">flags:</span>autoApply · autoNext · strictA · must1</span>
+        </div>
+      </section>
+
+      <!-- HISTORY (compact, top 4 + R5 marker) -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">历史战绩</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">R1-R4 + R5</span>
+      </div>
+      <section class="history">
+        <div class="history__row history__head">
+          <span>本局</span><span>级</span><span>胜方</span><span>详情</span>
+          <span style="text-align:center;">红</span><span style="text-align:center;">蓝</span>
+        </div>
+        <div class="history__row">
+          <span class="history__round">R01</span>
+          <span class="history__levelcard">2</span>
+          <span><span class="history__winner history__winner--red">红</span></span>
+          <div class="history__detail">
+            <span class="history__combo">(1, 2, 5)</span>
+            <span class="history__upgrade">升 2 级</span>
+          </div>
+          <span class="history__lvl history__lvl--red">4</span>
+          <span class="history__lvl history__lvl--blue">2</span>
+        </div>
+        <div class="history__row">
+          <span class="history__round">R02</span>
+          <span class="history__levelcard">4</span>
+          <span><span class="history__winner history__winner--blue">蓝</span></span>
+          <div class="history__detail">
+            <span class="history__combo">(1, 3, 4)</span>
+            <span class="history__upgrade">升 1 级</span>
+          </div>
+          <span class="history__lvl history__lvl--red">4</span>
+          <span class="history__lvl history__lvl--blue">3</span>
+        </div>
+        <div class="history__row">
+          <span class="history__round">R03</span>
+          <span class="history__levelcard">3</span>
+          <span><span class="history__winner history__winner--red">红</span></span>
+          <div class="history__detail">
+            <span class="history__combo">(1, 2, 4)</span>
+            <span class="history__upgrade history__upgrade--zero">升 0 · must1</span>
+          </div>
+          <span class="history__lvl history__lvl--red">4</span>
+          <span class="history__lvl history__lvl--blue">3</span>
+        </div>
+        <div class="history__row">
+          <span class="history__round">R04</span>
+          <span class="history__levelcard">3</span>
+          <span><span class="history__winner history__winner--red">红</span></span>
+          <div class="history__detail">
+            <span class="history__combo">(1, 3, 5)</span>
+            <span class="history__upgrade history__upgrade--zero">升 0 · 差距</span>
+          </div>
+          <span class="history__lvl history__lvl--red">4</span>
+          <span class="history__lvl history__lvl--blue">3</span>
+        </div>
+        <div class="history__row history__row--highlight">
+          <span class="history__round">R05</span>
+          <span class="history__levelcard">4</span>
+          <span><span class="history__winner history__winner--inprog">●</span></span>
+          <div class="history__detail">
+            <span class="history__combo">阿伟·1 / 小王·2 / ?·3 …</span>
+            <span class="history__upgrade history__upgrade--inprog">LIVE · 待排名</span>
+          </div>
+          <span class="history__lvl history__lvl--pending">—</span>
+          <span class="history__lvl history__lvl--pending">—</span>
+        </div>
+        <div class="history__more">查看全部 5 局 →</div>
+      </section>
+
+      <!-- HONORS GALLERY (2x3 grid) -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">特殊荣誉 · 进行中</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">06 / 16 · 4 ROUNDS</span>
+      </div>
+      <section class="honors">
+        <article class="honor honor--leading">
+          <div class="honor__top">
+            <span class="honor__index">01/16</span>
+            <span class="honor__status honor__status--leading">leader</span>
+          </div>
+          <div class="honor__name">吕布</div>
+          <div class="honor__cat">最多第一名</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--red">伟</div>
+            <div class="honor__player">
+              <span class="honor__playername">阿伟</span>
+              <span class="honor__handle">@awei</span>
+            </div>
+            <div class="honor__stat">2/4<br>头游</div>
+          </div>
+        </article>
+
+        <article class="honor honor--leading">
+          <div class="honor__top">
+            <span class="honor__index">13/16</span>
+            <span class="honor__status honor__status--leading">leader</span>
+          </div>
+          <div class="honor__name">闪电侠</div>
+          <div class="honor__cat">变化频繁</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--red">张</div>
+            <div class="honor__player">
+              <span class="honor__playername">老张</span>
+              <span class="honor__handle">@laozhang</span>
+            </div>
+            <div class="honor__stat">3/4<br>变名次</div>
+          </div>
+        </article>
+
+        <article class="honor honor--inprog">
+          <div class="honor__top">
+            <span class="honor__index">02/16</span>
+            <span class="honor__status honor__status--inprog">进行中</span>
+          </div>
+          <div class="honor__name">阿斗</div>
+          <div class="honor__cat">最多垫底</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--empty">?</div>
+            <div class="honor__player">
+              <span class="honor__playername honor__playername--placeholder">待定</span>
+              <span class="honor__handle">2 候选</span>
+            </div>
+            <div class="honor__stat honor__stat--placeholder">1/4<br>tied</div>
+          </div>
+        </article>
+
+        <article class="honor honor--inprog">
+          <div class="honor__top">
+            <span class="honor__index">03/16</span>
+            <span class="honor__status honor__status--inprog">进行中</span>
+          </div>
+          <div class="honor__name">石佛</div>
+          <div class="honor__cat">优秀稳定</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--empty">?</div>
+            <div class="honor__player">
+              <span class="honor__playername honor__playername--placeholder">待 R6</span>
+              <span class="honor__handle">需 6+ 局</span>
+            </div>
+            <div class="honor__stat honor__stat--placeholder">σ —<br>n=4</div>
+          </div>
+        </article>
+
+        <article class="honor honor--inprog">
+          <div class="honor__top">
+            <span class="honor__index">08/16</span>
+            <span class="honor__status honor__status--inprog">进行中</span>
+          </div>
+          <div class="honor__name">大满贯</div>
+          <div class="honor__cat">体验所有排名</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--blue">美</div>
+            <div class="honor__player">
+              <span class="honor__playername">小美</span>
+              <span class="honor__handle">@xiaomei</span>
+            </div>
+            <div class="honor__stat">4/6<br>位置</div>
+          </div>
+        </article>
+
+        <article class="honor honor--inprog">
+          <div class="honor__top">
+            <span class="honor__index">16/16</span>
+            <span class="honor__status honor__status--inprog">进行中</span>
+          </div>
+          <div class="honor__name">🤡</div>
+          <div class="honor__cat">无冠最菜</div>
+          <div class="honor__recipient">
+            <div class="honor__avatar honor__avatar--empty">?</div>
+            <div class="honor__player">
+              <span class="honor__playername honor__playername--placeholder">2 候选</span>
+              <span class="honor__handle">@aming · @xiaomei</span>
+            </div>
+            <div class="honor__stat honor__stat--placeholder">0/4<br>头游</div>
+          </div>
+        </article>
+      </section>
+
+      <!-- 示例 · 通关时刻 -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">示例 · 通关时刻</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">CHAMPIONSHIP SAMPLE</span>
+      </div>
+      <section class="sample">
+        <span class="sample__label">SAMPLE · 通关</span>
+        <div class="sample__pretitle">— THIS IS WHAT WINNING LOOKS LIKE —</div>
+        <h2 class="sample__title">A级通关</h2>
+        <div class="sample__sub">红队 <span class="sep">·</span> 老张 <span class="sep">·</span> 阿伟 <span class="sep">·</span> 大刘</div>
+        <div class="sample__meta">
+          <span>级牌 <span class="accent">A</span></span>
+          <span>历时 <span class="accent">47:23</span></span>
+          <span><span class="accent">+3 通关</span></span>
+        </div>
+        <article class="sample__mvp">
+          <span class="sample__mvp-kicker">DUAL MVP · ALGO + VOTED</span>
+          <div class="sample__mvp-row">
+            <div class="sample__mvp-photo">伟</div>
+            <div class="sample__mvp-body">
+              <span class="sample__mvp-name">阿伟</span>
+              <span class="sample__mvp-handle">@awei</span>
+            </div>
+          </div>
+          <div class="sample__mvp-stats">
+            <div class="sample__mvp-stat">
+              <span class="big">2.41</span>
+              <span class="key">avg rank · 22 局</span>
+            </div>
+            <div class="sample__mvp-stat">
+              <span class="big">12</span>
+              <span class="key">最C 票数</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- PROFILE SNIPPET -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">玩家档案 · 阿伟</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">CAREER · ALL-TIME</span>
+      </div>
+      <section class="profile">
+        <header class="profile__head">
+          <div class="profile__avatar">伟</div>
+          <div class="profile__namegrp">
+            <span class="profile__name">阿伟</span>
+            <span class="profile__handle">@awei</span>
+            <span class="profile__badge">SESSION LEADER · R5</span>
+          </div>
+        </header>
+        <div class="profile__stats">
+          <div class="profile__stat">
+            <div class="profile__stat-label">Sessions</div>
+            <div class="profile__stat-val">47</div>
+          </div>
+          <div class="profile__stat">
+            <div class="profile__stat-label">Won</div>
+            <div class="profile__stat-val">29<span class="small">/61.7%</span></div>
+          </div>
+          <div class="profile__stat">
+            <div class="profile__stat-label">Rounds</div>
+            <div class="profile__stat-val">412</div>
+          </div>
+          <div class="profile__stat">
+            <div class="profile__stat-label">Avg Rank</div>
+            <div class="profile__stat-val">2.84</div>
+          </div>
+          <div class="profile__stat">
+            <div class="profile__stat-label">Time</div>
+            <div class="profile__stat-val">38<span class="small">h</span>22<span class="small">m</span></div>
+          </div>
+          <div class="profile__stat">
+            <div class="profile__stat-label">最C/最闹</div>
+            <div class="profile__stat-val">23<span class="small">/2</span></div>
+          </div>
+        </div>
+        <div class="profile__rels">
+          <div class="profile__rel">
+            <div class="profile__rel-row1">
+              <span class="profile__rel-key">TOP PARTNER · 最佳搭档</span>
+            </div>
+            <div class="profile__rel-name">老张<span class="handle">@laozhang</span></div>
+            <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--win" style="width: 75%;"></div></div>
+            <div class="profile__rel-meta"><span>24 局同队</span><span class="pct">胜率 75%</span></div>
+          </div>
+          <div class="profile__rel">
+            <div class="profile__rel-row1">
+              <span class="profile__rel-key">TOP RIVAL · 苦主</span>
+            </div>
+            <div class="profile__rel-name">小王<span class="handle">@xiaowang</span></div>
+            <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--loss" style="width: 58%;"></div></div>
+            <div class="profile__rel-meta"><span>31 局对阵</span><span class="pct">败率 58%</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- footer -->
+      <div class="footer">
+        <div class="footer__brand">GD LIVE · BROADCAST · v2 mobile</div>
+        <div class="footer__meta">A1B2C3 · 6P · R5 · 18:42 · IN PROGRESS</div>
+      </div>
+
+    </div>
+    <!-- /scroll-area -->
+
+    <!-- STICKY BOTTOM ACTION BAR -->
+    <div class="bottom-action-bar">
+      <div class="bottom-action-bar__live"></div>
+      <div class="bottom-action-bar__msg">
+        <div class="bottom-action-bar__title">本局结束 · 等待入位</div>
+        <div class="bottom-action-bar__sub">2/6 PLACED · <span class="accent">AUTO 已开</span></div>
+      </div>
+      <button class="bottom-action-bar__cta">
+        <span>应用</span>
+        <small>AUTO</small>
+      </button>
+    </div>
+
+    <!-- STICKY BOTTOM TAB BAR -->
+    <nav class="tab-bar">
+      <button class="tab-bar__item">
+        <div class="tab-bar__icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="7" r="3.5"/>
+            <path d="M3 19c0-3.5 3.5-6 8-6s8 2.5 8 6"/>
+          </svg>
+        </div>
+        <span class="tab-bar__label">玩家</span>
+      </button>
+      <button class="tab-bar__item">
+        <div class="tab-bar__icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="5" width="16" height="12" rx="1.5"/>
+            <path d="M3 9h16"/>
+            <path d="M7 13h2M13 13h2"/>
+          </svg>
+        </div>
+        <span class="tab-bar__label">房间</span>
+      </button>
+      <button class="tab-bar__item tab-bar__item--active">
+        <div class="tab-bar__icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M5 3l4 0 0 4 -4 0z" fill="currentColor"/>
+            <path d="M13 7l4 0 0 4 -4 0z" fill="currentColor"/>
+            <path d="M5 11l4 0 0 4 -4 0z" fill="currentColor"/>
+            <path d="M13 15l4 0 0 4 -4 0z" fill="currentColor"/>
+          </svg>
+        </div>
+        <span class="tab-bar__label">游戏</span>
+      </button>
+      <button class="tab-bar__item">
+        <div class="tab-bar__icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="8" r="3.5"/>
+            <path d="M5 19c0-3 3-5 6-5s6 2 6 5"/>
+            <circle cx="11" cy="11" r="9.5" opacity="0.4"/>
+          </svg>
+        </div>
+        <span class="tab-bar__label">资料</span>
+      </button>
+    </nav>
+
+    <!-- home indicator -->
+    <div class="home-indicator"></div>
+
+  </div>
+</div>
+
+</body>
+</html>

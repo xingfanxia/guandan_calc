@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "capture:visual": "node scripts/visual/capture-broadcast.mjs"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "vite": "^5.0.0"
   },
   "author": "Xingfan Xia",

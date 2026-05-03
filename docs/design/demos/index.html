@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guandan Redesign · Theme Switcher Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: oklch(10% 0.005 270);
+    --surface: oklch(14% 0.008 270);
+    --surface-2: oklch(18% 0.008 270);
+    --ink: oklch(95% 0.005 270);
+    --ink-dim: oklch(68% 0.005 270);
+    --ink-dimmer: oklch(48% 0.005 270);
+    --rule: oklch(26% 0.008 270);
+
+    /* Theme accent colors for tabs */
+    --c-broadcast: oklch(70% 0.20 45);
+    --c-teatable: oklch(55% 0.22 25);
+    --c-trading: oklch(80% 0.16 80);
+    --c-linear: oklch(70% 0.20 280);
+    --c-atelier: oklch(72% 0.14 65);
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Geist', system-ui, sans-serif;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .app {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+
+  /* ========= TOP NAVIGATION ========= */
+
+  .topnav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--rule);
+    padding: 0 24px;
+  }
+
+  .topnav__row {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    height: 56px;
+  }
+
+  .topnav__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+  }
+
+  .topnav__brand-mark {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, var(--c-broadcast), var(--c-trading));
+  }
+
+  .topnav__brand-text { color: var(--ink); }
+  .topnav__brand-tag { color: var(--ink-dimmer); font-family: 'Geist Mono', monospace; font-size: 11px; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-left: auto;
+  }
+
+  .tab {
+    appearance: none;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--ink-dim);
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+
+  .tab:hover {
+    color: var(--ink);
+    background: var(--surface-2);
+  }
+
+  .tab[aria-selected="true"] {
+    color: var(--ink);
+    background: var(--surface-2);
+    border-color: var(--rule);
+  }
+
+  .tab__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+  .tab[data-theme="broadcast"] .tab__dot { background: var(--c-broadcast); }
+  .tab[data-theme="teatable"] .tab__dot { background: var(--c-teatable); }
+  .tab[data-theme="trading"] .tab__dot { background: var(--c-trading); }
+  .tab[data-theme="linear"] .tab__dot { background: var(--c-linear); }
+  .tab[data-theme="atelier"] .tab__dot { background: var(--c-atelier); }
+
+  .tab__shortcut {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1px 5px;
+  }
+
+  .viewport-toggle {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 2px;
+    margin-left: 16px;
+  }
+
+  .viewport-toggle button {
+    appearance: none;
+    background: transparent;
+    border: none;
+    color: var(--ink-dim);
+    padding: 5px 12px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  .viewport-toggle button[aria-pressed="true"] {
+    background: var(--surface);
+    color: var(--ink);
+  }
+
+  .topnav__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 36px;
+    padding: 0 0;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-dimmer);
+    font-size: 11px;
+    font-family: 'Geist Mono', monospace;
+  }
+
+  .topnav__meta-label {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dimmer);
+  }
+
+  .topnav__meta-value {
+    color: var(--ink-dim);
+  }
+
+  .topnav__meta-divider {
+    color: var(--rule);
+  }
+
+  /* ========= STAGE ========= */
+
+  .stage {
+    background: var(--bg);
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .stage--mobile {
+    padding: 20px 16px;
+  }
+
+  .frame-host {
+    width: 100%;
+    transition: max-width 0.25s ease;
+  }
+
+  .frame-host--desktop { max-width: 1480px; }
+  .frame-host--mobile { max-width: 420px; }
+
+  .frame-iframe {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    box-shadow: 0 2px 24px oklch(0% 0 0 / 0.4);
+    display: block;
+  }
+
+  .frame-iframe--desktop {
+    height: calc(100vh - 180px);
+    min-height: 700px;
+  }
+
+  .frame-iframe--mobile {
+    height: calc(100vh - 140px);
+    min-height: 880px;
+    border-radius: 8px;
+  }
+
+  /* ========= INFO STRIP ========= */
+
+  .info-strip {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--ink-dim);
+    font-family: 'Geist Mono', monospace;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .info-strip__theme {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .info-strip__file {
+    color: var(--ink-dimmer);
+  }
+
+  /* ========= EMPTY/LOADING STATE ========= */
+
+  .frame-empty {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--ink-dimmer);
+    font-family: 'Geist Mono', monospace;
+    font-size: 13px;
+    background: var(--surface);
+    border: 1px dashed var(--rule);
+    border-radius: 12px;
+    text-align: center;
+    padding: 48px;
+  }
+
+  .frame-empty strong {
+    display: block;
+    color: var(--ink-dim);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Top navigation: brand + tabs + viewport toggle -->
+  <header class="topnav">
+    <div class="topnav__row">
+      <div class="topnav__brand">
+        <span class="topnav__brand-mark"></span>
+        <span class="topnav__brand-text">Guandan Redesign</span>
+        <span class="topnav__brand-tag">v3 · prototype switcher</span>
+      </div>
+
+      <nav class="tabs" role="tablist" id="tabs">
+        <button class="tab" data-theme="broadcast" data-shortcut="1" role="tab" aria-selected="true">
+          <span class="tab__dot"></span>
+          <span>A · Broadcast</span>
+          <span class="tab__shortcut">1</span>
+        </button>
+        <button class="tab" data-theme="teatable" data-shortcut="2" role="tab" aria-selected="false">
+          <span class="tab__dot"></span>
+          <span>C · Tea-Table</span>
+          <span class="tab__shortcut">2</span>
+        </button>
+        <button class="tab" data-theme="trading" data-shortcut="3" role="tab" aria-selected="false">
+          <span class="tab__dot"></span>
+          <span>D · Trading</span>
+          <span class="tab__shortcut">3</span>
+        </button>
+        <button class="tab" data-theme="linear" data-shortcut="4" role="tab" aria-selected="false">
+          <span class="tab__dot"></span>
+          <span>E · Linear</span>
+          <span class="tab__shortcut">4</span>
+        </button>
+        <button class="tab" data-theme="atelier" data-shortcut="5" role="tab" aria-selected="false">
+          <span class="tab__dot"></span>
+          <span>F · Atelier</span>
+          <span class="tab__shortcut">5</span>
+        </button>
+      </nav>
+
+      <div class="viewport-toggle">
+        <button data-viewport="desktop" aria-pressed="true">DESKTOP</button>
+        <button data-viewport="mobile" aria-pressed="false">MOBILE</button>
+      </div>
+    </div>
+
+    <div class="topnav__meta">
+      <span class="topnav__meta-label">SCENARIO</span>
+      <span class="topnav__meta-value">Round 5 · Level 4 · 红队的级 · mid-ranking</span>
+      <span class="topnav__meta-divider">·</span>
+      <span class="topnav__meta-label">MODE</span>
+      <span class="topnav__meta-value">6人 (3v3)</span>
+      <span class="topnav__meta-divider">·</span>
+      <span class="topnav__meta-label">SHORTCUTS</span>
+      <span class="topnav__meta-value">1-5 themes · D/M viewport</span>
+    </div>
+  </header>
+
+  <!-- Stage holding the iframe -->
+  <main class="stage" id="stage">
+    <div class="frame-host frame-host--desktop" id="frameHost">
+      <iframe class="frame-iframe frame-iframe--desktop" id="frame" src="" title="Theme demo"></iframe>
+    </div>
+  </main>
+</div>
+
+<!-- Floating info strip showing current theme + file path -->
+<div class="info-strip">
+  <span class="info-strip__theme" id="infoTheme">A · Broadcast Editorial</span>
+  <span>·</span>
+  <span class="info-strip__file" id="infoFile">demo-broadcast-v3.html</span>
+</div>
+
+<script>
+  // Theme registry: each theme knows its desktop + mobile demo file
+  const THEMES = {
+    broadcast: {
+      label: 'A · Broadcast Editorial',
+      desktop: 'demo-broadcast-v3.html',
+      mobile: 'demo-broadcast-mobile-v2.html',
+    },
+    teatable: {
+      label: 'C · Tea-Table Contemplative',
+      desktop: 'demo-teatable-v3.html',
+      mobile: 'demo-teatable-mobile-v2.html',
+    },
+    trading: {
+      label: 'D · Trading Terminal',
+      desktop: 'demo-trading-v2.html',
+      mobile: 'demo-trading-mobile-v2.html',
+    },
+    linear: {
+      label: 'E · Linear/Vercel Console',
+      desktop: 'demo-linear-v2.html',
+      mobile: 'demo-linear-mobile-v2.html',
+    },
+    atelier: {
+      label: 'F · Atelier Console',
+      desktop: 'demo-atelier-v2.html',
+      mobile: 'demo-atelier-mobile-v2.html',
+    },
+  };
+
+  const STORAGE_KEY = 'gd_v9_demo_switcher';
+
+  const tabsEl = document.getElementById('tabs');
+  const stageEl = document.getElementById('stage');
+  const frameHost = document.getElementById('frameHost');
+  const frameEl = document.getElementById('frame');
+  const infoTheme = document.getElementById('infoTheme');
+  const infoFile = document.getElementById('infoFile');
+  const viewportButtons = document.querySelectorAll('.viewport-toggle button');
+
+  // Restore from localStorage or default
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+  let currentTheme = saved.theme && THEMES[saved.theme] ? saved.theme : 'broadcast';
+  let currentViewport = saved.viewport === 'mobile' ? 'mobile' : 'desktop';
+
+  function persist() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ theme: currentTheme, viewport: currentViewport }));
+  }
+
+  function render() {
+    const theme = THEMES[currentTheme];
+    const file = currentViewport === 'mobile' ? theme.mobile : theme.desktop;
+
+    // Update iframe
+    frameEl.src = file;
+
+    // Update tab states
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.setAttribute('aria-selected', tab.dataset.theme === currentTheme ? 'true' : 'false');
+    });
+
+    // Update viewport toggle states
+    viewportButtons.forEach(btn => {
+      btn.setAttribute('aria-pressed', btn.dataset.viewport === currentViewport ? 'true' : 'false');
+    });
+
+    // Update frame host class for sizing
+    frameHost.className = `frame-host frame-host--${currentViewport}`;
+    frameEl.className = `frame-iframe frame-iframe--${currentViewport}`;
+
+    // Update stage class
+    stageEl.className = `stage ${currentViewport === 'mobile' ? 'stage--mobile' : ''}`;
+
+    // Update info strip
+    infoTheme.textContent = theme.label;
+    infoFile.textContent = file;
+
+    persist();
+  }
+
+  // Tab click handlers
+  tabsEl.addEventListener('click', e => {
+    const tab = e.target.closest('.tab');
+    if (!tab) return;
+    currentTheme = tab.dataset.theme;
+    render();
+  });
+
+  // Viewport toggle handlers
+  viewportButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentViewport = btn.dataset.viewport;
+      render();
+    });
+  });
+
+  // Keyboard shortcuts (1-5 for themes, D/M for viewport)
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const themeOrder = ['broadcast', 'teatable', 'trading', 'linear', 'atelier'];
+    const idx = parseInt(e.key, 10);
+    if (idx >= 1 && idx <= 5) {
+      currentTheme = themeOrder[idx - 1];
+      render();
+    } else if (e.key === 'd' || e.key === 'D') {
+      currentViewport = 'desktop';
+      render();
+    } else if (e.key === 'm' || e.key === 'M') {
+      currentViewport = 'mobile';
+      render();
+    }
+  });
+
+  // Initial render
+  render();
+</script>
+
+</body>
+</html>

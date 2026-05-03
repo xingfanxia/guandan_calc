@@ -79,6 +79,16 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
+**Theme System (7 modules)**: Token-based 5-theme architecture (Phase 0+1 shipped 2026-05-03)
+- `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
+- `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
+- `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
+- `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
+- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono
+- `themes/broadcast/featureManifest.js` - Broadcast's feature flags
+- `themes/broadcast/index.js` - Theme barrel (name, displayName, layout placeholder)
+- See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase rollout plan; Phases 2-5 (Linear, Trading, Atelier, Tea-Table) are subsequent PRs
+
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
 
@@ -247,6 +257,7 @@ All algorithms scale properly for 4/6/8 player modes.
 - `gd_v7_5_1_state` - Current game state, team levels, A-fail counters, history
 - `gd_players` - Player info (names, emojis, team assignments)
 - `gd_player_stats` - Performance statistics for honor calculations
+- `gd_v9_theme` - Active theme name (currently `'broadcast'` is the only registered theme)
 
 ### Drag and Drop System (lines 188-599 in src/app.js)
 
