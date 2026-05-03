@@ -6,96 +6,107 @@
 <title>玩家资料 - 掼蛋计分器</title>
 <meta name="theme-color" content="#1c1f29">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="掼蛋计分器">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+
+<!-- Theme: Broadcast Editorial -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
+
 <link rel="stylesheet" href="/src/style.css">
 <link rel="stylesheet" href="/src/themes/broadcast/theme.css">
-<style>
-  .profile-header {
-    text-align: center;
-    padding: 32px 16px;
-    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    border-radius: 12px;
-    margin-bottom: 24px;
-  }
-  .stat-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 12px;
-    margin: 16px 0;
-  }
-  .stat-item {
-    background: #1a1a1a;
-    padding: 12px;
-    border-radius: 8px;
-    text-align: center;
-    border: 1px solid #333;
-  }
-  .stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #22c55e;
-    display: block;
-    margin-bottom: 4px;
-  }
-  .stat-label {
-    font-size: 0.85em;
-    color: #888;
-  }
-  .honor-badge {
-    display: inline-block;
-    background: #2a2a2a;
-    border: 1px solid #444;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin: 4px;
-  }
-  .game-row {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 6px;
-    padding: 12px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .game-row:hover {
-    background: #252525;
-    border-color: #444;
-  }
-</style>
+
 </head>
 <body>
-<div class="wrap">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-    <h1>玩家资料</h1>
-    <div>
-      <button
-        id="editProfileBtn"
-        style="padding: 8px 16px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; margin-right: 16px; font-size: 14px; font-weight: 500; transition: all 0.2s;"
-        onmouseover="this.style.background='#2563eb'"
-        onmouseout="this.style.background='#3b82f6'"
-      >
-        ✏️ 编辑资料
-      </button>
-      <a href="/players.html" style="color: #3b82f6; text-decoration: none; margin-right: 16px;">浏览所有玩家</a>
-      <a href="/" style="color: #3b82f6; text-decoration: none;">返回游戏</a>
+
+<!-- TOP NAVIGATION -->
+<nav class="topnav" aria-label="主导航">
+  <div class="container topnav__inner">
+    <div class="topnav__brand">
+      <div class="topnav__brand-mark">A</div>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+    </div>
+    <div class="topnav__tabs">
+      <a class="topnav__tab" href="/">
+        <span class="topnav__tab-cn">游戏</span>
+        <span class="topnav__tab-meta">GAME</span>
+      </a>
+      <a class="topnav__tab topnav__tab--active" href="/players.html" aria-current="page">
+        <span class="topnav__tab-cn">玩家</span>
+        <span class="topnav__tab-meta">PLAYERS</span>
+      </a>
+      <a class="topnav__tab" href="/rooms.html">
+        <span class="topnav__tab-cn">房间</span>
+        <span class="topnav__tab-meta">ROOMS</span>
+      </a>
+    </div>
+    <div class="topnav__user">
+      <div class="topnav__user-avatar">玩</div>
+      <div class="topnav__user-meta">
+        <span class="topnav__user-name">访客</span>
+        <span class="topnav__user-handle">@guest</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTAINER -->
+<main class="container wrap">
+
+  <!-- SECTION RULE -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">玩家档案 · Player Profile</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">CAREER STATS · ACHIEVEMENTS · HISTORY</span>
+  </div>
+
+  <!-- PROFILE HERO (populated by JS, hidden until data loads) -->
+  <div class="profile-page-hero" id="profileHero" style="display:none;">
+    <div class="hero-avatar" id="heroAvatar">?</div>
+    <div class="hero-body">
+      <h1 class="hero-name" id="heroName">—</h1>
+      <div class="hero-handle" id="heroHandle">@—</div>
+      <div class="hero-tagline" id="heroTagline"></div>
+      <div class="hero-badges">
+        <span class="hero-badge" id="heroStyleBadge">—</span>
+        <span class="hero-badge hero-badge--accent" id="heroFormBadge">LOADING</span>
+      </div>
+      <div class="mode-tabs-row">
+        <button class="mode-tab active" data-mode="all">全部</button>
+        <button class="mode-tab" data-mode="4P">4人</button>
+        <button class="mode-tab" data-mode="6P">6人</button>
+        <button class="mode-tab" data-mode="8P">8人</button>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button id="editProfileBtn" class="btn-primary" style="display:none;">编辑资料</button>
+      <a href="/players.html" class="btn-secondary" style="text-decoration:none; text-align:center;">浏览玩家</a>
     </div>
   </div>
 
+  <!-- MAIN CONTENT (JS renders into here) -->
   <div id="profileContent">
-    <div style="text-align: center; padding: 40px; color: #888;">
-      加载中...
-    </div>
+    <div class="profile-loading">加载中…</div>
   </div>
-</div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__meta">
+      <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
+      · MADE WITH ❤️ BY XINGFAN XIA
+    </div>
+  </footer>
+
+</main>
 
 <script type="module">
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
@@ -105,131 +116,109 @@ import { renderProfileAvatar } from '/src/player/photoRenderer.js';
 import { showEditModal, initializeEditModal } from '/src/player/playerEditModal.js';
 import { escapeHtml } from '/src/core/utils.js';
 
-// Register Chart.js components
 Chart.register(...registerables);
 
-// Format duration in seconds to readable string
 function formatDuration(seconds) {
   if (!seconds) return '0分钟';
   const hours = Math.floor(seconds / 3600);
   const mins = Math.floor((seconds % 3600) / 60);
-
-  if (hours > 0) {
-    return `${hours}小时${mins}分`;
-  }
+  if (hours > 0) return `${hours}小时${mins}分`;
   return `${mins}分钟`;
 }
 
-// Render partner/rival statistics
 function renderPartnerRivalStats(player) {
   const partners = player.stats.partners || {};
   const opponents = player.stats.opponents || {};
 
-  if (Object.keys(partners).length === 0 && Object.keys(opponents).length === 0) {
-    return '';  // Don't show section if no data
+  if (Object.keys(partners).length === 0 && Object.keys(opponents).length === 0) return '';
+
+  const partnerStats = Object.entries(partners)
+    .map(([handle, s]) => ({ handle, ...s }))
+    .sort((a, b) => b.winRate - a.winRate);
+  const opponentStats = Object.entries(opponents)
+    .map(([handle, s]) => ({ handle, ...s }))
+    .sort((a, b) => a.winRate - b.winRate);
+
+  const bestPartner    = partnerStats[0] || null;
+  const worstPartner   = partnerStats.length > 1 ? partnerStats[partnerStats.length - 1] : null;
+  const hardestOpponent = opponentStats[0] || null;
+  const easiestOpponent = opponentStats.length > 1 ? opponentStats[opponentStats.length - 1] : null;
+
+  function relRow(handle, winRate, label, colorClass) {
+    const pct = (winRate * 100).toFixed(1);
+    return `<div class="rels-row" onclick="viewProfile('${escapeHtml(handle)}')">
+      <div class="rels-row-avatar">👤</div>
+      <div class="rels-row-body">
+        <div class="rels-row-name">${escapeHtml(label)}</div>
+        <div class="rels-row-handle">@${escapeHtml(handle)}</div>
+      </div>
+      <div class="rels-row-bar-wrap">
+        <div class="rels-row-pct">${pct}%</div>
+        <div class="rels-row-bar">
+          <div class="rels-row-bar-fill ${escapeHtml(colorClass)}" style="width:${pct}%;"></div>
+        </div>
+      </div>
+    </div>`;
   }
 
-  // Find best/worst partners
-  const partnerStats = Object.entries(partners).map(([handle, stats]) => ({
-    handle,
-    ...stats
-  })).sort((a, b) => b.winRate - a.winRate);
-
-  const bestPartner = partnerStats.length > 0 ? partnerStats[0] : null;
-  const worstPartner = partnerStats.length > 0 ? partnerStats[partnerStats.length - 1] : null;
-
-  // Find hardest/easiest opponents
-  const opponentStats = Object.entries(opponents).map(([handle, stats]) => ({
-    handle,
-    ...stats
-  })).sort((a, b) => a.winRate - b.winRate);  // Sort ascending for hardest
-
-  const hardestOpponent = opponentStats.length > 0 ? opponentStats[0] : null;
-  const easiestOpponent = opponentStats.length > 0 ? opponentStats[opponentStats.length - 1] : null;
-
   return `
+    <div class="section-rule" style="margin-top:var(--s5);">
+      <span class="section-rule__bar"></span>
+      <span class="section-rule__label">队友与对手 · Partners &amp; Rivals</span>
+      <span class="section-rule__line"></span>
+      <span class="section-rule__meta">WIN RATE · CLICK TO VIEW PROFILE</span>
+    </div>
     <div class="card">
-      <h3>🤝 队友与对手</h3>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px;">
-        <!-- Best/Worst Partners -->
+      <div class="rels-grid">
         <div>
-          <h4 style="font-size: 16px; color: #888; margin-bottom: 12px;">队友</h4>
-          ${bestPartner ? `
-            <div style="background: #1a2e1a; border: 1px solid #22c55e; padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="viewProfile('${bestPartner.handle}')">
-              <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">🏆 大佬带我躺赢</div>
-              <div style="font-size: 18px;">@${bestPartner.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                ${bestPartner.games}场 · ${bestPartner.wins}胜 · ${(bestPartner.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-          ` : ''}
-          ${worstPartner && worstPartner.handle !== bestPartner?.handle && partnerStats.length > 1 ? `
-            <div style="background: #2a1a1a; border: 1px solid #ef4444; padding: 12px; border-radius: 8px; cursor: pointer;" onclick="viewProfile('${worstPartner.handle}')">
-              <div style="color: #ef4444; font-weight: bold; margin-bottom: 4px;">😅 你就偷着乐吧</div>
-              <div style="font-size: 18px;">@${worstPartner.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                ${worstPartner.games}场 · ${worstPartner.wins}胜 · ${(worstPartner.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-          ` : ''}
+          <div class="rels-col-title">队友 · Partners (${partnerStats.length})</div>
+          ${bestPartner ? relRow(bestPartner.handle, bestPartner.winRate, '大佬带我躺赢', 'rels-row-bar-fill--win') : ''}
+          ${worstPartner && worstPartner.handle !== bestPartner?.handle
+              ? relRow(worstPartner.handle, worstPartner.winRate, '偷着乐吧', 'rels-row-bar-fill--loss') : ''}
         </div>
-
-        <!-- Hardest/Easiest Opponents -->
         <div>
-          <h4 style="font-size: 16px; color: #888; margin-bottom: 12px;">对手</h4>
-          ${hardestOpponent ? `
-            <div style="background: #2a1a2a; border: 1px solid #a855f7; padding: 12px; border-radius: 8px; margin-bottom: 8px; cursor: pointer;" onclick="viewProfile('${hardestOpponent.handle}')">
-              <div style="color: #a855f7; font-weight: bold; margin-bottom: 4px;">⚔️ 既生瑜何生亮</div>
-              <div style="font-size: 18px;">@${hardestOpponent.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                ${hardestOpponent.games}场 · ${hardestOpponent.wins}胜 · ${(hardestOpponent.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-          ` : ''}
-          ${easiestOpponent && easiestOpponent.handle !== hardestOpponent?.handle && opponentStats.length > 1 ? `
-            <div style="background: #1a2a1a; border: 1px solid #3b82f6; padding: 12px; border-radius: 8px; cursor: pointer;" onclick="viewProfile('${easiestOpponent.handle}')">
-              <div style="color: #3b82f6; font-weight: bold; margin-bottom: 4px;">🎁 这是送分来的</div>
-              <div style="font-size: 18px;">@${easiestOpponent.handle}</div>
-              <div style="color: #888; font-size: 0.9em; margin-top: 4px;">
-                ${easiestOpponent.games}场 · ${easiestOpponent.wins}胜 · ${(easiestOpponent.winRate * 100).toFixed(1)}%胜率
-              </div>
-            </div>
-          ` : ''}
+          <div class="rels-col-title">对手 · Opponents (${opponentStats.length})</div>
+          ${hardestOpponent ? relRow(hardestOpponent.handle, hardestOpponent.winRate, '既生瑜何生亮', 'rels-row-bar-fill--loss') : ''}
+          ${easiestOpponent && easiestOpponent.handle !== hardestOpponent?.handle
+              ? relRow(easiestOpponent.handle, easiestOpponent.winRate, '这是送分来的', 'rels-row-bar-fill--win') : ''}
         </div>
       </div>
 
-      <!-- All Partners List -->
       ${partnerStats.length > 0 ? `
-        <div style="margin-top: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="font-size: 16px; color: #888; margin: 0;">所有队友 (${partnerStats.length})</h4>
-            <select id="partnerSort" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #fff;">
-              <option value="winrate">按胜率排序</option>
-              <option value="games">按场次排序</option>
-              <option value="wins">按胜场排序</option>
-            </select>
-          </div>
-          <div style="background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
-            <canvas id="partnersChart" style="max-height: 400px;"></canvas>
-          </div>
+        <div class="section-rule" style="margin-top:var(--s5);">
+          <span class="section-rule__bar"></span>
+          <span class="section-rule__label">所有队友 · All Partners</span>
+          <span class="section-rule__line"></span>
+        </div>
+        <div class="chart-sort-row">
+          <span class="chart-sort-label">排序方式</span>
+          <select id="partnerSort" class="chart-sort-select">
+            <option value="winrate">按胜率</option>
+            <option value="games">按场次</option>
+            <option value="wins">按胜场</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="partnersChart" style="max-height:400px;"></canvas>
         </div>
       ` : ''}
 
-      <!-- All Opponents List -->
       ${opponentStats.length > 0 ? `
-        <div style="margin-top: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="font-size: 16px; color: #888; margin: 0;">所有对手 (${opponentStats.length})</h4>
-            <select id="opponentSort" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #fff;">
-              <option value="winrate">按胜率排序</option>
-              <option value="games">按场次排序</option>
-              <option value="wins">按胜场排序</option>
-            </select>
-          </div>
-          <div style="background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
-            <canvas id="opponentsChart" style="max-height: 400px;"></canvas>
-          </div>
+        <div class="section-rule" style="margin-top:var(--s5);">
+          <span class="section-rule__bar"></span>
+          <span class="section-rule__label">所有对手 · All Opponents</span>
+          <span class="section-rule__line"></span>
+        </div>
+        <div class="chart-sort-row">
+          <span class="chart-sort-label">排序方式</span>
+          <select id="opponentSort" class="chart-sort-select">
+            <option value="winrate">按胜率</option>
+            <option value="games">按场次</option>
+            <option value="wins">按胜场</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="opponentsChart" style="max-height:400px;"></canvas>
         </div>
       ` : ''}
     </div>
@@ -237,43 +226,36 @@ function renderPartnerRivalStats(player) {
 }
 
 function viewProfile(handle) {
-  window.location.href = '/player-profile.html?handle=' + handle;
+  window.location.href = '/player-profile.html?handle=' + encodeURIComponent(handle);
 }
 
-// Store chart instances to destroy before re-creating
+// Store chart instances
 let recentRankingsChartInstance = null;
 
 function renderRecentRankingsChart(recentRankings) {
   const canvas = document.getElementById('recentRankingsChart');
   if (!canvas || !recentRankings || recentRankings.length === 0) return;
 
-  // Destroy existing chart before creating new one
   if (recentRankingsChartInstance) {
     recentRankingsChartInstance.destroy();
     recentRankingsChartInstance = null;
   }
 
-  const ctx = canvas.getContext('2d');
-
-  // Reverse so oldest is on the left, newest on the right
   const rankings = [...recentRankings].reverse();
-
-  recentRankingsChartInstance = new Chart(ctx, {
+  recentRankingsChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
       labels: rankings.map((_, i) => `第${i + 1}场`),
       datasets: [{
         label: '排名',
         data: rankings,
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: '#e07a3a',
+        backgroundColor: 'rgba(224, 122, 58, 0.08)',
         borderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
-        pointBackgroundColor: rankings.map(rank => 
-          rank === 1 ? '#22c55e' : rank <= 3 ? '#3b82f6' : '#ef4444'
-        ),
-        pointBorderColor: '#fff',
+        pointBackgroundColor: rankings.map(r => r === 1 ? '#4a9456' : r <= 3 ? '#4a82d8' : '#cf3a3f'),
+        pointBorderColor: '#1c1f29',
         pointBorderWidth: 2,
         fill: true,
         tension: 0.3
@@ -284,56 +266,30 @@ function renderRecentRankingsChart(recentRankings) {
       maintainAspectRatio: true,
       aspectRatio: 2.5,
       plugins: {
-        legend: {
-          display: false
-        },
+        legend: { display: false },
         tooltip: {
-          callbacks: {
-            label: function(context) {
-              return `排名: #${context.parsed.y}`;
-            }
-          },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          callbacks: { label: (ctx) => `排名: #${ctx.parsed.y}` },
+          backgroundColor: 'rgba(19,22,32,0.92)',
           padding: 10,
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#333',
+          titleColor: '#f3f0e9',
+          bodyColor: '#adaaa3',
+          borderColor: '#444751',
           borderWidth: 1
         }
       },
       scales: {
         y: {
-          reverse: true, // Lower ranking number is better
-          min: 1,
-          max: 8,
-          ticks: {
-            stepSize: 1,
-            color: '#888',
-            callback: function(value) {
-              return '#' + value;
-            }
-          },
-          grid: {
-            color: '#333',
-            drawBorder: false
-          }
+          reverse: true,
+          min: 1, max: 8,
+          ticks: { stepSize: 1, color: '#76736d', callback: (v) => '#' + v },
+          grid: { color: '#393c46', drawBorder: false }
         },
         x: {
-          ticks: {
-            color: '#888',
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 10
-          },
-          grid: {
-            display: false
-          }
+          ticks: { color: '#76736d', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+          grid: { display: false }
         }
       },
-      interaction: {
-        intersect: false,
-        mode: 'index'
-      }
+      interaction: { intersect: false, mode: 'index' }
     }
   });
 }
@@ -342,105 +298,57 @@ function renderPartnersChart(stats, sortBy) {
   const canvas = document.getElementById('partnersChart');
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  
-  // Sort data
   let sorted = [...stats];
-  if (sortBy === 'games') {
-    sorted.sort((a, b) => b.games - a.games);
-  } else if (sortBy === 'wins') {
-    sorted.sort((a, b) => b.wins - a.wins);
-  } else {
-    sorted.sort((a, b) => b.winRate - a.winRate);
-  }
+  if (sortBy === 'games') sorted.sort((a, b) => b.games - a.games);
+  else if (sortBy === 'wins') sorted.sort((a, b) => b.wins - a.wins);
+  else sorted.sort((a, b) => b.winRate - a.winRate);
 
-  // Destroy previous chart if exists
-  if (window.partnersChartInstance) {
-    window.partnersChartInstance.destroy();
-  }
-
-  window.partnersChartInstance = new Chart(ctx, {
+  if (window.partnersChartInstance) window.partnersChartInstance.destroy();
+  window.partnersChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
       labels: sorted.map(p => `@${p.handle}`),
       datasets: [{
         label: '胜率',
         data: sorted.map(p => (p.winRate * 100).toFixed(1)),
-        backgroundColor: sorted.map(p => 
-          p.winRate >= 0.6 ? 'rgba(34, 197, 94, 0.8)' :
-          p.winRate >= 0.5 ? 'rgba(59, 130, 246, 0.8)' :
-          'rgba(239, 68, 68, 0.8)'
-        ),
-        borderColor: sorted.map(p => 
-          p.winRate >= 0.6 ? '#22c55e' :
-          p.winRate >= 0.5 ? '#3b82f6' :
-          '#ef4444'
-        ),
-        borderWidth: 2
+        backgroundColor: sorted.map(p =>
+          p.winRate >= 0.6 ? 'rgba(74,148,86,0.8)' :
+          p.winRate >= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
+        borderColor: sorted.map(p =>
+          p.winRate >= 0.6 ? '#4a9456' : p.winRate >= 0.5 ? '#4a82d8' : '#cf3a3f'),
+        borderWidth: 1
       }]
     },
     options: {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      onClick: (event, elements) => {
-        if (elements.length > 0) {
-          const index = elements[0].index;
-          const handle = sorted[index].handle;
-          viewProfile(handle);
-        }
+      onClick: (_, elements) => {
+        if (elements.length > 0) viewProfile(sorted[elements[0].index].handle);
       },
       plugins: {
-        legend: {
-          display: false
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              const data = sorted[context.dataIndex];
-              return [
-                `胜率: ${context.parsed.x}%`,
-                `场次: ${data.games}场`,
-                `胜场: ${data.wins}胜`
-              ];
+            label: (ctx) => {
+              const d = sorted[ctx.dataIndex];
+              return [`胜率: ${ctx.parsed.x}%`, `场次: ${d.games}场`, `胜场: ${d.wins}胜`];
             }
           },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#333',
-          borderWidth: 1
+          backgroundColor: 'rgba(19,22,32,0.92)', padding: 12,
+          titleColor: '#f3f0e9', bodyColor: '#adaaa3',
+          borderColor: '#444751', borderWidth: 1
         }
       },
       scales: {
         x: {
-          min: 0,
-          max: 100,
-          ticks: {
-            color: '#888',
-            callback: function(value) {
-              return value + '%';
-            }
-          },
-          grid: {
-            color: '#333',
-            drawBorder: false
-          }
+          min: 0, max: 100,
+          ticks: { color: '#76736d', callback: (v) => v + '%' },
+          grid: { color: '#393c46', drawBorder: false }
         },
         y: {
-          ticks: {
-            color: '#888',
-            font: {
-              size: sorted.length > 10 ? 10 : 12
-            },
-            autoSkip: false,
-            maxRotation: 0,
-            minRotation: 0
-          },
-          grid: {
-            display: false
-          }
+          ticks: { color: '#76736d', font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
+          grid: { display: false }
         }
       }
     }
@@ -451,105 +359,57 @@ function renderOpponentsChart(stats, sortBy) {
   const canvas = document.getElementById('opponentsChart');
   if (!canvas) return;
 
-  const ctx = canvas.getContext('2d');
-  
-  // Sort data - for opponents, lower win rate means tougher opponent
   let sorted = [...stats];
-  if (sortBy === 'games') {
-    sorted.sort((a, b) => b.games - a.games);
-  } else if (sortBy === 'wins') {
-    sorted.sort((a, b) => b.wins - a.wins);
-  } else {
-    sorted.sort((a, b) => a.winRate - b.winRate); // Ascending - hardest first
-  }
+  if (sortBy === 'games') sorted.sort((a, b) => b.games - a.games);
+  else if (sortBy === 'wins') sorted.sort((a, b) => b.wins - a.wins);
+  else sorted.sort((a, b) => a.winRate - b.winRate);
 
-  // Destroy previous chart if exists
-  if (window.opponentsChartInstance) {
-    window.opponentsChartInstance.destroy();
-  }
-
-  window.opponentsChartInstance = new Chart(ctx, {
+  if (window.opponentsChartInstance) window.opponentsChartInstance.destroy();
+  window.opponentsChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
       labels: sorted.map(p => `@${p.handle}`),
       datasets: [{
         label: '对手胜率',
         data: sorted.map(p => (p.winRate * 100).toFixed(1)),
-        backgroundColor: sorted.map(p => 
-          p.winRate <= 0.4 ? 'rgba(34, 197, 94, 0.8)' :  // You win a lot = green
-          p.winRate <= 0.5 ? 'rgba(59, 130, 246, 0.8)' :
-          'rgba(239, 68, 68, 0.8)'  // They win a lot = red (tough)
-        ),
-        borderColor: sorted.map(p => 
-          p.winRate <= 0.4 ? '#22c55e' :
-          p.winRate <= 0.5 ? '#3b82f6' :
-          '#ef4444'
-        ),
-        borderWidth: 2
+        backgroundColor: sorted.map(p =>
+          p.winRate <= 0.4 ? 'rgba(74,148,86,0.8)' :
+          p.winRate <= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
+        borderColor: sorted.map(p =>
+          p.winRate <= 0.4 ? '#4a9456' : p.winRate <= 0.5 ? '#4a82d8' : '#cf3a3f'),
+        borderWidth: 1
       }]
     },
     options: {
       indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      onClick: (event, elements) => {
-        if (elements.length > 0) {
-          const index = elements[0].index;
-          const handle = sorted[index].handle;
-          viewProfile(handle);
-        }
+      onClick: (_, elements) => {
+        if (elements.length > 0) viewProfile(sorted[elements[0].index].handle);
       },
       plugins: {
-        legend: {
-          display: false
-        },
+        legend: { display: false },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              const data = sorted[context.dataIndex];
-              return [
-                `你的胜率: ${context.parsed.x}%`,
-                `场次: ${data.games}场`,
-                `胜场: ${data.wins}胜`
-              ];
+            label: (ctx) => {
+              const d = sorted[ctx.dataIndex];
+              return [`你的胜率: ${ctx.parsed.x}%`, `场次: ${d.games}场`, `胜场: ${d.wins}胜`];
             }
           },
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: '#333',
-          borderWidth: 1
+          backgroundColor: 'rgba(19,22,32,0.92)', padding: 12,
+          titleColor: '#f3f0e9', bodyColor: '#adaaa3',
+          borderColor: '#444751', borderWidth: 1
         }
       },
       scales: {
         x: {
-          min: 0,
-          max: 100,
-          ticks: {
-            color: '#888',
-            callback: function(value) {
-              return value + '%';
-            }
-          },
-          grid: {
-            color: '#333',
-            drawBorder: false
-          }
+          min: 0, max: 100,
+          ticks: { color: '#76736d', callback: (v) => v + '%' },
+          grid: { color: '#393c46', drawBorder: false }
         },
         y: {
-          ticks: {
-            color: '#888',
-            font: {
-              size: sorted.length > 10 ? 10 : 12
-            },
-            autoSkip: false,
-            maxRotation: 0,
-            minRotation: 0
-          },
-          grid: {
-            display: false
-          }
+          ticks: { color: '#76736d', font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
+          grid: { display: false }
         }
       }
     }
@@ -557,54 +417,40 @@ function renderOpponentsChart(stats, sortBy) {
 }
 
 function setupPartnerRivalHandlers(player) {
-  const partners = player.stats.partners || {};
+  const partners  = player.stats.partners  || {};
   const opponents = player.stats.opponents || {};
-  
-  const partnerStats = Object.entries(partners).map(([handle, stats]) => ({
-    handle,
-    ...stats
-  })).sort((a, b) => b.winRate - a.winRate);
 
-  const opponentStats = Object.entries(opponents).map(([handle, stats]) => ({
-    handle,
-    ...stats
-  })).sort((a, b) => a.winRate - b.winRate);
+  const partnerStats = Object.entries(partners)
+    .map(([handle, s]) => ({ handle, ...s }))
+    .sort((a, b) => b.winRate - a.winRate);
+  const opponentStats = Object.entries(opponents)
+    .map(([handle, s]) => ({ handle, ...s }))
+    .sort((a, b) => a.winRate - b.winRate);
 
-  // Store data for re-sorting
-  window.partnerStatsData = partnerStats;
+  window.partnerStatsData  = partnerStats;
   window.opponentStatsData = opponentStats;
 
-  // Partner sort handler
   const partnerSort = document.getElementById('partnerSort');
   if (partnerSort) {
-    partnerSort.addEventListener('change', (e) => {
-      const sortBy = e.target.value;
-      renderPartnersChart(window.partnerStatsData, sortBy);
-    });
+    partnerSort.addEventListener('change', (e) => renderPartnersChart(window.partnerStatsData, e.target.value));
   }
-
-  // Opponent sort handler
   const opponentSort = document.getElementById('opponentSort');
   if (opponentSort) {
-    opponentSort.addEventListener('change', (e) => {
-      const sortBy = e.target.value;
-      renderOpponentsChart(window.opponentStatsData, sortBy);
-    });
+    opponentSort.addEventListener('change', (e) => renderOpponentsChart(window.opponentStatsData, e.target.value));
   }
 }
 
-// Get handle from URL query parameter
+// Read handle from URL
 const urlParams = new URLSearchParams(window.location.search);
 const handle = urlParams.get('handle');
 
 if (!handle) {
   document.getElementById('profileContent').innerHTML = `
-    <div class="card" style="text-align: center; padding: 40px;">
-      <h2 style="color: #ef4444;">错误</h2>
-      <p style="color: #888;">缺少玩家用户名参数</p>
-      <p style="margin-top: 16px;">
-        <a href="/players.html" style="color: #3b82f6;">浏览所有玩家</a>
-      </p>
+    <div class="card" style="text-align:center;padding:var(--s8);">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.18em;color:var(--loss);text-transform:uppercase;margin-bottom:var(--s4);">错误 · Error</div>
+      <div style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--ink);margin-bottom:var(--s4);">缺少玩家参数</div>
+      <p style="color:var(--ink-dim);">URL 中需要 <code>?handle=xxx</code> 参数</p>
+      <p style="margin-top:var(--s5);"><a href="/players.html" class="btn-primary" style="text-decoration:none;">浏览所有玩家</a></p>
     </div>
   `;
 } else {
@@ -616,7 +462,6 @@ async function loadProfile(handle) {
     const result = await getPlayer(handle);
     const player = result.player;
 
-    // DEBUG: Check if migration data exists
     console.log('Player data loaded:', {
       handle: player.handle,
       hasStats4P: !!player.stats.stats4P,
@@ -625,235 +470,226 @@ async function loadProfile(handle) {
       modeBreakdown: player.stats.modeBreakdown
     });
 
+    // Populate static hero
+    const heroAvatar = document.getElementById('heroAvatar');
+    if (heroAvatar) heroAvatar.innerHTML = renderProfileAvatar(player, 120, { marginRight: false, borderWidth: 0 });
+    const heroName = document.getElementById('heroName');
+    if (heroName) heroName.textContent = player.displayName;
+    const heroHandle = document.getElementById('heroHandle');
+    if (heroHandle) heroHandle.textContent = '@' + player.handle;
+    const heroTagline = document.getElementById('heroTagline');
+    if (heroTagline && player.tagline) heroTagline.textContent = '“' + player.tagline + '”';
+    const heroStyleBadge = document.getElementById('heroStyleBadge');
+    if (heroStyleBadge) heroStyleBadge.textContent = getPlayStyleLabel(player.playStyle);
+    const heroFormBadge = document.getElementById('heroFormBadge');
+    if (heroFormBadge) {
+      const sessions = player.stats.sessionsPlayed || 0;
+      heroFormBadge.textContent = sessions > 0 ? sessions + ' SESSIONS PLAYED' : 'NEW PLAYER';
+    }
+    const profileHero = document.getElementById('profileHero');
+    if (profileHero) profileHero.style.display = 'grid';
+
     const topHonors = Object.entries(player.stats.honors)
       .filter(([_, count]) => count > 0)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
+      .slice(0, 8);
 
-    document.getElementById('profileContent').innerHTML = `
-      <!-- Profile Header -->
-      <div class="profile-header">
-        <div style="margin-bottom: 16px; display: flex; justify-content: center;">
-          ${renderProfileAvatar(player, 120, { marginRight: false, borderWidth: 3 })}
-        </div>
-        <h2 style="margin: 0 0 8px 0; font-size: 36px;">${escapeHtml(player.displayName)}</h2>
-        <div style="color: #888; font-size: 18px; margin-bottom: 8px;">@${escapeHtml(player.handle)}</div>
-        <div style="color: #888; font-size: 16px; margin-bottom: 16px;">
-          ${getPlayStyleLabel(player.playStyle)}
-        </div>
-        <div style="font-style: italic; color: #fbbf24; font-size: 20px;">
-          "${escapeHtml(player.tagline)}"
-        </div>
+    // Build main content HTML
+    const recentRankingsSection = (player.stats.recentRankings && player.stats.recentRankings.length > 0) ? `
+      <div class="section-rule" style="margin-top:var(--s5);">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">近期排名走势 · Recent Performance</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">LAST ${player.stats.recentRankings.length} SESSIONS</span>
       </div>
-
-      <!-- Mode Switcher Tabs -->
-      <div class="card" style="padding: 16px;">
-        <div class="mode-tabs" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-          <button class="mode-tab active" data-mode="all" style="padding: 8px 16px; background: #22c55e; color: black; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s;">
-            全部
-          </button>
-          <button class="mode-tab" data-mode="4P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
-            4人
-          </button>
-          <button class="mode-tab" data-mode="6P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
-            6人
-          </button>
-          <button class="mode-tab" data-mode="8P" style="padding: 8px 16px; background: #333; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
-            8人
-          </button>
-        </div>
-      </div>
-
-      <!-- Career Stats (will be dynamically updated) -->
-      <div class="card" id="statsCard">
-        <h3 id="statsTitle">📊 生涯统计 (全部模式)</h3>
-        
-        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏场次 (完整对局)</h4>
-        <div class="stat-grid">
-          <div class="stat-item">
-            <span class="stat-value" id="statSessions">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</span>
-            <span class="stat-label">游戏场次</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statWins">${player.stats.sessionsWon || player.stats.wins || 0}</span>
-            <span class="stat-label">获胜场次</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statWinRate">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
-            <span class="stat-label">胜率</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statAvgRank">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</span>
-            <span class="stat-label">场均排名</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statAvgRounds">${Math.round(player.stats.avgRoundsPerSession || 30)}</span>
-            <span class="stat-label">场均局数</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statLongestRounds">${player.stats.longestSessionRounds || 0}</span>
-            <span class="stat-label">最长局数</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statCurrentStreak">${player.stats.currentWinStreak || 0}</span>
-            <span class="stat-label">当前连胜</span>
-          </div>
-        </div>
-
-        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">单局数据 (所有轮次)</h4>
-        <div class="stat-grid">
-          <div class="stat-item">
-            <span class="stat-value" id="statRounds">${player.stats.roundsPlayed || 0}</span>
-            <span class="stat-label">总轮次</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statAvgRankRound">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</span>
-            <span class="stat-label">局均排名</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statWinStreak">${player.stats.longestWinStreak || 0}</span>
-            <span class="stat-label">最长连胜</span>
-          </div>
-        </div>
-
-        <h4 style="font-size: 16px; color: #888; margin: 16px 0 12px 0;">游戏时长</h4>
-        <div class="stat-grid">
-          <div class="stat-item">
-            <span class="stat-value" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</span>
-            <span class="stat-label">总游戏时长</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds || 0)}</span>
-            <span class="stat-label">最长对局</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds || 0)}</span>
-            <span class="stat-label">场均时长</span>
-          </div>
-        </div>
-
-        ${player.stats.recentRankings && player.stats.recentRankings.length > 0 ? `
-          <div style="margin-top: 16px; background: #1a1a1a; padding: 16px; border-radius: 8px; border: 1px solid #333;">
-            <h4 style="font-size: 14px; color: #888; margin-bottom: 12px;">最近${player.stats.recentRankings.length}场对局排名趋势</h4>
-            <canvas id="recentRankingsChart" style="max-height: 200px;"></canvas>
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Lifetime Career Stats Divider -->
-      <div style="margin: 32px 0; padding: 16px; background: linear-gradient(90deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%); border-radius: 12px; border: 2px solid #333;">
-        <h2 style="text-align: center; margin: 0; font-size: 20px; color: #fbbf24;">
-          ⭐ 生涯成就统计 (全模式汇总)
-        </h2>
-        <p style="text-align: center; margin: 8px 0 0 0; color: #888; font-size: 14px;">
-          以下数据为所有游戏模式的总和，不受上方模式切换影响
-        </p>
-      </div>
-
-      <!-- Honor Collection -->
       <div class="card">
-        <h3>🏆 荣誉收藏 (${topHonors.length > 0 ? topHonors.reduce((sum, [_, count]) => sum + count, 0) : 0} 个)</h3>
+        <div class="chart-wrap">
+          <canvas id="recentRankingsChart"></canvas>
+        </div>
+      </div>
+    ` : '';
+
+    const honorsSection = `
+      <div class="section-rule" style="margin-top:var(--s5);">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">荣誉收藏 · Honors Earned</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">${topHonors.length > 0 ? topHonors.reduce((s, [_, c]) => s + c, 0) : 0} TOTAL</span>
+      </div>
+      <div class="card">
         ${topHonors.length > 0 ? `
-          <div style="margin-top: 12px;">
-            ${topHonors.map(([honor, count]) => `
-              <div class="honor-badge">
-                <strong>${honor}</strong> × ${count}
-              </div>
-            `).join('')}
-          </div>
-          ${Object.keys(player.stats.honors).length > topHonors.length ? `
-            <div style="margin-top: 12px; color: #888; font-size: 0.9em;">
-              + 其他 ${Object.keys(player.stats.honors).filter(h => player.stats.honors[h] === 0).length} 个荣誉待解锁
-            </div>
-          ` : ''}
-        ` : '<div style="color: #888; margin-top: 12px;">暂无荣誉，继续加油！</div>'}
-      </div>
-
-      <!-- Community Voting -->
-      <div class="card">
-        <h3>🗳️ 观众投票</h3>
-        <div class="stat-grid">
-          <div class="stat-item">
-            <span class="stat-value" style="color: #22c55e;">${player.stats.mvpVotes || 0}</span>
-            <span class="stat-label">MVP 得票</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" style="color: #ef4444;">${player.stats.burdenVotes || 0}</span>
-            <span class="stat-label">累赘 得票</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">${((player.stats.mvpVotes || 0) + (player.stats.burdenVotes || 0))}</span>
-            <span class="stat-label">总得票数</span>
-          </div>
-        </div>
-        ${(player.stats.mvpVotes || 0) === 0 && (player.stats.burdenVotes || 0) === 0 ? `
-          <div style="color: #888; margin-top: 12px; font-size: 0.9em;">
-            暂无投票记录。在房间模式中，观众可以为喜欢的玩家投票。
-          </div>
-        ` : ''}
-      </div>
-
-      <!-- Partner/Rival Statistics -->
-      ${renderPartnerRivalStats(player)}
-
-      <!-- Achievements -->
-      <div class="card">
-        <h3>🎖️ 成就徽章 (${player.achievements ? player.achievements.length : 0}/20)</h3>
-        ${player.achievements && player.achievements.length > 0 ? `
-          <div style="margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
-            ${player.achievements.map(achId => {
-              const ach = ACHIEVEMENTS[achId];
-              return ach ? `
-                <div style="background: #2a2a2a; border: 1px solid #444; padding: 12px; border-radius: 8px;">
-                  <div style="font-size: 32px; margin-bottom: 8px;">${ach.badge}</div>
-                  <div style="font-weight: bold; margin-bottom: 4px;">${ach.name}</div>
-                  <div style="font-size: 0.85em; color: #888;">${ach.desc}</div>
+          <div class="profile-honor-grid">
+            ${topHonors.map(([honor, count]) =>
+              `<div class="profile-honor-card">
+                <div class="ph-icon">🏆</div>
+                <div class="ph-body">
+                  <div class="ph-name">${escapeHtml(honor)}</div>
+                  <div class="ph-count">&times; ${count}</div>
                 </div>
-              ` : '';
-            }).join('')}
+              </div>`
+            ).join('')}
           </div>
-        ` : '<div style="color: #888; margin-top: 12px;">暂无成就，开始游戏解锁徽章！</div>'}
-      </div>
-
-      <!-- Recent Games -->
-      <div class="card">
-        <h3>📜 最近游戏 (${player.recentGames.length})</h3>
-        ${player.recentGames.length > 0 ? `
-          <div style="margin-top: 12px;">
-            ${player.recentGames.slice(0, 10).map(game => `
-              <div class="game-row" onclick="location.href='/?room=${game.roomCode}'">
-                <div style="flex: 1;">
-                  <div style="margin-bottom: 4px;">
-                    <strong style="color: ${game.teamWon ? '#22c55e' : '#ef4444'};">
-                      ${game.teamWon ? '✅ 胜' : '❌ 负'}
-                    </strong>
-                    · ${game.mode} · 平均${game.ranking}名 · ${game.rounds}轮
-                    ${game.duration ? ` · ${formatDuration(game.duration)}` : ''}
-                  </div>
-                  <div style="font-size: 0.85em; color: #888;">
-                    ${new Date(game.date).toLocaleString('zh-CN')}
-                    ${game.roomCode !== 'LOCAL' ? ` · 房间 ${game.roomCode}` : ''}
-                  </div>
-                  ${game.honorsEarned && game.honorsEarned.length > 0 ? `
-                    <div style="font-size: 0.85em; color: #fbbf24; margin-top: 4px;">
-                      🏆 ${game.honorsEarned.join(', ')}
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        ` : '<div style="color: #888; margin-top: 12px;">暂无游戏记录</div>'}
+          ${Object.keys(player.stats.honors).length > topHonors.length
+            ? `<p class="small muted" style="margin-top:var(--s4);">+ ${Object.keys(player.stats.honors).filter(h => player.stats.honors[h] === 0).length} 个荣誉待解锁</p>`
+            : ''}
+        ` : '<p class="small muted" style="padding:var(--s4) 0;">暂无荣誉，继续加油！</p>'}
       </div>
     `;
 
-    // Setup event handlers for partner/rival sorting after HTML is inserted
-    setupPartnerRivalHandlers(player);
+    const achievementsSection = `
+      <div class="section-rule" style="margin-top:var(--s5);">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">成就徽章 · Achievements</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">${player.achievements ? player.achievements.length : 0} / 20 UNLOCKED</span>
+      </div>
+      <div class="card">
+        ${player.achievements && player.achievements.length > 0 ? `
+          <div class="achievements-grid">
+            ${player.achievements.map(achId => {
+              const ach = ACHIEVEMENTS[achId];
+              return ach ? `
+                <div class="achievement-card">
+                  <div class="ach-badge">${ach.badge}</div>
+                  <div class="ach-name">${escapeHtml(ach.name)}</div>
+                  <div class="ach-desc">${escapeHtml(ach.desc)}</div>
+                </div>` : '';
+            }).join('')}
+          </div>
+        ` : '<p class="small muted" style="padding:var(--s4) 0;">暂无成就，开始游戏解锁徽章！</p>'}
+      </div>
+    `;
 
-    // Render recent rankings chart
+    const recentGamesSection = `
+      <div class="section-rule" style="margin-top:var(--s5);">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">最近游戏 · Recent Games</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta">${player.recentGames.length} RECORDS</span>
+      </div>
+      <div class="card">
+        ${player.recentGames.length > 0 ? `<div>
+          ${player.recentGames.slice(0, 10).map(game => `
+            <div class="recent-game-row" onclick="location.href='/?room=${encodeURIComponent(game.roomCode)}'">
+              <div>
+                <div>
+                  <span class="game-outcome ${game.teamWon ? 'game-outcome--win' : 'game-outcome--loss'}">
+                    ${game.teamWon ? '胜' : '负'}
+                  </span>
+                  <span class="game-meta">
+                    · ${escapeHtml(game.mode)} · 平均${game.ranking}名 · ${game.rounds}轮
+                    ${game.duration ? ' · ' + formatDuration(game.duration) : ''}
+                  </span>
+                </div>
+                <div class="game-meta" style="margin-top:3px;">
+                  ${new Date(game.date).toLocaleString('zh-CN')}
+                  ${game.roomCode !== 'LOCAL' ? ' · 房间 ' + escapeHtml(game.roomCode) : ''}
+                </div>
+                ${game.honorsEarned && game.honorsEarned.length > 0
+                  ? `<div class="game-honors">${game.honorsEarned.map(h => escapeHtml(h)).join('  ')}</div>`
+                  : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>` : '<p class="small muted" style="padding:var(--s4) 0;">暂无游戏记录</p>'}
+      </div>
+    `;
+
+    document.getElementById('profileContent').innerHTML = `
+      <!-- CAREER STATS -->
+      <div class="section-rule">
+        <span class="section-rule__bar"></span>
+        <span class="section-rule__label">生涯统计 · Career Stats</span>
+        <span class="section-rule__line"></span>
+        <span class="section-rule__meta" id="statsTitle">全部模式 · ALL MODES</span>
+      </div>
+
+      <div class="career-stats-section">
+        <div class="stats-header">
+          <span class="stats-header-title">场次数据 · Sessions</span>
+        </div>
+        <div class="career-stats-grid">
+          <div class="career-stat-tile">
+            <div class="tile-label">游戏场次 · Sessions</div>
+            <div class="tile-val" id="statSessions">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">获胜场次 · Won</div>
+            <div class="tile-val" id="statWins">${player.stats.sessionsWon || player.stats.wins || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">胜率 · Win Rate</div>
+            <div class="tile-val" id="statWinRate">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}<span class="sub">%</span></div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">场均排名 · Avg Rank</div>
+            <div class="tile-val" id="statAvgRank">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">场均局数 · Avg Rounds</div>
+            <div class="tile-val" id="statAvgRounds">${Math.round(player.stats.avgRoundsPerSession || 30)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">最长局数 · Longest</div>
+            <div class="tile-val" id="statLongestRounds">${player.stats.longestSessionRounds || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">当前连胜 · Streak</div>
+            <div class="tile-val" id="statCurrentStreak">${player.stats.currentWinStreak || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">最长连胜 · Best Streak</div>
+            <div class="tile-val" id="statWinStreak">${player.stats.longestWinStreak || 0}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="career-stats-section" style="margin-top:var(--s3);">
+        <div class="stats-header">
+          <span class="stats-header-title">单局 &amp; 时长 · Rounds &amp; Time</span>
+        </div>
+        <div class="career-stats-grid">
+          <div class="career-stat-tile">
+            <div class="tile-label">总轮次 · Rounds</div>
+            <div class="tile-val" id="statRounds">${player.stats.roundsPlayed || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">局均排名 · Per-round Rank</div>
+            <div class="tile-val" id="statAvgRankRound">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">总游戏时长 · Total Time</div>
+            <div class="tile-val" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">最长对局 · Longest</div>
+            <div class="tile-val" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds || 0)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">场均时长 · Avg Session</div>
+            <div class="tile-val" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds || 0)}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">最C得票 · MVP Votes</div>
+            <div class="tile-val" style="color:var(--win);">${player.stats.mvpVotes || 0}</div>
+          </div>
+          <div class="career-stat-tile">
+            <div class="tile-label">最闹得票 · Burden Votes</div>
+            <div class="tile-val" style="color:var(--loss);">${player.stats.burdenVotes || 0}</div>
+          </div>
+        </div>
+      </div>
+
+      ${recentRankingsSection}
+      ${renderPartnerRivalStats(player)}
+      ${honorsSection}
+      ${achievementsSection}
+      ${recentGamesSection}
+    `;
+
+    setupPartnerRivalHandlers(player);
     renderRecentRankingsChart(player.stats.recentRankings);
 
-    // Render initial partner/opponent charts
     if (window.partnerStatsData && window.partnerStatsData.length > 0) {
       renderPartnersChart(window.partnerStatsData, 'winrate');
     }
@@ -861,94 +697,60 @@ async function loadProfile(handle) {
       renderOpponentsChart(window.opponentStatsData, 'winrate');
     }
 
-    // Setup edit profile button
+    // Edit profile button
     const editBtn = document.getElementById('editProfileBtn');
     if (editBtn && player) {
-      // Initialize edit modal with callback
+      editBtn.style.display = '';
       initializeEditModal((updatedPlayer) => {
         console.log('Profile updated:', updatedPlayer);
-        // Reload page to show updated data
         window.location.reload();
       });
-
-      editBtn.addEventListener('click', () => {
-        showEditModal(player);
-      });
+      editBtn.addEventListener('click', () => showEditModal(player));
     }
 
-    // Setup mode tab switcher
+    // Mode tab switcher
     const modeTabs = document.querySelectorAll('.mode-tab');
     modeTabs.forEach(tab => {
       tab.addEventListener('click', () => {
         const selectedMode = tab.dataset.mode;
+        modeTabs.forEach(t => t.classList.toggle('active', t === tab));
 
-        // Update active tab styling
-        modeTabs.forEach(t => {
-          if (t === tab) {
-            t.style.background = '#22c55e';
-            t.style.color = 'black';
-            t.classList.add('active');
-          } else {
-            t.style.background = '#333';
-            t.style.color = 'white';
-            t.classList.remove('active');
-          }
-        });
-
-        // Get stats for selected mode
         let stats;
         if (selectedMode === 'all') {
           stats = player.stats;
         } else {
-          // Check if mode stats exist (migration may not have run yet)
           stats = player.stats[`stats${selectedMode}`];
-
           console.log(`Checking ${selectedMode}:`, {
             exists: !!stats,
             hasSessionsPlayed: stats?.sessionsPlayed !== undefined,
             sessionsValue: stats?.sessionsPlayed,
             fullStats: stats
           });
-
           if (!stats || stats.sessionsPlayed === undefined) {
-            console.log(`No ${selectedMode} data yet - showing zeros (migration pending)`);
-            // Show zeros for unmigrated mode
+            console.log(`No ${selectedMode} data yet - showing zeros`);
             stats = {
-              sessionsPlayed: 0,
-              sessionsWon: 0,
-              sessionWinRate: 0,
-              avgRankingPerSession: 0,
-              avgRoundsPerSession: 0,
-              longestSessionRounds: 0,
-              recentRankings: []
+              sessionsPlayed: 0, sessionsWon: 0, sessionWinRate: 0,
+              avgRankingPerSession: 0, avgRoundsPerSession: 0,
+              longestSessionRounds: 0, recentRankings: []
             };
           }
         }
 
-        // Update stats title
         const statsTitle = document.getElementById('statsTitle');
         if (statsTitle) {
-          const modeLabel = {
-            'all': '全部模式',
-            '4P': '4人模式',
-            '6P': '6人模式',
-            '8P': '8人模式'
-          }[selectedMode];
-          statsTitle.textContent = `📊 生涯统计 (${modeLabel})`;
+          const modeLabel = { 'all': '全部模式 · ALL MODES', '4P': '4人模式 · 4P', '6P': '6人模式 · 6P', '8P': '8人模式 · 8P' }[selectedMode];
+          statsTitle.textContent = modeLabel;
         }
 
-        // Update session stats (NO fallback defaults for mode-specific!)
-        const sessions = stats.sessionsPlayed || stats.gamesPlayed || 0;
-        document.getElementById('statSessions').textContent = sessions;
+        document.getElementById('statSessions').textContent = stats.sessionsPlayed || stats.gamesPlayed || 0;
         document.getElementById('statWins').textContent = stats.sessionsWon || stats.wins || 0;
         document.getElementById('statWinRate').textContent = ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%';
 
-        // Ranking metrics: Show note in overall mode (mixing modes is meaningless)
         if (selectedMode === 'all' && player.stats.modeBreakdown) {
           const modesPlayed = Object.values(player.stats.modeBreakdown || {}).filter(c => c > 0).length;
           if (modesPlayed > 1) {
-            document.getElementById('statAvgRank').textContent = '混合模式';
-            document.getElementById('statAvgRankRound').textContent = '混合模式';
+            document.getElementById('statAvgRank').textContent = '混合';
+            document.getElementById('statAvgRankRound').textContent = '混合';
           } else {
             document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
             document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || 0).toFixed(2);
@@ -958,27 +760,22 @@ async function loadProfile(handle) {
           document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || 0).toFixed(2);
         }
 
-        // Only use 30 default if overall mode, otherwise use actual value
-        document.getElementById('statAvgRounds').textContent = selectedMode === 'all' ? Math.round(stats.avgRoundsPerSession || 30) : Math.round(stats.avgRoundsPerSession || 0);
+        document.getElementById('statAvgRounds').textContent = selectedMode === 'all'
+          ? Math.round(stats.avgRoundsPerSession || 30)
+          : Math.round(stats.avgRoundsPerSession || 0);
         document.getElementById('statLongestRounds').textContent = stats.longestSessionRounds || 0;
         document.getElementById('statCurrentStreak').textContent = stats.currentWinStreak || 0;
-
-        // Update round stats (use 0 if no data)
         document.getElementById('statRounds').textContent = stats.roundsPlayed || 0;
         document.getElementById('statWinStreak').textContent = stats.longestWinStreak || 0;
-
-        // Update time stats
         document.getElementById('statTotalTime').textContent = formatDuration(stats.totalPlayTimeSeconds || 0);
         document.getElementById('statLongestTime').textContent = formatDuration(stats.longestSessionSeconds || 0);
         document.getElementById('statAvgTime').textContent = formatDuration(stats.avgSessionSeconds || 0);
 
-        // Update recent rankings chart with mode-specific data
-        const chartContainer = document.getElementById('recentRankingsChart')?.closest('div');
+        const chartContainer = document.getElementById('recentRankingsChart')?.closest('.chart-wrap');
         if (stats.recentRankings && stats.recentRankings.length > 0) {
           if (chartContainer) chartContainer.style.display = 'block';
           renderRecentRankingsChart(stats.recentRankings);
         } else {
-          // Hide chart if no data for this mode
           if (chartContainer) chartContainer.style.display = 'none';
         }
 
@@ -989,37 +786,15 @@ async function loadProfile(handle) {
   } catch (error) {
     console.error('Failed to load profile:', error);
     document.getElementById('profileContent').innerHTML = `
-      <div class="card" style="text-align: center; padding: 40px;">
-        <h2 style="color: #ef4444;">加载失败</h2>
-        <p style="color: #888;">${escapeHtml(error.message || '')}</p>
-        <p style="margin-top: 16px;">
-          <a href="/players.html" style="color: #3b82f6;">浏览所有玩家</a>
-        </p>
+      <div class="card" style="text-align:center;padding:var(--s8);">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.18em;color:var(--loss);text-transform:uppercase;margin-bottom:var(--s4);">加载失败 · Load Error</div>
+        <div style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--ink);margin-bottom:var(--s4);">无法加载玩家资料</div>
+        <p style="color:var(--ink-dim);">${escapeHtml(error.message || '未知错误')}</p>
+        <p style="margin-top:var(--s5);"><a href="/players.html" class="btn-primary" style="text-decoration:none;">浏览所有玩家</a></p>
       </div>
     `;
   }
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  // Assuming loadProfile is called elsewhere to load the player data
-  // Once the player data is loaded, call setupPartnerRivalHandlers
-  // For now, we'll just call it here to demonstrate
-  const player = {
-    stats: {
-      partners: {
-        'partner1': { games: 10, wins: 5, winRate: 0.5 },
-        'partner2': { games: 8, wins: 3, winRate: 0.375 },
-        'partner3': { games: 6, wins: 2, winRate: 0.333 }
-      },
-      opponents: {
-        'opponent1': { games: 12, wins: 7, winRate: 0.583 },
-        'opponent2': { games: 10, wins: 4, winRate: 0.4 },
-        'opponent3': { games: 8, wins: 2, winRate: 0.25 }
-      }
-    }
-  };
-  setupPartnerRivalHandlers(player);
-});
 </script>
 </body>
 </html>

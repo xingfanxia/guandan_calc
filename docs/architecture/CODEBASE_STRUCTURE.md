@@ -402,11 +402,19 @@
 
 ---
 
-### Theme System (`src/themes/`) - NEW (Phase 0+1, 2026-05-03)
+### Theme System (`src/themes/` + `src/ui/tickerSync.js`) - Phases 0+1+1.5 (2026-05-03)
 
 5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. Currently
 Broadcast (the default) is the only registered theme; Phases 2-5 (Linear,
 Trading, Atelier, Tea-Table) ship as subsequent PRs.
+
+**Phase 1.5 (visible transformation)** added:
+- DOM rewrite of all 4 HTML pages (`index.html`, `players.html`, `rooms.html`, `player-profile.html`) to match `docs/design/demos/demo-broadcast-v3.html`. Top nav with editorial brand + 3 tabs (Game/Players/Rooms) + user identity strip. Ticker on game + sub-ticker on rooms. Giant Fraunces level glyphs (200px) on the team scoreboard. Editorial active-game hero (`.pool` + `.slots` grid) with drop-target visualization. 16-card honors grid. Sample/championship preview. Profile snippet. Editorial footer.
+- All ~840 inline `<style>` lines previously embedded in the 3 sister pages migrated into `theme.css` and scoped under `:root[data-theme="broadcast"]`. theme.css grew from 209 → 2978 lines.
+- All 130+ JavaScript-bound element IDs were preserved during the rewrite (verified via grep).
+- New module `src/ui/tickerSync.js` wires ticker fields (`#tickerMode`, `#tickerLevel`, `#tickerOwner`, `#tickerRound`) to live `state.js` events. Bootstrapped from `initializeUI()` in `main.js`.
+- ARIA: topnav has `aria-label="主导航"`, active tab has `aria-current="page"`, mode selector is a proper `role="radiogroup"` with `role="radio"` + `aria-checked` per option (synced by inline IIFE).
+- Removed the duplicate "我的资料 / PROFILE" topnav tab — it pointed to `/players.html` (wrong destination); will return when session identity ships in Phase 2.
 
 #### `themes/_shared/tokenSpec.js` - Token Contract
 **Exports**: `TOKEN_SPEC` (frozen Object: color/font/scale/radius lists),
@@ -433,19 +441,34 @@ XSS-safe (createElement + textContent, no innerHTML). Renders a status row
 when only one theme is registered; flips to a radio group when 2+ exist.
 Captures and releases its `theme:changed` subscription across re-mounts.
 
-#### `themes/broadcast/theme.css` - Broadcast Palette + Typography
+#### `themes/broadcast/theme.css` - Broadcast Palette + Typography + Component Styles
 Activates under `:root[data-theme="broadcast"]`. Each oklch() value is
 paired with a sRGB hex/rgb fallback so Safari iOS 15.0–15.3 (parsers that
-reject oklch) still gets a valid color. Defines:
+reject oklch) still gets a valid color. **2978 lines** post-Phase-1.5. Defines:
 - 22 color tokens (bg/surface/ink/accent/team/win/loss/rule families)
 - 3 font tokens (Fraunces / Inter Tight / DM Mono)
 - 8 spacing tokens (`--s1` through `--s8`)
 - 5 radius tokens
 - Backward-compat aliases (`--card`/`--muted`/`--stroke`/`--chip`) for unmigrated rules
+- All Phase 1.5 component styles: `.topnav`, `.ticker`, `.modeselect`, `.scorer`, `.team`, `.card-level`, `.versus`, `.activegame`, `.pool`, `.slots`, `.calcpreview`, `.toggles`, `.manualbtns`, `.btn` family, `.rules-drawer`, `.history`, `.honors`, `.honor`, `.sample`, `.profile`, `.footer`
+- Page-specific sections (clearly marked with `/* === PAGE: PLAYERS BROWSER === */` etc.) for `.player-card`, `.players-grid`, `.rooms-grid`, `.room-card`, `.profile-page-hero`, `.career-stat-tile`, `.mode-tab`, `.filter-tab`, `.players-pagination`, etc.
+- `@media (max-width: 768px)` responsive block stacks scoreboard columns, collapses pool/slots, scales card-level glyph from 200px → 140px
+
+Phase 2 follow-up: split into `theme.tokens.css` + `theme.layout.css` + `theme.components.css` (deferred — see HANDOFF.md "Phase 1.5 follow-ups" section).
 
 #### `themes/broadcast/featureManifest.js` / `index.js`
 Broadcast's explicit manifest values + the theme barrel (name, displayName,
 description, stylesheet path, layout placeholder).
+
+#### `ui/tickerSync.js` - Live Ticker State Binding (NEW Phase 1.5)
+Subscribes to events emitted by `core/state.js` and `core/events.js` and updates
+the four ticker fields on `index.html`:
+- `#tickerMode` — "4人 · 2v2" / "6人 · 3v3" / "8人 · 4v4" (driven by `#mode` `<select>`)
+- `#tickerLevel` — current round level (mirror of `#curRoundLvl`)
+- `#tickerOwner` — current round owner team name with team-color inline style
+- `#tickerRound` — "本局 N" where N is `state.getHistory().length + 1`
+
+Listens for: `ui:modeChanged`, round-level/owner/history change events, `state:hydrated`, `state:reset`, `room:synced`, config team-name change. Bootstrap call lives in `main.js` `initializeUI()`.
 
 ### Share & Room Features (`src/share/`)
 

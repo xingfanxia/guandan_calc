@@ -79,15 +79,16 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
-**Theme System (7 modules)**: Token-based 5-theme architecture (Phase 0+1 shipped 2026-05-03)
+**Theme System (8 modules)**: Token-based 5-theme architecture (Phases 0+1+1.5 shipped 2026-05-03)
 - `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
 - `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
 - `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
 - `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
-- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono
+- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono + ALL Phase 1.5 component styles (topnav, ticker, scoreboard, activegame, pool/slots, honors, sample, profile, footer, page-specific player/room/profile sections) — 2978 lines, every rule scoped under `:root[data-theme="broadcast"]`
 - `themes/broadcast/featureManifest.js` - Broadcast's feature flags
 - `themes/broadcast/index.js` - Theme barrel (name, displayName, layout placeholder)
-- See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase rollout plan; Phases 2-5 (Linear, Trading, Atelier, Tea-Table) are subsequent PRs
+- `ui/tickerSync.js` - Live ticker state sync (mode, level, owner, round) — subscribes to state events; bootstrapped from `main.js`
+- See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase rollout plan; Phases 2-5 (Linear, Trading, Atelier, Tea-Table) are subsequent PRs. After Phase 1.5, all 4 HTML pages share the editorial top nav + footer pattern.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination

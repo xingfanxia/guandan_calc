@@ -24,535 +24,996 @@
 
 <link rel="stylesheet" href="/src/style.css">
 <link rel="stylesheet" href="/src/themes/broadcast/theme.css">
-<style>
-  /* Modern Tab Navigation */
-  .nav-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    padding: 6px;
-    background: #1a1a1a;
-    border-radius: 12px;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  .nav-tab {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 500;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  
-  .nav-tab:not(.active) {
-    color: #888;
-    background: transparent;
-  }
-  
-  .nav-tab:not(.active):hover {
-    color: #fff;
-    background: #252525;
-  }
-  
-  .nav-tab.active {
-    color: #fff;
-    background: #3b82f6;
-  }
-  
-  .nav-tab-icon {
-    font-size: 18px;
-  }
-</style>
 </head>
 <body>
-<div class="wrap">
-  <h1 style="display: flex; align-items: center; justify-content: center; gap: 12px;">
-    <img src="/icons/icon-192.png" alt="掼蛋" style="width: 48px; height: 48px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-    <span>闹麻家族掼蛋计分器 v10.0</span>
-    <span class="badge">开闹</span>
-  </h1>
 
-  <!-- Modern Navigation Tabs -->
-  <div class="nav-tabs">
-    <a href="/players.html" class="nav-tab">
-      <span class="nav-tab-icon">👥</span>
-      <span>浏览玩家</span>
-    </a>
-    <a href="/rooms.html" class="nav-tab">
-      <span class="nav-tab-icon">🏠</span>
-      <span>浏览房间</span>
-    </a>
-    <a href="/" class="nav-tab active">
-      <span class="nav-tab-icon">🎮</span>
-      <span>游戏</span>
-    </a>
+<!-- TOP NAVIGATION -->
+<nav class="topnav" aria-label="主导航">
+  <div class="container topnav__inner">
+    <div class="topnav__brand">
+      <div class="topnav__brand-mark">A</div>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+    </div>
+    <div class="topnav__tabs">
+      <a class="topnav__tab topnav__tab--active" href="/" aria-current="page">
+        <span class="topnav__tab-cn">游戏</span>
+        <span class="topnav__tab-meta">GAME</span>
+      </a>
+      <a class="topnav__tab" href="/players.html">
+        <span class="topnav__tab-cn">玩家</span>
+        <span class="topnav__tab-meta">PLAYERS</span>
+      </a>
+      <a class="topnav__tab" href="/rooms.html">
+        <span class="topnav__tab-cn">房间</span>
+        <span class="topnav__tab-meta">ROOMS</span>
+      </a>
+    </div>
+    <div class="topnav__user">
+      <div class="topnav__user-avatar">玩</div>
+      <div class="topnav__user-meta">
+        <span class="topnav__user-name">访客</span>
+        <span class="topnav__user-handle">@guest</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="container ticker__inner">
+    <div class="ticker__items">
+      <div class="ticker__item">
+        <span class="ticker__item-label">Mode</span>
+        <span class="ticker__item-value" id="tickerMode">8人 · 4v4</span>
+      </div>
+      <div class="ticker__sep"></div>
+      <div class="ticker__item">
+        <span class="ticker__item-label">Level</span>
+        <span class="ticker__item-value" id="tickerLevel">2</span>
+      </div>
+      <div class="ticker__sep"></div>
+      <div class="ticker__item">
+        <span class="ticker__item-label">Owner</span>
+        <span class="ticker__item-value" id="tickerOwner">—</span>
+      </div>
+      <div class="ticker__sep"></div>
+      <div class="ticker__item">
+        <span class="ticker__item-label">Round</span>
+        <span class="ticker__item-value ticker__item-value--accent" id="tickerRound">本局</span>
+      </div>
+    </div>
+    <div class="ticker__sync">
+      <div class="ticker__dot"></div>
+      <span class="ticker__item-label">BROADCAST</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN CONTAINER (preserves .wrap for legacy CSS hooks like installPWA) -->
+<main class="container wrap">
+
+  <!-- PWA install prompt (preserved hidden) -->
+  <button id="installPWA" style="display:none; margin-top:var(--s4); padding:10px 16px; background:var(--accent); color:var(--bg-deep); border:none; border-radius:var(--radius-md); font-family:var(--font-display); font-weight:700; cursor:pointer;">📱 安装到主屏幕</button>
+
+  <!-- ============== ROOM CONTROLS ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">多人房间 · Multiplayer</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">CREATE / JOIN / BROWSE</span>
   </div>
 
-  <!-- 房间功能 -->
   <div class="card" id="roomControls">
-    <h3>🎮 多人房间</h3>
     <div class="row">
-      <button id="createRoom" style="background:#22c55e;color:white;padding:12px 20px;font-size:16px;">📺 创建房间</button>
-      <button id="joinRoom" style="background:#3b82f6;color:white;padding:12px 20px;font-size:16px;">🔗 加入房间</button>
-      <button id="favoriteRoomTop" style="background:#f59e0b;color:white;padding:12px 20px;font-size:16px;display:none;">⭐ 收藏房间</button>
-      <button id="browseRooms" style="background:#8b5cf6;color:white;padding:12px 20px;font-size:16px;">📋 浏览房间</button>
-      <span class="small muted" style="margin-left:16px;">
+      <button id="createRoom" class="btn-primary">📺 创建房间</button>
+      <button id="joinRoom" class="btn-secondary">🔗 加入房间</button>
+      <button id="browseRooms" class="btn-tertiary">📋 浏览房间</button>
+      <button id="leaveRoom" class="btn-danger" style="display:none;">🚪 离开房间</button>
+      <button id="favoriteRoomTop" class="btn-accent" style="display:none;">⭐ 收藏房间</button>
+      <span class="small muted" style="margin-left:auto;">
         创建房间与朋友实时共享比赛，或输入房间代码观看他人比赛
       </span>
     </div>
   </div>
 
-  <!-- 玩家设置 -->
+  <!-- ============== MODE SELECTOR ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">游戏模式 · Game Mode</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">SWITCHING RESETS RANKING</span>
+  </div>
+
+  <div class="modeselect">
+    <span class="modeselect__label">人数 / Players</span>
+    <!-- Real <select> stays for JS reads; visual buttons are presentational -->
+    <select id="mode" class="modeselect__native">
+      <option value="4">4 人</option>
+      <option value="6">6 人</option>
+      <option value="8" selected>8 人</option>
+    </select>
+    <div class="modeselect__group" role="radiogroup" aria-label="人数 / Players">
+      <button type="button" class="modeselect__opt" data-mode="4" role="radio" aria-checked="false">
+        <span>4人</span>
+        <span class="modeselect__opt-meta">2v2 · table</span>
+      </button>
+      <button type="button" class="modeselect__opt" data-mode="6" role="radio" aria-checked="false">
+        <span>6人</span>
+        <span class="modeselect__opt-meta">3v3</span>
+      </button>
+      <button type="button" class="modeselect__opt modeselect__opt--active" data-mode="8" role="radio" aria-checked="true">
+        <span>8人</span>
+        <span class="modeselect__opt-meta">4v4 · sweep</span>
+      </button>
+    </div>
+    <span class="modeselect__hint" id="ruleHint"></span>
+  </div>
+
+  <!-- ============== SCOREBOARD ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">主比分牌 · Main Scoreboard</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">LEVEL TRACKING · A-LEVEL ACHIEVEMENT</span>
+  </div>
+
+  <section class="scorer">
+    <article class="team team--blue">
+      <header class="team__head">
+        <div>
+          <span class="chip team__name-cn serif" id="t1NameChip"><b>蓝队</b></span>
+          <span class="team__name-en">Team Blue</span>
+        </div>
+        <span class="chip team__status team__status--neutral" id="t1AChip">A失败：<b id="t1A">0</b>/3</span>
+      </header>
+      <div class="card-level">
+        <span class="card-level__suit card-level__suit--tl">&#9830;</span>
+        <span class="card-level__glyph"><b id="t1Lvl">2</b></span>
+        <span class="card-level__suit card-level__suit--br">&#9830;</span>
+      </div>
+      <div class="card-level__sub">
+        <span>当前级牌</span>
+        <span class="card-level__sub-rank">A状态：<b id="t1AState">—</b></span>
+      </div>
+      <h4 class="team__roster-label" id="team1Label">蓝队</h4>
+      <div class="team__roster team-drop-zone" id="team1Zone" data-team="1">
+        <div class="label">拖拽玩家到这里分配队伍</div>
+      </div>
+    </article>
+
+    <div class="versus">
+      <div class="versus__rule"></div>
+      <div class="versus__text">VS</div>
+      <div class="versus__round" id="curRoundLvlDisplay">
+        本局 <b id="curRoundLvl">2</b>
+      </div>
+      <div class="versus__round-next">
+        下局 <b id="nextRoundPreview">-</b>
+      </div>
+      <div class="versus__rule"></div>
+    </div>
+
+    <article class="team team--red">
+      <header class="team__head">
+        <div>
+          <span class="chip team__name-cn serif" id="t2NameChip"><b>红队</b></span>
+          <span class="team__name-en">Team Red</span>
+        </div>
+        <span class="chip team__status team__status--neutral" id="t2AChip">A失败：<b id="t2A">0</b>/3</span>
+      </header>
+      <div class="card-level">
+        <span class="card-level__suit card-level__suit--tl">&#9829;</span>
+        <span class="card-level__glyph"><b id="t2Lvl">2</b></span>
+        <span class="card-level__suit card-level__suit--br">&#9829;</span>
+      </div>
+      <div class="card-level__sub">
+        <span>当前级牌</span>
+        <span class="card-level__sub-rank">A状态：<b id="t2AState">—</b></span>
+      </div>
+      <h4 class="team__roster-label" id="team2Label">红队</h4>
+      <div class="team__roster team-drop-zone" id="team2Zone" data-team="2">
+        <div class="label">拖拽玩家到这里分配队伍</div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============== PLAYER SETUP ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">玩家设置 · Roster</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">SEARCH / GENERATE / SHUFFLE</span>
+  </div>
+
   <div class="card" id="playerSetupSection">
     <details open>
-      <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">👥 玩家设置</summary>
-      
+      <summary class="card__summary">👥 玩家设置</summary>
+
       <!-- Player Profile Search -->
-      <div style="margin-bottom: 16px; padding: 12px; background: #1a1a1a; border-radius: 8px; border: 1px solid #333;">
-        <h4 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;">🔍 搜索玩家资料</h4>
-        <div class="row" style="margin-bottom: 8px;">
-          <input 
-            type="text" 
-            id="playerSearchInput" 
+      <div class="search-block">
+        <h4 class="search-block__title">🔍 搜索玩家资料</h4>
+        <div class="row">
+          <input
+            type="text"
+            id="playerSearchInput"
             placeholder="搜索用户名或昵称..."
-            style="flex: 1; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
+            class="search-block__input"
           />
-          <button id="playerSearchButton" style="padding: 8px 16px; background: #3b82f6; color: white;">搜索</button>
-          <button id="createPlayerButton" style="padding: 8px 16px; background: #22c55e; color: white; margin-left: 4px;">创建玩家</button>
+          <button id="playerSearchButton" class="btn-primary">搜索</button>
+          <button id="createPlayerButton" class="btn-secondary">创建玩家</button>
         </div>
-        <div id="playerSearchResults" style="max-height: 300px; overflow-y: auto;">
-          <!-- Search results will be populated here -->
-        </div>
+        <div id="playerSearchResults" class="search-block__results"></div>
       </div>
 
-      <!-- Divider -->
-      <div style="text-align: center; margin: 16px 0; color: #666; font-size: 14px;">
-        ——— 或使用快速设置 ———
-      </div>
+      <div class="divider-text">——— 或使用快速设置 ———</div>
 
-      <!-- Existing Quick Setup -->
       <div class="row">
-        <label for="mode">人数：</label>
-        <select id="mode"><option value="4">4 人</option><option value="6">6 人</option><option value="8" selected>8 人</option></select>
-        <button id="generatePlayers">生成玩家</button>
-        <button id="shuffleTeams">随机分配队伍</button>
-        <button id="quickStart" style="background:#4ade80; color:white; margin-left:auto;">快速开始</button>
+        <button id="generatePlayers" class="btn-secondary">生成玩家</button>
+        <button id="shuffleTeams" class="btn-tertiary">随机分配队伍</button>
+        <button id="quickStart" class="btn-primary" style="margin-left:auto;">快速开始</button>
       </div>
-      <!-- Removed bulk names input - use player profiles instead -->
-      
+
+      <!-- Bulk-name input retained for backward compat (hidden by default) -->
+      <input type="text" id="bulkNames" placeholder="" style="display:none; width:100%; margin-top:var(--s3);">
+      <button id="applyBulkNames" style="display:none;">应用名字</button>
+
       <div class="unassigned-players" id="unassignedPlayers">
         <div class="small muted" style="width:100%">点击"生成玩家"开始</div>
       </div>
-      
-      <div class="grid">
-        <div>
-          <h4 id="team1Label">蓝队</h4>
-          <div class="team-drop-zone" id="team1Zone" data-team="1">
-            <div class="label">拖拽玩家到这里分配队伍</div>
+    </details>
+  </div>
+
+  <!-- ============== ACTIVE GAME — LIVE RANKING ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">本局排名 · Live Ranking</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">DRAG TO PLACE</span>
+  </div>
+
+  <section class="activegame" id="rankingSection">
+    <header class="activegame__head">
+      <div class="activegame__live-dot"></div>
+      <span class="activegame__head-label">ACTIVE GAME</span>
+      <span class="activegame__head-divider"></span>
+      <span class="activegame__head-line">
+        本局：<span class="glyph accent" id="curRoundLvlMirror">—</span>
+      </span>
+      <span class="activegame__head-meta">
+        <span class="key">下局级牌</span>
+        <span id="nextRoundMirror">待结算</span>
+      </span>
+    </header>
+
+    <div class="activegame__body">
+      <div class="annotation">
+        DRAG TO PLACE
+        <span class="annotation__device">
+          DESKTOP <kbd>click + drag</kbd> · MOBILE <kbd>long-press, then drag</kbd>
+        </span>
+      </div>
+
+      <!-- Settings inline strip (must1 + clear/random/manualCalc) -->
+      <div class="row activegame__inline-controls">
+        <label class="toggle">
+          <input type="checkbox" id="must1" checked>
+          <span class="toggle__label">仅🈶1方可升级 · must1</span>
+        </label>
+        <button id="clearRanking" class="btn-tertiary">清空排名</button>
+        <button id="randomRanking" class="btn-tertiary">随机排名</button>
+        <button id="manualCalc" class="btn-secondary">手动计算</button>
+      </div>
+
+      <!-- PLAYER POOL -->
+      <div class="pool">
+        <div class="pool__head">
+          <span class="pool__title">玩家池</span>
+          <span class="pool__sub">PLAYER POOL · DRAG SOURCE</span>
+          <span class="pool__count">待排名玩家</span>
+        </div>
+        <div id="playerPool" class="pool__grid player-pool">
+          <div class="small muted">请先分配玩家到队伍</div>
+        </div>
+      </div>
+
+      <!-- RANKING SLOTS -->
+      <div class="slots">
+        <div class="slots__head">
+          <span class="slots__title">名次槽</span>
+          <span class="slots__sub">RANKING SLOTS · 头游 → 末游</span>
+        </div>
+        <div id="rankingArea" class="slots__grid ranking-area">
+          <!-- Slots generated by JS as .rank-slot[data-rank=N] -->
+        </div>
+      </div>
+
+      <!-- LIVE CALC PREVIEW (results) -->
+      <div class="calcpreview">
+        <span class="calcpreview__label">LIVE CALC</span>
+        <div class="calcpreview__seg">
+          <span class="key">结果</span>
+          <span class="val" id="headline">—</span>
+        </div>
+        <span class="calcpreview__sep">·</span>
+        <div class="calcpreview__seg">
+          <span class="key">说明</span>
+          <span class="val" id="explain">等待输入…</span>
+        </div>
+        <span class="calcpreview__hint">
+          获胜队：<b id="winnerDisplay">—</b>
+        </span>
+      </div>
+
+      <!-- TOGGLES + MANUAL ACTIONS -->
+      <div class="controls">
+        <div class="toggles">
+          <span class="toggles__head">AUTOMATION</span>
+          <div class="toggles__row">
+            <label class="toggle">
+              <input type="checkbox" id="autoApply">
+              <span class="toggle__label">排名完成自动应用 · autoApply</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="autoNext">
+              <span class="toggle__label">应用后自动进入下一局 · autoNext</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" id="strictA" checked>
+              <span class="toggle__label">严格 A 级 · strictA</span>
+            </label>
           </div>
         </div>
-        <div>
-          <h4 id="team2Label">红队</h4>
-          <div class="team-drop-zone" id="team2Zone" data-team="2">
-            <div class="label">拖拽玩家到这里分配队伍</div>
-          </div>
+        <div class="manualbtns">
+          <button id="apply" class="btn">
+            <span>应用结果到战绩</span>
+            <small>APPLY RESULT</small>
+          </button>
+          <button id="advance" class="btn" title="将本局级牌推进到预览的下一局">
+            <span>进入下一局</span>
+            <small>NEXT ROUND</small>
+          </button>
         </div>
       </div>
-    </details>
+
+      <p class="small muted" id="applyTip"></p>
+    </div>
+  </section>
+
+  <!-- ============== RULES DRAWER (collapses custom rule editor) ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">自定义规则 · Custom Rules</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">DRAWER · COLLAPSED BY DEFAULT</span>
   </div>
 
-  <!-- 队伍状态 -->
-  <div class="card">
-    <h3>队伍</h3>
-    <div class="team">
-      <span class="chip" id="t1NameChip"><b>蓝队</b></span><span class="chip">级牌：<b id="t1Lvl">2</b></span><span class="chip" id="t1AChip">A失败：<b id="t1A">0</b>/3</span><span class="chip">A状态：<b id="t1AState">—</b></span>
-    </div>
-    <div class="team">
-      <span class="chip" id="t2NameChip"><b>红队</b></span><span class="chip">级牌：<b id="t2Lvl">2</b></span><span class="chip" id="t2AChip">A失败：<b id="t2A">0</b>/3</span><span class="chip">A状态：<b id="t2AState">—</b></span>
-    </div>
-    <hr>
-    <div class="team">
-      <span class="chip">本局级牌：<b id="curRoundLvl">2</b></span>
-      <span class="chip">下局级牌（预览）：<b id="nextRoundPreview">-</b></span>
-    </div>
-  </div>
-
-  <!-- 本局排名 -->
-  <div class="card" id="rankingSection">
-    <h3>本局排名</h3>
-    <div class="row">
-      <div class="small">仅🈶1方可升级：</div><input type="checkbox" id="must1" checked>
-      <span class="small muted" id="ruleHint"></span>
-      <button id="clearRanking">清空排名</button>
-      <button id="randomRanking">随机排名</button>
-      <button id="manualCalc">手动计算</button>
-    </div>
-    
-    <!-- 待排名玩家池 -->
-    <div class="player-pool-section">
-      <h4 class="small muted">待排名玩家</h4>
-      <div class="player-pool" id="playerPool">
-        <div class="small muted">请先分配玩家到队伍</div>
-      </div>
-    </div>
-    
-    <!-- 排名位置 -->
-    <div class="ranking-section">
-      <h4 class="small muted">拖拽玩家到对应排名</h4>
-      <div class="ranking-area" id="rankingArea">
-        <!-- Ranking slots will be generated here -->
-      </div>
-    </div>
-    
-    <div class="small muted" id="tip">从上方池中拖拽玩家到对应的排名位置</div>
-  </div>
-
-  <div class="grid">
-    <div class="card" id="resultsSection">
-      <h3>结果</h3>
-      <div id="headline">—</div>
-      <div id="explain" class="small muted">等待输入…</div>
-      <hr>
-      <div class="row" id="winBtnsWrap">
-        <span class="small">获胜队：</span>
-        <span id="winnerDisplay" style="font-weight:bold">—</span>
-        <button id="apply">应用结果到战绩</button>
-        <button id="advance" title="将本局级牌推进到预览的下一局">进入下一局</button>
-      </div>
-      <div class="small muted">
-        A 局规则：胜方带末游→本局胜但不通关。<br>
-        4人：A连败3次（A3）→ 仅该队回2；6/8人：不计失败次数、不掉级，继续打到任意一方在自己的A级获胜。<br>
-        严格模式：必须在自己的A级获胜才能通关 | 宽松模式：任何时候A级获胜都可通关
-      </div>
-      <div class="small muted toggle" style="margin-top:6px;">
-        <input type="checkbox" id="autoNext"> <label for="autoNext">应用后自动进入下一局</label>
-        <br>
-        <input type="checkbox" id="autoApply"> <label for="autoApply" style="color:#4ade80;font-weight:bold">✅ 排名完成后自动应用结果（升级队伍）</label>
-        <br>
-        <input type="checkbox" id="strictA" checked> <label for="strictA" style="color:#f59e0b">🎯 严格A级规则（必须在自己的A级获胜才能通关）</label>
-      </div>
-      <span class="small muted" id="applyTip"></span>
-    </div>
-
-  </div>
-
-  <div class="card" id="themePickerSection">
+  <section class="rules-drawer" id="customRulesSection">
     <details>
-      <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">🎨 主题</summary>
-      <div id="themePickerMount" style="margin-top:12px;"><!-- ThemePicker mounts here --></div>
-    </details>
-  </div>
+      <summary class="rules-drawer__summary">
+        <span class="rules-drawer__title">当前规则配置</span>
+        <span class="rules-drawer__expand">展开自定义规则 ▾</span>
+      </summary>
 
-  <div class="card" id="customRulesSection">
-    <details>
-      <summary style="cursor:pointer; font-size:18px; font-weight:bold; padding:8px 0;">⚙️ 自定义规则</summary>
-      <div class="grid" style="margin-top:12px;">
-      <details><summary>4人升级表</summary>
-        <div class="row" style="margin-top:8px;">
-          <div>(1,2)= <input type="number" id="c4_12" value="3" min="0" max="5"></div>
-          <div>(1,3)= <input type="number" id="c4_13" value="2" min="0" max="5"></div>
-          <div>(1,4)= <input type="number" id="c4_14" value="1" min="0" max="5"></div>
-          <button id="save4">保存4人设置</button>
-          <button id="reset4" style="background:#6b7280; margin-left:8px;">恢复默认</button>
+      <div class="rules-drawer__body">
+        <div class="grid">
+          <details>
+            <summary class="rules-section__summary">4人升级表</summary>
+            <div class="row" style="margin-top:8px;">
+              <div>(1,2)= <input type="number" id="c4_12" value="3" min="0" max="5"></div>
+              <div>(1,3)= <input type="number" id="c4_13" value="2" min="0" max="5"></div>
+              <div>(1,4)= <input type="number" id="c4_14" value="1" min="0" max="5"></div>
+              <button id="save4" class="btn-primary">保存4人设置</button>
+              <button id="reset4" class="btn-tertiary">恢复默认</button>
+            </div>
+          </details>
+          <details>
+            <summary class="rules-section__summary">6人阈值 &amp; 分值</summary>
+            <div class="row" style="margin-top:8px;">
+              <div>升3级≥ <input type="number" id="t6_3" value="7"></div>
+              <div>升2级≥ <input type="number" id="t6_2" value="4"></div>
+              <div>升1级≥ <input type="number" id="t6_1" value="1"></div>
+            </div>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:12px;">
+              <div>1名分 <input type="number" id="p6_1" value="5" style="width:80px"></div>
+              <div>2名分 <input type="number" id="p6_2" value="4" style="width:80px"></div>
+              <div>3名分 <input type="number" id="p6_3" value="3" style="width:80px"></div>
+              <div>4名分 <input type="number" id="p6_4" value="3" style="width:80px"></div>
+              <div>5名分 <input type="number" id="p6_5" value="1" style="width:80px"></div>
+              <div>6名分 <input type="number" id="p6_6" value="0" style="width:80px"></div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="save6" class="btn-primary">保存6人设置</button>
+              <button id="reset6" class="btn-tertiary">恢复默认</button>
+            </div>
+          </details>
+          <details>
+            <summary class="rules-section__summary">8人阈值 &amp; 分值</summary>
+            <div class="row" style="margin-top:8px;">
+              <div>升3级≥ <input type="number" id="t8_3" value="11"></div>
+              <div>升2级≥ <input type="number" id="t8_2" value="5"></div>
+              <div>升1级≥ <input type="number" id="t8_1" value="0"></div>
+            </div>
+            <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:12px;">
+              <div>1名分 <input type="number" id="p8_1" value="7" style="width:80px"></div>
+              <div>2名分 <input type="number" id="p8_2" value="6" style="width:80px"></div>
+              <div>3名分 <input type="number" id="p8_3" value="5" style="width:80px"></div>
+              <div>4名分 <input type="number" id="p8_4" value="4" style="width:80px"></div>
+              <div>5名分 <input type="number" id="p8_5" value="3" style="width:80px"></div>
+              <div>6名分 <input type="number" id="p8_6" value="2" style="width:80px"></div>
+              <div>7名分 <input type="number" id="p8_7" value="1" style="width:80px"></div>
+              <div>8名分 <input type="number" id="p8_8" value="0" style="width:80px"></div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <button id="save8" class="btn-primary">保存8人设置</button>
+              <button id="reset8" class="btn-tertiary">恢复默认</button>
+            </div>
+          </details>
         </div>
-      </details>
-      <details><summary>6人阈值 & 分值</summary>
-        <div class="row" style="margin-top:8px;">
-          <div>升3级≥ <input type="number" id="t6_3" value="7"></div>
-          <div>升2级≥ <input type="number" id="t6_2" value="4"></div>
-          <div>升1级≥ <input type="number" id="t6_1" value="1"></div>
-        </div>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:12px;">
-          <div>1名分 <input type="number" id="p6_1" value="5" style="width:80px"></div>
-          <div>2名分 <input type="number" id="p6_2" value="4" style="width:80px"></div>
-          <div>3名分 <input type="number" id="p6_3" value="3" style="width:80px"></div>
-          <div>4名分 <input type="number" id="p6_4" value="3" style="width:80px"></div>
-          <div>5名分 <input type="number" id="p6_5" value="1" style="width:80px"></div>
-          <div>6名分 <input type="number" id="p6_6" value="0" style="width:80px"></div>
-        </div>
-        <div class="row" style="margin-top:8px;">
-          <button id="save6">保存6人设置</button>
-          <button id="reset6" style="background:#6b7280; margin-left:8px;">恢复默认</button>
-        </div>
-      </details>
-      <details><summary>8人阈值 & 分值</summary>
-        <div class="row" style="margin-top:8px;">
-          <div>升3级≥ <input type="number" id="t8_3" value="11"></div>
-          <div>升2级≥ <input type="number" id="t8_2" value="5"></div>
-          <div>升1级≥ <input type="number" id="t8_1" value="0"></div>
-        </div>
-        <div class="row" style="margin-top:8px;flex-wrap:wrap;gap:12px;">
-          <div>1名分 <input type="number" id="p8_1" value="7" style="width:80px"></div>
-          <div>2名分 <input type="number" id="p8_2" value="6" style="width:80px"></div>
-          <div>3名分 <input type="number" id="p8_3" value="5" style="width:80px"></div>
-          <div>4名分 <input type="number" id="p8_4" value="4" style="width:80px"></div>
-          <div>5名分 <input type="number" id="p8_5" value="3" style="width:80px"></div>
-          <div>6名分 <input type="number" id="p8_6" value="2" style="width:80px"></div>
-          <div>7名分 <input type="number" id="p8_7" value="1" style="width:80px"></div>
-          <div>8名分 <input type="number" id="p8_8" value="0" style="width:80px"></div>
-        </div>
-        <div class="row" style="margin-top:8px;">
-          <button id="save8">保存8人设置</button>
-          <button id="reset8" style="background:#6b7280; margin-left:8px;">恢复默认</button>
-        </div>
-      </details>
       </div>
     </details>
+  </section>
+
+  <!-- ============== HISTORY ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">历史战绩 · Recent Rounds</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">FULL TABLE</span>
   </div>
 
-  <!-- 玩家统计 -->
-  <div class="grid">
-    <div class="card">
-      <h3>玩家排名统计</h3>
-      <table class="stats-table">
+  <section class="history">
+    <div class="table-wrap">
+      <table class="table" id="hist">
         <thead>
           <tr>
-            <th>玩家</th>
-            <th>队伍</th>
-            <th>场次</th>
-            <th>平均排名</th>
-            <th>拿1次数</th>
-            <th>垫底次数</th>
+            <th scope="col">#</th>
+            <th scope="col">时间</th>
+            <th scope="col">人数</th>
+            <th scope="col">胜方组合</th>
+            <th scope="col">玩家排名</th>
+            <th scope="col">升级情况</th>
+            <th scope="col">胜队</th>
+            <th scope="col"><span id="hT1"></span>级牌</th>
+            <th scope="col"><span id="hT2"></span>级牌</th>
+            <th scope="col">本局级牌</th>
+            <th scope="col">A说明</th>
+            <th scope="col">操作</th>
           </tr>
         </thead>
-        <tbody id="playerStatsBody">
-          <tr><td colspan="6" class="muted small">暂无数据</td></tr>
-        </tbody>
+        <tbody id="histBody"></tbody>
       </table>
     </div>
-
-    <div class="card">
-      <h3>荣誉提名</h3>
-      
-      <!-- 团队荣誉 -->
-      <div id="team1Stats" style="margin-bottom:16px">
-        <h4 id="team1StatsTitle">蓝队</h4>
-        <div class="row">
-          <span class="badge">很C: <span id="team1MVP">—</span></span>
-          <span class="badge">很闹: <span id="team1Burden">—</span></span>
-        </div>
-      </div>
-      <div id="team2Stats" style="margin-bottom:20px">
-        <h4 id="team2StatsTitle">红队</h4>
-        <div class="row">
-          <span class="badge">很C: <span id="team2MVP">—</span></span>
-          <span class="badge">很闹: <span id="team2Burden">—</span></span>
-        </div>
-      </div>
-      
-      <!-- 全场特殊荣誉 -->
-      <div style="border-top:1px solid #333; padding-top:16px">
-        <h4 class="small muted" style="margin-bottom:12px">🏆 特殊荣誉</h4>
-        <div class="grid" style="grid-template-columns: 1fr 1fr; gap:12px;">
-          <div>
-            <span class="badge" style="background:#d4af37;color:#000;">吕布: <span id="lyubu">—</span></span>
-            <div class="small muted">最多第一名</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#8b4513;color:#fff;">阿斗: <span id="adou">—</span></span>
-            <div class="small muted">最多垫底</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#708090;color:#fff;">石佛: <span id="shifo">—</span></span>
-            <div class="small muted">优秀且稳定</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#ff4500;color:#fff;">波动王: <span id="bodongwang">—</span></span>
-            <div class="small muted">排名波动最大</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#32cd32;color:#000;">奋斗王: <span id="fendouwang">—</span></span>
-            <div class="small muted">排名稳步提升</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#dc2626;color:#fff;">翻车王: <span id="fanchewang">—</span></span>
-            <div class="small muted">前3掉垫底</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#7c3aed;color:#fff;">赌徒: <span id="dutu">—</span></span>
-            <div class="small muted">高风险高回报</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#059669;color:#fff;">大满贯: <span id="damanguan">—</span></span>
-            <div class="small muted">体验所有排名</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#ea580c;color:#fff;">连胜王: <span id="lianshengewang">—</span></span>
-            <div class="small muted">连续好排名</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#6b7280;color:#fff;">佛系玩家: <span id="foxiwanjia">—</span></span>
-            <div class="small muted">总是中游</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#f97316;color:#fff;">鲤鱼王: <span id="liyuwang">—</span></span>
-            <div class="small muted">惊天逆转</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#10b981;color:#fff;">不粘锅: <span id="buzhanguo">—</span></span>
-            <div class="small muted">从不垫底</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#eab308;color:#000;">闪电侠: <span id="shandianxia">—</span></span>
-            <div class="small muted">变化频繁</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#b91c1c;color:#fff;">燃尽王: <span id="ranjinwang">—</span></span>
-            <div class="small muted">持续低迷</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#8b5cf6;color:#fff;">棋差一着: <span id="qichayizhao">—</span></span>
-            <div class="small muted">差点登顶</div>
-          </div>
-          <div>
-            <span class="badge" style="background:#f472b6;color:#fff;">🤡: <span id="xiaochou">—</span></span>
-            <div class="small muted">无冠最菜</div>
-          </div>
-        </div>
-      </div>
+    <div class="row btns-grid history__actions">
+      <button id="undo" class="btn-tertiary">撤销上一局</button>
+      <button id="exportTxt" class="btn-secondary">导出 TXT</button>
+      <button id="exportCsv" class="btn-secondary">导出 CSV</button>
+      <button id="exportLongPng" class="btn-secondary">导出 长图 PNG</button>
+      <button id="exportMobilePng" class="btn-accent">📱 手机版 PNG</button>
+      <button id="shareGame" class="btn-accent">📤 分享快照</button>
+      <button id="favoriteRoom" class="btn-accent" style="display:none;">⭐ 收藏房间</button>
+      <button id="resetMatch" class="btn-danger">重置比赛</button>
+      <span id="exportTip" class="small muted" style="grid-column:1/-1"></span>
     </div>
+  </section>
+
+  <!-- ============== STATS + HONORS ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">玩家统计 · Player Stats</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">SESSION RANKING TABLE</span>
   </div>
 
-  <!-- 人民的声音 (投票系统) -->
-  <div class="card" id="votingSection" style="display:none;">
-    <h3>🗳️ 人民的声音</h3>
-    
+  <section class="card stats-card">
+    <table class="stats-table">
+      <thead>
+        <tr>
+          <th scope="col">玩家</th>
+          <th scope="col">队伍</th>
+          <th scope="col">场次</th>
+          <th scope="col">平均排名</th>
+          <th scope="col">拿1次数</th>
+          <th scope="col">垫底次数</th>
+        </tr>
+      </thead>
+      <tbody id="playerStatsBody">
+        <tr><td colspan="6" class="muted small">暂无数据</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- TEAM HONORS (per-team MVP/Burden) -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">队伍荣誉 · Team Awards</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">PER-TEAM MVP / BURDEN</span>
+  </div>
+
+  <section class="team-honors">
+    <article class="team-honors__card team-honors__card--blue" id="team1Stats">
+      <h4 id="team1StatsTitle" class="team-honors__title">蓝队</h4>
+      <div class="row">
+        <span class="badge badge--mvp">很C: <span id="team1MVP">—</span></span>
+        <span class="badge badge--burden">很闹: <span id="team1Burden">—</span></span>
+      </div>
+    </article>
+    <article class="team-honors__card team-honors__card--red" id="team2Stats">
+      <h4 id="team2StatsTitle" class="team-honors__title">红队</h4>
+      <div class="row">
+        <span class="badge badge--mvp">很C: <span id="team2MVP">—</span></span>
+        <span class="badge badge--burden">很闹: <span id="team2Burden">—</span></span>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============== HONORS GRID (16 honors) ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">特殊荣誉 · Honors</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">16 ALGORITHMIC AWARDS</span>
+  </div>
+
+  <section class="honors">
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">01 / 16</span>
+        <span class="honor__cat">最多第一名</span>
+      </div>
+      <div class="honor__name">吕布</div>
+      <div class="honor__desc">三国第一武将 · King of First</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">👑</div>
+        <div class="honor__player"><span class="honor__playername" id="lyubu">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">02 / 16</span>
+        <span class="honor__cat">最多垫底</span>
+      </div>
+      <div class="honor__name">阿斗</div>
+      <div class="honor__desc">扶不起的阿斗 · Bottom Dweller</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🪨</div>
+        <div class="honor__player"><span class="honor__playername" id="adou">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">03 / 16</span>
+        <span class="honor__cat">优秀且稳定</span>
+      </div>
+      <div class="honor__name">石佛</div>
+      <div class="honor__desc">如石如佛 · Stone Buddha</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🗿</div>
+        <div class="honor__player"><span class="honor__playername" id="shifo">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">04 / 16</span>
+        <span class="honor__cat">排名波动最大</span>
+      </div>
+      <div class="honor__name">波动王</div>
+      <div class="honor__desc">High Volatility · 大起大落</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">📈</div>
+        <div class="honor__player"><span class="honor__playername" id="bodongwang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">05 / 16</span>
+        <span class="honor__cat">排名稳步提升</span>
+      </div>
+      <div class="honor__name">奋斗王</div>
+      <div class="honor__desc">Steady Climber · 越战越勇</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">💪</div>
+        <div class="honor__player"><span class="honor__playername" id="fendouwang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">06 / 16</span>
+        <span class="honor__cat">前3掉垫底</span>
+      </div>
+      <div class="honor__name">翻车王</div>
+      <div class="honor__desc">Spectacular Crash · 戏剧性崩盘</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">💥</div>
+        <div class="honor__player"><span class="honor__playername" id="fanchewang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">07 / 16</span>
+        <span class="honor__cat">高风险高回报</span>
+      </div>
+      <div class="honor__name">赌徒</div>
+      <div class="honor__desc">High Stakes · 拿1多但垫底也多</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🎲</div>
+        <div class="honor__player"><span class="honor__playername" id="dutu">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">08 / 16</span>
+        <span class="honor__cat">体验所有排名</span>
+      </div>
+      <div class="honor__name">大满贯</div>
+      <div class="honor__desc">Grand Slam · 各排名都拿过</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🏆</div>
+        <div class="honor__player"><span class="honor__playername" id="damanguan">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">09 / 16</span>
+        <span class="honor__cat">连续好排名</span>
+      </div>
+      <div class="honor__name">连胜王</div>
+      <div class="honor__desc">Win Streak · 连续上半区</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🔥</div>
+        <div class="honor__player"><span class="honor__playername" id="lianshengewang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">10 / 16</span>
+        <span class="honor__cat">总是中游</span>
+      </div>
+      <div class="honor__name">佛系玩家</div>
+      <div class="honor__desc">Middle Path · 中庸之道</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">☯️</div>
+        <div class="honor__player"><span class="honor__playername" id="foxiwanjia">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">11 / 16</span>
+        <span class="honor__cat">惊天逆转</span>
+      </div>
+      <div class="honor__name">鲤鱼王</div>
+      <div class="honor__desc">Underdog Comeback · 后程发力</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🐟</div>
+        <div class="honor__player"><span class="honor__playername" id="liyuwang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">12 / 16</span>
+        <span class="honor__cat">从不垫底</span>
+      </div>
+      <div class="honor__name">不粘锅</div>
+      <div class="honor__desc">Teflon · 永不末游</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🍳</div>
+        <div class="honor__player"><span class="honor__playername" id="buzhanguo">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">13 / 16</span>
+        <span class="honor__cat">变化频繁</span>
+      </div>
+      <div class="honor__name">闪电侠</div>
+      <div class="honor__desc">The Flash · 名次变化最多</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">⚡️</div>
+        <div class="honor__player"><span class="honor__playername" id="shandianxia">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">14 / 16</span>
+        <span class="honor__cat">持续低迷</span>
+      </div>
+      <div class="honor__name">燃尽王</div>
+      <div class="honor__desc">Burnout · 状态持续下滑</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🕯️</div>
+        <div class="honor__player"><span class="honor__playername" id="ranjinwang">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">15 / 16</span>
+        <span class="honor__cat">差点登顶</span>
+      </div>
+      <div class="honor__name">棋差一着</div>
+      <div class="honor__desc">So Close · 屡屡第二</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">♟️</div>
+        <div class="honor__player"><span class="honor__playername" id="qichayizhao">—</span></div>
+      </div>
+    </article>
+
+    <article class="honor">
+      <div class="honor__top">
+        <span class="honor__index">16 / 16</span>
+        <span class="honor__cat">无冠最菜</span>
+      </div>
+      <div class="honor__name">🤡</div>
+      <div class="honor__desc">The Clown · 0头游+末段</div>
+      <div class="honor__recipient">
+        <div class="honor__avatar">🃏</div>
+        <div class="honor__player"><span class="honor__playername" id="xiaochou">—</span></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- ============== VOTING (人民的声音) ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">人民的声音 · Community Voting</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">VIEWER MVP / BURDEN VOTES</span>
+  </div>
+
+  <section class="card voting" id="votingSection" style="display:none;">
     <!-- 观众投票界面 -->
     <div id="voterInterface" style="display:none;">
-      <h4>为本局投票</h4>
-      <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px; margin-top:16px;">
+      <h4 class="voting__heading">为本局投票</h4>
+      <div class="voting__split">
         <div>
-          <h5 style="color:#22c55e;">谁最C (表现最好)？</h5>
+          <h5 class="voting__col-title voting__col-title--mvp">谁最C (表现最好)？</h5>
           <div id="mvpVotingOptions" class="voting-options">
             <!-- 动态生成投票选项 -->
           </div>
         </div>
         <div>
-          <h5 style="color:#ef4444;">谁最闹 (表现最差)？</h5>
+          <h5 class="voting__col-title voting__col-title--burden">谁最闹 (表现最差)？</h5>
           <div id="burdenVotingOptions" class="voting-options">
             <!-- 动态生成投票选项 -->
           </div>
         </div>
       </div>
-      <div style="text-align:center; margin-top:20px;">
-        <button id="submitVote" style="background:#3b82f6;color:white;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">🗳️ 提交投票</button>
+      <div class="voting__submit">
+        <button id="submitVote" class="btn-primary">🗳️ 提交投票</button>
       </div>
     </div>
-    
+
     <!-- 房主投票结果界面 -->
     <div id="hostVotingInterface" style="display:none;">
-      <h4>观众投票结果</h4>
-      <div id="votingResults" style="margin-top:16px;">
-        <!-- 动态显示投票结果 -->
-      </div>
-      <div style="text-align:center; margin-top:20px;">
-        <button id="confirmHostSelection" style="background:#22c55e;color:white;padding:12px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;">✅ 确认选择</button>
+      <h4 class="voting__heading">观众投票结果</h4>
+      <div id="votingResults" class="voting__results"></div>
+      <div class="voting__submit">
+        <button id="confirmHostSelection" class="btn-primary">✅ 确认选择</button>
       </div>
     </div>
-    
+
     <!-- 投票统计面板 -->
-    <div id="votingStats" style="margin-top:20px; padding-top:20px; border-top:1px solid #333;">
-      <h4>📊 投票统计</h4>
-      <div class="grid" style="grid-template-columns: 1fr 1fr; gap:20px; margin-top:16px;">
+    <div id="votingStats" class="voting__stats">
+      <h4 class="voting__heading">📊 投票统计</h4>
+      <div class="voting__split">
         <div>
-          <h5 style="color:#22c55e;">最C次数排行</h5>
-          <div id="mvpStatsTable">
-            <!-- 动态生成统计 -->
-          </div>
+          <h5 class="voting__col-title voting__col-title--mvp">最C次数排行</h5>
+          <div id="mvpStatsTable"></div>
         </div>
         <div>
-          <h5 style="color:#ef4444;">最闹次数排行</h5>
-          <div id="burdenStatsTable">
-            <!-- 动态生成统计 -->
-          </div>
+          <h5 class="voting__col-title voting__col-title--burden">最闹次数排行</h5>
+          <div id="burdenStatsTable"></div>
         </div>
       </div>
-      
-      <!-- Manual Sync Button -->
-      <div style="text-align:center; margin-top:20px; padding-top:16px; border-top:1px solid #333;">
-        <button id="syncVotingButton" style="background:#8b5cf6;color:white;padding:12px 24px;border:none;border-radius:8px;font-size:14px;cursor:pointer;">
-          🔄 同步投票到玩家资料
-        </button>
-        <div id="syncVotingStatus" style="margin-top:12px; color:#888; font-size:13px;"></div>
+
+      <div class="voting__sync">
+        <button id="syncVotingButton" class="btn-secondary">🔄 同步投票到玩家资料</button>
+        <div id="syncVotingStatus" class="small muted" style="margin-top:12px;"></div>
       </div>
     </div>
+  </section>
+
+  <!-- ============== SAMPLE — Championship preview ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">示例 · 通关时刻</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">SAMPLE · CHAMPIONSHIP STATE</span>
   </div>
 
-  <div class="card">
-    <h3>历史战绩</h3>
-    <div class="table-wrap">
-      <table class="table" id="hist">
-        <thead><tr>
-          <th>#</th><th>时间</th><th>人数</th><th>胜方组合</th><th>玩家排名</th><th>升级情况</th><th>胜队</th>
-          <th><span id="hT1"></span>级牌</th><th><span id="hT2"></span>级牌</th><th>本局级牌</th><th>A说明</th><th>操作</th>
-        </tr></thead>
-        <tbody id="histBody"></tbody>
-      </table>
+  <section class="sample">
+    <span class="sample__label">SAMPLE · CHAMPIONSHIP STATE</span>
+    <div class="sample__layout">
+      <div class="sample__left">
+        <div class="sample__pretitle">— THIS IS WHAT WINNING LOOKS LIKE —</div>
+        <h2 class="sample__title display">A级通关</h2>
+        <div class="sample__sub">
+          <span>战至 A 级</span>
+          <span class="sep">·</span>
+          <span>全员通关</span>
+        </div>
+        <div class="sample__meta">
+          <span>本局级牌 <span class="accent">A</span></span>
+          <span>历时 <span class="accent">—</span></span>
+          <span>升级 <span class="accent">+ 通关</span></span>
+        </div>
+      </div>
+      <article class="sample__mvp">
+        <span class="sample__mvp-kicker">DUAL MVP · ALGO + VOTED</span>
+        <div class="sample__mvp-row">
+          <div class="sample__mvp-photo">?</div>
+          <div class="sample__mvp-body">
+            <span class="sample__mvp-name">尚未产生</span>
+            <span class="sample__mvp-handle">@—</span>
+          </div>
+        </div>
+        <div class="sample__mvp-stat">
+          <span class="big">—</span>
+          <span class="sample__mvp-stat-key">avg rank · 本局</span>
+        </div>
+        <div class="sample__mvp-stat">
+          <span class="big">—</span>
+          <span class="sample__mvp-stat-key">最C 票数 · 人民的声音</span>
+        </div>
+      </article>
     </div>
-    <div class="row btns-grid" style="margin-top:10px;">
-      <button id="undo">撤销上一局</button>
-      <button id="exportTxt">导出 TXT</button>
-      <button id="exportCsv">导出 CSV</button>
-      <button id="exportLongPng">导出 长图 PNG</button>
-      <button id="exportMobilePng" style="background:#10b981;color:white;">📱 手机版 PNG</button>
-      <button id="shareGame" style="background:#8b5cf6;color:white;">📤 分享快照</button>
-      <button id="favoriteRoom" style="background:#f59e0b;color:white;display:none;">⭐ 收藏房间</button>
-      <button id="resetMatch" style="border-color:#5b1e1e;color:#ffb3b3">重置比赛</button>
-      <span id="exportTip" class="small muted" style="grid-column:1/-1"></span>
-    </div>
+  </section>
+
+  <!-- ============== PROFILE PREVIEW ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">玩家档案 · Player Profile · Preview</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">CAREER STATS · PLACEHOLDER</span>
   </div>
-</div>
+
+  <section class="profile">
+    <div class="profile__avatar">玩</div>
+    <div class="profile__main">
+      <header class="profile__head">
+        <span class="profile__name">访客</span>
+        <span class="profile__handle">@guest</span>
+        <span class="profile__badge">SIGN IN VIA PROFILE</span>
+      </header>
+      <div class="profile__stats">
+        <div class="profile__stat">
+          <div class="profile__stat-label">Sessions</div>
+          <div class="profile__stat-val">—</div>
+        </div>
+        <div class="profile__stat">
+          <div class="profile__stat-label">Won</div>
+          <div class="profile__stat-val">—</div>
+        </div>
+        <div class="profile__stat">
+          <div class="profile__stat-label">Rounds</div>
+          <div class="profile__stat-val">—</div>
+        </div>
+        <div class="profile__stat">
+          <div class="profile__stat-label">Avg Rank</div>
+          <div class="profile__stat-val">—</div>
+        </div>
+        <div class="profile__stat">
+          <div class="profile__stat-label">Play Time</div>
+          <div class="profile__stat-val">—</div>
+        </div>
+        <div class="profile__stat">
+          <div class="profile__stat-label">最C / 最闹</div>
+          <div class="profile__stat-val">— / —</div>
+        </div>
+      </div>
+      <div class="profile__rels">
+        <div class="profile__rel">
+          <div class="profile__rel-key">TOP PARTNER · 最佳搭档</div>
+          <div class="profile__rel-name">— <span class="handle">@—</span></div>
+          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--win" style="width: 0%;"></div></div>
+          <div class="profile__rel-meta"><span>0 局同队</span><span class="pct">—</span></div>
+        </div>
+        <div class="profile__rel">
+          <div class="profile__rel-key">TOP RIVAL · 苦主</div>
+          <div class="profile__rel-name">— <span class="handle">@—</span></div>
+          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--loss" style="width: 0%;"></div></div>
+          <div class="profile__rel-meta"><span>0 局对阵</span><span class="pct">—</span></div>
+        </div>
+      </div>
+      <p class="small muted" style="margin:0; padding-top:var(--s3); border-top:1px dashed var(--rule-soft);">
+        登录或选择玩家资料后，此处会展示真实的生涯数据。前往 <a href="/players.html" style="color:var(--accent);">玩家列表</a> 选择资料。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============== THEME PICKER ============== -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">主题 · Theme</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">PHASE 0+1 · BROADCAST DEFAULT</span>
+  </div>
+
+  <section class="card" id="themePickerSection">
+    <details>
+      <summary class="card__summary">🎨 主题</summary>
+      <div id="themePickerMount" style="margin-top:12px;"></div>
+    </details>
+  </section>
+
+  <!-- ============== FOOTER ============== -->
+  <footer class="footer">
+    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__meta" id="footerMeta">
+      <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
+      · MADE WITH ❤️ BY XINGFAN XIA
+    </div>
+  </footer>
+
+</main>
 
 <canvas id="longCnv" width="1200" height="1600" style="display:none"></canvas>
 
 <!-- Victory Modal -->
-<div id="victoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center; overflow-y: auto; padding: 20px 0;">
-  <div style="background:#1a1b1c; border-radius:16px; padding:32px; max-width:500px; text-align:center; border:3px solid #4ade80; transition: all 0.3s ease; max-height: 90vh; overflow-y: auto; margin: auto;">
-    <h1 style="color:#fff; font-size:36px; margin:0 0 16px 0;">🎉 A级通关！🎉</h1>
-    <h2 id="victoryTeamName" style="font-size:48px; margin:0 0 24px 0; font-weight:bold; text-shadow: 0 0 20px currentColor;"></h2>
-    <p style="color:#999; font-size:18px; margin-bottom:24px;">恭喜完成所有级别的挑战！</p>
+<div id="victoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; overflow-y: auto; padding: 20px 0;">
+  <div style="background:var(--surface); border-radius:0; padding:32px; max-width:560px; text-align:center; border:2px solid var(--accent); transition: all 0.3s ease; max-height: 90vh; overflow-y: auto; margin: auto; font-family: var(--font-body);">
+    <div style="font-size: 11px; letter-spacing: 0.30em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px;">— THIS IS WHAT WINNING LOOKS LIKE —</div>
+    <h1 style="font-family: var(--font-display); font-weight: 900; font-size: 64px; line-height: 0.95; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.02em;">A级通关</h1>
+    <h2 id="victoryTeamName" style="font-family: var(--font-display); font-size: 28px; margin:0 0 24px 0; font-weight:900;"></h2>
+    <p style="color:var(--ink-dim); font-size:14px; margin-bottom:24px; letter-spacing: 0.04em;">恭喜完成所有级别的挑战</p>
 
-    <!-- Voting Interface Container -->
     <div id="victoryVoting" style="margin-bottom:24px;"></div>
 
-    <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
-      <button onclick="exportTXT()" style="padding:12px 24px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        📄 导出 TXT
-      </button>
-      <button onclick="exportCSV()" style="padding:12px 24px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        📊 导出 CSV
-      </button>
-      <button onclick="exportLongPNG()" style="padding:12px 24px; background:#3b82f6; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        🖼️ 导出长图
-      </button>
-      <button onclick="exportMobilePNG()" style="padding:12px 24px; background:#10b981; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        📱 手机版
-      </button>
-      <button onclick="resetAll()" style="padding:12px 24px; background:#ef4444; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        🔄 重置整场
-      </button>
-      <button onclick="closeVictoryModal()" style="padding:12px 24px; background:#666; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-        关闭
-      </button>
+    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      <button onclick="exportTXT()" class="btn-secondary">📄 导出 TXT</button>
+      <button onclick="exportCSV()" class="btn-secondary">📊 导出 CSV</button>
+      <button onclick="exportLongPNG()" class="btn-secondary">🖼️ 导出长图</button>
+      <button onclick="exportMobilePNG()" class="btn-accent">📱 手机版</button>
+      <button onclick="resetAll()" class="btn-danger">🔄 重置整场</button>
+      <button onclick="closeVictoryModal()" class="btn-tertiary">关闭</button>
     </div>
   </div>
 </div>
 
-<footer style="text-align: center; padding: 20px; margin-top: 40px; border-top: 1px solid #ddd; color: #666; font-size: 14px;">
-  Made with ❤️ by Xingfan Xia, Claude Sonnet 4.5 1M Context & Claude Opus 4.5 |
-  <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" style="color: #4078c0; text-decoration: none;">
-    GitHub
-  </a>
-</footer>
-
 <script type="module" src="/src/main.js"></script>
+
+<!-- Visual mode-select radio group drives the hidden native mode select.
+     Inline because it's pure DOM glue for the new presentation layer; no game
+     logic. The 'change' event mirrors what a user clicking the native
+     select would dispatch, which is what controllers/settingsControls.js
+     already listens for. ARIA radio semantics keep keyboard + SR users in sync. -->
+<script>
+  (function () {
+    var modeSelect = document.getElementById('mode');
+    if (!modeSelect) return;
+    var btns = document.querySelectorAll('.modeselect__opt[data-mode]');
+    function syncAria() {
+      btns.forEach(function (b) {
+        var on = b.getAttribute('data-mode') === modeSelect.value;
+        b.classList.toggle('modeselect__opt--active', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+    }
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var newMode = btn.getAttribute('data-mode');
+        if (modeSelect.value === newMode) return;
+        modeSelect.value = newMode;
+        modeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        syncAria();
+      });
+    });
+    modeSelect.addEventListener('change', syncAria);
+    syncAria();
+  })();
+</script>
 </body>
 </html>

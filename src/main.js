@@ -59,6 +59,7 @@ import { syncProfileStats } from './api/playerApi.js';
 
 // UI management
 import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRoster } from './ui/panelManager.js';
+import { initTickerSync } from './ui/tickerSync.js';
 
 // Theme system
 import * as themeManager from './themes/_shared/themeManager.js';
@@ -160,6 +161,9 @@ function initializeUI() {
   // Mount theme picker (single theme today; placeholder UI until Phase 2 ships Linear)
   const pickerMount = $('themePickerMount');
   if (pickerMount) mountThemePicker(pickerMount);
+
+  // Wire ticker to live game state (M2 fix)
+  initTickerSync();
 }
 
 /**
