@@ -9,10 +9,13 @@
 
 A new dark-themed theme system with 5 distinctive layouts (not just CSS-variable swaps) was prototyped end-to-end. **All 10 demos exist** (5 desktop + 5 mobile). **Architecture is documented**. **A working switcher prototype** demonstrates the swap UX.
 
-**Status update — 2026-05-03:** Phases 0 + 1 of the production build are **SHIPPED** on the
-`feat/theme-system` branch (token contract + theme manager + Broadcast registered as the
-default theme). Phases 2–5 (Linear / Trading / Atelier / Tea-Table) remain — each is its
-own PR. See "Status: what's actually shipped" section below.
+**Status update — 2026-05-03:** Phases 0 + 1 of the production build are **MERGED to main**
+(PR #1, squash 94b648b — token contract + theme manager + Broadcast registered as the
+default theme). The visible result on the live app is *almost identical to before* — only
+the palette + typography shifted. The big visible win — DOM restructure to match
+`docs/design/demos/demo-broadcast-v3.html` (top nav + ticker + giant card-rank scoreboard
++ redesigned active-game hero) — is **Phase 1.5**, the next session's first task.
+See "Status: what's actually shipped" section below.
 
 **Default theme:** A · Broadcast Editorial.
 **Other themes preserved as alternates:** C · Tea-Table · D · Trading Terminal · E · Linear/Vercel Console · F · Atelier Console.
@@ -21,12 +24,11 @@ own PR. See "Status: what's actually shipped" section below.
 
 ## Status: what's actually shipped (2026-05-03)
 
-| Phase | Description | Status | Commit / branch |
+| Phase | Description | Status | Commit / PR |
 |---|---|---|---|
-| 0 | Token contract + Broadcast palette (oklch) + sRGB fallback for Safari iOS 15.0–15.3 + Google Fonts wiring | **DONE** | `feat/theme-system` 91fd44b |
-| 1 | Theme manager + featureManifest + ThemePicker + Broadcast registered + main.js wiring | **DONE** | `feat/theme-system` 0caac67 |
-| 1.5 | DOM restructure to match Broadcast demo pixel-perfect (`.activegame__head`, `.scorer`, `.pool-tile`) | TODO | (next PR) |
-| 0b | Eliminate ~235 inline `style=""` attributes from HTML pages — they still hardcode legacy palette | TODO | (next PR; not blocking) |
+| 0 + 1 | Token contract + Broadcast palette + theme manager + featureManifest + ThemePicker + Broadcast registered (palette + typography only — invisible visually) | **MERGED** | main 94b648b (PR #1) |
+| **1.5** | **DOM restructure to match the Broadcast demo (top nav, ticker, scoreboard with huge card-rank glyphs, redesigned active-game hero, ranking-slots grid).** This is the visible transformation. **Next session starts here.** | **TODO — START HERE** | — |
+| 0b | Eliminate ~235 inline `style=""` attributes from HTML pages (still hardcode legacy palette) | TODO | (lower priority; not blocking) |
 | 2 | Add Linear theme (sidebar layout — most divergent, stress-tests the abstraction) | TODO | |
 | 3 | Add Trading theme (monospace + sparklines) | TODO | |
 | 4 | Add Atelier theme (warm graphite + photographic moments) | TODO | |
