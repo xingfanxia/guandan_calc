@@ -7,10 +7,34 @@
 
 ## TL;DR
 
-A new dark-themed theme system with 5 distinctive layouts (not just CSS-variable swaps) was prototyped end-to-end. **All 10 demos exist** (5 desktop + 5 mobile). **Architecture is documented**. **A working switcher prototype** demonstrates the swap UX. The codebase has NOT been touched yet — the next session does the actual build-out.
+A new dark-themed theme system with 5 distinctive layouts (not just CSS-variable swaps) was prototyped end-to-end. **All 10 demos exist** (5 desktop + 5 mobile). **Architecture is documented**. **A working switcher prototype** demonstrates the swap UX.
+
+**Status update — 2026-05-03:** Phases 0 + 1 of the production build are **SHIPPED** on the
+`feat/theme-system` branch (token contract + theme manager + Broadcast registered as the
+default theme). Phases 2–5 (Linear / Trading / Atelier / Tea-Table) remain — each is its
+own PR. See "Status: what's actually shipped" section below.
 
 **Default theme:** A · Broadcast Editorial.
 **Other themes preserved as alternates:** C · Tea-Table · D · Trading Terminal · E · Linear/Vercel Console · F · Atelier Console.
+
+---
+
+## Status: what's actually shipped (2026-05-03)
+
+| Phase | Description | Status | Commit / branch |
+|---|---|---|---|
+| 0 | Token contract + Broadcast palette (oklch) + sRGB fallback for Safari iOS 15.0–15.3 + Google Fonts wiring | **DONE** | `feat/theme-system` 91fd44b |
+| 1 | Theme manager + featureManifest + ThemePicker + Broadcast registered + main.js wiring | **DONE** | `feat/theme-system` 0caac67 |
+| 1.5 | DOM restructure to match Broadcast demo pixel-perfect (`.activegame__head`, `.scorer`, `.pool-tile`) | TODO | (next PR) |
+| 0b | Eliminate ~235 inline `style=""` attributes from HTML pages — they still hardcode legacy palette | TODO | (next PR; not blocking) |
+| 2 | Add Linear theme (sidebar layout — most divergent, stress-tests the abstraction) | TODO | |
+| 3 | Add Trading theme (monospace + sparklines) | TODO | |
+| 4 | Add Atelier theme (warm graphite + photographic moments) | TODO | |
+| 5 | Add Tea-Table theme (ink portraits + brushstroke SVGs — needs asset commission) | TODO | |
+| — | Visual regression CI (Percy/Chromatic/pixelmatch) | TODO | (Phase 5+) |
+| — | PNG export theme-awareness | TODO | (Phase 5) |
+
+Visual baseline for the shipped state: `docs/reports/phase0-1-visual/` (4 routes × desktop+mobile, captured via `npm run capture:visual`).
 
 ---
 
