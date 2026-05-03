@@ -60,12 +60,22 @@ import { syncProfileStats } from './api/playerApi.js';
 // UI management
 import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRoster } from './ui/panelManager.js';
 
+// Theme system
+import * as themeManager from './themes/_shared/themeManager.js';
+import * as broadcastTheme from './themes/broadcast/index.js';
+import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
+
 /**
  * Initialize application
  */
 async function init() {
 
   try {
+    // Register + mount theme before any other UI work — settles the data-theme
+    // attribute and palette so subsequent renderers paint correctly on first frame.
+    themeManager.register(broadcastTheme);
+    await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
+
     // Check for room in URL first
     const isRoomMode = await checkURLForRoom();
 
@@ -146,6 +156,10 @@ function initializeUI() {
 
   // Render initial honors
   renderHonors();
+
+  // Mount theme picker (single theme today; placeholder UI until Phase 2 ships Linear)
+  const pickerMount = $('themePickerMount');
+  if (pickerMount) mountThemePicker(pickerMount);
 }
 
 /**
