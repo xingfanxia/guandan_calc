@@ -1,0 +1,129 @@
+/*
+ * Broadcast Editorial — A-theme palette + typography.
+ *
+ * Source: docs/design/demos/demo-broadcast-v3.html (locked palette)
+ * Token contract: src/themes/_shared/tokenSpec.js
+ *
+ * Activated by setting the `data-theme="broadcast"` attribute on <html>.
+ * (Both rule blocks emit the same values so themes can be applied either way.)
+ */
+
+:root[data-theme="broadcast"],
+:root.theme-broadcast {
+  /* ───── Core dark palette (slate-ink with subtle warm cast) ───── */
+  --bg:          oklch(18% 0.04 250);
+  --bg-deep:     oklch(13% 0.04 250);
+  --surface:     oklch(22% 0.04 250);
+  --surface-2:   oklch(26% 0.04 250);
+  --surface-3:   oklch(30% 0.04 250);
+
+  /* ───── Ink (text) ───── */
+  --ink:         oklch(95% 0.02 80);
+  --ink-dim:     oklch(70% 0.02 80);
+  --ink-dimmer:  oklch(50% 0.02 80);
+
+  /* ───── Ember accent (Broadcast's signature warm orange) ───── */
+  --accent:        oklch(70% 0.20 45);
+  --accent-soft:   oklch(70% 0.20 45 / 0.12);
+  --accent-line:   oklch(70% 0.20 45 / 0.45);
+  --accent-glow:   oklch(70% 0.20 45 / 0.55);
+
+  /* ───── Team palette ───── */
+  --team-red:        oklch(60% 0.22 25);
+  --team-red-soft:   oklch(60% 0.22 25 / 0.10);
+  --team-red-line:   oklch(60% 0.22 25 / 0.40);
+  --team-blue:       oklch(60% 0.18 240);
+  --team-blue-soft:  oklch(60% 0.18 240 / 0.10);
+  --team-blue-line:  oklch(60% 0.18 240 / 0.35);
+
+  /* ───── Semantic ───── */
+  --win:   oklch(70% 0.18 145);
+  --loss:  oklch(60% 0.22 25);
+
+  /* ───── Rules / hairlines ───── */
+  --rule:       oklch(35% 0.04 250);
+  --rule-soft:  oklch(30% 0.04 250);
+
+  /* ─────────────────────────────────────────────
+     Backward-compat aliases for existing src/style.css var names.
+     These map the legacy 7-var system onto the new token spec so
+     unmigrated rules pick up the Broadcast palette automatically.
+     Remove these aliases once src/style.css is fully tokenized.
+     ───────────────────────────────────────────── */
+  --card:    var(--surface);
+  --muted:   var(--ink-dim);
+  --stroke:  var(--rule);
+  --chip:    var(--surface-2);
+
+  /* ───── Typography ───── */
+  --font-display:  'Fraunces', Georgia, 'Songti SC', 'STSong', serif;
+  --font-body:     'Inter Tight', system-ui, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-mono:     'DM Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* ───── Spacing scale ───── */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+
+  /* ───── Radius scale ───── */
+  --radius-none: 0;
+  --radius-sm:   2px;
+  --radius-md:   6px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+}
+
+/*
+ * Body-level Broadcast typography.
+ * Scoped under [data-theme="broadcast"] so it doesn't leak when other themes mount later.
+ */
+:root[data-theme="broadcast"] body,
+:root.theme-broadcast body {
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headings shift to Fraunces serif (Broadcast's editorial signature) */
+:root[data-theme="broadcast"] h1,
+:root[data-theme="broadcast"] h2,
+:root[data-theme="broadcast"] h3,
+:root.theme-broadcast h1,
+:root.theme-broadcast h2,
+:root.theme-broadcast h3 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Numeric / monospace utility — apply to elements showing scores, counts, codes */
+:root[data-theme="broadcast"] .num,
+:root.theme-broadcast .num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Display variant — hero numerals (e.g., card-rank glyph) */
+:root[data-theme="broadcast"] .display,
+:root.theme-broadcast .display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-variation-settings: 'opsz' 144;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+}
+
+/* Serif variant — for editorial labels */
+:root[data-theme="broadcast"] .serif,
+:root.theme-broadcast .serif {
+  font-family: var(--font-display);
+  font-weight: 700;
+}

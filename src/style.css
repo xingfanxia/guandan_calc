@@ -1,13 +1,9 @@
-/* CSS Variables */
-:root {
-  --bg: #0b0b0c;
-  --card: #16171b;
-  --ink: #f5f6f8;
-  --muted: #b4b8bf;
-  --stroke: #2a2d35;
-  --chip: #24262c;
-  --accent: #e6b800;
-}
+/*
+ * Global structural rules. Palette + typography tokens are owned by the
+ * active theme stylesheet (e.g. src/themes/broadcast/theme.css) loaded
+ * AFTER this file. Those themes set `--bg`, `--card`, `--accent`, etc.
+ * via :root[data-theme="<name>"].
+ */
 
 /* Global Styles */
 * {
