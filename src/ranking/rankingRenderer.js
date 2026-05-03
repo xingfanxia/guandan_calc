@@ -1,7 +1,19 @@
 /**
  * Ranking Renderer - Ranking UI Display
- * Extracted from app.js lines 832-1116
- * Handles ranking area, slots, and pool rendering
+ * Extracted from app.js lines 832-1116; rewritten 2026-05-03 to emit
+ * Broadcast-theme markup (.slot / .pool-tile) per docs/design/demos/demo-broadcast-v3.html.
+ *
+ * MARKUP CONTRACT:
+ *  - Each rank slot is `<article class="rank-slot slot ..." data-rank="N">`. The legacy
+ *    `.rank-slot` class is preserved because touchHandler.js (line 160) and
+ *    drag-drop CSS depend on it. The new `.slot` class drives the editorial styling.
+ *  - Each pool tile is `<article class="ranking-player-tile pool-tile ..." draggable="true">`.
+ *    Same dual-class strategy: legacy class preserved for gameControls.js touch
+ *    attach (line 49); new `.pool-tile` class drives styling.
+ *  - Filled slots are styled by mutating the slot element itself (no nested tile
+ *    inside) — matches demo's `.slot--filled .slot--filled-red|blue` design.
+ *  - All player-controlled text (names, handles) is set via `textContent` (DOM
+ *    APIs only; no innerHTML) to prevent XSS from name fields.
  */
 
 import { $, on } from '../core/utils.js';
@@ -14,6 +26,82 @@ import config from '../core/config.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
+// Chinese rank names by mode (4P, 6P, 8P)
+const RANK_NAMES = {
+  4: ['头游', '二游', '三游', '末游'],
+  6: ['头游', '二游', '三游', '四游', '五游', '末游'],
+  8: ['头游', '二游', '三游', '四游', '五游', '六游', '七游', '末游']
+};
+
+/**
+ * Get Chinese rank name for a given position and mode
+ * @param {number} rank - 1-based position
+ * @param {number} mode - 4 / 6 / 8
+ * @returns {string}
+ */
+function rankCn(rank, mode) {
+  const names = RANK_NAMES[mode] || RANK_NAMES[8];
+  return names[rank - 1] || `第${rank}名`;
+}
+
+/**
+ * Pick the avatar character for a player.
+ * Profile players: prefer first char of name (Chinese surname feel).
+ * Session players (`玩家1`, `玩家2`): use the digit so each has a distinct mark.
+ * Falls back to emoji if name is empty.
+ * @param {Object} player
+ * @returns {string}
+ */
+function avatarChar(player) {
+  if (!player) return '?';
+  const name = (player.name || '').trim();
+  if (!name) return player.emoji || '?';
+
+  // For default-generated players like "玩家1", use the trailing digit so each
+  // tile carries a distinct avatar instead of every one showing "玩".
+  const digitMatch = name.match(/^玩家(\d+)$/);
+  if (digitMatch) return digitMatch[1];
+
+  // Otherwise use first character (handles Chinese surnames + Latin first letter).
+  return Array.from(name)[0];
+}
+
+/**
+ * Pick handle to display ("@..." line). Profile players have one;
+ * session players don't — fall back to id for visual rhythm.
+ * @param {Object} player
+ * @returns {string}
+ */
+function handleText(player) {
+  if (player?.handle) return `@${player.handle}`;
+  if (player?.id != null) return `#${player.id}`;
+  return '—';
+}
+
+/**
+ * Get team color class suffix ('red' or 'blue') for a player.
+ * t1 (蓝队 default) → blue; t2 (红队 default) → red.
+ * @param {Object} player
+ * @returns {string}
+ */
+function teamColorClass(player) {
+  return player?.team === 1 ? 'blue' : 'red';
+}
+
+/**
+ * Tiny DOM helper: create an element with a class and optional text content.
+ * @param {string} tag
+ * @param {string} className
+ * @param {string} [text]
+ * @returns {HTMLElement}
+ */
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null) node.textContent = text;
+  return node;
+}
+
 /**
  * Check if game has ended (a team achieved A级通关)
  * @returns {Object|null} Victory info or null
@@ -24,8 +112,8 @@ export function checkGameEnded() {
 
   const latestGame = history[history.length - 1];
   // Check for actual victory (通关 without negation like "才能通关")
-  if (latestGame.aNote && 
-      latestGame.aNote.includes('通关') && 
+  if (latestGame.aNote &&
+      latestGame.aNote.includes('通关') &&
       !latestGame.aNote.includes('才能通关') &&
       !latestGame.aNote.includes('需') &&
       !latestGame.aNote.includes('但')) {
@@ -53,30 +141,43 @@ export function renderRankingArea(mode) {
   const victory = checkGameEnded();
   if (victory) {
     const winColor = victory.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
-    pool.innerHTML = `<div style="text-align:center; padding: 20px;">
-      <div style="font-size: 48px;">🏆</div>
-      <div style="font-size: 24px; color: ${winColor}; font-weight: bold; margin: 10px 0;">${victory.winner} A级通关！</div>
-      <div class="small muted">比赛已结束，重置游戏可开始新一局</div>
-    </div>`;
-    area.innerHTML = '';
+    pool.replaceChildren();
+    const wrap = el('div', '');
+    wrap.style.textAlign = 'center';
+    wrap.style.padding = '20px';
+
+    const trophy = el('div', '', '🏆');
+    trophy.style.fontSize = '48px';
+    wrap.appendChild(trophy);
+
+    const headline = el('div', '', `${victory.winner} A级通关！`);
+    headline.style.fontSize = '24px';
+    headline.style.color = winColor;
+    headline.style.fontWeight = 'bold';
+    headline.style.margin = '10px 0';
+    wrap.appendChild(headline);
+
+    wrap.appendChild(el('div', 'small muted', '比赛已结束，重置游戏可开始新一局'));
+    pool.appendChild(wrap);
+    area.replaceChildren();
     return;
   }
 
   // Check if all players assigned to teams
   if (!areAllPlayersAssigned()) {
-    pool.innerHTML = '<div class="small muted">请先分配所有玩家到队伍</div>';
-    area.innerHTML = '';
+    pool.replaceChildren(el('div', 'small muted', '请先分配所有玩家到队伍'));
+    area.replaceChildren();
     return;
   }
 
   // Render player pool
   renderPlayerPool();
 
-  // Render ranking slots
-  area.innerHTML = '';
+  // Render ranking slots — pre-create empty slots, then fill them in renderRankingSlots
+  area.replaceChildren();
 
   for (let rank = 1; rank <= num; rank++) {
-    const slot = createRankSlot(rank);
+    const slot = createRankSlot(rank, num);
     area.appendChild(slot);
   }
 
@@ -85,19 +186,21 @@ export function renderRankingArea(mode) {
 }
 
 /**
- * Create ranking slot element
- * @param {number} rank - Rank position
+ * Create ranking slot element (empty initial state).
+ * The slot keeps `.rank-slot` for legacy JS hooks AND adds `.slot` for theme styling.
+ * @param {number} rank - 1-based rank position
+ * @param {number} mode - Player count (for Chinese rank label)
  * @returns {HTMLElement} Slot element
  */
-function createRankSlot(rank) {
-  const slot = document.createElement('div');
-  slot.className = 'rank-slot';
+function createRankSlot(rank, mode) {
+  const slot = document.createElement('article');
+  slot.className = 'rank-slot slot';
   slot.dataset.rank = rank;
+  slot.dataset.rankMode = mode;
 
-  const number = document.createElement('div');
-  number.className = 'rank-number';
-  number.textContent = `第${rank}名`;
-  slot.appendChild(number);
+  // Initial: empty state markup populated by renderRankingSlots(),
+  // which decides between .slot--empty / .slot--target / .slot--filled
+  // based on current ranking.
 
   // Setup drop handlers
   slot.ondragover = (e) => {
@@ -135,7 +238,7 @@ export function renderPlayerPool() {
   const pool = $('playerPool');
   if (!pool) return;
 
-  pool.innerHTML = '';
+  pool.replaceChildren();
 
   // Setup drop handler for returning players
   pool.ondragover = (e) => {
@@ -171,18 +274,19 @@ export function renderPlayerPool() {
   });
 
   if (unrankedPlayers.length === 0) {
-    pool.innerHTML = '<div class="small muted">所有玩家已排名</div>';
+    pool.appendChild(el('div', 'small muted', '所有玩家已排名'));
     return;
   }
 
   unrankedPlayers.forEach(player => {
-    const tile = createRankingPlayerTile(player);
+    const tile = createPoolTile(player);
     pool.appendChild(tile);
   });
 }
 
 /**
- * Render players in ranking slots
+ * Render players in ranking slots — also paints empty/target states.
+ * Target slot = lowest-numbered empty slot (where the next placement goes).
  */
 export function renderRankingSlots() {
   const area = $('rankingArea');
@@ -191,80 +295,221 @@ export function renderRankingSlots() {
   const ranking = getRanking();
   const slots = area.querySelectorAll('.rank-slot');
 
+  // Find lowest-numbered empty slot (the active drop target)
+  let targetRank = null;
+  slots.forEach(slot => {
+    const r = parseInt(slot.dataset.rank);
+    if (!ranking[r] && targetRank === null) {
+      targetRank = r;
+    }
+  });
+
   slots.forEach(slot => {
     const rank = parseInt(slot.dataset.rank);
+    const mode = parseInt(slot.dataset.rankMode || '8');
     const playerId = ranking[rank];
-
-    // Remove existing player tiles (keep rank number)
-    const existingTiles = slot.querySelectorAll('.ranking-player-tile');
-    existingTiles.forEach(t => t.remove());
 
     if (playerId) {
       const player = getPlayerById(playerId);
       if (player) {
-        const tile = createRankingPlayerTile(player);
-        slot.appendChild(tile);
-        slot.classList.add('filled');
+        paintFilledSlot(slot, player, rank, mode);
+        return;
       }
+    }
+
+    // No player → empty or target state
+    if (rank === targetRank) {
+      paintTargetSlot(slot, rank, mode);
     } else {
-      slot.classList.remove('filled');
+      paintEmptySlot(slot, rank, mode);
     }
   });
 }
 
 /**
- * Create ranking player tile (for slots and pool)
+ * Mutate slot to "filled" state — player content rendered directly inside slot.
+ * No nested .ranking-player-tile child, matches demo design.
+ *
+ * IMPORTANT: filled slot is the draggable element (not a nested tile), because
+ * the demo styles .slot--filled with the avatar/name/handle as direct children.
+ * Drag handlers attach to the slot itself; data attributes preserved so
+ * gameControls.js attachTouchHandlers loop can find these via .ranking-player-tile.
+ *
+ * @param {HTMLElement} slot - Slot article element
  * @param {Object} player - Player data
- * @returns {HTMLElement} Tile element
+ * @param {number} rank - Rank number
+ * @param {number} mode - Game mode (4/6/8)
  */
-function createRankingPlayerTile(player) {
-  const tile = document.createElement('div');
-  tile.className = 'ranking-player-tile';
+function paintFilledSlot(slot, player, rank, mode) {
+  const team = teamColorClass(player); // 'red' or 'blue'
+
+  // Reset class list to filled state — preserve .rank-slot + .slot legacy
+  // Also keep .ranking-player-tile so gameControls.js attachTouchHandlers loop
+  // and any other legacy `.ranking-player-tile` queries match this slot.
+  slot.className = `rank-slot slot slot--filled slot--filled-${team} filled ranking-player-tile`;
+  slot.draggable = true;
+  slot.dataset.playerId = player.id;
+  slot.dataset.playerData = JSON.stringify({ id: player.id });
+
+  slot.replaceChildren(
+    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__rank-cn', rankCn(rank, mode)),
+    el('div', 'slot__avatar', avatarChar(player)),
+    el('span', 'slot__name', player.name || ''),
+    el('span', 'slot__handle', handleText(player)),
+    el('span', 'slot__check', '✓')
+  );
+
+  // Wire drag for the filled slot (slot itself is now draggable)
+  attachSlotDragHandlers(slot, player);
+}
+
+/**
+ * Mutate slot to "target" state (next-to-be-filled, glowing).
+ */
+function paintTargetSlot(slot, rank, mode) {
+  slot.className = 'rank-slot slot slot--target';
+  slot.draggable = false;
+  delete slot.dataset.playerId;
+  delete slot.dataset.playerData;
+
+  slot.replaceChildren(
+    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__rank-cn', rankCn(rank, mode)),
+    el('span', 'slot__target-icon', '↓'),
+    el('span', 'slot__target-label', 'drop here')
+  );
+}
+
+/**
+ * Mutate slot to "empty" state (placeholder).
+ */
+function paintEmptySlot(slot, rank, mode) {
+  slot.className = 'rank-slot slot slot--empty';
+  slot.draggable = false;
+  delete slot.dataset.playerId;
+  delete slot.dataset.playerData;
+
+  slot.replaceChildren(
+    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__rank-cn', rankCn(rank, mode)),
+    el('div', 'slot__placeholder'),
+    el('span', 'slot__placeholder-label', 'empty')
+  );
+}
+
+/**
+ * Attach drag handlers to a filled slot so the player inside can be dragged out.
+ * Mirrors the contract from createPoolTile (so the player can move slot↔slot or
+ * slot→pool).
+ *
+ * @param {HTMLElement} slot
+ * @param {Object} player
+ */
+function attachSlotDragHandlers(slot, player) {
+  slot.ondragstart = (e) => {
+    setDraggedPlayer(player);
+    slot.classList.add('dragging', 'pool-tile--dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    emit('drag:started', { player });
+  };
+
+  slot.ondragend = () => {
+    slot.classList.remove('dragging', 'pool-tile--dragging');
+    setDraggedPlayer(null);
+    emit('drag:ended');
+  };
+
+  // Re-bind drop targets — after paintFilledSlot the slot is still a drop zone
+  // for swapping players (drop another player onto a filled slot to swap).
+  slot.ondragover = (e) => {
+    e.preventDefault();
+    slot.classList.add('drag-over');
+  };
+  slot.ondragleave = () => {
+    slot.classList.remove('drag-over');
+  };
+  slot.ondrop = (e) => {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+    const dragged = getDraggedPlayer();
+    if (dragged && dragged.id !== player.id) {
+      const currentRanking = getRanking();
+      const newRanking = handleRankDrop(slot, dragged, currentRanking);
+      state.setCurrentRanking(newRanking);
+      emit('ranking:updated');
+    }
+  };
+
+  // Touch events — keep existing pattern (inline attach for iOS Safari).
+  slot.addEventListener('touchstart', function (e) {
+    handleTouchStart(e, player);
+  }, { passive: false });
+  slot.addEventListener('touchmove', handleTouchMove, { passive: false });
+  slot.addEventListener('touchend', handleTouchEnd, { passive: false });
+  slot.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+}
+
+/**
+ * Create a pool tile element (.pool-tile) for an unranked player.
+ * Keeps `.ranking-player-tile` as a secondary class so legacy JS query selectors
+ * still find these in gameControls.js.
+ *
+ * @param {Object} player - Player data
+ * @returns {HTMLElement} Pool tile article
+ */
+function createPoolTile(player) {
+  const tile = document.createElement('article');
+  const team = teamColorClass(player);
+  tile.className = `ranking-player-tile pool-tile pool-tile--${team}`;
   tile.draggable = true;
   tile.dataset.playerId = player.id;
-  tile.dataset.playerData = JSON.stringify({ id: player.id }); // For touch handlers
+  tile.dataset.playerData = JSON.stringify({ id: player.id });
 
-  // Apply team color
-  const teamColor = player.team === 1 ? config.getTeamColor('t1') : config.getTeamColor('t2');
-  tile.style.borderColor = teamColor;
+  const avatar = el('div', 'pool-tile__avatar', avatarChar(player));
+  const body = el('div', 'pool-tile__body');
+  const top = el('div', 'pool-tile__top');
+  top.appendChild(el('span', 'pool-tile__dot'));
+  top.appendChild(el('span', 'pool-tile__name', player.name || ''));
+  body.appendChild(top);
+  body.appendChild(el('span', 'pool-tile__handle', handleText(player)));
 
-  const emoji = document.createElement('span');
-  emoji.className = 'emoji';
-  emoji.textContent = player.emoji;
-
-  const name = document.createElement('span');
-  name.className = 'name';
-  name.textContent = player.name;
-
-  tile.appendChild(emoji);
-  tile.appendChild(name);
+  tile.appendChild(avatar);
+  tile.appendChild(body);
 
   // Desktop drag events
   tile.ondragstart = (e) => {
     setDraggedPlayer(player);
-    tile.classList.add('dragging');
+    tile.classList.add('dragging', 'pool-tile--dragging');
     e.dataTransfer.effectAllowed = 'move';
     emit('drag:started', { player });
   };
 
   tile.ondragend = () => {
-    tile.classList.remove('dragging');
+    tile.classList.remove('dragging', 'pool-tile--dragging');
     setDraggedPlayer(null);
     emit('drag:ended');
   };
 
-  // Touch events for mobile - INLINE attachment (critical for iOS Safari)
-  // iOS Safari requires touch handlers to be attached when element is created,
-  // not dynamically added later. This matches the working original app.js pattern.
-  tile.addEventListener('touchstart', function(e) {
+  // Touch events (iOS Safari requires inline attach at create-time)
+  tile.addEventListener('touchstart', function (e) {
     handleTouchStart(e, player);
   }, { passive: false });
-
   tile.addEventListener('touchmove', handleTouchMove, { passive: false });
-
   tile.addEventListener('touchend', handleTouchEnd, { passive: false });
-
   tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
 
   return tile;
 }
+
+/**
+ * Backward-compat export — main.js / older callers may import this.
+ * Returns a pool-style tile.
+ * @param {Object} player
+ * @returns {HTMLElement}
+ */
+function createRankingPlayerTile(player) {
+  return createPoolTile(player);
+}
+
+export { createPoolTile, createRankingPlayerTile };
