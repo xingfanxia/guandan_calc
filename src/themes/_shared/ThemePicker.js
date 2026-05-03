@@ -15,12 +15,23 @@ import { on as onEvent } from '../../core/events.js';
 
 const PICKER_ID = 'themePicker';
 
+// Held across mountPicker() calls so we can release the prior subscription
+// before installing a fresh one — prevents listener accumulation if a future
+// surface (settings drawer reopen, host/viewer swap) re-mounts the picker.
+let unsubscribeChanged = null;
+
 /**
  * Mount the picker into a container element. Idempotent — calling twice
- * removes the prior render and re-renders fresh.
+ * removes the prior render, releases the prior theme:changed listener,
+ * and re-attaches both fresh.
  */
 export function mountPicker(containerEl) {
   if (!containerEl) return;
+
+  if (unsubscribeChanged) {
+    unsubscribeChanged();
+    unsubscribeChanged = null;
+  }
 
   const existing = containerEl.querySelector(`#${PICKER_ID}`);
   if (existing) existing.remove();
@@ -32,9 +43,7 @@ export function mountPicker(containerEl) {
   containerEl.appendChild(wrapper);
 
   // Re-render whenever the active theme changes (via switchTo elsewhere).
-  onEvent('theme:changed', () => {
-    render(wrapper);
-  });
+  unsubscribeChanged = onEvent('theme:changed', () => render(wrapper));
 }
 
 /** Replace `wrapper`'s children with a fresh tree. */

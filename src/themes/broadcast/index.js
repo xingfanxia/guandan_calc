@@ -10,7 +10,9 @@
 import featureManifest from './featureManifest.js';
 
 export const name = 'broadcast';
-export const displayName = 'A · 广播 (Broadcast Editorial)';
+// Display name carries no roadmap-position prefix (no "A ·"); registration
+// order in themeManager determines picker sort.
+export const displayName = '广播 (Broadcast Editorial)';
 export const description = '编辑型暗色 · 编辑级标题、酒红与琥珀强调色、Fraunces 衬线';
 
 /** Path to the theme stylesheet (loaded via <link> in HTML for now). */

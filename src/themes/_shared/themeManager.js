@@ -19,13 +19,21 @@ const themes = new Map();
 /**
  * Register a theme so the manager can mount it later.
  *
+ * Accepts either a module's named-export namespace (`import * as broadcast`)
+ * or an `export default` shape — both unwrap to the same theme object.
+ *
  * @param {object} theme  Module shape: `{ name, displayName, description?, stylesheet, featureManifest, layout? }`
  */
 export function register(theme) {
-  if (!theme || typeof theme.name !== 'string') {
+  // Normalize: tolerate `export default { ... }` modules whose namespace
+  // exposes the theme under `.default` rather than as named exports.
+  const t = theme && theme.default && typeof theme.default === 'object' && typeof theme.default.name === 'string'
+    ? theme.default
+    : theme;
+  if (!t || typeof t.name !== 'string') {
     throw new Error('themeManager.register: theme must have a string `name`');
   }
-  themes.set(theme.name, theme);
+  themes.set(t.name, t);
 }
 
 /** All registered theme names, in registration order. */
@@ -59,6 +67,12 @@ export function resolveBootTheme(defaultName = 'broadcast') {
  * in the HTML for the single-theme phase; this function sets the data-theme
  * attribute and emits `theme:changed`. Future Phase 2+ adds dynamic CSS
  * loading and layout mount/unmount.
+ *
+ * Async by contract: a theme's `layout.mount()` may need to await
+ * stylesheet readiness (e.g. `link.onload` for dynamically injected CSS) so
+ * that downstream `getComputedStyle` / `verifyTokensPresent` reads from a
+ * fully-resolved cascade. Today's Broadcast layout is a no-op so the await
+ * resolves immediately.
  */
 export async function mount(themeName) {
   const theme = themes.get(themeName);

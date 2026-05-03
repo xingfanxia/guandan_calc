@@ -20,7 +20,9 @@ export const TOKEN_SPEC = Object.freeze({
     'rule', 'rule-soft',
   ],
   font: ['display', 'body', 'mono'],
-  scale: [1, 2, 3, 4, 5, 6, 7, 8],
+  // Scale keys are stored as strings so all token categories share one type
+  // (tokenSpec consumers can iterate without type-juggling).
+  scale: ['1', '2', '3', '4', '5', '6', '7', '8'],
   radius: ['none', 'sm', 'md', 'lg', 'xl'],
 });
 
@@ -41,16 +43,20 @@ export function cssVar(category, key) {
 }
 
 /**
- * Returns true if the active document has every required color token defined
- * with a non-empty computed value. Useful as a runtime contract check during
- * theme mount.
+ * Returns true if the active document has every token across every category
+ * defined with a non-empty computed value. Useful as a runtime contract
+ * check during theme mount — catches a theme that declared the palette
+ * but forgot, e.g., `--font-body` or `--s4`.
  */
 export function verifyTokensPresent(rootEl = document.documentElement) {
   const styles = getComputedStyle(rootEl);
   const missing = [];
-  for (const name of TOKEN_SPEC.color) {
-    const v = styles.getPropertyValue(`--${name}`).trim();
-    if (!v) missing.push(name);
+  for (const category of ['color', 'font', 'scale', 'radius']) {
+    for (const key of TOKEN_SPEC[category]) {
+      const name = cssVar(category, key);
+      const v = styles.getPropertyValue(name).trim();
+      if (!v) missing.push(`${category}/${key}`);
+    }
   }
   return { ok: missing.length === 0, missing };
 }

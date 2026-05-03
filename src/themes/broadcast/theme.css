@@ -4,44 +4,72 @@
  * Source: docs/design/demos/demo-broadcast-v3.html (locked palette)
  * Token contract: src/themes/_shared/tokenSpec.js
  *
- * Activated by setting the `data-theme="broadcast"` attribute on <html>.
- * (Both rule blocks emit the same values so themes can be applied either way.)
+ * Activated when <html> carries `data-theme="broadcast"` — themeManager.mount()
+ * sets that attribute. The :root[data-theme="broadcast"] selector is the only
+ * activation form; class-form (.theme-broadcast) was considered and dropped
+ * because it's not used by the manager and would only ever produce dead rules.
+ *
+ * Browser fallback: every oklch() value comes paired with a sRGB hex/rgb
+ * declaration FIRST so Safari iOS 15.0–15.3 (and any other parser that
+ * rejects oklch) gets a valid color rather than `unset` (which would render
+ * a flash of white background on a dark theme).
  */
 
-:root[data-theme="broadcast"],
-:root.theme-broadcast {
+:root[data-theme="broadcast"] {
   /* ───── Core dark palette (slate-ink with subtle warm cast) ───── */
+  --bg:          #1c1f29;
   --bg:          oklch(18% 0.04 250);
+  --bg-deep:     #131620;
   --bg-deep:     oklch(13% 0.04 250);
+  --surface:     #23262f;
   --surface:     oklch(22% 0.04 250);
+  --surface-2:   #2a2d36;
   --surface-2:   oklch(26% 0.04 250);
+  --surface-3:   #32353e;
   --surface-3:   oklch(30% 0.04 250);
 
   /* ───── Ink (text) ───── */
+  --ink:         #f3f0e9;
   --ink:         oklch(95% 0.02 80);
+  --ink-dim:     #adaaa3;
   --ink-dim:     oklch(70% 0.02 80);
+  --ink-dimmer:  #76736d;
   --ink-dimmer:  oklch(50% 0.02 80);
 
   /* ───── Ember accent (Broadcast's signature warm orange) ───── */
+  --accent:        #e07a3a;
   --accent:        oklch(70% 0.20 45);
+  --accent-soft:   rgba(224, 122, 58, 0.12);
   --accent-soft:   oklch(70% 0.20 45 / 0.12);
+  --accent-line:   rgba(224, 122, 58, 0.45);
   --accent-line:   oklch(70% 0.20 45 / 0.45);
+  --accent-glow:   rgba(224, 122, 58, 0.55);
   --accent-glow:   oklch(70% 0.20 45 / 0.55);
 
   /* ───── Team palette ───── */
+  --team-red:        #cf3a3f;
   --team-red:        oklch(60% 0.22 25);
+  --team-red-soft:   rgba(207, 58, 63, 0.10);
   --team-red-soft:   oklch(60% 0.22 25 / 0.10);
+  --team-red-line:   rgba(207, 58, 63, 0.40);
   --team-red-line:   oklch(60% 0.22 25 / 0.40);
+  --team-blue:       #4a82d8;
   --team-blue:       oklch(60% 0.18 240);
+  --team-blue-soft:  rgba(74, 130, 216, 0.10);
   --team-blue-soft:  oklch(60% 0.18 240 / 0.10);
+  --team-blue-line:  rgba(74, 130, 216, 0.35);
   --team-blue-line:  oklch(60% 0.18 240 / 0.35);
 
   /* ───── Semantic ───── */
+  --win:   #4a9456;
   --win:   oklch(70% 0.18 145);
+  --loss:  #cf3a3f;
   --loss:  oklch(60% 0.22 25);
 
   /* ───── Rules / hairlines ───── */
+  --rule:       #444751;
   --rule:       oklch(35% 0.04 250);
+  --rule-soft:  #393c46;
   --rule-soft:  oklch(30% 0.04 250);
 
   /* ─────────────────────────────────────────────
@@ -82,8 +110,7 @@
  * Body-level Broadcast typography.
  * Scoped under [data-theme="broadcast"] so it doesn't leak when other themes mount later.
  */
-:root[data-theme="broadcast"] body,
-:root.theme-broadcast body {
+:root[data-theme="broadcast"] body {
   font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.5;
@@ -94,26 +121,21 @@
 /* Headings shift to Fraunces serif (Broadcast's editorial signature) */
 :root[data-theme="broadcast"] h1,
 :root[data-theme="broadcast"] h2,
-:root[data-theme="broadcast"] h3,
-:root.theme-broadcast h1,
-:root.theme-broadcast h2,
-:root.theme-broadcast h3 {
+:root[data-theme="broadcast"] h3 {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 /* Numeric / monospace utility — apply to elements showing scores, counts, codes */
-:root[data-theme="broadcast"] .num,
-:root.theme-broadcast .num {
+:root[data-theme="broadcast"] .num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
 /* Display variant — hero numerals (e.g., card-rank glyph) */
-:root[data-theme="broadcast"] .display,
-:root.theme-broadcast .display {
+:root[data-theme="broadcast"] .display {
   font-family: var(--font-display);
   font-weight: 900;
   font-variation-settings: 'opsz' 144;
@@ -122,8 +144,7 @@
 }
 
 /* Serif variant — for editorial labels */
-:root[data-theme="broadcast"] .serif,
-:root.theme-broadcast .serif {
+:root[data-theme="broadcast"] .serif {
   font-family: var(--font-display);
   font-weight: 700;
 }
