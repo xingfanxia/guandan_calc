@@ -1,0 +1,1890 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>掼蛋 · 茶席 v2 mobile — 第五回 · 本局正酣</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(15% 0.02 60);
+    --bg-deep: oklch(12% 0.018 60);
+    --surface: oklch(20% 0.02 60);
+    --surface-2: oklch(24% 0.02 60);
+    --surface-lift: oklch(28% 0.025 60);
+    --ink: oklch(92% 0.04 80);
+    --ink-dim: oklch(72% 0.03 80);
+    --ink-dimmer: oklch(50% 0.03 80);
+    --ink-faint: oklch(38% 0.025 70);
+    --accent-seal: oklch(55% 0.22 25);
+    --accent-seal-dim: oklch(40% 0.18 25);
+    --accent-seal-glow: oklch(60% 0.20 25 / 0.18);
+    --team-indigo: oklch(45% 0.10 250);
+    --team-ochre: oklch(60% 0.12 75);
+    --rule-faint: oklch(30% 0.02 60);
+    --rule-line: oklch(35% 0.025 60);
+    --paper: oklch(94% 0.04 80);
+    --paper-ink: oklch(15% 0.02 60);
+    --paper-ink-dim: oklch(35% 0.03 60);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    background: oklch(8% 0 0);
+    color: var(--ink);
+    font-family: "Noto Sans SC", system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    display: grid;
+    place-items: center;
+    min-height: 100vh;
+    padding: 28px;
+  }
+  .serif { font-family: "Noto Serif SC", serif; font-feature-settings: 'tnum' 1; }
+
+  /* ============== iPhone 14 Pro frame ============== */
+  .iphone-frame {
+    width: 414px; height: 896px;
+    background: oklch(15% 0.005 60);
+    border-radius: 56px; padding: 12px;
+    box-shadow:
+      0 0 0 1px oklch(22% 0.005 60),
+      0 0 0 3px oklch(8% 0 0),
+      0 50px 100px -20px oklch(0% 0 0 / 0.6),
+      0 30px 60px -30px oklch(0% 0 0 / 0.5),
+      inset 0 0 0 1px oklch(28% 0.005 60);
+    position: relative;
+  }
+  .iphone-frame::before {
+    content: ''; position: absolute; left: -3px; top: 100px;
+    width: 4px; height: 30px;
+    background: oklch(15% 0 0); border-radius: 2px 0 0 2px;
+  }
+  .iphone-frame::after {
+    content: ''; position: absolute; right: -3px; top: 130px;
+    width: 4px; height: 60px;
+    background: oklch(15% 0 0); border-radius: 0 2px 2px 0;
+    box-shadow: 0 80px 0 oklch(15% 0 0), 0 160px 0 oklch(15% 0 0);
+  }
+  .iphone-screen {
+    width: 390px; height: 872px;
+    background: var(--bg);
+    border-radius: 44px; overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* status bar */
+  .status-bar {
+    height: 47px; flex-shrink: 0; padding: 14px 28px 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-family: 'SF Pro Display', system-ui, sans-serif;
+    font-weight: 600; font-size: 15px; color: var(--ink);
+    z-index: 10; position: relative;
+  }
+  .status-bar__time { font-feature-settings: 'tnum' 1; letter-spacing: -0.02em; padding-top: 2px; }
+  .status-bar__indicators { display: flex; align-items: center; gap: 6px; padding-top: 4px; }
+
+  /* dynamic island */
+  .dynamic-island {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    width: 124px; height: 36px;
+    background: oklch(0% 0 0); border-radius: 20px; z-index: 9;
+  }
+
+  /* home indicator */
+  .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 134px; height: 5px;
+    background: var(--ink); border-radius: 3px; opacity: 0.85; z-index: 11;
+  }
+
+  /* ============== TOP STICKY HEADER (50px, inside screen) ============== */
+  .top-header {
+    flex-shrink: 0; height: 50px;
+    background: var(--bg-deep);
+    border-bottom: 1px solid var(--rule-faint);
+    padding: 0 16px;
+    display: flex; align-items: center; gap: 12px;
+    position: relative; z-index: 5;
+  }
+  .top-header__brand {
+    width: 22px; height: 22px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif; font-weight: 900; font-size: 13px;
+    display: grid; place-items: center;
+    transform: rotate(-3deg);
+    flex-shrink: 0;
+    letter-spacing: 0;
+  }
+  .top-header__meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+  .top-header__row1 {
+    display: flex; align-items: baseline; gap: 8px;
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 11px;
+    color: var(--ink); letter-spacing: 0.18em;
+    font-feature-settings: 'tnum' 1;
+  }
+  .top-header__row1 .room { color: var(--ink); font-weight: 500; }
+  .top-header__row1 .sep { color: var(--ink-faint); font-style: normal; }
+  .top-header__row1 .round { color: var(--ink-dim); font-weight: 500; }
+  .top-header__row2 {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.32em; text-transform: uppercase;
+    margin-top: 1px;
+  }
+  .top-header__time {
+    margin-left: auto; flex-shrink: 0;
+    font-family: "Noto Serif SC", serif; font-feature-settings: 'tnum' 1;
+    font-size: 14px; color: var(--ink); letter-spacing: 0.06em; font-weight: 500;
+  }
+  .top-header__time-sub {
+    display: block; text-align: right;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; color: var(--ink-faint);
+    letter-spacing: 0.32em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .top-header__pulse {
+    position: absolute; top: 6px; right: 70px;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent-seal);
+    animation: breathe 3.6s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  /* ============== SCROLL AREA ============== */
+  .scroll-area {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; scrollbar-color: var(--rule-faint) transparent;
+  }
+  .scroll-area::-webkit-scrollbar { width: 3px; }
+  .scroll-area::-webkit-scrollbar-track { background: transparent; }
+  .scroll-area::-webkit-scrollbar-thumb { background: var(--rule-faint); border-radius: 2px; }
+
+  /* ============== BRUSH RULE ============== */
+  .brush-rule {
+    display: flex; align-items: center; gap: 10px;
+    margin: 24px 16px;
+    height: 1px;
+  }
+  .brush-rule .blot {
+    width: 6px; height: 6px; background: var(--ink-dim);
+    border-radius: 50%; flex-shrink: 0;
+  }
+  .brush-rule .line {
+    flex: 1; height: 1px; background: var(--ink-dimmer); opacity: 0.45;
+  }
+  .brush-rule .blot--seal { background: var(--accent-seal); }
+
+  /* ============== SECTION HEAD ============== */
+  .section-head {
+    margin: 32px 16px 16px;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .section-head .num {
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dimmer); font-size: 11px; letter-spacing: 0.32em;
+  }
+  .section-head .title {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 18px; color: var(--ink);
+    letter-spacing: 0.14em;
+  }
+  .section-head .en {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8.5px; letter-spacing: 0.34em; text-transform: uppercase;
+    color: var(--ink-dimmer); margin-left: auto;
+  }
+
+  /* ============== MODE SELECTOR ============== */
+  .mode-selector {
+    margin: 0 16px;
+    display: flex; justify-content: space-between;
+    padding: 16px 0;
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+  }
+  .mode-opt {
+    flex: 1;
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px; letter-spacing: 0.24em;
+    color: var(--ink-dimmer);
+    text-align: center; padding: 4px 0;
+    position: relative; cursor: pointer;
+  }
+  .mode-opt[data-active="true"] { color: var(--ink); font-weight: 500; }
+  .mode-opt[data-active="true"]::after {
+    content: "·"; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+    color: var(--accent-seal); font-size: 22px; line-height: 0;
+  }
+  .mode-opt .opt-en {
+    display: block; font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--ink-faint); margin-top: 5px;
+  }
+
+  /* ============== TEAM PANELS (stacked) ============== */
+  .scorer { margin: 16px 16px 0; display: flex; flex-direction: column; gap: 14px; }
+  .team {
+    padding: 22px 22px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--rule-faint);
+    position: relative;
+  }
+  .team-label {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px; color: var(--ink-dim);
+    letter-spacing: 0.34em;
+  }
+  .team .accent-bar {
+    width: 24px; height: 2px; margin-top: 8px;
+    background: var(--ink-dimmer);
+  }
+  .team[data-team="red"] .accent-bar  { background: var(--team-ochre); }
+  .team[data-team="blue"] .accent-bar { background: var(--team-indigo); }
+
+  .team-status-chip {
+    position: absolute; top: 22px; right: 22px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 9px; letter-spacing: 0.34em;
+    color: var(--ink-dimmer);
+    padding: 3px 9px;
+    border: 1px solid var(--rule-faint);
+  }
+  .team[data-team="red"] .team-status-chip {
+    color: var(--accent-seal);
+    border-color: var(--accent-seal-dim);
+  }
+
+  .team-level {
+    display: grid; grid-template-columns: auto 1fr;
+    align-items: end; gap: 18px;
+    margin: 18px 0 18px;
+  }
+  .team-level .card-glyph {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: 110px;
+    line-height: 0.85;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .team[data-team="red"] .team-level .card-glyph { color: var(--accent-seal); }
+  .team-level .card-annotation {
+    display: block; font-size: 10px;
+    color: var(--ink-dimmer); letter-spacing: 0.3em;
+    margin-top: 9px; font-weight: 500;
+    font-family: "Noto Serif SC", serif;
+  }
+  .team-level .meta .lvl-label {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8.5px; letter-spacing: 0.34em;
+    color: var(--ink-dimmer); margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .team-level .meta .lvl-value {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px; color: var(--ink-dim);
+    letter-spacing: 0.14em; line-height: 1.5;
+  }
+  .team-level .meta .lvl-value strong { color: var(--ink); font-weight: 500; }
+  .team-level .meta .progress-rail {
+    margin-top: 8px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 9.5px;
+    color: var(--ink-faint);
+    letter-spacing: 0.18em;
+    line-height: 1.6;
+  }
+
+  .roster {
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-faint);
+  }
+  .roster .roster-label {
+    font-size: 8.5px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--ink-dimmer);
+    margin-bottom: 8px;
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .roster ul { list-style: none; }
+  .roster li {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 7px 0;
+    border-bottom: 1px dotted var(--rule-faint);
+    gap: 10px;
+  }
+  .roster li:last-child { border-bottom: none; }
+  .roster .name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px; color: var(--ink); letter-spacing: 0.1em;
+    display: inline-flex; align-items: center; gap: 9px;
+  }
+  .roster .name .pigment-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .roster[data-team="red"] .pigment-dot  { background: var(--team-ochre); }
+  .roster[data-team="blue"] .pigment-dot { background: var(--team-indigo); }
+  .roster .handle {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.06em;
+  }
+
+  /* ============== ROUND OWNER NARRATIVE ============== */
+  .owner-banner {
+    margin: 20px 16px 16px;
+    padding: 18px 20px;
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+    text-align: center;
+    font-family: "Noto Serif SC", serif;
+  }
+  .owner-banner .pre {
+    font-size: 8.5px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-dimmer);
+    margin-bottom: 8px;
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .owner-banner .line {
+    font-size: 14px; color: var(--ink);
+    letter-spacing: 0.22em;
+    line-height: 1.5;
+  }
+  .owner-banner .line .seal-tx { color: var(--accent-seal); margin: 0 6px; }
+  .owner-banner .line .next {
+    display: block; margin-top: 8px;
+    color: var(--ink-dim); font-size: 10.5px;
+    letter-spacing: 0.16em;
+    font-style: italic;
+  }
+
+  /* ============== ACTIVE GAME (HERO) ============== */
+  .active-frame {
+    margin: 0 16px;
+    position: relative;
+    background: linear-gradient(180deg, var(--surface) 0%, oklch(18% 0.02 60) 100%);
+    border-top: 1px solid var(--rule-line);
+    border-bottom: 1px solid var(--rule-line);
+    padding: 28px 16px 22px;
+  }
+  .active-frame::before {
+    content: "ACTIVE · 本局正酣";
+    position: absolute; top: 8px; left: 12px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.36em;
+    color: var(--ink-faint);
+  }
+  .active-frame::after {
+    content: "● 候";
+    position: absolute; top: 8px; right: 12px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 9.5px; letter-spacing: 0.32em;
+    color: var(--accent-seal);
+  }
+
+  /* INSTRUCTION CAPTION — TAP-TO-SELECT */
+  .tap-caption {
+    margin-bottom: 20px; text-align: center;
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dim);
+    font-size: 12.5px; letter-spacing: 0.26em;
+  }
+  .tap-caption .arrow-glyph {
+    color: var(--accent-seal); margin: 0 8px;
+    display: inline-block; transform: translateY(1px); font-size: 14px;
+  }
+  .tap-caption .step {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-dimmer);
+    display: block; margin-bottom: 6px;
+  }
+
+  /* PLAYER POOL */
+  .pool-block {
+    margin-bottom: 22px;
+    padding: 16px 14px 16px;
+    background: oklch(18% 0.02 60);
+    border: 1px solid var(--rule-faint);
+  }
+  .pool-block .pool-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .pool-block .pool-title {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px; color: var(--ink); letter-spacing: 0.3em;
+  }
+  .pool-block .pool-title .count {
+    color: var(--ink-dim); font-size: 10px;
+    letter-spacing: 0.16em; margin-left: 8px;
+  }
+  .pool-block .pool-en {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  .pool-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+  }
+  .player-tile {
+    position: relative;
+    padding: 14px 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-faint);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 86px;
+  }
+  .player-tile[data-team="red"]  { border-left: 2px solid var(--team-ochre); }
+  .player-tile[data-team="blue"] { border-left: 2px solid var(--team-indigo); }
+  .player-tile .tile-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 18px; color: var(--ink);
+    letter-spacing: 0.1em; line-height: 1.1;
+  }
+  .player-tile .tile-handle {
+    margin-top: 5px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.08em;
+  }
+  .player-tile .tile-team {
+    margin-top: 7px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 8.5px; letter-spacing: 0.32em;
+    color: var(--ink-faint);
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .player-tile .tile-team .pigment-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .player-tile[data-team="red"]  .tile-team .pigment-dot { background: var(--team-ochre); }
+  .player-tile[data-team="blue"] .tile-team .pigment-dot { background: var(--team-indigo); }
+
+  /* SELECTED state — tap-to-select with seal-red brushstroke + glow */
+  .player-tile[data-state="selected"] {
+    background: oklch(22% 0.04 25);
+    border: 1px solid var(--accent-seal);
+    border-left: 2px solid var(--accent-seal);
+    box-shadow:
+      0 0 0 2px var(--accent-seal-glow),
+      inset 0 0 24px oklch(50% 0.18 25 / 0.10),
+      0 8px 22px oklch(0% 0 0 / 0.35);
+    z-index: 5;
+    animation: tile-glow 2.6s ease-in-out infinite;
+  }
+  @keyframes tile-glow {
+    0%, 100% { box-shadow: 0 0 0 2px var(--accent-seal-glow), inset 0 0 24px oklch(50% 0.18 25 / 0.10), 0 8px 22px oklch(0% 0 0 / 0.35); }
+    50% { box-shadow: 0 0 0 3px oklch(60% 0.20 25 / 0.28), inset 0 0 30px oklch(50% 0.18 25 / 0.16), 0 8px 22px oklch(0% 0 0 / 0.35); }
+  }
+  .player-tile[data-state="selected"] .tile-name { color: var(--ink); }
+  .player-tile[data-state="selected"] .tile-team {
+    color: var(--accent-seal);
+  }
+  /* 印章 mini-mark on selected */
+  .player-tile[data-state="selected"]::before {
+    content: "● 已选";
+    position: absolute;
+    top: -8px; right: 8px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-size: 8.5px;
+    letter-spacing: 0.28em;
+    padding: 3px 8px;
+    transform: rotate(2deg);
+    box-shadow: 0 2px 6px oklch(0% 0 0 / 0.3);
+  }
+
+  /* RANKING SLOTS — vertical 6-list */
+  .slots-block { margin-top: 0; }
+  .slots-block .slots-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .slots-block .slots-title {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px; color: var(--ink); letter-spacing: 0.3em;
+  }
+  .slots-progress {
+    margin-left: 8px; font-family: "Noto Serif SC", serif;
+    font-size: 9.5px; color: var(--ink-dimmer); letter-spacing: 0.18em;
+  }
+  .slots-progress .stress { color: var(--accent-seal); }
+
+  .slot-list { display: flex; flex-direction: column; gap: 6px; }
+  .slot {
+    position: relative;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule-faint);
+    display: grid;
+    grid-template-columns: 36px 1fr auto;
+    align-items: center; gap: 12px;
+    min-height: 48px;
+  }
+  .slot .slot-pos {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 18px;
+    color: var(--ink-dim); letter-spacing: 0.04em;
+    line-height: 1;
+    text-align: center;
+  }
+  .slot .slot-pos .pos-en {
+    display: block;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7px; color: var(--ink-faint);
+    letter-spacing: 0.3em; text-transform: uppercase;
+    font-weight: 400; margin-top: 4px;
+  }
+  .slot .slot-resident {
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 0;
+  }
+  .slot .slot-resident .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px; color: var(--ink);
+    letter-spacing: 0.1em;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .slot .slot-resident .resident-name .pigment-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .slot .slot-resident .resident-handle {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px; color: var(--ink-dimmer);
+    letter-spacing: 0.14em;
+  }
+  .slot .slot-tick {
+    color: var(--ink-dim);
+    font-family: "Noto Serif SC", serif;
+    font-size: 13px;
+  }
+
+  .slot[data-state="filled"] { background: var(--surface-2); }
+  .slot[data-state="filled"][data-team="red"]  { border-left: 2px solid var(--team-ochre); }
+  .slot[data-state="filled"][data-team="blue"] { border-left: 2px solid var(--team-indigo); }
+  .slot[data-state="filled"] .slot-pos { color: var(--ink); }
+  .slot[data-state="filled"][data-pos="1"] .slot-pos { color: var(--accent-seal); }
+  .slot[data-state="filled"] .slot-tick { color: var(--ink); }
+
+  .slot[data-state="empty"] {
+    background: oklch(17% 0.02 60);
+    border-style: dashed;
+  }
+  .slot[data-state="empty"] .slot-resident .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px; color: var(--ink-faint);
+    letter-spacing: 0.32em;
+  }
+
+  /* DROP TARGET — seal-red dashed brushstroke + serif italic placeholder */
+  .slot[data-state="dropTarget"] {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% 50%, var(--accent-seal-glow), transparent 70%),
+      oklch(20% 0.04 25);
+    border: 1.5px dashed var(--accent-seal);
+    box-shadow:
+      0 0 0 3px var(--accent-seal-glow),
+      inset 0 0 22px oklch(50% 0.18 25 / 0.10);
+    animation: target-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes target-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--accent-seal-glow), inset 0 0 22px oklch(50% 0.18 25 / 0.10); }
+    50% { box-shadow: 0 0 0 5px oklch(60% 0.20 25 / 0.20), inset 0 0 28px oklch(50% 0.18 25 / 0.18); }
+  }
+  .slot[data-state="dropTarget"] .slot-pos { color: var(--accent-seal); font-size: 20px; }
+  .slot[data-state="dropTarget"] .slot-pos .pos-en { color: var(--accent-seal); opacity: 0.7; }
+  .slot[data-state="dropTarget"] .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--accent-seal);
+    letter-spacing: 0.22em;
+  }
+  .slot[data-state="dropTarget"] .resident-name .seal-dot {
+    color: var(--accent-seal);
+    margin-right: 6px;
+    font-style: normal;
+  }
+  .slot[data-state="dropTarget"] .resident-handle {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    color: var(--accent-seal); opacity: 0.7;
+    letter-spacing: 0.26em;
+    font-size: 8.5px;
+  }
+  .slot[data-state="dropTarget"]::after {
+    content: "● 待入";
+    position: absolute;
+    top: 8px; right: 14px;
+    color: var(--accent-seal);
+    font-family: "Noto Serif SC", serif;
+    font-size: 9px; letter-spacing: 0.3em;
+  }
+
+  /* LIVE CALC */
+  .live-calc {
+    margin-top: 18px;
+    padding: 12px 14px;
+    background: oklch(18% 0.02 60);
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dim); font-size: 11px;
+    letter-spacing: 0.18em;
+    line-height: 1.7;
+    font-style: italic;
+  }
+  .live-calc .pre-label {
+    display: block;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 6px;
+    font-style: normal;
+  }
+  .live-calc .stress { color: var(--ink); font-weight: 500; font-style: normal; }
+  .live-calc .calc-row {
+    display: block;
+    margin-top: 4px;
+    font-style: normal;
+    font-size: 10.5px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.14em;
+    font-feature-settings: 'tnum' 1;
+  }
+  .live-calc .calc-row .red-tx { color: var(--team-ochre); }
+  .live-calc .calc-row .blue-tx { color: var(--team-indigo); }
+  .live-calc .calc-row .pending { color: var(--accent-seal); }
+  .live-calc .calc-row .sep { color: var(--ink-faint); margin: 0 6px; }
+
+  /* TOGGLES (scholar's checkboxes) */
+  .toggles {
+    margin-top: 14px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule-faint);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .toggles .toggles-head {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 2px;
+  }
+  .toggles .t-item {
+    display: flex; align-items: baseline; gap: 12px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.14em;
+  }
+  .toggles .t-mark {
+    width: 14px; text-align: center;
+    color: var(--ink); flex-shrink: 0;
+    font-family: "Noto Serif SC", serif;
+    font-size: 12px;
+  }
+  .toggles .t-mark[data-on="true"] { color: var(--accent-seal); }
+  .toggles .t-label { color: var(--ink-dim); flex: 1; }
+  .toggles .t-key {
+    margin-left: auto;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8px; color: var(--ink-faint);
+    letter-spacing: 0.18em;
+  }
+
+  /* MANUAL ACTIONS (text-link italic) */
+  .manual-actions {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dotted var(--rule-faint);
+    display: flex; justify-content: center; gap: 24px;
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.18em;
+    flex-wrap: wrap;
+  }
+  .manual-actions .helper {
+    display: block; width: 100%;
+    text-align: center;
+    color: var(--ink-faint);
+    font-style: normal;
+    font-size: 8px; letter-spacing: 0.36em;
+    text-transform: uppercase;
+    font-family: "Noto Sans SC", sans-serif;
+    margin-bottom: 4px;
+  }
+  .manual-actions a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-faint);
+    padding-bottom: 1px;
+  }
+
+  /* ============== CUSTOM RULES DRAWER ============== */
+  .rules-drawer {
+    margin: 0 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+    padding: 16px 16px;
+  }
+  .rules-drawer .rules-row1 {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .rules-drawer .rules-label {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px; color: var(--ink); letter-spacing: 0.3em;
+  }
+  .rules-drawer .rules-toggle {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.22em;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-faint);
+    padding-bottom: 1px;
+  }
+  .rules-drawer .rules-en {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.34em;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  .rules-drawer .rules-preview {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    color: var(--ink-dim);
+    font-size: 11.5px;
+    letter-spacing: 0.16em;
+    line-height: 1.9;
+  }
+  .rules-drawer .rules-preview .key {
+    color: var(--ink); font-style: normal;
+    font-weight: 500;
+  }
+  .rules-drawer .rules-preview .div {
+    color: var(--ink-faint); margin: 0 8px;
+    font-style: normal;
+  }
+  .rules-drawer .rules-preview .seal-tx {
+    color: var(--accent-seal); font-style: normal;
+  }
+
+  /* ============== HISTORY (谱录 · 近三回) ============== */
+  .ledger {
+    margin: 0 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .ledger-row {
+    display: grid; grid-template-columns: auto auto 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--rule-faint);
+    font-family: "Noto Serif SC", serif;
+  }
+  .ledger-row .col-round {
+    font-feature-settings: 'tnum' 1;
+    color: var(--ink); font-size: 13px;
+    letter-spacing: 0.12em; font-weight: 500;
+    min-width: 56px;
+  }
+  .ledger-row .col-level {
+    font-size: 22px; font-weight: 700;
+    color: var(--ink); letter-spacing: 0.04em;
+    width: 28px; text-align: center;
+  }
+  .ledger-row .col-meta {
+    display: flex; flex-direction: column; gap: 3px;
+    min-width: 0;
+  }
+  .ledger-row .col-meta .winner {
+    font-family: "Noto Serif SC", serif;
+    font-size: 12px; color: var(--ink-dim);
+    letter-spacing: 0.14em;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .ledger-row .col-meta .winner .swatch {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .ledger-row .col-meta .winner.red .swatch  { background: var(--team-ochre); }
+  .ledger-row .col-meta .winner.blue .swatch { background: var(--team-indigo); }
+  .ledger-row .col-meta .winner.pending { color: var(--accent-seal); }
+  .ledger-row .col-meta .combo {
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 10px; color: var(--ink-dimmer);
+    letter-spacing: 0.18em;
+  }
+  .ledger-row .col-result {
+    text-align: right;
+    font-family: "Noto Serif SC", serif;
+    font-size: 10.5px; color: var(--ink-dim);
+    letter-spacing: 0.14em;
+  }
+  .ledger-row .col-result .levels {
+    display: block;
+    margin-top: 3px;
+    font-feature-settings: 'tnum' 1;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ink-dimmer);
+  }
+  .ledger-row .col-result .levels .red-tx  { color: var(--team-ochre); }
+  .ledger-row .col-result .levels .blue-tx { color: var(--team-indigo); }
+
+  /* current row R5 marker — seal-red 印章 */
+  .ledger-row[data-state="current"] {
+    background: oklch(20% 0.025 60);
+    border: 1px solid var(--accent-seal-dim);
+    position: relative;
+    padding-right: 32px;
+  }
+  .ledger-row[data-state="current"] .col-round { color: var(--accent-seal); }
+  .ledger-row[data-state="current"] .col-result {
+    color: var(--ink); font-style: italic;
+  }
+  .ledger-row[data-state="current"] .mini-stamp {
+    position: absolute;
+    top: 50%; right: 10px;
+    transform: translateY(-50%) rotate(-3deg);
+    width: 22px; height: 22px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 11px;
+    display: grid; place-items: center;
+    letter-spacing: 0;
+    box-shadow: 0 2px 6px oklch(0% 0 0 / 0.3);
+  }
+
+  /* ============== HONORS (封号 · 进行中) ============== */
+  .honors-grid {
+    margin: 0 16px;
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .honor {
+    background: var(--surface);
+    padding: 14px 12px 16px;
+    border: 1px solid var(--rule-faint);
+    display: flex; gap: 10px;
+    align-items: flex-start;
+    transform: rotate(-1deg);
+  }
+  .honor:nth-child(2n) { transform: rotate(0.8deg); }
+  .honor:nth-child(3n) { transform: rotate(-0.4deg); }
+  .honor:nth-child(4n) { transform: rotate(0.5deg); }
+
+  .ink-portrait {
+    width: 36px; height: 46px;
+    flex-shrink: 0;
+    background:
+      radial-gradient(ellipse 14px 18px at 50% 38%, oklch(35% 0.02 60), transparent 65%),
+      radial-gradient(ellipse 18px 14px at 50% 70%, oklch(28% 0.02 60), transparent 70%),
+      linear-gradient(180deg, oklch(22% 0.02 60), oklch(17% 0.02 60));
+    border: 1px solid var(--rule-faint);
+    position: relative;
+  }
+  .ink-portrait[data-pending="true"] {
+    background: oklch(18% 0.02 60);
+    border: 1px dashed var(--ink-faint);
+  }
+  .honor-body { flex: 1; padding-top: 1px; min-width: 0; }
+  .honor-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 16px;
+    color: var(--ink); letter-spacing: 0.1em; line-height: 1;
+  }
+  .honor-tagline {
+    margin-top: 6px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 9.5px; color: var(--ink-dim);
+    letter-spacing: 0.18em;
+  }
+  .honor-recipient {
+    margin-top: 9px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px; color: var(--ink);
+    letter-spacing: 0.12em;
+  }
+  .honor-recipient .handle {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8px; color: var(--ink-dimmer);
+    margin-left: 5px;
+    letter-spacing: 0.14em;
+  }
+  .honor-detail {
+    margin-top: 6px;
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 9.5px;
+    color: var(--ink-dim);
+    letter-spacing: 0.14em;
+    line-height: 1.6;
+  }
+  .honor[data-state="pending"] .honor-name { color: var(--ink-dim); }
+  .honor[data-state="pending"] .honor-tagline { color: var(--ink-dimmer); }
+  .honor[data-state="pending"] .honor-recipient {
+    color: var(--ink-dimmer); font-style: italic;
+    font-size: 10px; letter-spacing: 0.26em;
+  }
+  .honor[data-state="leading"] .lead-mark {
+    display: inline-block;
+    margin-left: 6px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7px; letter-spacing: 0.36em;
+    color: var(--accent-seal); text-transform: uppercase;
+    border: 1px solid var(--accent-seal-dim);
+    padding: 1px 5px;
+    transform: translateY(-2px);
+  }
+  .honors-meta {
+    margin: 18px 16px 0;
+    text-align: center;
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dimmer); font-size: 10px;
+    letter-spacing: 0.3em;
+  }
+
+  /* ============== 示例 · 通关之像 ============== */
+  .sample-frame {
+    margin: 0 16px;
+    position: relative;
+    background: var(--paper);
+    color: var(--paper-ink);
+    padding: 28px 22px 28px;
+    min-height: 160px;
+    overflow: hidden;
+  }
+  .sample-frame::before {
+    content: "示例 · 通关之像 · SAMPLE";
+    position: absolute;
+    top: 8px; left: 14px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; letter-spacing: 0.36em;
+    color: var(--paper-ink-dim);
+  }
+  .sample-frame .sample-tag {
+    position: absolute;
+    top: 8px; right: 14px;
+    font-family: "Noto Serif SC", serif;
+    font-style: italic; font-size: 9px;
+    letter-spacing: 0.28em; color: var(--paper-ink-dim);
+  }
+  .sample-meta {
+    font-family: "Noto Serif SC", serif;
+    font-size: 9px; letter-spacing: 0.34em;
+    color: var(--paper-ink-dim); margin: 12px 0 8px;
+  }
+  .sample-title {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900; font-size: 56px;
+    line-height: 0.92; letter-spacing: 0.04em;
+    color: var(--paper-ink);
+  }
+  .sample-sub {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 500; font-size: 10.5px;
+    margin-top: 14px;
+    color: var(--paper-ink); letter-spacing: 0.18em;
+    line-height: 1.7; max-width: 220px;
+  }
+  .sample-sub .pause { color: var(--paper-ink-dim); margin: 0 5px; }
+  .sample-sub .seal-tx { color: var(--accent-seal); }
+  .sample-stroke {
+    position: absolute;
+    right: 14px; top: 50%;
+    transform: translateY(-30%);
+    width: 86px; height: 86px;
+    color: var(--paper-ink); opacity: 0.85;
+  }
+  .sample-chop {
+    position: absolute;
+    right: 16px; bottom: 16px;
+    width: 32px; height: 32px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900; font-size: 14px;
+    display: grid; place-items: center;
+    transform: rotate(4deg);
+    box-shadow:
+      inset 0 0 0 1px oklch(96% 0.02 60 / 0.28),
+      0 0 0 1px oklch(0% 0 0 / 0.18);
+    letter-spacing: 0;
+  }
+
+  /* ============== PROFILE — 阿伟 (vertical editorial) ============== */
+  .profile-block {
+    margin: 0 16px;
+    padding: 22px 18px;
+    background: var(--surface);
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+  }
+  .profile-head {
+    display: grid; grid-template-columns: 80px 1fr;
+    gap: 16px; align-items: center;
+    margin-bottom: 22px;
+  }
+  .profile-portrait {
+    width: 80px; height: 100px;
+    background:
+      radial-gradient(ellipse 28px 36px at 50% 38%, oklch(38% 0.03 60), transparent 65%),
+      radial-gradient(ellipse 36px 28px at 50% 70%, oklch(30% 0.02 60), transparent 70%),
+      linear-gradient(180deg, oklch(24% 0.02 60), oklch(18% 0.02 60));
+    border: 1px solid var(--rule-faint);
+  }
+  .profile-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 30px;
+    color: var(--ink); letter-spacing: 0.1em; line-height: 1;
+  }
+  .profile-handle {
+    margin-top: 7px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 10px; color: var(--ink-dimmer);
+    letter-spacing: 0.14em;
+  }
+  .profile-tagline {
+    margin-top: 9px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 10.5px; color: var(--ink-dim);
+    letter-spacing: 0.16em;
+    font-style: italic;
+  }
+  .profile-stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 18px 12px;
+  }
+  .stat-cell .stat-label {
+    font-size: 7.5px; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--ink-dimmer);
+    margin-bottom: 6px;
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .stat-cell .stat-value {
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 20px; font-weight: 500;
+    color: var(--ink); letter-spacing: 0.04em; line-height: 1;
+  }
+  .stat-cell .stat-value .small {
+    font-size: 11px; color: var(--ink-dim); margin: 0 2px;
+  }
+  .stat-cell .stat-value .seal-num {
+    color: var(--accent-seal);
+  }
+  .stat-cell .stat-sub {
+    margin-top: 5px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 8.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.14em;
+  }
+
+  .relations {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule-faint);
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .relation-block {
+    background: var(--surface-2);
+    border: 1px solid var(--rule-faint);
+    padding: 14px 14px;
+  }
+  .relation-block .relation-label {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 8px; letter-spacing: 0.36em;
+    text-transform: uppercase; color: var(--ink-dimmer);
+    margin-bottom: 10px;
+  }
+  .relation-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700; font-size: 22px;
+    color: var(--ink); letter-spacing: 0.1em;
+    line-height: 1;
+    display: inline-flex; align-items: baseline; gap: 10px;
+  }
+  .relation-handle {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.14em; font-weight: 400;
+  }
+  .relation-detail {
+    margin-top: 9px;
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 11px; color: var(--ink-dim);
+    letter-spacing: 0.14em;
+    line-height: 1.7;
+  }
+  .relation-detail .num { color: var(--ink); font-weight: 500; }
+
+  /* ============== COLOPHON ============== */
+  .colophon {
+    margin: 28px 16px 0;
+    padding: 14px 0 18px;
+    border-top: 1px solid var(--rule-faint);
+    text-align: center;
+    font-family: "Noto Serif SC", serif;
+    font-size: 9px; color: var(--ink-dimmer);
+    letter-spacing: 0.32em;
+  }
+  .colophon .seal { color: var(--accent-seal); }
+  .colophon .meta {
+    display: block; margin-top: 5px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7.5px; color: var(--ink-faint);
+    letter-spacing: 0.32em; text-transform: uppercase;
+  }
+
+  /* ============== BOTTOM ACTION BAR (56px) ============== */
+  .bottom-action-bar {
+    flex-shrink: 0; height: 56px;
+    background: linear-gradient(180deg, oklch(20% 0.02 60), var(--bg-deep));
+    border-top: 1px solid var(--accent-seal-dim);
+    padding: 0 16px;
+    display: flex; align-items: center; gap: 12px;
+    position: relative;
+  }
+  .bottom-action-bar__pulse {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent-seal);
+    animation: breathe 3.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .bottom-action-bar__msg {
+    display: flex; flex-direction: column; gap: 2px;
+    flex: 1; min-width: 0;
+  }
+  .bottom-action-bar__title {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px; color: var(--ink);
+    letter-spacing: 0.18em;
+  }
+  .bottom-action-bar__title .seal-tx { color: var(--accent-seal); }
+  .bottom-action-bar__sub {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 9.5px; color: var(--ink-dimmer);
+    letter-spacing: 0.16em;
+  }
+  .bottom-action-bar__sub .accent { color: var(--accent-seal); font-style: normal; }
+
+  /* ============== BOTTOM TAB BAR (60px) ============== */
+  .tab-bar {
+    flex-shrink: 0; height: 60px;
+    background: var(--bg-deep);
+    border-top: 1px solid var(--rule-faint);
+    display: flex; align-items: stretch;
+    padding: 0 0 8px;
+  }
+  .tab-bar__item {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 5px;
+    text-decoration: none;
+    color: var(--ink-dimmer);
+    padding: 8px 0;
+    border: 0; background: transparent;
+    position: relative;
+    cursor: pointer;
+    font-family: "Noto Serif SC", serif;
+  }
+  .tab-bar__label {
+    font-size: 13px; letter-spacing: 0.26em;
+    line-height: 1; font-weight: 500;
+  }
+  .tab-bar__en {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 7px; color: var(--ink-faint);
+    letter-spacing: 0.34em; text-transform: uppercase;
+    line-height: 1;
+  }
+  .tab-bar__item--active { color: var(--ink); }
+  .tab-bar__item--active::before {
+    content: '';
+    position: absolute; top: 6px; left: 50%;
+    transform: translateX(-50%);
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent-seal);
+  }
+</style>
+</head>
+<body>
+
+<div class="iphone-frame">
+  <div class="iphone-screen">
+
+    <!-- Status bar -->
+    <div class="status-bar">
+      <div class="status-bar__time">9:41</div>
+      <div class="status-bar__indicators">
+        <!-- signal -->
+        <svg width="18" height="11" viewBox="0 0 18 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="7" width="3" height="4" rx="0.7" fill="white"/>
+          <rect x="5" y="5" width="3" height="6" rx="0.7" fill="white"/>
+          <rect x="10" y="2.5" width="3" height="8.5" rx="0.7" fill="white"/>
+          <rect x="15" y="0" width="3" height="11" rx="0.7" fill="white"/>
+        </svg>
+        <!-- wifi -->
+        <svg width="16" height="11" viewBox="0 0 16 11" fill="white" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 11L10 9C9.5 8.5 8.8 8.2 8 8.2C7.2 8.2 6.5 8.5 6 9L8 11Z"/>
+          <path d="M8 6.5C9.6 6.5 11.1 7.1 12.2 8.1L13.6 6.7C12.1 5.3 10.1 4.5 8 4.5C5.9 4.5 3.9 5.3 2.4 6.7L3.8 8.1C4.9 7.1 6.4 6.5 8 6.5Z"/>
+          <path d="M8 2C10.7 2 13.2 3 15 4.7L16.4 3.3C14.2 1.2 11.2 0 8 0C4.8 0 1.8 1.2 -0.4 3.3L1 4.7C2.8 3 5.3 2 8 2Z"/>
+        </svg>
+        <!-- battery -->
+        <svg width="27" height="11" viewBox="0 0 27 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="22" height="10" rx="2" stroke="white" stroke-opacity="0.5" fill="none"/>
+          <rect x="2" y="2" width="18" height="7" rx="1" fill="white"/>
+          <rect x="23.5" y="3.5" width="2" height="4" rx="0.5" fill="white" fill-opacity="0.5"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Dynamic island -->
+    <div class="dynamic-island"></div>
+
+    <!-- ============== TOP STICKY HEADER ============== -->
+    <div class="top-header">
+      <div class="top-header__brand serif">茶</div>
+      <div class="top-header__meta">
+        <div class="top-header__row1 serif">
+          <span class="room">A1B2C3</span>
+          <span class="sep">·</span>
+          <span class="round">第五回</span>
+        </div>
+        <div class="top-header__row2">六人 · 三对三 · 茶席</div>
+      </div>
+      <div class="top-header__time">
+        <span class="serif">18 : 42</span>
+        <span class="top-header__time-sub">手谈</span>
+      </div>
+      <div class="top-header__pulse"></div>
+    </div>
+
+    <!-- ============== SCROLL AREA ============== -->
+    <div class="scroll-area">
+
+      <!-- ============== MODE SELECTOR ============== -->
+      <div class="brush-rule"><span class="blot"></span><span class="line"></span></div>
+
+      <div class="section-head">
+        <span class="num serif">壹</span>
+        <span class="title serif">对局</span>
+        <span class="en">Mode</span>
+      </div>
+
+      <div class="mode-selector">
+        <div class="mode-opt" data-active="false">四人<span class="opt-en">2 v 2</span></div>
+        <div class="mode-opt" data-active="true">六人 · 当前<span class="opt-en">3 v 3</span></div>
+        <div class="mode-opt" data-active="false">八人<span class="opt-en">4 v 4</span></div>
+      </div>
+
+      <!-- ============== TWO TEAM PANELS (stacked) ============== -->
+      <div class="section-head">
+        <span class="num serif">贰</span>
+        <span class="title serif">阵列</span>
+        <span class="en">Two Sides</span>
+      </div>
+
+      <div class="scorer">
+
+        <!-- RED TEAM at 4 -->
+        <div class="team" data-team="red">
+          <div class="team-label serif">红方 · TEAM 红<div class="accent-bar"></div></div>
+          <div class="team-status-chip serif">本局所有 · 四</div>
+
+          <div class="team-level">
+            <div>
+              <span class="card-glyph serif">4</span>
+              <span class="card-annotation">肆 · LV 4</span>
+            </div>
+            <div class="meta">
+              <div class="lvl-label">当前级牌</div>
+              <div class="lvl-value serif">
+                <strong>距 A 尚九级</strong>
+              </div>
+              <div class="progress-rail serif">
+                五·六·七·八·九·十·J·Q·K·A
+              </div>
+            </div>
+          </div>
+
+          <div class="roster" data-team="red">
+            <div class="roster-label">花名册 · Roster</div>
+            <ul>
+              <li><span class="name serif"><span class="pigment-dot"></span>老张</span><span class="handle">@laozhang</span></li>
+              <li><span class="name serif"><span class="pigment-dot"></span>阿伟</span><span class="handle">@awei</span></li>
+              <li><span class="name serif"><span class="pigment-dot"></span>大刘</span><span class="handle">@daliu</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- BLUE TEAM at 3 -->
+        <div class="team" data-team="blue">
+          <div class="team-label serif">蓝方 · TEAM 蓝<div class="accent-bar"></div></div>
+
+          <div class="team-level">
+            <div>
+              <span class="card-glyph serif">三</span>
+              <span class="card-annotation">叁 · LV 3</span>
+            </div>
+            <div class="meta">
+              <div class="lvl-label">当前级牌</div>
+              <div class="lvl-value serif">
+                <strong>距 A 尚十级</strong>
+              </div>
+              <div class="progress-rail serif">
+                四·五·六·七·八·九·十·J·Q·K·A
+              </div>
+            </div>
+          </div>
+
+          <div class="roster" data-team="blue">
+            <div class="roster-label">花名册 · Roster</div>
+            <ul>
+              <li><span class="name serif"><span class="pigment-dot"></span>小王</span><span class="handle">@xiaowang</span></li>
+              <li><span class="name serif"><span class="pigment-dot"></span>阿明</span><span class="handle">@aming</span></li>
+              <li><span class="name serif"><span class="pigment-dot"></span>小美</span><span class="handle">@xiaomei</span></li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============== ACTIVE GAME (HERO) ============== -->
+      <div class="section-head">
+        <span class="num serif">叁</span>
+        <span class="title serif">本局 · 排名待定</span>
+        <span class="en">Active Hand</span>
+      </div>
+
+      <div class="owner-banner">
+        <div class="pre">本局 · This Hand</div>
+        <div class="line serif">
+          本局 <span class="seal-tx serif">四</span> · 红队之级
+          <span class="next">待二位入位 · 严式 · 凡有头游方升</span>
+        </div>
+      </div>
+
+      <div class="active-frame">
+
+        <!-- TAP-TO-SELECT INSTRUCTION CAPTION -->
+        <div class="tap-caption">
+          <span class="step">手势 · GESTURE</span>
+          <span class="serif">点选玩家</span>
+          <span class="arrow-glyph">›</span>
+          <span class="serif">点选位次</span>
+        </div>
+
+        <!-- PLAYER POOL (玩家池 · 待排名玩家) -->
+        <div class="pool-block">
+          <div class="pool-head">
+            <div class="pool-title serif">玩家池<span class="count serif">· 待排名 四位</span></div>
+            <div class="pool-en">Pool · Tap Source</div>
+          </div>
+          <div class="pool-grid">
+            <!-- SELECTED tile (大刘 — seal-red brushstroke + glow + 已选 mini-mark) -->
+            <div class="player-tile" data-team="red" data-state="selected">
+              <div class="tile-name serif">大刘</div>
+              <div class="tile-handle">@daliu</div>
+              <div class="tile-team serif"><span class="pigment-dot"></span>红方</div>
+            </div>
+            <div class="player-tile" data-team="blue">
+              <div class="tile-name serif">阿明</div>
+              <div class="tile-handle">@aming</div>
+              <div class="tile-team serif"><span class="pigment-dot"></span>蓝方</div>
+            </div>
+            <div class="player-tile" data-team="blue">
+              <div class="tile-name serif">小美</div>
+              <div class="tile-handle">@xiaomei</div>
+              <div class="tile-team serif"><span class="pigment-dot"></span>蓝方</div>
+            </div>
+            <div class="player-tile" data-team="red">
+              <div class="tile-name serif">老张</div>
+              <div class="tile-handle">@laozhang</div>
+              <div class="tile-team serif"><span class="pigment-dot"></span>红方</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RANKING SLOTS (vertical 6-list) -->
+        <div class="slots-block">
+          <div class="slots-head">
+            <div class="slots-title serif">名次 · 一至六</div>
+            <div class="slots-progress serif">已落 <span class="stress">二</span> · 待 <span class="stress">四</span></div>
+          </div>
+
+          <div class="slot-list">
+            <!-- Slot 1 (filled, red, 头游) -->
+            <div class="slot" data-state="filled" data-team="red" data-pos="1">
+              <div class="slot-pos serif">一<span class="pos-en">头游 · 1ST</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif"><span class="pigment-dot" style="background: var(--team-ochre);"></span>阿伟</span>
+                <span class="resident-handle">@awei · 红</span>
+              </div>
+              <div class="slot-tick">✓</div>
+            </div>
+
+            <!-- Slot 2 (filled, blue) -->
+            <div class="slot" data-state="filled" data-team="blue" data-pos="2">
+              <div class="slot-pos serif">二<span class="pos-en">2ND</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif"><span class="pigment-dot" style="background: var(--team-indigo);"></span>小王</span>
+                <span class="resident-handle">@xiaowang · 蓝</span>
+              </div>
+              <div class="slot-tick">✓</div>
+            </div>
+
+            <!-- Slot 3 (DROP TARGET — 大刘 ready to land) -->
+            <div class="slot" data-state="dropTarget" data-pos="3">
+              <div class="slot-pos serif">三<span class="pos-en">3RD</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif"><span class="seal-dot">●</span>大刘 入位</span>
+                <span class="resident-handle">点选 · 此处</span>
+              </div>
+              <div class="slot-tick"></div>
+            </div>
+
+            <!-- Slot 4 (empty) -->
+            <div class="slot" data-state="empty" data-pos="4">
+              <div class="slot-pos serif">四<span class="pos-en">4TH</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif">等候</span>
+              </div>
+              <div class="slot-tick"></div>
+            </div>
+
+            <!-- Slot 5 (empty) -->
+            <div class="slot" data-state="empty" data-pos="5">
+              <div class="slot-pos serif">五<span class="pos-en">5TH</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif">等候</span>
+              </div>
+              <div class="slot-tick"></div>
+            </div>
+
+            <!-- Slot 6 (empty, 末游) -->
+            <div class="slot" data-state="empty" data-pos="6">
+              <div class="slot-pos serif">六<span class="pos-en">末游 · LAST</span></div>
+              <div class="slot-resident">
+                <span class="resident-name serif">等候</span>
+              </div>
+              <div class="slot-tick"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE CALC (quiet serif italic) -->
+        <div class="live-calc serif">
+          <span class="pre-label">即算 · LIVE CALC</span>
+          等候最后<span class="stress"> 四位 </span>· 局未终
+          <span class="calc-row">
+            <span class="red-tx">红</span> [一·?·?]
+            <span class="sep">＝</span>
+            5+?+?
+            <span class="sep">＝</span>
+            <span class="pending">?</span>
+          </span>
+          <span class="calc-row">
+            <span class="blue-tx">蓝</span> [二·?·?]
+            <span class="sep">＝</span>
+            4+?+?
+            <span class="sep">＝</span>
+            <span class="pending">?</span>
+          </span>
+          <span class="calc-row">阈 · +3≥7 · +2≥4 · +1≥1</span>
+        </div>
+
+        <!-- TOGGLES (scholar's checkboxes) -->
+        <div class="toggles">
+          <div class="toggles-head">机要 · AUTOMATION · 默认全开</div>
+          <div class="t-item">
+            <span class="t-mark serif" data-on="true">✓</span>
+            <span class="t-label">自动应用结果</span>
+            <span class="t-key">autoApply</span>
+          </div>
+          <div class="t-item">
+            <span class="t-mark serif" data-on="true">✓</span>
+            <span class="t-label">自动进次回</span>
+            <span class="t-key">autoNext</span>
+          </div>
+          <div class="t-item">
+            <span class="t-mark serif" data-on="true">✓</span>
+            <span class="t-label">严式 A 级</span>
+            <span class="t-key">strictA</span>
+          </div>
+          <div class="t-item">
+            <span class="t-mark serif" data-on="true">✓</span>
+            <span class="t-label">仅有头游方升</span>
+            <span class="t-key">must1</span>
+          </div>
+        </div>
+
+        <!-- MANUAL ACTIONS (text-link italic) -->
+        <div class="manual-actions">
+          <span class="helper">手动 · MANUAL</span>
+          <a href="#" class="serif">应用结果</a>
+          <a href="#" class="serif">进入下一局</a>
+          <a href="#" class="serif">撤销上一局</a>
+        </div>
+
+      </div>
+
+      <!-- ============== CUSTOM RULES DRAWER (collapsed) ============== -->
+      <div class="section-head">
+        <span class="num serif">肆</span>
+        <span class="title serif">规约</span>
+        <span class="en">House Rules</span>
+      </div>
+
+      <div class="rules-drawer">
+        <div class="rules-row1">
+          <div class="rules-label serif">当前规约</div>
+          <a href="#" class="rules-toggle serif">[ 展开 ]</a>
+        </div>
+        <div class="rules-en">Active config · Collapsed</div>
+        <div class="rules-preview serif">
+          <span class="key">四人</span> 三二一
+          <span class="div">｜</span>
+          <span class="key">六人</span> 七四一 · 五四三三一零
+          <span class="div">｜</span>
+          <span class="key">A 级</span> <span class="seal-tx">严式</span>
+        </div>
+      </div>
+
+      <!-- ============== HISTORY (谱录 · 近三回 + R5) ============== -->
+      <div class="section-head">
+        <span class="num serif">伍</span>
+        <span class="title serif">谱录 · 近三回</span>
+        <span class="en">Last 3 + R5</span>
+      </div>
+
+      <div class="ledger">
+
+        <div class="ledger-row">
+          <div class="col-round serif">第二回</div>
+          <div class="col-level serif">4</div>
+          <div class="col-meta">
+            <div class="winner blue serif"><span class="swatch"></span>蓝</div>
+            <div class="combo serif">一 · 三 · 四</div>
+          </div>
+          <div class="col-result serif">
+            升一级
+            <span class="levels"><span class="red-tx">四</span> · <span class="blue-tx">三</span></span>
+          </div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="col-round serif">第三回</div>
+          <div class="col-level serif">3</div>
+          <div class="col-meta">
+            <div class="winner red serif"><span class="swatch"></span>红</div>
+            <div class="combo serif">一 · 二 · 四</div>
+          </div>
+          <div class="col-result serif">
+            不升 · 已具
+            <span class="levels"><span class="red-tx">四</span> · <span class="blue-tx">三</span></span>
+          </div>
+        </div>
+
+        <div class="ledger-row">
+          <div class="col-round serif">第四回</div>
+          <div class="col-level serif">3</div>
+          <div class="col-meta">
+            <div class="winner red serif"><span class="swatch"></span>红</div>
+            <div class="combo serif">一 · 三 · 五</div>
+          </div>
+          <div class="col-result serif">
+            差未及阈
+            <span class="levels"><span class="red-tx">四</span> · <span class="blue-tx">三</span></span>
+          </div>
+        </div>
+
+        <!-- R5 marker — current with seal-red 印章 -->
+        <div class="ledger-row" data-state="current">
+          <div class="col-round serif">第五回</div>
+          <div class="col-level serif">4</div>
+          <div class="col-meta">
+            <div class="winner pending serif">进行中</div>
+            <div class="combo serif">一 · 二 · ?</div>
+          </div>
+          <div class="col-result serif">
+            待定
+            <span class="levels"><span class="red-tx">四</span> · <span class="blue-tx">三</span></span>
+          </div>
+          <div class="mini-stamp serif">本</div>
+        </div>
+
+      </div>
+
+      <!-- ============== HONORS (封号 · 进行中) ============== -->
+      <div class="section-head">
+        <span class="num serif">陆</span>
+        <span class="title serif">封号 · 进行中</span>
+        <span class="en">Honors · WIP</span>
+      </div>
+
+      <div class="honors-grid">
+
+        <!-- 吕布 — 阿伟 leading -->
+        <div class="honor" data-state="leading">
+          <div class="ink-portrait"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">吕布<span class="lead-mark">领</span></div>
+            <div class="honor-tagline serif">最多第一</div>
+            <div class="honor-recipient serif">阿伟<span class="handle">@awei</span></div>
+            <div class="honor-detail serif">二度头游 · 暂列首席</div>
+          </div>
+        </div>
+
+        <!-- 闪电侠 — 老张 leading -->
+        <div class="honor" data-state="leading">
+          <div class="ink-portrait"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">闪电侠<span class="lead-mark">领</span></div>
+            <div class="honor-tagline serif">变化频繁</div>
+            <div class="honor-recipient serif">老张<span class="handle">@laozhang</span></div>
+            <div class="honor-detail serif">三回换次 · 名变最勤</div>
+          </div>
+        </div>
+
+        <!-- 阿斗 — pending -->
+        <div class="honor" data-state="pending">
+          <div class="ink-portrait" data-pending="true"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">阿斗</div>
+            <div class="honor-tagline serif">最多垫底</div>
+            <div class="honor-recipient serif">未定 · 待续</div>
+            <div class="honor-detail serif">候选 · 阿明 · 小美</div>
+          </div>
+        </div>
+
+        <!-- 石佛 — pending -->
+        <div class="honor" data-state="pending">
+          <div class="ink-portrait" data-pending="true"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">石佛</div>
+            <div class="honor-tagline serif">优秀且稳</div>
+            <div class="honor-recipient serif">未定 · 待续</div>
+            <div class="honor-detail serif">局少未稳 · 须达八回</div>
+          </div>
+        </div>
+
+        <!-- 守门员 — pending -->
+        <div class="honor" data-state="pending">
+          <div class="ink-portrait" data-pending="true"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">守门员</div>
+            <div class="honor-tagline serif">护伴免落</div>
+            <div class="honor-recipient serif">未定 · 待续</div>
+            <div class="honor-detail serif">候选 · 大刘</div>
+          </div>
+        </div>
+
+        <!-- 大满贯 — pending -->
+        <div class="honor" data-state="pending">
+          <div class="ink-portrait" data-pending="true"></div>
+          <div class="honor-body">
+            <div class="honor-name serif">大满贯</div>
+            <div class="honor-tagline serif">体验所有</div>
+            <div class="honor-recipient serif">未定 · 待续</div>
+            <div class="honor-detail serif">尚缺 · 一·二·末</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="honors-meta serif">
+        封号共十六 · 此局已亮 二 · 余下十四 待续
+      </div>
+
+      <!-- ============== 示例 · 通关之像 (scaled-down victory sample) ============== -->
+      <div class="section-head">
+        <span class="num serif">柒</span>
+        <span class="title serif">示例 · 通关之像</span>
+        <span class="en">Sample Outcome</span>
+      </div>
+
+      <div class="sample-frame">
+        <div class="sample-tag serif">非本局 · for ref</div>
+        <div class="sample-meta">A 级通关 · 红队凯旋</div>
+        <div class="sample-title serif">通关</div>
+        <div class="sample-sub serif">
+          红队 <span class="pause">·</span>
+          一二四之名 <span class="pause">·</span>
+          自己的 <span class="seal-tx">A</span> 级
+        </div>
+
+        <svg class="sample-stroke" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M 32 248 C 60 196, 110 152, 156 138 S 248 100, 282 64"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="14"
+                stroke-linecap="round"
+                opacity="0.85"/>
+          <path d="M 270 70 C 282 62, 290 60, 296 56"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="6"
+                stroke-linecap="round"
+                opacity="0.6"/>
+          <circle cx="38" cy="246" r="5" fill="currentColor" opacity="0.7"/>
+        </svg>
+
+        <div class="sample-chop serif">胜</div>
+      </div>
+
+      <!-- ============== PROFILE — 阿伟 ============== -->
+      <div class="section-head">
+        <span class="num serif">捌</span>
+        <span class="title serif">谱传 · 阿伟</span>
+        <span class="en">Profile · @awei</span>
+      </div>
+
+      <div class="profile-block">
+
+        <div class="profile-head">
+          <div class="profile-portrait"></div>
+          <div>
+            <div class="profile-name serif">阿伟</div>
+            <div class="profile-handle">@awei · since 2024</div>
+            <div class="profile-tagline serif">桌前常客</div>
+          </div>
+        </div>
+
+        <div class="profile-stats">
+
+          <div class="stat-cell">
+            <div class="stat-label">手谈场数</div>
+            <div class="stat-value serif">47</div>
+            <div class="stat-sub serif">SESSIONS</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">通关之数</div>
+            <div class="stat-value serif">29</div>
+            <div class="stat-sub serif">61.7% 胜率</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">单局之数</div>
+            <div class="stat-value serif">412</div>
+            <div class="stat-sub serif">ROUNDS</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">毕生均名</div>
+            <div class="stat-value serif">2.84</div>
+            <div class="stat-sub serif">CAREER AVG</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">在席时长</div>
+            <div class="stat-value serif">38<span class="small">时</span>22<span class="small">分</span></div>
+            <div class="stat-sub serif">38h 22m</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">公选 · C / 闹</div>
+            <div class="stat-value serif">23<span class="small">·</span><span class="seal-num">2</span></div>
+            <div class="stat-sub serif">23 最C · 2 最闹</div>
+          </div>
+
+        </div>
+
+        <div class="relations">
+          <div class="relation-block">
+            <div class="relation-label">至契搭子 · TOP PARTNER</div>
+            <div class="relation-name serif">老张<span class="relation-handle">@laozhang</span></div>
+            <div class="relation-detail serif">
+              同坐 <span class="num">廿四席</span> ·
+              并胜 <span class="num">十八</span> ·
+              共胜率 <span class="num">75%</span>
+            </div>
+          </div>
+
+          <div class="relation-block">
+            <div class="relation-label">劲敌 · TOP RIVAL</div>
+            <div class="relation-name serif">小王<span class="relation-handle">@xiaowang</span></div>
+            <div class="relation-detail serif">
+              对坐 <span class="num">卅一席</span> ·
+              负 <span class="num">十八</span> ·
+              负率 <span class="num">58%</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============== COLOPHON ============== -->
+      <div class="colophon serif">
+        茶席 · TEA-TABLE · v2 mobile <span class="seal">印</span>
+        <span class="meta">A1B2C3 · 6P · R5 · 18:42 · 进行中</span>
+      </div>
+
+    </div>
+    <!-- /scroll-area -->
+
+    <!-- ============== STICKY BOTTOM ACTION BAR (56px) ============== -->
+    <div class="bottom-action-bar">
+      <div class="bottom-action-bar__pulse"></div>
+      <div class="bottom-action-bar__msg">
+        <div class="bottom-action-bar__title serif">
+          局未终 · <span class="seal-tx">自动应用已开</span>
+        </div>
+        <div class="bottom-action-bar__sub">
+          已落 <span class="accent">二</span> · 等候 <span class="accent">四位</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== STICKY BOTTOM TAB BAR (60px) ============== -->
+    <nav class="tab-bar">
+      <button class="tab-bar__item tab-bar__item--active">
+        <span class="tab-bar__label serif">游戏</span>
+        <span class="tab-bar__en">Game</span>
+      </button>
+      <button class="tab-bar__item">
+        <span class="tab-bar__label serif">玩家</span>
+        <span class="tab-bar__en">Players</span>
+      </button>
+      <button class="tab-bar__item">
+        <span class="tab-bar__label serif">房间</span>
+        <span class="tab-bar__en">Rooms</span>
+      </button>
+      <button class="tab-bar__item">
+        <span class="tab-bar__label serif">资料</span>
+        <span class="tab-bar__en">Profile</span>
+      </button>
+    </nav>
+
+    <!-- home indicator -->
+    <div class="home-indicator"></div>
+
+  </div>
+</div>
+
+</body>
+</html>

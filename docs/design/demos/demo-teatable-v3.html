@@ -1,0 +1,1493 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>掼蛋 · 茶席 v3 — Active Game · Tea-Table Contemplative</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(15% 0.02 60);
+    --surface: oklch(20% 0.02 60);
+    --surface-2: oklch(24% 0.02 60);
+    --surface-lift: oklch(28% 0.025 60);
+    --ink: oklch(92% 0.04 80);
+    --ink-dim: oklch(72% 0.03 80);
+    --ink-dimmer: oklch(50% 0.03 80);
+    --ink-faint: oklch(38% 0.025 70);
+    --accent-seal: oklch(55% 0.22 25);
+    --accent-seal-dim: oklch(40% 0.18 25);
+    --accent-seal-glow: oklch(60% 0.20 25 / 0.18);
+    --team-indigo: oklch(45% 0.10 250);
+    --team-ochre: oklch(60% 0.12 75);
+    --rule-faint: oklch(30% 0.02 60);
+    --rule-line: oklch(35% 0.025 60);
+    --paper: oklch(94% 0.04 80);
+    --paper-ink: oklch(15% 0.02 60);
+    --paper-ink-dim: oklch(35% 0.03 60);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--ink); }
+  body {
+    font-family: "Noto Sans SC", system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .serif { font-family: "Noto Serif SC", serif; font-feature-settings: 'tnum' 1; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 60px 112px 200px; }
+
+  /* ----- BRUSH RULE ----- */
+  .brush-rule { display: flex; align-items: center; gap: 12px; margin: 0; height: 1px; }
+  .brush-rule .blot { width: 9px; height: 9px; background: var(--ink-dim); border-radius: 50%; flex-shrink: 0; }
+  .brush-rule .line { flex: 1; height: 1px; background: var(--ink-dimmer); opacity: 0.55; }
+
+  /* ----- NAVIGATION ----- */
+  .nav { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 38px; border-bottom: 1px solid var(--rule-faint); }
+  .nav-tabs { display: flex; gap: 56px; align-items: baseline; }
+  .nav-tab {
+    font-family: "Noto Serif SC", serif; font-size: 18px;
+    color: var(--ink-dimmer); letter-spacing: 0.34em;
+    text-decoration: none; position: relative; padding-bottom: 4px;
+  }
+  .nav-tab[aria-current="page"] { color: var(--ink); font-weight: 500; }
+  .nav-tab[aria-current="page"]::after {
+    content: ""; position: absolute; right: -16px; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent-seal);
+  }
+  .nav-tab .tab-en {
+    display: block; font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--ink-faint); margin-top: 4px; text-align: center;
+  }
+  .nav-marque { font-family: "Noto Serif SC", serif; font-style: italic; color: var(--ink-dimmer); font-size: 13px; letter-spacing: 0.32em; }
+
+  /* ----- HEADER STRIP ----- */
+  .header { margin-top: 56px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 64px; padding-bottom: 48px; }
+  .header-left .label, .header-right .label {
+    font-size: 10.5px; letter-spacing: 0.32em; text-transform: uppercase;
+    color: var(--ink-dimmer); margin-bottom: 14px;
+  }
+  .header-left .room {
+    font-family: "Noto Serif SC", serif; font-style: italic; font-feature-settings: 'tnum' 1;
+    font-size: 32px; font-weight: 500; color: var(--ink); letter-spacing: 0.16em;
+  }
+  .header-left .room .seal-mark {
+    color: var(--accent-seal); margin-left: 12px; font-size: 18px;
+    font-style: normal; letter-spacing: 0; vertical-align: middle;
+  }
+  .header-center .round { font-family: "Noto Serif SC", serif; font-weight: 700; font-size: 56px; text-align: center; color: var(--ink); letter-spacing: 0.06em; }
+  .header-center .mode { margin-top: 10px; text-align: center; color: var(--ink-dim); font-family: "Noto Serif SC", serif; font-size: 13px; letter-spacing: 0.32em; }
+  .header-right { text-align: right; }
+  .header-right .stat { font-family: "Noto Serif SC", serif; font-feature-settings: 'tnum' 1; font-size: 34px; font-weight: 500; color: var(--ink); letter-spacing: 0.05em; }
+  .header-right .sync {
+    margin-top: 14px; display: inline-flex; align-items: center; gap: 10px;
+    font-size: 10.5px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink-dimmer);
+  }
+  .pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--ink-dim); animation: breathe 3.6s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: 0.25; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+  /* ----- SECTION HEADING ----- */
+  .section { margin-top: 96px; }
+  .section.tight { margin-top: 56px; }
+  .section-head { display: flex; align-items: baseline; gap: 28px; margin-bottom: 48px; }
+  .section-num { font-family: "Noto Serif SC", serif; color: var(--ink-dimmer); font-size: 13px; letter-spacing: 0.34em; }
+  .section-title { font-family: "Noto Serif SC", serif; font-weight: 700; font-size: 28px; color: var(--ink); letter-spacing: 0.1em; }
+  .section-en { font-size: 10.5px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--ink-dimmer); margin-left: auto; }
+
+  /* ----- MODE SELECTOR ----- */
+  .mode-selector {
+    display: flex; justify-content: center; gap: 48px; padding: 28px 0;
+    border-top: 1px solid var(--rule-faint); border-bottom: 1px solid var(--rule-faint);
+  }
+  .mode-opt {
+    font-family: "Noto Serif SC", serif; font-size: 16px; letter-spacing: 0.3em;
+    color: var(--ink-dimmer); padding: 6px 20px; cursor: pointer; position: relative;
+  }
+  .mode-opt[data-active="true"] { color: var(--ink); font-weight: 500; }
+  .mode-opt[data-active="true"]::after {
+    content: "·"; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    color: var(--accent-seal); font-size: 24px; line-height: 0;
+  }
+  .mode-opt .opt-en {
+    display: block; font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px; letter-spacing: 0.4em; text-transform: uppercase;
+    color: var(--ink-faint); margin-top: 6px; text-align: center;
+  }
+
+  /* ----- ROUND OWNER NARRATIVE BANNER ----- */
+  .owner-banner {
+    margin-bottom: 56px;
+    padding: 28px 40px;
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+    text-align: center;
+    font-family: "Noto Serif SC", serif;
+  }
+  .owner-banner .pre {
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-dimmer);
+    margin-bottom: 10px;
+  }
+  .owner-banner .line {
+    font-size: 24px;
+    color: var(--ink);
+    letter-spacing: 0.32em;
+  }
+  .owner-banner .line .seal-tx { color: var(--accent-seal); margin: 0 14px; }
+  .owner-banner .line .next {
+    display: block;
+    margin-top: 14px;
+    color: var(--ink-dim);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+  }
+
+  /* ----- TWO TEAM PANELS ----- */
+  .scorer { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; }
+  .team {
+    padding: 44px 40px 48px;
+    background: var(--surface);
+    border-top: 1px solid var(--rule-faint);
+    position: relative;
+  }
+  .team-label {
+    font-family: "Noto Serif SC", serif;
+    font-size: 13px;
+    color: var(--ink-dim);
+    letter-spacing: 0.36em;
+    margin-bottom: 14px;
+  }
+  .team .accent-bar { width: 32px; height: 2px; margin-top: 10px; background: var(--ink-dimmer); }
+  .team[data-team="red"] .accent-bar  { background: var(--team-ochre); }
+  .team[data-team="blue"] .accent-bar { background: var(--team-indigo); }
+
+  .team-status-chip {
+    position: absolute;
+    top: 44px;
+    right: 40px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--ink-dimmer);
+    padding: 4px 12px;
+    border: 1px solid var(--rule-faint);
+  }
+  .team[data-team="red"] .team-status-chip {
+    color: var(--accent-seal);
+    border-color: var(--accent-seal-dim);
+  }
+
+  .team-level {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: end;
+    gap: 32px;
+    margin: 56px 0 40px;
+  }
+  .team-level .card-glyph {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: 168px;
+    line-height: 0.85;
+    color: var(--ink);
+    letter-spacing: 0;
+  }
+  .team[data-team="red"] .team-level .card-glyph { color: var(--accent-seal); }
+  .team-level .card-annotation { display: block; font-size: 13px; color: var(--ink-dimmer); letter-spacing: 0.32em; margin-top: 14px; font-weight: 500; font-family: "Noto Serif SC", serif; }
+  .team-level .meta .lvl-label { font-family: "Noto Sans SC", sans-serif; font-size: 10.5px; letter-spacing: 0.4em; color: var(--ink-dimmer); margin-bottom: 12px; text-transform: uppercase; }
+  .team-level .meta .lvl-value { font-family: "Noto Serif SC", serif; font-size: 16px; color: var(--ink-dim); letter-spacing: 0.16em; line-height: 1.7; }
+  .team-level .meta .lvl-value strong { color: var(--ink); font-weight: 500; }
+
+  .roster { padding-top: 24px; border-top: 1px solid var(--rule-faint); }
+  .roster .roster-label { font-size: 10.5px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--ink-dimmer); margin-bottom: 16px; }
+  .roster ul { list-style: none; }
+  .roster li { display: flex; align-items: baseline; justify-content: space-between; padding: 12px 0; border-bottom: 1px dotted var(--rule-faint); gap: 12px; }
+  .roster li:last-child { border-bottom: none; }
+  .roster .name { font-family: "Noto Serif SC", serif; font-size: 20px; color: var(--ink); letter-spacing: 0.1em; display: inline-flex; align-items: center; gap: 12px; }
+  .roster .name .pigment-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .roster[data-team="red"] .pigment-dot  { background: var(--team-ochre); }
+  .roster[data-team="blue"] .pigment-dot { background: var(--team-indigo); }
+  .roster .handle { font-family: "Noto Sans SC", sans-serif; font-size: 11px; color: var(--ink-dimmer); letter-spacing: 0.06em; }
+
+  /* ----- ACTIVE GAME (HERO) ----- */
+  .active-frame { position: relative; background: linear-gradient(180deg, var(--surface) 0%, oklch(18% 0.02 60) 100%); border-top: 1px solid var(--rule-line); border-bottom: 1px solid var(--rule-line); padding: 48px 56px 56px; }
+  .active-frame::before { content: "ACTIVE · 本局正酣"; position: absolute; top: 18px; left: 24px; font-family: "Noto Sans SC", sans-serif; font-size: 9px; letter-spacing: 0.4em; color: var(--ink-faint); }
+
+  /* drag instruction caption */
+  .drag-caption { margin-bottom: 28px; text-align: center; font-family: "Noto Serif SC", serif; color: var(--ink-dim); font-size: 14px; letter-spacing: 0.34em; }
+  .drag-caption .arrow-glyph { color: var(--accent-seal); margin: 0 10px; display: inline-block; transform: translateY(1px); font-size: 16px; }
+  .drag-caption .step { font-family: "Noto Sans SC", sans-serif; font-size: 9.5px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--ink-dimmer); margin-right: 18px; }
+
+  /* PLAYER POOL */
+  .pool-block { margin-bottom: 36px; padding: 24px 28px 28px; background: oklch(18% 0.02 60); border: 1px solid var(--rule-faint); }
+  .pool-block .pool-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+  .pool-block .pool-title { font-family: "Noto Serif SC", serif; font-size: 14px; color: var(--ink); letter-spacing: 0.34em; }
+  .pool-block .pool-title .count { color: var(--ink-dim); font-size: 12px; letter-spacing: 0.18em; margin-left: 12px; }
+  .pool-block .pool-en { font-family: "Noto Sans SC", sans-serif; font-size: 9.5px; letter-spacing: 0.4em; text-transform: uppercase; color: var(--ink-faint); }
+  .pool-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .player-tile { position: relative; padding: 22px 20px 24px; background: var(--surface-2); border: 1px solid var(--rule-faint); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .player-tile[data-team="red"]  { border-left: 2px solid var(--team-ochre); }
+  .player-tile[data-team="blue"] { border-left: 2px solid var(--team-indigo); }
+  .player-tile .tile-name { font-family: "Noto Serif SC", serif; font-size: 24px; color: var(--ink); letter-spacing: 0.12em; line-height: 1.1; }
+  .player-tile .tile-handle { margin-top: 8px; font-family: "Noto Sans SC", sans-serif; font-size: 12px; color: var(--ink-dimmer); letter-spacing: 0.1em; }
+  .player-tile .tile-team { margin-top: 10px; font-family: "Noto Serif SC", serif; font-size: 10.5px; letter-spacing: 0.34em; color: var(--ink-faint); display: inline-flex; align-items: center; gap: 8px; }
+  .player-tile .tile-team .pigment-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .player-tile[data-team="red"]  .tile-team .pigment-dot { background: var(--team-ochre); }
+  .player-tile[data-team="blue"] .tile-team .pigment-dot { background: var(--team-indigo); }
+
+  /* DRAGGING tile (mid-flight visualization) */
+  .player-tile[data-state="dragging"] {
+    transform: translate(28px, -12px) rotate(-1.4deg);
+    background: var(--surface-lift);
+    box-shadow:
+      0 10px 30px oklch(0% 0 0 / 0.6),
+      0 1px 0 oklch(96% 0.02 60 / 0.04) inset;
+    z-index: 5;
+  }
+  .player-tile[data-state="dragging"]::after {
+    content: "拖拽中 · IN HAND";
+    position: absolute;
+    top: -10px; right: -10px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-size: 9.5px;
+    letter-spacing: 0.34em;
+    padding: 3px 10px;
+    transform: rotate(2deg);
+  }
+
+  /* RANKING SLOTS */
+  .slots-block {
+    margin-top: 0;
+  }
+  .slots-block .slots-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 22px;
+  }
+  .slots-block .slots-title {
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: 0.34em;
+  }
+  .slots-block .slots-en {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 18px;
+  }
+  .slot {
+    position: relative;
+    min-height: 158px;
+    padding: 22px 18px 22px;
+    background: var(--surface);
+    border: 1px solid var(--rule-faint);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .slot .slot-pos {
+    font-family: "Noto Serif SC", serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--ink-dim);
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .slot .slot-pos .pos-en {
+    display: block;
+    font-size: 9px;
+    color: var(--ink-faint);
+    letter-spacing: 0.34em;
+    margin-top: 8px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-weight: 400;
+  }
+  .slot .slot-resident { padding-top: 8px; }
+  .slot .slot-resident .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 19px;
+    color: var(--ink);
+    letter-spacing: 0.1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .slot .slot-resident .resident-name .pigment-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .slot .slot-resident .resident-handle {
+    display: block;
+    margin-top: 6px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 10.5px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.18em;
+  }
+  .slot .slot-tick {
+    position: absolute;
+    top: 16px; right: 16px;
+    color: var(--ink-dim);
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px;
+  }
+
+  .slot[data-state="filled"]      { background: var(--surface-2); }
+  .slot[data-state="filled"][data-team="red"]  { border-left: 2px solid var(--team-ochre); }
+  .slot[data-state="filled"][data-team="blue"] { border-left: 2px solid var(--team-indigo); }
+  .slot[data-state="filled"] .slot-pos { color: var(--ink); }
+  .slot[data-state="filled"][data-pos="1"] .slot-pos { color: var(--accent-seal); }
+
+  .slot[data-state="empty"] {
+    background: oklch(17% 0.02 60);
+    border-style: dashed;
+  }
+  .slot[data-state="empty"] .slot-resident .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px;
+    color: var(--ink-faint);
+    letter-spacing: 0.34em;
+  }
+
+  .slot[data-state="dropTarget"] {
+    background: oklch(22% 0.04 25);
+    border: 1px dashed var(--accent-seal);
+    box-shadow:
+      0 0 0 4px var(--accent-seal-glow),
+      inset 0 0 36px oklch(50% 0.18 25 / 0.10);
+  }
+  .slot[data-state="dropTarget"] .slot-pos { color: var(--accent-seal); }
+  .slot[data-state="dropTarget"] .resident-name {
+    font-family: "Noto Serif SC", serif;
+    font-size: 16px;
+    color: var(--accent-seal);
+    letter-spacing: 0.34em;
+  }
+  .slot[data-state="dropTarget"]::before {
+    content: "● 待入";
+    position: absolute;
+    top: 16px; right: 16px;
+    color: var(--accent-seal);
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+  }
+
+  /* CALC + TOGGLES */
+  .active-footer {
+    margin-top: 36px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 56px;
+    align-items: center;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule-faint);
+  }
+  .live-calc {
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dim);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    line-height: 1.8;
+  }
+  .live-calc .stress {
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .live-calc .pre-label {
+    display: block;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9.5px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 8px;
+  }
+  .toggles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 13px;
+    color: var(--ink-dim);
+    letter-spacing: 0.18em;
+  }
+  .toggles .t-item {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .toggles .t-mark {
+    width: 16px;
+    text-align: center;
+    color: var(--ink);
+    font-family: "Noto Serif SC", serif;
+  }
+  .toggles .t-mark[data-on="true"] { color: var(--accent-seal); }
+  .toggles .t-label { color: var(--ink-dim); }
+
+  /* manual buttons (text-link style) */
+  .manual-actions {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 1px dotted var(--rule-faint);
+    display: flex;
+    justify-content: center;
+    gap: 56px;
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.24em;
+  }
+  .manual-actions a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-faint);
+    padding-bottom: 2px;
+  }
+  .manual-actions .helper {
+    color: var(--ink-faint);
+    font-style: normal;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    font-family: "Noto Sans SC", sans-serif;
+    margin-right: 12px;
+  }
+
+  /* ----- CUSTOM RULES DRAWER ----- */
+  .rules-drawer {
+    background: var(--surface);
+    border-top: 1px solid var(--rule-faint);
+    border-bottom: 1px solid var(--rule-faint);
+    padding: 28px 36px 32px;
+    display: grid;
+    grid-template-columns: 220px 1fr auto;
+    gap: 36px;
+    align-items: center;
+  }
+  .rules-drawer .rules-label {
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px;
+    color: var(--ink);
+    letter-spacing: 0.34em;
+  }
+  .rules-drawer .rules-label .rules-en {
+    display: block;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-top: 6px;
+  }
+  .rules-drawer .rules-preview {
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dim);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    line-height: 2;
+  }
+  .rules-drawer .rules-preview .key { color: var(--ink); }
+  .rules-drawer .rules-preview .div { color: var(--ink-faint); margin: 0 14px; }
+  .rules-drawer .rules-toggle {
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-dim);
+    letter-spacing: 0.24em;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--ink-faint);
+    padding-bottom: 2px;
+  }
+
+  /* ----- HISTORY (谱录) ----- */
+  .ledger {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: "Noto Serif SC", serif;
+  }
+  .ledger thead th {
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--ink-dimmer);
+    font-size: 10.5px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--ink-dimmer);
+    font-weight: 500;
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .ledger tbody td {
+    padding: 22px 18px;
+    border-bottom: 1px dotted var(--rule-faint);
+    color: var(--ink-dim);
+    font-size: 16px;
+    letter-spacing: 0.14em;
+    vertical-align: middle;
+  }
+  .ledger tbody tr:last-child td { border-bottom: none; }
+  .ledger .col-round { font-feature-settings: 'tnum' 1; color: var(--ink); width: 130px; }
+  .ledger .col-level {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 0.06em;
+    width: 100px;
+  }
+  .ledger .col-winner { width: 110px; }
+  .ledger .col-winner .swatch {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 10px;
+    transform: translateY(-2px);
+  }
+  .ledger .col-winner.red .swatch  { background: var(--team-ochre); }
+  .ledger .col-winner.blue .swatch { background: var(--team-indigo); }
+  .ledger .col-winner.pending { color: var(--accent-seal); }
+  .ledger .col-combo { font-feature-settings: 'tnum' 1; color: var(--ink-dim); }
+  .ledger .col-result { color: var(--ink); }
+  .ledger .col-levels {
+    font-feature-settings: 'tnum' 1;
+    color: var(--ink-dim);
+    font-size: 14px;
+    letter-spacing: 0.16em;
+  }
+  .ledger .col-levels .red-tx  { color: var(--team-ochre); }
+  .ledger .col-levels .blue-tx { color: var(--team-indigo); }
+
+  .ledger .row-current td {
+    color: var(--ink);
+    background: oklch(20% 0.025 60);
+  }
+  .ledger .row-current .col-round { color: var(--accent-seal); font-weight: 700; }
+  .ledger .row-current .current-mark {
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .ledger .row-current .current-mark .mini-stamp {
+    width: 26px; height: 26px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 12px;
+    display: grid; place-items: center;
+    transform: rotate(-3deg);
+    letter-spacing: 0;
+  }
+
+  /* ----- HONORS GALLERY (16-honor system, 6 displayed) ----- */
+  .honors-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px 48px; }
+  .honor {
+    background: var(--surface);
+    padding: 32px 28px 36px;
+    border: 1px solid var(--rule-faint);
+    transform: rotate(-1.2deg);
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .honor:nth-child(2n) { transform: rotate(1.4deg); }
+  .honor:nth-child(3n) { transform: rotate(-0.6deg); }
+  .ink-portrait {
+    width: 70px; height: 88px;
+    flex-shrink: 0;
+    background:
+      radial-gradient(ellipse 26px 32px at 50% 38%, oklch(35% 0.02 60), transparent 65%),
+      radial-gradient(ellipse 32px 24px at 50% 70%, oklch(28% 0.02 60), transparent 70%),
+      linear-gradient(180deg, oklch(22% 0.02 60), oklch(17% 0.02 60));
+    border: 1px solid var(--rule-faint);
+    position: relative;
+  }
+  .ink-portrait[data-pending="true"] {
+    background: oklch(18% 0.02 60);
+    border: 1px dashed var(--ink-faint);
+  }
+  .ink-portrait::after {
+    content: attr(data-name);
+    position: absolute; bottom: -22px; left: 0; right: 0;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.28em;
+    color: var(--ink-dimmer);
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .honor-body { flex: 1; padding-top: 4px; }
+  .honor-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--ink);
+    letter-spacing: 0.14em;
+    line-height: 1;
+  }
+  .honor-tagline {
+    margin-top: 10px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 13px;
+    color: var(--ink-dim);
+    letter-spacing: 0.22em;
+  }
+  .honor-recipient {
+    margin-top: 16px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 16px;
+    color: var(--ink);
+    letter-spacing: 0.14em;
+  }
+  .honor-recipient .handle {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 11px;
+    color: var(--ink-dimmer);
+    margin-left: 10px;
+    letter-spacing: 0.16em;
+  }
+  .honor-detail {
+    margin-top: 10px;
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    letter-spacing: 0.18em;
+    line-height: 1.7;
+  }
+  .honor[data-state="leading"] .honor-recipient {
+    color: var(--ink);
+  }
+  .honor[data-state="pending"] .honor-name { color: var(--ink-dim); }
+  .honor[data-state="pending"] .honor-tagline { color: var(--ink-dimmer); }
+  .honor[data-state="pending"] .honor-recipient {
+    color: var(--ink-dimmer);
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 0.32em;
+  }
+  .honor[data-state="leading"] .lead-mark {
+    display: inline-block;
+    margin-left: 10px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--accent-seal);
+    text-transform: uppercase;
+    border: 1px solid var(--accent-seal-dim);
+    padding: 2px 8px;
+  }
+  .honors-meta {
+    margin-top: 36px;
+    text-align: center;
+    font-family: "Noto Serif SC", serif;
+    color: var(--ink-dimmer);
+    font-size: 12px;
+    letter-spacing: 0.34em;
+  }
+
+  /* ----- 示例 · 通关时刻 (sample, scaled-down victory) ----- */
+  .sample-frame {
+    position: relative;
+    background: var(--paper);
+    color: var(--paper-ink);
+    padding: 64px 56px 64px;
+    min-height: 280px;
+    overflow: hidden;
+  }
+  .sample-frame::before {
+    content: "示例 · 通关之像 · SAMPLE OUTCOME";
+    position: absolute;
+    top: 18px; left: 24px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 9px;
+    letter-spacing: 0.4em;
+    color: var(--paper-ink-dim);
+  }
+  .sample-frame .sample-tag {
+    position: absolute;
+    top: 18px; right: 24px;
+    font-family: "Noto Serif SC", serif;
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 0.32em;
+    color: var(--paper-ink-dim);
+  }
+  .sample-meta {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    color: var(--paper-ink-dim);
+    margin-bottom: 18px;
+  }
+  .sample-title {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: 110px;
+    line-height: 0.92;
+    letter-spacing: 0.04em;
+    color: var(--paper-ink);
+  }
+  .sample-sub {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 500;
+    font-size: 14px;
+    margin-top: 28px;
+    color: var(--paper-ink);
+    letter-spacing: 0.22em;
+    max-width: 540px;
+    line-height: 1.8;
+  }
+  .sample-sub .pause { color: var(--paper-ink-dim); margin: 0 8px; }
+  .sample-sub .seal-tx { color: var(--accent-seal); }
+  .sample-stroke {
+    position: absolute;
+    right: 8%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 180px;
+    height: 180px;
+    color: var(--paper-ink);
+    opacity: 0.85;
+  }
+  .sample-chop {
+    position: absolute;
+    right: 36px; bottom: 36px;
+    width: 50px; height: 50px;
+    background: var(--accent-seal);
+    color: oklch(96% 0.02 60);
+    font-family: "Noto Serif SC", serif;
+    font-weight: 900;
+    font-size: 22px;
+    display: grid; place-items: center;
+    transform: rotate(4deg);
+    box-shadow:
+      inset 0 0 0 1.5px oklch(96% 0.02 60 / 0.28),
+      0 0 0 1px oklch(0% 0 0 / 0.18);
+    letter-spacing: 0;
+  }
+
+  /* ----- PROFILE SNIPPET ----- */
+  .profile {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 64px;
+    align-items: start;
+  }
+  .profile-portrait {
+    width: 180px; height: 220px;
+    background:
+      radial-gradient(ellipse 56px 70px at 50% 38%, oklch(38% 0.03 60), transparent 65%),
+      radial-gradient(ellipse 70px 52px at 50% 70%, oklch(30% 0.02 60), transparent 70%),
+      linear-gradient(180deg, oklch(24% 0.02 60), oklch(18% 0.02 60));
+    border: 1px solid var(--rule-faint);
+    position: relative;
+  }
+  .profile-portrait::after {
+    content: "INK PORTRAIT · 阿伟";
+    position: absolute; bottom: -28px; left: 0; right: 0;
+    text-align: center;
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    color: var(--ink-dimmer);
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .profile-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 56px;
+    color: var(--ink);
+    letter-spacing: 0.14em;
+    line-height: 1;
+  }
+  .profile-handle {
+    margin-top: 12px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 13px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.18em;
+  }
+  .profile-tagline {
+    margin-top: 18px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 14px;
+    color: var(--ink-dim);
+    letter-spacing: 0.24em;
+  }
+  .profile-stats {
+    margin-top: 44px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px 56px;
+  }
+  .stat-cell .stat-label {
+    font-size: 10.5px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ink-dimmer);
+    margin-bottom: 10px;
+    font-family: "Noto Sans SC", sans-serif;
+  }
+  .stat-cell .stat-value {
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .stat-cell .stat-sub {
+    margin-top: 8px;
+    font-family: "Noto Serif SC", serif;
+    font-size: 12px;
+    color: var(--ink-dim);
+    letter-spacing: 0.14em;
+  }
+  .relations {
+    margin-top: 56px;
+    padding-top: 36px;
+    border-top: 1px solid var(--rule-faint);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+  .relation-block .relation-label {
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--ink-dimmer);
+    margin-bottom: 22px;
+  }
+  .relation-name {
+    font-family: "Noto Serif SC", serif;
+    font-weight: 700;
+    font-size: 44px;
+    color: var(--ink);
+    letter-spacing: 0.14em;
+    line-height: 1;
+  }
+  .relation-handle {
+    margin-top: 10px;
+    font-family: "Noto Sans SC", sans-serif;
+    font-size: 12px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.18em;
+  }
+  .relation-detail {
+    margin-top: 18px;
+    font-family: "Noto Serif SC", serif;
+    font-feature-settings: 'tnum' 1;
+    font-size: 14px;
+    color: var(--ink-dim);
+    letter-spacing: 0.16em;
+    line-height: 1.9;
+  }
+  .relation-detail .num { color: var(--ink); font-weight: 500; }
+
+  /* ----- COLOPHON ----- */
+  .colophon {
+    margin-top: 144px;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule-faint);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: var(--ink-dimmer);
+  }
+  .colophon .l, .colophon .r {
+    font-family: "Noto Serif SC", serif;
+    font-size: 11.5px;
+    letter-spacing: 0.32em;
+  }
+  .colophon .seal { color: var(--accent-seal); }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <!-- ============== TOP NAVIGATION ============== -->
+  <nav class="nav" aria-label="主导航">
+    <div class="nav-tabs">
+      <a class="nav-tab" href="#" aria-current="page">游戏<span class="tab-en">Game</span></a>
+      <a class="nav-tab" href="#">玩家<span class="tab-en">Players</span></a>
+      <a class="nav-tab" href="#">房间<span class="tab-en">Rooms</span></a>
+      <a class="nav-tab" href="#">资料<span class="tab-en">Profile</span></a>
+    </div>
+    <div class="nav-marque">茶席 · TEA-TABLE · v3</div>
+  </nav>
+
+  <!-- ============== HEADER STRIP ============== -->
+  <header class="header">
+    <div class="header-left">
+      <div class="label">茶席编号 · ROOM</div>
+      <div class="room serif">A1B2C3<span class="seal-mark">印</span></div>
+    </div>
+    <div class="header-center">
+      <div class="round serif">第五回</div>
+      <div class="mode">六人 · 三对三 · 进行中</div>
+    </div>
+    <div class="header-right">
+      <div class="label">手谈时长 · ELAPSED</div>
+      <div class="stat serif">18 : 42</div>
+      <div class="sync"><span class="pulse"></span><span>SYNC · 实时</span></div>
+    </div>
+  </header>
+
+  <div class="brush-rule"><span class="blot"></span><span class="line"></span></div>
+
+  <!-- ============== MODE SELECTOR ============== -->
+  <section class="section tight" aria-label="对局模式">
+    <div class="mode-selector">
+      <div class="mode-opt" data-active="false">四人<span class="opt-en">2 v 2</span></div>
+      <div class="mode-opt" data-active="true">六人 · 当前<span class="opt-en">3 v 3</span></div>
+      <div class="mode-opt" data-active="false">八人<span class="opt-en">4 v 4</span></div>
+    </div>
+  </section>
+
+  <!-- ============== TWO TEAM PANELS ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">壹</span>
+      <span class="section-title serif">阵列</span>
+      <span class="section-en">Two Sides</span>
+    </div>
+
+    <div class="scorer">
+
+      <!-- RED TEAM at 4 -->
+      <div class="team" data-team="red">
+        <div class="team-label">红方 · TEAM 红<div class="accent-bar"></div></div>
+        <div class="team-status-chip serif">本局所有 · 四</div>
+
+        <div class="team-level">
+          <div>
+            <span class="card-glyph serif">4</span>
+            <span class="card-annotation">肆 · LEVEL 4</span>
+          </div>
+          <div class="meta">
+            <div class="lvl-label">当前级牌</div>
+            <div class="lvl-value serif">
+              <strong>距 A 尚九级</strong><br>
+              五 · 六 · 七 · 八 · 九 · 十 · J · Q · K · A
+            </div>
+          </div>
+        </div>
+
+        <div class="roster" data-team="red">
+          <div class="roster-label">花名册 · Roster</div>
+          <ul>
+            <li><span class="name serif"><span class="pigment-dot"></span>老张</span><span class="handle">@laozhang</span></li>
+            <li><span class="name serif"><span class="pigment-dot"></span>阿伟</span><span class="handle">@awei</span></li>
+            <li><span class="name serif"><span class="pigment-dot"></span>大刘</span><span class="handle">@daliu</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- BLUE TEAM at 3 -->
+      <div class="team" data-team="blue">
+        <div class="team-label">蓝方 · TEAM 蓝<div class="accent-bar"></div></div>
+
+        <div class="team-level">
+          <div>
+            <span class="card-glyph serif">三</span>
+            <span class="card-annotation">叁 · LEVEL 3</span>
+          </div>
+          <div class="meta">
+            <div class="lvl-label">当前级牌</div>
+            <div class="lvl-value serif">
+              <strong>距 A 尚十级</strong><br>
+              四 · 五 · 六 · 七 · 八 · 九 · 十 · J · Q · K · A
+            </div>
+          </div>
+        </div>
+
+        <div class="roster" data-team="blue">
+          <div class="roster-label">花名册 · Roster</div>
+          <ul>
+            <li><span class="name serif"><span class="pigment-dot"></span>小王</span><span class="handle">@xiaowang</span></li>
+            <li><span class="name serif"><span class="pigment-dot"></span>阿明</span><span class="handle">@aming</span></li>
+            <li><span class="name serif"><span class="pigment-dot"></span>小美</span><span class="handle">@xiaomei</span></li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============== ACTIVE GAME (HERO) ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">贰</span>
+      <span class="section-title serif">本局 · 排名待定</span>
+      <span class="section-en">Active Hand · Mid-Ranking</span>
+    </div>
+
+    <div class="owner-banner">
+      <div class="pre">本局 · This Hand</div>
+      <div class="line serif">
+        本局 <span class="seal-tx serif">四</span> · 红队之级
+        <span style="color: var(--ink-dimmer); margin: 0 6px;">·</span>
+        待二位玩家入位
+        <span class="next">下局级牌待定 · 严式 · 凡有头游方升</span>
+      </div>
+    </div>
+
+    <div class="active-frame">
+
+      <!-- INTERACTION CAPTION -->
+      <div class="drag-caption">
+        <span class="step">手势 · GESTURE</span>
+        <span class="serif">拖拽</span>
+        <span class="arrow-glyph">›</span>
+        <span class="serif">入位</span>
+        <span style="color: var(--ink-faint); margin: 0 14px;">·</span>
+        <span class="serif" style="color: var(--ink-dimmer); font-size: 12px;">触屏 · 长按二百毫秒</span>
+      </div>
+
+      <!-- PLAYER POOL -->
+      <div class="pool-block">
+        <div class="pool-head">
+          <div class="pool-title serif">玩家池<span class="count serif">· 待排名 四位</span></div>
+          <div class="pool-en">Player Pool · Drag Source</div>
+        </div>
+        <div class="pool-grid">
+          <!-- DRAGGING tile (mid-flight) -->
+          <div class="player-tile" data-team="red" data-state="dragging">
+            <div class="tile-name serif">大刘</div>
+            <div class="tile-handle">@daliu</div>
+            <div class="tile-team serif"><span class="pigment-dot"></span>红方</div>
+          </div>
+          <div class="player-tile" data-team="blue">
+            <div class="tile-name serif">阿明</div>
+            <div class="tile-handle">@aming</div>
+            <div class="tile-team serif"><span class="pigment-dot"></span>蓝方</div>
+          </div>
+          <div class="player-tile" data-team="blue">
+            <div class="tile-name serif">小美</div>
+            <div class="tile-handle">@xiaomei</div>
+            <div class="tile-team serif"><span class="pigment-dot"></span>蓝方</div>
+          </div>
+          <div class="player-tile" data-team="red">
+            <div class="tile-name serif">老张</div>
+            <div class="tile-handle">@laozhang</div>
+            <div class="tile-team serif"><span class="pigment-dot"></span>红方</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RANKING SLOTS -->
+      <div class="slots-block">
+        <div class="slots-head">
+          <div class="slots-title serif">名次 · 一至六</div>
+          <div class="slots-en">Drop Targets · 1st through Last</div>
+        </div>
+
+        <div class="slot-grid">
+          <!-- Slot 1 (filled, red, 头游) -->
+          <div class="slot" data-state="filled" data-team="red" data-pos="1">
+            <div class="slot-tick">✓</div>
+            <div class="slot-pos serif">一<span class="pos-en">头游 · 1ST</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif"><span class="pigment-dot" style="background: var(--team-ochre);"></span>阿伟</span>
+              <span class="resident-handle">@awei</span>
+            </div>
+          </div>
+
+          <!-- Slot 2 (filled, blue) -->
+          <div class="slot" data-state="filled" data-team="blue" data-pos="2">
+            <div class="slot-tick">✓</div>
+            <div class="slot-pos serif">二<span class="pos-en">2ND</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif"><span class="pigment-dot" style="background: var(--team-indigo);"></span>小王</span>
+              <span class="resident-handle">@xiaowang</span>
+            </div>
+          </div>
+
+          <!-- Slot 3 (DROP TARGET - 大刘 mid-drag toward this) -->
+          <div class="slot" data-state="dropTarget" data-pos="3">
+            <div class="slot-pos serif">三<span class="pos-en">3RD</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif">入位</span>
+            </div>
+          </div>
+
+          <!-- Slot 4 (empty) -->
+          <div class="slot" data-state="empty" data-pos="4">
+            <div class="slot-pos serif">四<span class="pos-en">4TH</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif">等候</span>
+            </div>
+          </div>
+
+          <!-- Slot 5 (empty) -->
+          <div class="slot" data-state="empty" data-pos="5">
+            <div class="slot-pos serif">五<span class="pos-en">5TH</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif">等候</span>
+            </div>
+          </div>
+
+          <!-- Slot 6 (empty, 末游) -->
+          <div class="slot" data-state="empty" data-pos="6">
+            <div class="slot-pos serif">六<span class="pos-en">末游 · LAST</span></div>
+            <div class="slot-resident">
+              <span class="resident-name serif">等候</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVE CALC + TOGGLES -->
+      <div class="active-footer">
+        <div class="live-calc serif">
+          <span class="pre-label">即算 · LIVE CALC</span>
+          等候最后 <span class="stress">四位</span> · 局未终
+          <span style="color: var(--ink-faint); margin: 0 14px;">·</span>
+          已落 <span class="stress">二</span> 位 · 红 一位 · 蓝 一位
+          <span style="color: var(--ink-faint); margin: 0 14px;">·</span>
+          升级未定
+        </div>
+
+        <div class="toggles">
+          <div class="t-item"><span class="t-mark serif" data-on="true">✓</span><span class="t-label">自动应用结果</span></div>
+          <div class="t-item"><span class="t-mark serif" data-on="true">✓</span><span class="t-label">自动进次回</span></div>
+          <div class="t-item"><span class="t-mark serif" data-on="true">✓</span><span class="t-label">严式 A 级</span></div>
+          <div class="t-item"><span class="t-mark serif" data-on="true">✓</span><span class="t-label">仅有头游方升</span></div>
+        </div>
+      </div>
+
+      <!-- MANUAL ACTIONS (text-link style) -->
+      <div class="manual-actions">
+        <span class="helper">手动 · MANUAL</span>
+        <a href="#" class="serif">应用结果</a>
+        <a href="#" class="serif">进入下一局</a>
+        <a href="#" class="serif">撤销上一局</a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============== CUSTOM RULES DRAWER (collapsed) ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">叁</span>
+      <span class="section-title serif">规约</span>
+      <span class="section-en">House Rules · Collapsed</span>
+    </div>
+
+    <div class="rules-drawer">
+      <div class="rules-label serif">
+        当前规约
+        <span class="rules-en">Active config</span>
+      </div>
+      <div class="rules-preview serif">
+        <span class="key">四人升级</span> · 三二一
+        <span class="div">｜</span>
+        <span class="key">六人阈值</span> · 七四一
+        <span class="div">｜</span>
+        <span class="key">六人分值</span> · 五四三三一零
+        <span class="div">｜</span>
+        <span class="key">A 级</span> · 严式
+      </div>
+      <a href="#" class="rules-toggle serif">[ 展开 ]</a>
+    </div>
+  </section>
+
+  <!-- ============== HISTORY (谱录 · 末四回) ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">肆</span>
+      <span class="section-title serif">谱录 · 末四回</span>
+      <span class="section-en">Last 4 Rounds + Current</span>
+    </div>
+
+    <table class="ledger">
+      <thead>
+        <tr>
+          <th class="col-round">回数</th>
+          <th class="col-level">级牌</th>
+          <th class="col-winner">胜方</th>
+          <th class="col-combo">名次组合</th>
+          <th class="col-result">升级</th>
+          <th class="col-levels">红 / 蓝</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-round serif">第一回</td>
+          <td class="col-level serif">2</td>
+          <td class="col-winner red"><span class="swatch"></span>红</td>
+          <td class="col-combo serif">一 · 二 · 五</td>
+          <td class="col-result serif">升二级</td>
+          <td class="col-levels serif"><span class="red-tx">四</span> · <span class="blue-tx">二</span></td>
+        </tr>
+        <tr>
+          <td class="col-round serif">第二回</td>
+          <td class="col-level serif">4</td>
+          <td class="col-winner blue"><span class="swatch"></span>蓝</td>
+          <td class="col-combo serif">一 · 三 · 四</td>
+          <td class="col-result serif">升一级</td>
+          <td class="col-levels serif"><span class="red-tx">四</span> · <span class="blue-tx">三</span></td>
+        </tr>
+        <tr>
+          <td class="col-round serif">第三回</td>
+          <td class="col-level serif">3</td>
+          <td class="col-winner red"><span class="swatch"></span>红</td>
+          <td class="col-combo serif">一 · 二 · 四</td>
+          <td class="col-result serif">不升 · 须头游方升 · 已具</td>
+          <td class="col-levels serif"><span class="red-tx">四</span> · <span class="blue-tx">三</span></td>
+        </tr>
+        <tr>
+          <td class="col-round serif">第四回</td>
+          <td class="col-level serif">3</td>
+          <td class="col-winner red"><span class="swatch"></span>红</td>
+          <td class="col-combo serif">一 · 三 · 五</td>
+          <td class="col-result serif">不升 · 差未及阈</td>
+          <td class="col-levels serif"><span class="red-tx">四</span> · <span class="blue-tx">三</span></td>
+        </tr>
+        <tr class="row-current">
+          <td class="col-round serif">第五回</td>
+          <td class="col-level serif">4</td>
+          <td class="col-winner pending">
+            <span class="current-mark">
+              <span class="mini-stamp serif">本</span>
+              <span class="serif">进行中</span>
+            </span>
+          </td>
+          <td class="col-combo serif">一 · 二 · ?</td>
+          <td class="col-result serif">— · 待定</td>
+          <td class="col-levels serif"><span class="red-tx">四</span> · <span class="blue-tx">三</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============== HONORS GALLERY (16-system, 6 cards, mostly pending) ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">伍</span>
+      <span class="section-title serif">封号 · 进行中</span>
+      <span class="section-en">Honors of the Session · In Progress</span>
+    </div>
+
+    <div class="honors-grid">
+
+      <!-- 吕布 — 阿伟 leading -->
+      <div class="honor" data-state="leading">
+        <div class="ink-portrait" data-name="阿伟"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">吕布<span class="lead-mark">领</span></div>
+          <div class="honor-tagline serif">最多第一名</div>
+          <div class="honor-recipient serif">阿伟<span class="handle">@awei</span></div>
+          <div class="honor-detail serif">二度头游 · 四局之中 · 暂列首席</div>
+        </div>
+      </div>
+
+      <!-- 闪电侠 — 老张 leading -->
+      <div class="honor" data-state="leading">
+        <div class="ink-portrait" data-name="老张"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">闪电侠<span class="lead-mark">领</span></div>
+          <div class="honor-tagline serif">变化频繁</div>
+          <div class="honor-recipient serif">老张<span class="handle">@laozhang</span></div>
+          <div class="honor-detail serif">三回换次 · 名变最勤</div>
+        </div>
+      </div>
+
+      <!-- 阿斗 — pending -->
+      <div class="honor" data-state="pending">
+        <div class="ink-portrait" data-name="?" data-pending="true"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">阿斗</div>
+          <div class="honor-tagline serif">最多垫底</div>
+          <div class="honor-recipient serif">未定 · 待续</div>
+          <div class="honor-detail serif">候选 · 阿明（一末） · 小美（一末）</div>
+        </div>
+      </div>
+
+      <!-- 石佛 — pending -->
+      <div class="honor" data-state="pending">
+        <div class="ink-portrait" data-name="?" data-pending="true"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">石佛</div>
+          <div class="honor-tagline serif">优秀且稳定</div>
+          <div class="honor-recipient serif">未定 · 待续</div>
+          <div class="honor-detail serif">局少未稳 · 须达八回方判</div>
+        </div>
+      </div>
+
+      <!-- 守门员 — pending -->
+      <div class="honor" data-state="pending">
+        <div class="ink-portrait" data-name="?" data-pending="true"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">守门员</div>
+          <div class="honor-tagline serif">护伴免落底</div>
+          <div class="honor-recipient serif">未定 · 待续</div>
+          <div class="honor-detail serif">候选 · 大刘（曾居四位防末）</div>
+        </div>
+      </div>
+
+      <!-- 大满贯 — pending -->
+      <div class="honor" data-state="pending">
+        <div class="ink-portrait" data-name="?" data-pending="true"></div>
+        <div class="honor-body">
+          <div class="honor-name serif">大满贯</div>
+          <div class="honor-tagline serif">体验所有排名</div>
+          <div class="honor-recipient serif">未定 · 待续</div>
+          <div class="honor-detail serif">尚缺 · 一 · 二 · 末 三位</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="honors-meta serif">
+      封号共十六 · 此局已亮 二 · 余下十四 待续
+    </div>
+  </section>
+
+  <!-- ============== 示例 · 通关时刻 (sample only) ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">陆</span>
+      <span class="section-title serif">示例 · 通关之像</span>
+      <span class="section-en">Sample · How a Championship Ends</span>
+    </div>
+
+    <div class="sample-frame">
+      <div class="sample-tag serif">非本局 · for reference</div>
+      <div class="sample-meta">A 级通关 · 红队凯旋</div>
+      <div class="sample-title serif">通关</div>
+      <div class="sample-sub serif">
+        红队 <span class="pause">·</span>
+        一二四之名 <span class="pause">·</span>
+        无末游 <span class="pause">·</span>
+        自己的 <span class="seal-tx">A</span> 级通关
+      </div>
+
+      <svg class="sample-stroke" viewBox="0 0 320 320" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M 32 248 C 60 196, 110 152, 156 138 S 248 100, 282 64"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="10"
+              stroke-linecap="round"
+              opacity="0.85"/>
+        <path d="M 270 70 C 282 62, 290 60, 296 56"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linecap="round"
+              opacity="0.6"/>
+        <circle cx="38" cy="246" r="3.5" fill="currentColor" opacity="0.7"/>
+      </svg>
+
+      <div class="sample-chop serif">胜</div>
+    </div>
+  </section>
+
+  <!-- ============== PLAYER PROFILE — 阿伟 ============== -->
+  <section class="section">
+    <div class="section-head">
+      <span class="section-num serif">柒</span>
+      <span class="section-title serif">谱传 · 阿伟</span>
+      <span class="section-en">Profile · @awei</span>
+    </div>
+
+    <div class="profile">
+      <div class="profile-portrait"></div>
+
+      <div class="profile-content">
+        <div class="profile-name serif">阿伟</div>
+        <div class="profile-handle">@awei · since 2024</div>
+        <div class="profile-tagline serif">桌前常客 · 算与众皆推之</div>
+
+        <div class="profile-stats">
+
+          <div class="stat-cell">
+            <div class="stat-label">手谈场数</div>
+            <div class="stat-value serif">47</div>
+            <div class="stat-sub serif">SESSIONS PLAYED</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">通关之数</div>
+            <div class="stat-value serif">29</div>
+            <div class="stat-sub serif">61.7% 胜率</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">单局之数</div>
+            <div class="stat-value serif">412</div>
+            <div class="stat-sub serif">ROUNDS PLAYED</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">毕生均名</div>
+            <div class="stat-value serif">2.84</div>
+            <div class="stat-sub serif">CAREER AVG RANKING</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">在席时长</div>
+            <div class="stat-value serif">38<span style="font-size: 18px; color: var(--ink-dim); margin: 0 4px;">时</span>22<span style="font-size: 18px; color: var(--ink-dim); margin-left: 4px;">分</span></div>
+            <div class="stat-sub serif">38h 22m TOTAL</div>
+          </div>
+
+          <div class="stat-cell">
+            <div class="stat-label">历年公选</div>
+            <div class="stat-value serif">23<span style="font-size: 16px; color: var(--ink-dim); margin: 0 8px;">·</span><span style="color: var(--accent-seal); font-size: 20px;">2</span></div>
+            <div class="stat-sub serif">23 最C · 2 最闹</div>
+          </div>
+
+        </div>
+
+        <div class="relations">
+          <div class="relation-block">
+            <div class="relation-label">至契搭子 · TOP PARTNER</div>
+            <div class="relation-name serif">老张</div>
+            <div class="relation-handle">@laozhang</div>
+            <div class="relation-detail serif">
+              同坐 <span class="num">廿四席</span> ·
+              并胜 <span class="num">十八</span> ·
+              共胜率 <span class="num">75%</span>
+            </div>
+          </div>
+
+          <div class="relation-block">
+            <div class="relation-label">劲敌 · TOP RIVAL</div>
+            <div class="relation-name serif">小王</div>
+            <div class="relation-handle">@xiaowang</div>
+            <div class="relation-detail serif">
+              对坐 <span class="num">卅一席</span> ·
+              负 <span class="num">十八</span> ·
+              负率 <span class="num">58%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============== COLOPHON ============== -->
+  <footer class="colophon">
+    <div class="l">茶席 · TEA-TABLE CONTEMPLATIVE · v3 · ACTIVE GAME</div>
+    <div class="r">第五回 · 排名待定 · <span class="seal">印</span> 候</div>
+  </footer>
+
+</main>
+</body>
+</html>

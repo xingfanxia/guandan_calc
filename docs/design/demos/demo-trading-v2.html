@@ -1,0 +1,2110 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280, initial-scale=1">
+<title>GD//TERM · ROOM A1B2C3 · R5 [LVL 4 · RED OWN · 4 PEND]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Trading Terminal palette — UNCHANGED from v1 */
+    --bg: oklch(12% 0.005 240);
+    --surface: oklch(16% 0.005 240);
+    --surface-2: oklch(20% 0.005 240);
+    --surface-3: oklch(24% 0.005 240);
+    --ink: oklch(96% 0.01 250);
+    --ink-dim: oklch(70% 0.01 250);
+    --ink-dimmer: oklch(50% 0.01 250);
+    --signal-up: oklch(72% 0.18 145);
+    --signal-down: oklch(64% 0.20 25);
+    --accent-amber: oklch(80% 0.16 80);
+    --accent-amber-dim: oklch(55% 0.14 80);
+    --team-a: oklch(60% 0.20 25);
+    --team-b: oklch(60% 0.18 250);
+    --team-a-soft: oklch(28% 0.08 25);
+    --team-b-soft: oklch(28% 0.08 250);
+    --rule: oklch(28% 0.005 240);
+    --rule-strong: oklch(40% 0.005 240);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { background: var(--bg); }
+  body {
+    margin: 0;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-feature-settings: 'tnum' 1, 'zero' 1, 'cv02' 1;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      linear-gradient(to right, var(--rule) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+    background-size: 80px 80px;
+    background-position: 0 86px;
+  }
+
+  .num { font-variant-numeric: tabular-nums slashed-zero; }
+  .prose { font-family: 'IBM Plex Sans', ui-sans-serif, system-ui; }
+
+  /* ========== TOP NAV (4-surface) ========== */
+  .navbar {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 6px 16px;
+    display: flex; gap: 4px;
+    align-items: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .navbar .brand-dot {
+    color: var(--accent-amber);
+    font-weight: 700;
+    padding: 4px 10px;
+    border-right: 1px solid var(--rule-strong);
+    margin-right: 6px;
+    letter-spacing: 0.12em;
+  }
+  .nav-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    text-decoration: none;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
+  .nav-tag .bracket { color: var(--ink-dimmer); }
+  .nav-tag.is-active {
+    border-color: var(--accent-amber);
+    color: var(--accent-amber);
+    background: oklch(20% 0.04 80 / 0.18);
+    box-shadow: inset 0 -1px 0 var(--accent-amber);
+  }
+  .nav-tag.is-active .bracket { color: var(--accent-amber); }
+  .nav-meta {
+    margin-left: auto;
+    display: flex; gap: 6px; align-items: center;
+    font-size: 10px;
+    color: var(--ink-dimmer);
+  }
+  .nav-meta .pill {
+    padding: 2px 6px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+  }
+  .nav-meta .pill.amber { border-color: var(--accent-amber-dim); color: var(--accent-amber); }
+  .nav-meta .who { color: var(--ink); font-weight: 700; }
+
+  /* ========== HEADER STATUS STRIP ========== */
+  .topbar {
+    position: sticky; top: 36px; z-index: 30;
+    background: var(--bg);
+    border-bottom: 1px solid var(--rule-strong);
+    padding: 8px 16px;
+    display: flex; gap: 6px;
+    overflow-x: auto;
+    align-items: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .sblk {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px;
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    color: var(--ink);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .sblk .k { color: var(--ink-dimmer); }
+  .sblk .v { color: var(--ink); font-weight: 500; }
+  .sblk--amber { border-color: var(--accent-amber); color: var(--accent-amber); background: oklch(20% 0.04 80 / 0.15); }
+  .sblk--amber .k, .sblk--amber .v { color: var(--accent-amber); }
+  .sblk--up { border-color: var(--signal-up); color: var(--signal-up); }
+  .sblk--down { border-color: var(--signal-down); color: var(--signal-down); }
+  .sblk--red { background: var(--team-a-soft); border-color: var(--team-a); color: var(--ink); }
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--signal-up);
+    box-shadow: 0 0 8px var(--signal-up);
+    animation: pulse 1.6s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.45; transform: scale(0.85); }
+  }
+  .ticker { margin-left: auto; color: var(--ink-dimmer); padding-left: 16px; flex-shrink: 0; }
+
+  /* ========== CONTAINER ========== */
+  .wrap {
+    max-width: 1280px; margin: 0 auto;
+    padding: 14px 16px 90px;
+  }
+
+  /* ========== SECTION HEADERS ========== */
+  .sec {
+    margin-top: 18px;
+    margin-bottom: 8px;
+    display: flex; align-items: baseline; gap: 12px;
+    border-bottom: 1px dashed var(--rule-strong);
+    padding-bottom: 6px;
+  }
+  .sec h2 {
+    margin: 0;
+    font-size: 11px;
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 700;
+  }
+  .sec .meta {
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-left: auto;
+  }
+  .sec .meta span { color: var(--ink-dim); }
+
+  /* ========== MODE SELECTOR (4P/6P/8P radio strip) ========== */
+  .mode-bar {
+    display: flex; gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    padding: 8px 12px;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .mode-bar .lbl {
+    color: var(--ink-dimmer);
+    margin-right: 8px;
+    border-right: 1px solid var(--rule-strong);
+    padding-right: 12px;
+  }
+  .mode-radio {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    background: var(--bg);
+    cursor: pointer;
+  }
+  .mode-radio .box {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 1px solid var(--ink-dim);
+    text-align: center;
+    line-height: 11px;
+    font-size: 10px;
+    color: var(--accent-amber);
+  }
+  .mode-radio.is-active {
+    border-color: var(--accent-amber);
+    color: var(--accent-amber);
+    background: oklch(20% 0.04 80 / 0.15);
+  }
+  .mode-radio.is-active .box { border-color: var(--accent-amber); }
+  .mode-bar .meta {
+    margin-left: auto;
+    color: var(--ink-dimmer);
+    font-size: 10px;
+  }
+  .mode-bar .meta .v { color: var(--ink-dim); }
+
+  /* ========== TEAM PANELS ========== */
+  .teams {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .team {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    padding: 12px;
+    display: grid;
+    grid-template-rows: auto auto auto auto auto;
+    gap: 10px;
+  }
+  .team--red { border-left: 3px solid var(--team-a); }
+  .team--blue { border-left: 3px solid var(--team-b); }
+  .team--owner { box-shadow: inset 0 0 0 1px var(--accent-amber); }
+
+  .team-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .team-name { font-weight: 700; }
+  .team--red .team-name { color: var(--team-a); }
+  .team--blue .team-name { color: var(--team-b); }
+  .team-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    font-size: 10px;
+  }
+  .team-tag.amber { border-color: var(--accent-amber); color: var(--accent-amber); }
+
+  /* Sparkline strip */
+  .spark-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .spark-row .label { width: 92px; flex-shrink: 0; }
+  .spark-row svg { display: block; width: 100%; height: 28px; flex: 1; }
+  .spark-row .delta {
+    width: 56px; text-align: right; flex-shrink: 0;
+    font-weight: 500;
+  }
+  .spark-row .delta.up { color: var(--signal-up); }
+  .spark-row .delta.down { color: var(--signal-down); }
+  .spark-row .delta.flat { color: var(--ink-dim); }
+
+  /* Level card glyph (ASCII tile) */
+  .levelbox {
+    display: grid; grid-template-columns: auto 1fr; gap: 14px;
+    align-items: center;
+  }
+  .levelglyph {
+    border: 2px solid var(--ink-dim);
+    width: 130px; height: 156px;
+    display: grid;
+    grid-template-rows: 26px 1fr 26px;
+    padding: 8px;
+    background: var(--bg);
+    position: relative;
+  }
+  .team--red .levelglyph { border-color: var(--team-a); }
+  .team--blue .levelglyph { border-color: var(--team-b); }
+  .team--owner .levelglyph { border-color: var(--accent-amber); }
+  .levelglyph .corner-tl, .levelglyph .corner-br {
+    font-size: 13px;
+    color: var(--ink-dim);
+    line-height: 1;
+    font-weight: 500;
+  }
+  .levelglyph .corner-tl { text-align: left; }
+  .levelglyph .corner-br { text-align: right; align-self: end; }
+  .levelglyph .center {
+    align-self: center; justify-self: center;
+    font-size: 96px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+  }
+  .team--red .levelglyph .center { color: var(--team-a); }
+  .team--blue .levelglyph .center { color: var(--team-b); }
+  .team--owner .levelglyph .center { color: var(--accent-amber); }
+  .level-meta {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 11px;
+  }
+  .level-meta .row { display: flex; justify-content: space-between; gap: 12px; }
+  .level-meta .k { color: var(--ink-dimmer); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; }
+  .level-meta .v { color: var(--ink); font-weight: 500; text-align: right; }
+  .level-meta .v.amber { color: var(--accent-amber); }
+  .level-meta .v.up { color: var(--signal-up); }
+  .level-meta .v.down { color: var(--signal-down); }
+
+  /* Players list */
+  .players {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 12px;
+    border-top: 1px dashed var(--rule);
+    padding-top: 8px;
+  }
+  .player-line {
+    display: grid; grid-template-columns: 24px 1fr auto auto;
+    align-items: center; gap: 8px;
+    padding: 3px 0;
+  }
+  .ascii-avatar {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--surface-2);
+  }
+  .team--red .ascii-avatar.t { color: var(--team-a); border-color: var(--team-a); }
+  .team--blue .ascii-avatar.t { color: var(--team-b); border-color: var(--team-b); }
+  .player-name { font-weight: 500; }
+  .player-handle { color: var(--ink-dimmer); font-size: 11px; }
+  .player-tag {
+    font-size: 10px;
+    padding: 1px 5px;
+    border: 1px solid var(--accent-amber-dim);
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .player-tag.danger { border-color: var(--signal-down); color: var(--signal-down); }
+  .player-tag.dim { border-color: var(--rule-strong); color: var(--ink-dim); }
+
+  .arule {
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-top: 1px dashed var(--rule);
+    padding-top: 6px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .arule .pill {
+    display: inline-block; padding: 2px 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-strong);
+  }
+  .arule .pill.up { border-color: var(--signal-up); color: var(--signal-up); }
+  .arule .pill.amber { border-color: var(--accent-amber); color: var(--accent-amber); }
+  .arule .pill.down { border-color: var(--signal-down); color: var(--signal-down); }
+
+  /* ========== ACTIVE GAME SECTION (THE HERO) ========== */
+  .game-region {
+    background: var(--surface);
+    border: 1px solid var(--accent-amber-dim);
+    padding: 12px;
+    margin-top: 8px;
+    box-shadow: inset 0 0 0 1px oklch(20% 0.04 80 / 0.2);
+  }
+
+  /* Round-owner banner */
+  .roundbanner {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg);
+    border: 1px solid var(--accent-amber);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+  .roundbanner .lhs { display: inline-flex; align-items: center; gap: 10px; }
+  .roundbanner .lhs .slash {
+    color: var(--accent-amber-dim);
+    font-weight: 400;
+  }
+  .roundbanner .badge {
+    padding: 3px 8px;
+    border: 1px solid var(--accent-amber-dim);
+    background: oklch(20% 0.04 80 / 0.2);
+    font-size: 11px;
+  }
+  .roundbanner .rhs {
+    display: inline-flex; gap: 8px; align-items: center;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.06em;
+  }
+  .roundbanner .rhs .v { color: var(--accent-amber); font-weight: 700; }
+  .roundbanner .pulse-dot {
+    display: inline-block; width: 8px; height: 8px;
+    background: var(--accent-amber);
+    box-shadow: 0 0 10px var(--accent-amber);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  /* Drag-interaction annotation header */
+  .interact-hint {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; margin-bottom: 6px;
+    padding: 5px 10px;
+    background: var(--bg);
+    border: 1px dashed var(--accent-amber-dim);
+    color: var(--accent-amber);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .interact-hint .arrow { color: var(--accent-amber-dim); margin: 0 6px; }
+  .interact-hint .meta { color: var(--ink-dimmer); font-size: 10px; }
+
+  /* Pool + Slots split */
+  .pool-and-slots {
+    display: grid; grid-template-columns: 1fr 1.4fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  /* Player Pool (drag source) */
+  .pool-panel {
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    padding: 10px;
+  }
+  .pool-panel .pool-head {
+    font-size: 11px;
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    border-bottom: 1px dashed var(--rule);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .pool-panel .pool-head .ct {
+    color: var(--ink-dim);
+    font-weight: 400;
+    font-size: 10px;
+  }
+  .pool-tile {
+    display: grid;
+    grid-template-columns: 22px 1fr auto auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface-2);
+    margin-bottom: 6px;
+    cursor: grab;
+    font-size: 12px;
+  }
+  .pool-tile:last-child { margin-bottom: 0; }
+  .pool-tile .player-tag.tag-team {
+    font-size: 9px;
+    border: 1px solid;
+    padding: 1px 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .pool-tile .tag-team.red { color: var(--team-a); border-color: var(--team-a); }
+  .pool-tile .tag-team.blue { color: var(--team-b); border-color: var(--team-b); }
+  .pool-tile .grip {
+    color: var(--ink-dimmer);
+    font-size: 11px;
+    letter-spacing: -0.05em;
+  }
+
+  /* The dragging tile (lifted state) */
+  .pool-tile.is-dragging {
+    border: 1px dashed var(--accent-amber);
+    background: oklch(20% 0.04 80 / 0.25);
+    color: var(--accent-amber);
+    transform: translate(2px, -2px);
+    box-shadow: 4px 4px 0 oklch(80% 0.16 80 / 0.18), 0 0 18px oklch(80% 0.16 80 / 0.18);
+    cursor: grabbing;
+  }
+  .pool-tile.is-dragging .player-name { color: var(--accent-amber); }
+  .pool-tile.is-dragging .player-handle { color: var(--accent-amber-dim); }
+  .pool-tile.is-dragging .grip { color: var(--accent-amber); }
+  .pool-tile.is-dragging .status-flag {
+    color: var(--accent-amber);
+    background: var(--bg);
+    padding: 1px 5px;
+    border: 1px solid var(--accent-amber);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  /* Ranking slots */
+  .slots-panel {
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    padding: 10px;
+  }
+  .slots-panel .slots-head {
+    font-size: 11px;
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    border-bottom: 1px dashed var(--rule);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .slots-panel .slots-head .ct { color: var(--ink-dim); font-weight: 400; font-size: 10px; }
+
+  .slot-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 12px;
+  }
+  .slot-row:last-child { border-bottom: none; }
+  .slot-prefix {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--ink-dimmer);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+  .slot-prefix .arrow { color: var(--accent-amber); }
+  .slot-prefix .seat { color: var(--ink-dim); }
+  .slot-prefix .seat.first { color: var(--accent-amber); }
+  .slot-prefix .seat.last { color: var(--signal-down); }
+
+  .slot-bin {
+    border: 1px solid var(--rule-strong);
+    background: var(--surface-2);
+    padding: 7px 10px;
+    min-height: 34px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+  }
+  .slot-bin .player-name { font-weight: 700; }
+  .slot-bin.is-filled { border-color: var(--signal-up); color: var(--ink); background: oklch(28% 0.06 145 / 0.18); }
+  .slot-bin.is-filled .check { color: var(--signal-up); font-weight: 700; }
+
+  /* Drop target slot — amber highlighted */
+  .slot-bin.is-drop {
+    border: 1px solid var(--accent-amber);
+    background: oklch(20% 0.04 80 / 0.18);
+    color: var(--accent-amber);
+    box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.4), 0 0 14px oklch(80% 0.16 80 / 0.16);
+    animation: amber-pulse 1.4s ease-in-out infinite;
+  }
+  .slot-bin.is-drop .player-name { color: var(--accent-amber); }
+  .slot-bin.is-drop .pending {
+    color: var(--accent-amber);
+    margin-left: auto;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    border: 1px solid var(--accent-amber);
+    padding: 1px 5px;
+  }
+  @keyframes amber-pulse {
+    0%, 100% { box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.4), 0 0 14px oklch(80% 0.16 80 / 0.16); }
+    50% { box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.8), 0 0 22px oklch(80% 0.16 80 / 0.30); }
+  }
+
+  /* Empty slot — placeholder */
+  .slot-bin.is-empty {
+    color: var(--ink-dimmer);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    background: var(--bg);
+  }
+  .slot-bin.is-empty .placeholder {
+    color: var(--ink-dimmer);
+    letter-spacing: -0.05em;
+  }
+  .slot-bin .team-pill-tiny {
+    font-size: 9px;
+    padding: 0 5px;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .slot-bin .team-pill-tiny.red { color: var(--team-a); border-color: var(--team-a); }
+  .slot-bin .team-pill-tiny.blue { color: var(--team-b); border-color: var(--team-b); }
+
+  /* Live calc bar */
+  .calc-live {
+    margin-top: 10px;
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    padding: 10px 14px;
+    font-size: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .calc-live .pcell {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+  }
+  .calc-live .pcell .lab {
+    color: var(--ink-dimmer);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    width: 50px;
+    flex-shrink: 0;
+  }
+  .calc-live .pcell .ranks {
+    color: var(--ink);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .calc-live .pcell .eq {
+    color: var(--ink-dim);
+    margin: 0 6px;
+  }
+  .calc-live .pcell .pts {
+    color: var(--accent-amber);
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .calc-live .pcell.red .ranks { color: var(--team-a); }
+  .calc-live .pcell.blue .ranks { color: var(--team-b); }
+  .calc-live .pcell.diff {
+    border-left: 1px solid var(--rule-strong);
+    padding-left: 10px;
+  }
+  .calc-live .pcell.diff .pts {
+    color: var(--accent-amber);
+    font-size: 14px;
+  }
+  .calc-live .pending-marker {
+    color: var(--ink-dimmer);
+    font-style: italic;
+  }
+
+  /* Auto toggle row */
+  .toggle-row {
+    margin-top: 10px;
+    display: flex; gap: 6px;
+    flex-wrap: wrap;
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    padding: 8px 10px;
+    align-items: center;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .toggle-row .lbl {
+    color: var(--ink-dimmer);
+    margin-right: 8px;
+    border-right: 1px solid var(--rule-strong);
+    padding-right: 8px;
+    font-weight: 700;
+  }
+  .toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 8px;
+    border: 1px solid var(--rule-strong);
+    color: var(--ink-dim);
+    background: var(--surface-2);
+  }
+  .toggle .box {
+    display: inline-block;
+    width: 13px; height: 13px;
+    border: 1px solid var(--ink-dim);
+    text-align: center;
+    line-height: 11px;
+    font-size: 10px;
+    color: var(--accent-amber);
+  }
+  .toggle.is-on {
+    border-color: var(--signal-up);
+    color: var(--signal-up);
+  }
+  .toggle.is-on .box {
+    border-color: var(--signal-up);
+    color: var(--signal-up);
+  }
+  .toggle .desc {
+    color: var(--ink-dimmer);
+    font-size: 10px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .toggle .help {
+    margin-left: 6px;
+    color: var(--ink-dimmer);
+    font-size: 10px;
+  }
+  .toggle-row .meta { margin-left: auto; color: var(--ink-dimmer); font-size: 10px; }
+
+  /* Manual control buttons */
+  .controls {
+    display: flex; gap: 8px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-strong);
+    padding: 10px 12px;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .ctl-btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px;
+    border: 1px solid;
+    background: var(--bg);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+  .ctl-btn.up { color: var(--signal-up); border-color: var(--signal-up); }
+  .ctl-btn.amber { color: var(--accent-amber); border-color: var(--accent-amber); }
+  .ctl-btn.dim { color: var(--ink-dim); border-color: var(--rule-strong); }
+  .ctl-btn.down { color: var(--signal-down); border-color: var(--signal-down); }
+  .ctl-btn.is-disabled { opacity: 0.45; cursor: not-allowed; }
+  .ctl-btn kbd {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 1px 4px;
+    background: var(--surface-2);
+    border: 1px solid currentColor;
+    color: inherit;
+    opacity: 0.85;
+  }
+  .controls .info {
+    margin-left: auto;
+    color: var(--ink-dim);
+  }
+
+  /* ========== CUSTOM RULES DRAWER ========== */
+  .rules-drawer {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    padding: 10px 14px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .rules-drawer .head {
+    color: var(--accent-amber);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    border-bottom: 1px dashed var(--rule);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .rules-drawer .head .meta { color: var(--ink-dimmer); font-weight: 400; letter-spacing: 0.06em; font-size: 10px; }
+  .rules-drawer .env-block {
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 1.7;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px 16px;
+  }
+  .rules-drawer .env-line { display: block; }
+  .rules-drawer .env-line .key { color: var(--ink-dim); }
+  .rules-drawer .env-line .eq { color: var(--ink-dimmer); margin: 0 4px; }
+  .rules-drawer .env-line .val { color: var(--accent-amber); font-weight: 700; }
+  .rules-drawer .env-line.dim .key { color: var(--ink-dimmer); }
+  .rules-drawer .env-line.dim .val { color: var(--ink-dim); }
+  .rules-drawer .expand {
+    color: var(--accent-amber);
+    border-top: 1px dashed var(--rule);
+    margin-top: 8px;
+    padding-top: 6px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer;
+  }
+  .rules-drawer .expand .meta { color: var(--ink-dimmer); margin-left: auto; font-weight: 400; font-size: 10px; }
+
+  /* ========== ORDER BOOK / HISTORY ========== */
+  .history-wrap {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    overflow-x: auto;
+  }
+  table.history {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.history th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dimmer);
+    font-weight: 500;
+    padding: 6px 10px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule-strong);
+    white-space: nowrap;
+  }
+  table.history th.c { text-align: center; }
+  table.history td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  table.history td.c { text-align: center; }
+  table.history tr:last-child td { border-bottom: none; }
+  table.history tr.r-active {
+    background: oklch(20% 0.04 80 / 0.3);
+    box-shadow: inset 3px 0 0 var(--accent-amber);
+  }
+  table.history tr.r-active td { color: var(--ink); }
+  table.history tr.r-active .pending {
+    color: var(--accent-amber);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .delta {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid currentColor;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+  .delta.up { color: var(--signal-up); }
+  .delta.amber { color: var(--accent-amber); }
+  .delta.flat { color: var(--ink-dimmer); }
+  .delta.down { color: var(--signal-down); }
+
+  .lvl-cell {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border: 1px solid var(--rule-strong);
+    background: var(--bg);
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 12px;
+  }
+  .lvl-cell.win-red { border-color: var(--team-a); color: var(--team-a); }
+  .lvl-cell.win-blue { border-color: var(--team-b); color: var(--team-b); }
+  .lvl-cell.cleared { border-color: var(--accent-amber); color: var(--accent-amber); }
+
+  .team-pill {
+    display: inline-block;
+    padding: 1px 6px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+  }
+  .team-pill.red { color: var(--team-a); border: 1px solid var(--team-a); }
+  .team-pill.blue { color: var(--team-b); border: 1px solid var(--team-b); }
+  .team-pill.pending { color: var(--accent-amber); border: 1px dashed var(--accent-amber); }
+
+  /* ========== RANK SPARKLINES ========== */
+  .rank-spark-table {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    padding: 4px 0;
+  }
+  .rank-spark-row {
+    display: grid;
+    grid-template-columns: 28px 96px 1fr 56px 50px 50px;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 12px;
+  }
+  .rank-spark-row:last-child { border-bottom: none; }
+  .rank-spark-row .ascii-avatar { width: 24px; height: 24px; font-size: 11px; }
+  .rank-spark-row .who { font-weight: 500; color: var(--ink); }
+  .rank-spark-row .who .h { color: var(--ink-dimmer); font-weight: 400; font-size: 11px; }
+  .rank-spark-row svg { display: block; width: 100%; height: 32px; }
+  .rank-spark-row .stat {
+    text-align: right;
+    color: var(--ink-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .rank-spark-row .stat .v { color: var(--ink); font-weight: 700; font-size: 13px; }
+  .rank-spark-row .stat.up .v { color: var(--signal-up); }
+  .rank-spark-row .stat.down .v { color: var(--signal-down); }
+  .rank-spark-row .stat.amber .v { color: var(--accent-amber); }
+
+  /* ========== HONORS GALLERY ========== */
+  .honors {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+  }
+  .honor {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+  .honor:nth-child(2n) { border-right: none; }
+  .honor:nth-last-child(-n+2) { border-bottom: none; }
+  .honor .tag {
+    color: var(--accent-amber);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .honor .tag .name {
+    display: block;
+    color: var(--ink);
+    font-size: 14px;
+    margin-top: 2px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .honor.is-pending .tag { color: var(--ink-dimmer); }
+  .honor.is-pending .tag .name { color: var(--ink-dim); }
+  .honor .who-line {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px;
+  }
+  .honor .who-line .ascii-avatar { width: 20px; height: 20px; font-size: 10px; }
+  .honor .who-line .who { font-weight: 500; }
+  .honor .who-line .h { color: var(--ink-dimmer); font-size: 11px; }
+  .honor .who-line .pending-text {
+    color: var(--ink-dimmer);
+    font-style: italic;
+    font-size: 11px;
+  }
+  .honor .stat-tag {
+    font-size: 10px;
+    color: var(--signal-up);
+    border: 1px solid var(--signal-up);
+    padding: 2px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .honor .stat-tag.amber { color: var(--accent-amber); border-color: var(--accent-amber); }
+  .honor .stat-tag.down { color: var(--signal-down); border-color: var(--signal-down); }
+  .honor .stat-tag.dim { color: var(--ink-dim); border-color: var(--rule-strong); }
+  .honor .stat-tag.cand {
+    color: var(--accent-amber-dim);
+    border: 1px dashed var(--accent-amber-dim);
+  }
+  .honor .stat-tag.tbd {
+    color: var(--ink-dimmer);
+    border: 1px dashed var(--rule-strong);
+    font-style: italic;
+  }
+
+  /* ========== SAMPLE VICTORY (smaller) ========== */
+  .sample-victory {
+    margin-top: 8px;
+    background: var(--surface);
+    border: 1px solid var(--accent-amber-dim);
+    padding: 14px 18px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    opacity: 0.85;
+  }
+  .sample-victory::before, .sample-victory::after {
+    content: "═══════════════════════════════════════════════════════════════════════════════════════";
+    display: block;
+    color: var(--accent-amber-dim);
+    font-size: 10px;
+    line-height: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 0.6;
+  }
+  .sample-victory .sample-tag {
+    position: absolute;
+    top: 6px; left: 8px;
+    font-size: 9px;
+    color: var(--ink-dimmer);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: var(--surface);
+    padding: 1px 4px;
+  }
+  .sample-victory .stars {
+    color: var(--accent-amber);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    margin: 8px 0 4px;
+  }
+  .sample-victory .sub {
+    font-size: 11px;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  .sample-victory .meta-row {
+    display: flex; justify-content: center; gap: 12px;
+    font-size: 10px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .sample-victory .meta-row .v { color: var(--accent-amber); font-weight: 700; }
+
+  /* ========== PLAYER PROFILE ========== */
+  .profile {
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+    display: grid;
+    grid-template-columns: 220px 1fr;
+  }
+  .profile-side {
+    padding: 18px;
+    border-right: 1px solid var(--rule-strong);
+    background: var(--surface-2);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .profile-avatar {
+    width: 96px; height: 96px;
+    border: 2px solid var(--accent-amber);
+    color: var(--accent-amber);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 48px;
+    font-weight: 700;
+    background: var(--bg);
+  }
+  .profile-side .name {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .profile-side .handle {
+    font-size: 12px;
+    color: var(--ink-dimmer);
+  }
+  .profile-side .badge-row {
+    display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  }
+  .profile-side .badge-row .b {
+    font-size: 10px;
+    padding: 2px 6px;
+    border: 1px solid var(--accent-amber);
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .profile-stats {
+    padding: 14px 18px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+  .stat-cell {
+    padding: 8px 10px;
+    border-bottom: 1px dashed var(--rule);
+    border-right: 1px dashed var(--rule);
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  }
+  .stat-cell:nth-child(2n) { border-right: none; }
+  .stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .stat-cell .k {
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .stat-cell .v {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .stat-cell .v.up { color: var(--signal-up); }
+  .stat-cell .v.amber { color: var(--accent-amber); }
+  .stat-cell .v .unit {
+    font-size: 10px;
+    color: var(--ink-dim);
+    margin-left: 3px;
+    font-weight: 400;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .partners {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--rule-strong);
+    margin-top: 4px;
+    padding-top: 10px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .partner-row {
+    display: grid;
+    grid-template-columns: 80px auto 1fr;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+  .partner-row .lab {
+    color: var(--accent-amber);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .partner-row .ascii-avatar { width: 20px; height: 20px; font-size: 10px; }
+  .partner-row .who { color: var(--ink); font-weight: 500; }
+  .partner-row .h { color: var(--ink-dimmer); }
+  .partner-row .ext { color: var(--ink-dim); margin-left: auto; font-size: 10px; }
+  .partner-row .ext .v { color: var(--signal-up); font-weight: 700; }
+  .partner-row .ext .v.down { color: var(--signal-down); }
+
+  /* ========== KEYBOARD HINT BAR (sticky bottom) ========== */
+  .keybar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    z-index: 30;
+    background: var(--bg);
+    border-top: 1px solid var(--rule-strong);
+    padding: 6px 16px;
+    display: flex; gap: 14px; align-items: center;
+    font-size: 11px;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .kb {
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .kb kbd {
+    display: inline-block;
+    font-family: inherit;
+    font-size: 10px;
+    padding: 2px 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--rule-strong);
+    color: var(--ink);
+    font-weight: 700;
+    letter-spacing: 0;
+    box-shadow: inset 0 -1px 0 var(--rule-strong);
+  }
+  .keybar .kb-meta {
+    margin-left: auto;
+    color: var(--ink-dimmer);
+  }
+  .keybar .kb-meta .live-dot { display: inline-block; vertical-align: middle; margin-right: 6px; }
+
+  /* tiny utility */
+  .mono-rule {
+    color: var(--rule-strong);
+    font-family: inherit;
+    user-select: none;
+    margin: 0 4px;
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ============== TOP NAV (4-surface IA) ============== -->
+<div class="navbar">
+  <span class="brand-dot">GD//TERM</span>
+  <a class="nav-tag is-active" href="#"><span class="bracket">[</span>GAME<span class="bracket">]</span></a>
+  <a class="nav-tag" href="#"><span class="bracket">[</span>PLAYERS<span class="bracket">]</span></a>
+  <a class="nav-tag" href="#"><span class="bracket">[</span>ROOMS<span class="bracket">]</span></a>
+  <a class="nav-tag" href="#"><span class="bracket">[</span>ME<span class="bracket">]</span></a>
+  <span class="nav-meta">
+    <span class="pill">HOST</span>
+    <span class="pill amber">@awei</span>
+    <span class="pill">ROOM A1B2C3</span>
+    <span class="who">14 WATCHING</span>
+  </span>
+</div>
+
+<!-- ============== HEADER STATUS STRIP ============== -->
+<div class="topbar">
+  <span class="sblk"><span class="k">ROOM</span><span class="v num">A1B2C3</span></span>
+  <span class="sblk"><span class="k">MODE</span><span class="v">6P · 3v3</span></span>
+  <span class="sblk sblk--red"><span class="k">RND</span><span class="v num">5</span><span class="mono-rule">·</span><span class="k">LVL</span><span class="v num">4</span><span class="mono-rule">·</span><span class="v">RED OWN</span></span>
+  <span class="sblk"><span class="k">RULE</span><span class="v">STRICT · MUST1</span></span>
+  <span class="sblk"><span class="k">ELAPSED</span><span class="v num">18:42</span></span>
+  <span class="sblk sblk--amber"><span class="k">PEND</span><span class="v num">4 SLOTS</span></span>
+  <span class="sblk sblk--up"><span class="live-dot"></span><span class="v">LIVE</span><span class="mono-rule">·</span><span class="v">SYNC 1.8s</span></span>
+  <span class="sblk"><span class="k">VWR</span><span class="v num">14</span></span>
+  <span class="sblk"><span class="k">VOTE</span><span class="v num">— / —</span></span>
+  <span class="ticker">// 18:42:09 R5 IN PROGRESS · DRAG-IN-FLIGHT · BCAST QUEUED 1.8s //</span>
+</div>
+
+<div class="wrap">
+
+<!-- ============== MODE SELECTOR ============== -->
+<div class="sec">
+  <h2>// SESSION CONFIG</h2>
+  <span class="meta">FIRST DECISION OF SESSION · LOCKED ONCE R1 STARTED</span>
+</div>
+<div class="mode-bar">
+  <span class="lbl">MODE</span>
+  <span class="mode-radio"><span class="box">&nbsp;</span>4P <span class="player-handle">· 2v2</span></span>
+  <span class="mode-radio is-active"><span class="box">✓</span>6P <span class="player-handle">· 3v3</span></span>
+  <span class="mode-radio"><span class="box">&nbsp;</span>8P <span class="player-handle">· 4v4</span></span>
+  <span class="meta">UPGRADE TABLE <span class="v">P6: 5/4/3/3/1/0 · T6: ≥7→+3 ≥4→+2 ≥1→+1</span></span>
+</div>
+
+<!-- ============== TEAM PANELS ============== -->
+<div class="sec">
+  <h2>// LIVE TEAM STATE</h2>
+  <span class="meta">本局级牌 <span>4 · 红队的级</span> &nbsp; / &nbsp; 下局级牌 <span>TBD · 待结算</span></span>
+</div>
+
+<div class="teams">
+  <!-- RED TEAM -->
+  <div class="team team--red team--owner">
+    <div class="team-head">
+      <div>
+        <span class="team-name">RED · 红队</span>
+        <span class="team-tag amber">OWNS R5</span>
+      </div>
+      <div>
+        <span class="team-tag">LVL OWN</span>
+        <span class="team-tag">STRICT</span>
+      </div>
+    </div>
+
+    <!-- score-diff sparkline — 4 prior rounds -->
+    <div class="spark-row">
+      <span class="label">DIFF (R−B)</span>
+      <svg viewBox="0 0 220 28" preserveAspectRatio="none">
+        <line x1="0" y1="14" x2="220" y2="14" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+        <!-- 4 datapoints + active R5 marker -->
+        <polyline points="0,4 55,12 110,14 165,14 220,14"
+          fill="none" stroke="oklch(72% 0.18 145)" stroke-width="1.5"/>
+        <circle cx="0" cy="4" r="2.5" fill="oklch(72% 0.18 145)"/>
+        <circle cx="55" cy="12" r="2.5" fill="oklch(72% 0.18 145)"/>
+        <circle cx="110" cy="14" r="2.5" fill="oklch(72% 0.18 145)"/>
+        <circle cx="165" cy="14" r="2.5" fill="oklch(72% 0.18 145)"/>
+        <circle cx="220" cy="14" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="2 2"/>
+      </svg>
+      <span class="delta flat num">±0</span>
+    </div>
+
+    <div class="levelbox">
+      <div class="levelglyph">
+        <div class="corner-tl">4</div>
+        <div class="center">4</div>
+        <div class="corner-br">4</div>
+      </div>
+      <div class="level-meta">
+        <div class="row">
+          <span class="k">CURRENT LVL</span>
+          <span class="v amber">4</span>
+        </div>
+        <div class="row">
+          <span class="k">NEXT IF +3</span>
+          <span class="v up">7</span>
+        </div>
+        <div class="row">
+          <span class="k">CLIMB Δ</span>
+          <span class="v up">+2 LVL · 2→4</span>
+        </div>
+        <div class="row">
+          <span class="k">RND OWNER</span>
+          <span class="v amber">RED · 本局</span>
+        </div>
+        <div class="row">
+          <span class="k">DIST → A</span>
+          <span class="v">+9 LVL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="players">
+      <div class="player-line">
+        <span class="ascii-avatar t">Z</span>
+        <span><span class="player-name">老张</span> &nbsp;<span class="player-handle">@laozhang</span></span>
+        <span class="player-tag dim">IN POOL</span>
+        <span class="player-tag">闪电侠 CAND</span>
+      </div>
+      <div class="player-line">
+        <span class="ascii-avatar t">W</span>
+        <span><span class="player-name">阿伟</span> &nbsp;<span class="player-handle">@awei</span></span>
+        <span class="player-tag">SLOT 一</span>
+        <span class="player-tag">吕布 CAND</span>
+      </div>
+      <div class="player-line">
+        <span class="ascii-avatar t">L</span>
+        <span><span class="player-name">大刘</span> &nbsp;<span class="player-handle">@daliu</span></span>
+        <span class="player-tag">DRAG → 三</span>
+        <span class="player-tag dim">—</span>
+      </div>
+    </div>
+
+    <div class="arule">
+      <span class="pill amber">本局级牌 4</span>
+      <span class="pill amber">RED·OWN</span>
+      <span class="pill">A级 · STRICT</span>
+      <span class="pill">MUST1</span>
+      <span class="pill up">CLIMBING</span>
+    </div>
+  </div>
+
+  <!-- BLUE TEAM -->
+  <div class="team team--blue">
+    <div class="team-head">
+      <div>
+        <span class="team-name">BLUE · 蓝队</span>
+        <span class="team-tag">CHALLENGER</span>
+      </div>
+      <div>
+        <span class="team-tag">LVL 3</span>
+        <span class="team-tag">STRICT</span>
+      </div>
+    </div>
+
+    <div class="spark-row">
+      <span class="label">DIFF (B−R)</span>
+      <svg viewBox="0 0 220 28" preserveAspectRatio="none">
+        <line x1="0" y1="14" x2="220" y2="14" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+        <polyline points="0,24 55,16 110,14 165,14 220,14"
+          fill="none" stroke="oklch(64% 0.20 25)" stroke-width="1.5"/>
+        <circle cx="0" cy="24" r="2.5" fill="oklch(64% 0.20 25)"/>
+        <circle cx="55" cy="16" r="2.5" fill="oklch(64% 0.20 25)"/>
+        <circle cx="110" cy="14" r="2.5" fill="oklch(64% 0.20 25)"/>
+        <circle cx="165" cy="14" r="2.5" fill="oklch(64% 0.20 25)"/>
+        <circle cx="220" cy="14" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="2 2"/>
+      </svg>
+      <span class="delta flat num">±0</span>
+    </div>
+
+    <div class="levelbox">
+      <div class="levelglyph">
+        <div class="corner-tl">3</div>
+        <div class="center">3</div>
+        <div class="corner-br">3</div>
+      </div>
+      <div class="level-meta">
+        <div class="row">
+          <span class="k">CURRENT LVL</span>
+          <span class="v">3</span>
+        </div>
+        <div class="row">
+          <span class="k">NEXT IF +3</span>
+          <span class="v">6</span>
+        </div>
+        <div class="row">
+          <span class="k">CLIMB Δ</span>
+          <span class="v up">+1 LVL · 2→3</span>
+        </div>
+        <div class="row">
+          <span class="k">RND OWNER</span>
+          <span class="v down">— · 非本局</span>
+        </div>
+        <div class="row">
+          <span class="k">DIST → A</span>
+          <span class="v">+10 LVL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="players">
+      <div class="player-line">
+        <span class="ascii-avatar t">X</span>
+        <span><span class="player-name">小王</span> &nbsp;<span class="player-handle">@xiaowang</span></span>
+        <span class="player-tag">SLOT 二</span>
+        <span class="player-tag dim">CAPT</span>
+      </div>
+      <div class="player-line">
+        <span class="ascii-avatar t">M</span>
+        <span><span class="player-name">阿明</span> &nbsp;<span class="player-handle">@aming</span></span>
+        <span class="player-tag dim">IN POOL</span>
+        <span class="player-tag dim">—</span>
+      </div>
+      <div class="player-line">
+        <span class="ascii-avatar t">E</span>
+        <span><span class="player-name">小美</span> &nbsp;<span class="player-handle">@xiaomei</span></span>
+        <span class="player-tag dim">IN POOL</span>
+        <span class="player-tag dim">—</span>
+      </div>
+    </div>
+
+    <div class="arule">
+      <span class="pill">CHALLENGER · LVL 3</span>
+      <span class="pill">需 +3 升 → 6</span>
+      <span class="pill down">BEHIND BY 1 LVL</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============== ACTIVE GAME REGION (THE HERO) ============== -->
+<div class="sec">
+  <h2>// ACTIVE GAME · R5 RANK PLACEMENT</h2>
+  <span class="meta">PRIMARY HOT-PATH SURFACE · 95% OF SESSION TIME</span>
+</div>
+
+<div class="game-region">
+  <!-- Round-owner banner -->
+  <div class="roundbanner">
+    <span class="lhs">
+      <span class="pulse-dot"></span>
+      <span>// ROUND <span class="num">5</span> <span class="slash">·</span> LVL <span class="num">4</span> <span class="slash">·</span> RED OWNS <span class="slash">·</span> 4 SLOTS PENDING //</span>
+    </span>
+    <span class="rhs">
+      <span>STARTED <span class="v num">18:34:51</span></span>
+      <span class="mono-rule">│</span>
+      <span>RND DUR <span class="v num">7:18</span></span>
+      <span class="mono-rule">│</span>
+      <span>NEED <span class="v">头游 ✓ + 无末游</span></span>
+    </span>
+  </div>
+
+  <!-- The interaction annotation header -->
+  <div class="interact-hint">
+    <span>// DRAG SLOT-TO-FILL <span class="arrow">·</span> DESKTOP <span class="arrow">·</span> LONG-PRESS 200ms ON MOBILE //</span>
+    <span class="meta">DRAGGING [大刘 · RED] → SLOT 三 · DROP TO COMMIT</span>
+  </div>
+
+  <!-- Pool + Slots split -->
+  <div class="pool-and-slots">
+
+    <!-- ===== PLAYER POOL ===== -->
+    <div class="pool-panel">
+      <div class="pool-head">
+        <span>// POOL · 玩家池 · UNRANKED</span>
+        <span class="ct">4 / 6 PEND</span>
+      </div>
+
+      <!-- 大刘 — MID-DRAG (lifted state) -->
+      <div class="pool-tile is-dragging">
+        <span class="grip">⠿⠿</span>
+        <span><span class="player-name">[● 大刘]</span> <span class="player-handle">@daliu</span></span>
+        <span class="player-tag tag-team red">RED</span>
+        <span class="status-flag">MID-DRAG</span>
+      </div>
+
+      <!-- 阿明 -->
+      <div class="pool-tile">
+        <span class="grip">⠿⠿</span>
+        <span><span class="player-name">[● 阿明]</span> <span class="player-handle">@aming</span></span>
+        <span class="player-tag tag-team blue">BLUE</span>
+        <span class="player-tag dim" style="font-size:9px;">DRAG ME</span>
+      </div>
+
+      <!-- 小美 -->
+      <div class="pool-tile">
+        <span class="grip">⠿⠿</span>
+        <span><span class="player-name">[● 小美]</span> <span class="player-handle">@xiaomei</span></span>
+        <span class="player-tag tag-team blue">BLUE</span>
+        <span class="player-tag dim" style="font-size:9px;">DRAG ME</span>
+      </div>
+
+      <!-- 老张 -->
+      <div class="pool-tile">
+        <span class="grip">⠿⠿</span>
+        <span><span class="player-name">[● 老张]</span> <span class="player-handle">@laozhang</span></span>
+        <span class="player-tag tag-team red">RED</span>
+        <span class="player-tag dim" style="font-size:9px;">DRAG ME</span>
+      </div>
+    </div>
+
+    <!-- ===== RANKING SLOTS ===== -->
+    <div class="slots-panel">
+      <div class="slots-head">
+        <span>// RANKING SLOTS · 排名槽位</span>
+        <span class="ct">2 FILLED · 1 DROP-TARGET · 3 EMPTY</span>
+      </div>
+
+      <!-- SLOT 一 — filled -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 一</span>
+          <span class="seat first">头游</span>
+        </span>
+        <span class="slot-bin is-filled">
+          <span class="check">[✓ FILLED]</span>
+          <span class="player-name">阿伟</span>
+          <span class="player-handle">@awei</span>
+          <span class="team-pill-tiny red">R</span>
+        </span>
+      </div>
+
+      <!-- SLOT 二 — filled -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 二</span>
+          <span class="seat">二游</span>
+        </span>
+        <span class="slot-bin is-filled">
+          <span class="check">[✓ FILLED]</span>
+          <span class="player-name">小王</span>
+          <span class="player-handle">@xiaowang</span>
+          <span class="team-pill-tiny blue">B</span>
+        </span>
+      </div>
+
+      <!-- SLOT 三 — DROP TARGET -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 三</span>
+          <span class="seat">三游</span>
+        </span>
+        <span class="slot-bin is-drop">
+          <span>[● DROP TARGET]</span>
+          <span class="player-name">大刘 INCOMING</span>
+          <span class="team-pill-tiny" style="color:var(--accent-amber);border-color:var(--accent-amber);">R</span>
+          <span class="pending">RELEASE TO COMMIT</span>
+        </span>
+      </div>
+
+      <!-- SLOT 四 — empty -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 四</span>
+          <span class="seat">四游</span>
+        </span>
+        <span class="slot-bin is-empty">
+          <span class="placeholder">[_____________________]</span>
+        </span>
+      </div>
+
+      <!-- SLOT 五 — empty -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 五</span>
+          <span class="seat">五游</span>
+        </span>
+        <span class="slot-bin is-empty">
+          <span class="placeholder">[_____________________]</span>
+        </span>
+      </div>
+
+      <!-- SLOT 六 — empty -->
+      <div class="slot-row">
+        <span class="slot-prefix">
+          <span class="arrow">&gt;</span>
+          <span>SLOT 六</span>
+          <span class="seat last">末游</span>
+        </span>
+        <span class="slot-bin is-empty">
+          <span class="placeholder">[_____________________]</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live calc preview -->
+  <div class="calc-live">
+    <div class="pcell red">
+      <span class="lab">RED</span>
+      <span class="ranks num">[1, ?, ?]</span>
+      <span class="eq">=</span>
+      <span class="pts num">5 + ? + ? PT</span>
+    </div>
+    <div class="pcell blue">
+      <span class="lab">BLUE</span>
+      <span class="ranks num">[2, ?, ?]</span>
+      <span class="eq">=</span>
+      <span class="pts num">4 + ? + ? PT</span>
+    </div>
+    <div class="pcell diff">
+      <span class="lab">DIFF</span>
+      <span class="ranks num">R − B</span>
+      <span class="eq">=</span>
+      <span class="pts">TBD <span class="pending-marker">// 等待最后4位 //</span></span>
+    </div>
+  </div>
+
+  <!-- Auto toggles -->
+  <div class="toggle-row">
+    <span class="lbl">CFG</span>
+    <span class="toggle is-on"><span class="box">X</span><span>AUTO_APPLY</span><span class="desc">· 排名完成后自动应用</span></span>
+    <span class="toggle is-on"><span class="box">X</span><span>AUTO_NEXT</span><span class="desc">· 应用后自动进入下一局</span></span>
+    <span class="toggle is-on"><span class="box">X</span><span>STRICT_A</span><span class="desc">· 严格A级规则</span></span>
+    <span class="toggle is-on"><span class="box">X</span><span>MUST1</span><span class="desc">· 仅有头游可升级</span></span>
+    <span class="meta">// AUTO MODE · CALC + ADVANCE FIRES @ 6/6 SLOTS //</span>
+  </div>
+
+  <!-- Manual buttons -->
+  <div class="controls">
+    <button class="ctl-btn up is-disabled"><kbd>E</kbd> APPLY (4 SLOTS LEFT)</button>
+    <button class="ctl-btn amber is-disabled"><kbd>↵</kbd> ADVANCE TO R6</button>
+    <button class="ctl-btn dim"><kbd>U</kbd> UNDO LAST PLACE</button>
+    <button class="ctl-btn dim"><kbd>⌘</kbd>+<kbd>K</kbd> CMD PALETTE</button>
+    <span class="info">// MANUAL OVERRIDE GREYED · AUTO_APPLY ON · MANUAL UNLOCKS WHEN AUTO_APPLY=OFF //</span>
+  </div>
+</div>
+
+<!-- ============== CUSTOM RULES DRAWER (collapsed) ============== -->
+<div class="sec">
+  <h2>// CONFIG · CUSTOM RULES</h2>
+  <span class="meta">DEFAULTS LOADED · NO OVERRIDES · COLLAPSED</span>
+</div>
+
+<div class="rules-drawer">
+  <div class="head">
+    <span>// CONFIG · CUSTOM RULES &nbsp; <span style="color:var(--ink-dim);">[ENV-STYLE]</span></span>
+    <span class="meta">WRITE RULE BLOCK · SAVED PER ROOM</span>
+  </div>
+  <div class="env-block">
+    <span class="env-line dim"><span class="key">// 4-PLAYER UPGRADE TABLE</span></span>
+    <span class="env-line"></span>
+    <span class="env-line"></span>
+    <span class="env-line"><span class="key">C4_12</span><span class="eq">=</span><span class="val">3</span></span>
+    <span class="env-line"><span class="key">C4_13</span><span class="eq">=</span><span class="val">2</span></span>
+    <span class="env-line"><span class="key">C4_14</span><span class="eq">=</span><span class="val">1</span></span>
+
+    <span class="env-line dim"><span class="key">// 6-PLAYER THRESHOLDS</span></span>
+    <span class="env-line"></span>
+    <span class="env-line"></span>
+    <span class="env-line"><span class="key">T6_3</span><span class="eq">=</span><span class="val">7</span></span>
+    <span class="env-line"><span class="key">T6_2</span><span class="eq">=</span><span class="val">4</span></span>
+    <span class="env-line"><span class="key">T6_1</span><span class="eq">=</span><span class="val">1</span></span>
+
+    <span class="env-line dim"><span class="key">// 6-PLAYER POSITION POINTS</span></span>
+    <span class="env-line"></span>
+    <span class="env-line"></span>
+    <span class="env-line" style="grid-column:1/-1;"><span class="key">P6</span><span class="eq">=</span><span class="val">5, 4, 3, 3, 1, 0</span> &nbsp; <span class="key" style="opacity:0.65;">// (1st→6th)</span></span>
+
+    <span class="env-line dim"><span class="key">// FLAGS</span></span>
+    <span class="env-line"></span>
+    <span class="env-line"></span>
+    <span class="env-line"><span class="key">FLAG_AUTO_APPLY</span><span class="eq">=</span><span class="val">true</span></span>
+    <span class="env-line"><span class="key">FLAG_AUTO_NEXT</span><span class="eq">=</span><span class="val">true</span></span>
+    <span class="env-line"><span class="key">FLAG_STRICT_A</span><span class="eq">=</span><span class="val">true</span></span>
+    <span class="env-line"><span class="key">FLAG_MUST1</span><span class="eq">=</span><span class="val">true</span></span>
+  </div>
+  <div class="expand">
+    <span>▸ EXPAND CONFIG · EDIT RULES</span>
+    <span class="meta">NO OVERRIDES · USING SYSTEM DEFAULTS · LAST EDITED —</span>
+  </div>
+</div>
+
+<!-- ============== HISTORY (4 rounds + R5 in-progress) ============== -->
+<div class="sec">
+  <h2>// HISTORY · LAST 4 ROUNDS · R5 IN-PROGRESS</h2>
+  <span class="meta">SHOWING 1-5 / 5 &nbsp; <span>[K] EXPAND ALL</span> &nbsp; <span>[R] ROLLBACK</span></span>
+</div>
+
+<div class="history-wrap">
+  <table class="history">
+    <thead>
+      <tr>
+        <th style="width:36px" class="c">#</th>
+        <th class="c" style="width:48px">级牌</th>
+        <th class="c" style="width:54px">胜方</th>
+        <th>组合 (1st, 2nd, last)</th>
+        <th class="c" style="width:80px">升级</th>
+        <th class="c" style="width:60px">RED</th>
+        <th class="c" style="width:60px">BLUE</th>
+        <th class="c" style="width:90px">DIFF Δ</th>
+        <th>NOTE</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="c num">1</td>
+        <td class="c"><span class="lvl-cell">2</span></td>
+        <td class="c"><span class="team-pill red">RED</span></td>
+        <td class="num">(1, 2, 5)</td>
+        <td class="c"><span class="delta up">+2 LVL</span></td>
+        <td class="c"><span class="lvl-cell win-red">4</span></td>
+        <td class="c"><span class="lvl-cell">2</span></td>
+        <td class="c num"><span class="delta up">+5</span></td>
+        <td>RED 双下 · OPENING SWEEP</td>
+      </tr>
+      <tr>
+        <td class="c num">2</td>
+        <td class="c"><span class="lvl-cell">4</span></td>
+        <td class="c"><span class="team-pill blue">BLUE</span></td>
+        <td class="num">(1, 3, 4)</td>
+        <td class="c"><span class="delta up">+1 LVL</span></td>
+        <td class="c"><span class="lvl-cell">4</span></td>
+        <td class="c"><span class="lvl-cell win-blue">3</span></td>
+        <td class="c num"><span class="delta amber">+2</span></td>
+        <td>BLUE COUNTER · BARELY +1</td>
+      </tr>
+      <tr>
+        <td class="c num">3</td>
+        <td class="c"><span class="lvl-cell">3</span></td>
+        <td class="c"><span class="team-pill red">RED</span></td>
+        <td class="num">(1, 2, 4)</td>
+        <td class="c"><span class="delta flat">+0 LVL</span></td>
+        <td class="c"><span class="lvl-cell">4</span></td>
+        <td class="c"><span class="lvl-cell">3</span></td>
+        <td class="c num"><span class="delta amber">+5</span></td>
+        <td>MUST1 NOT MET · NO UPGRADE</td>
+      </tr>
+      <tr>
+        <td class="c num">4</td>
+        <td class="c"><span class="lvl-cell">3</span></td>
+        <td class="c"><span class="team-pill red">RED</span></td>
+        <td class="num">(1, 3, 5)</td>
+        <td class="c"><span class="delta flat">+0 LVL</span></td>
+        <td class="c"><span class="lvl-cell">4</span></td>
+        <td class="c"><span class="lvl-cell">3</span></td>
+        <td class="c num"><span class="delta flat">+0</span></td>
+        <td>DIFF &lt; THRESHOLD · STALL</td>
+      </tr>
+      <tr class="r-active">
+        <td class="c num">5</td>
+        <td class="c"><span class="lvl-cell" style="border-color:var(--accent-amber);color:var(--accent-amber);">4</span></td>
+        <td class="c"><span class="team-pill pending">TBD</span></td>
+        <td class="num">(1, 2, ?, ?, ?, ?)</td>
+        <td class="c"><span class="delta amber">PENDING</span></td>
+        <td class="c"><span class="lvl-cell">4</span></td>
+        <td class="c"><span class="lvl-cell">3</span></td>
+        <td class="c num"><span class="delta flat">—</span></td>
+        <td><span class="pending">// IN PROGRESS · DRAG-IN-FLIGHT @ SLOT 三 //</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============== RANK SPARKLINES ============== -->
+<div class="sec">
+  <h2>// RANK TIME-SERIES · 4 RND TRAJECTORY · R5 PENDING</h2>
+  <span class="meta">Y: RANK 1 (top) → 6 (bot) · X: RND 1 → 4 · DASHED = R5 EST</span>
+</div>
+
+<div class="rank-spark-table">
+  <!-- Awei -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">W</span>
+    <span class="who">阿伟 <span class="h">@awei</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <!-- 4 historical points -->
+      <polyline points="0,6 110,12 220,6 330,12" fill="none" stroke="oklch(72% 0.18 145)" stroke-width="1.5"/>
+      <!-- R5 dashed projection -->
+      <polyline points="330,12 440,5" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="6" r="2.5" fill="oklch(72% 0.18 145)"/>
+      <circle cx="110" cy="12" r="2.5" fill="oklch(72% 0.18 145)"/>
+      <circle cx="220" cy="6" r="2.5" fill="oklch(72% 0.18 145)"/>
+      <circle cx="330" cy="12" r="2.5" fill="oklch(72% 0.18 145)"/>
+      <circle cx="440" cy="5" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5"/>
+    </svg>
+    <span class="stat amber">AVG <span class="v num">2.25</span></span>
+    <span class="stat up">1ST <span class="v num">2</span></span>
+    <span class="stat dim">LST <span class="v num">0</span></span>
+  </div>
+
+  <!-- Daliu (mid-drag) -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">L</span>
+    <span class="who">大刘 <span class="h">@daliu</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <polyline points="0,12 110,9 220,16 330,9" fill="none" stroke="oklch(60% 0.20 25)" stroke-width="1.5"/>
+      <polyline points="330,9 440,12" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="12" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="110" cy="9" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="220" cy="16" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="330" cy="9" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="440" cy="12" r="3" fill="oklch(80% 0.16 80)"/>
+    </svg>
+    <span class="stat">AVG <span class="v num">2.50</span></span>
+    <span class="stat dim">1ST <span class="v num">0</span></span>
+    <span class="stat dim">LST <span class="v num">0</span></span>
+  </div>
+
+  <!-- Laozhang -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">Z</span>
+    <span class="who">老张 <span class="h">@laozhang</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <polyline points="0,22 110,6 220,18 330,9" fill="none" stroke="oklch(60% 0.20 25)" stroke-width="1.5"/>
+      <polyline points="330,9 440,22" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="22" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="110" cy="6" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="220" cy="18" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="330" cy="9" r="2.5" fill="oklch(60% 0.20 25)"/>
+      <circle cx="440" cy="22" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5"/>
+    </svg>
+    <span class="stat">AVG <span class="v num">3.50</span></span>
+    <span class="stat up">1ST <span class="v num">1</span></span>
+    <span class="stat dim">LST <span class="v num">0</span></span>
+  </div>
+
+  <!-- Xiaowang -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-b); color: var(--team-b);">X</span>
+    <span class="who">小王 <span class="h">@xiaowang</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <polyline points="0,16 110,6 220,12 330,16" fill="none" stroke="oklch(60% 0.18 250)" stroke-width="1.5"/>
+      <polyline points="330,16 440,9" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="16" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="110" cy="6" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="220" cy="12" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="330" cy="16" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="440" cy="9" r="3" fill="oklch(80% 0.16 80)"/>
+    </svg>
+    <span class="stat">AVG <span class="v num">2.75</span></span>
+    <span class="stat up">1ST <span class="v num">1</span></span>
+    <span class="stat dim">LST <span class="v num">0</span></span>
+  </div>
+
+  <!-- Xiaomei -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-b); color: var(--team-b);">E</span>
+    <span class="who">小美 <span class="h">@xiaomei</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <polyline points="0,22 110,16 220,9 330,22" fill="none" stroke="oklch(60% 0.18 250)" stroke-width="1.5"/>
+      <polyline points="330,22 440,16" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="22" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="110" cy="16" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="220" cy="9" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="330" cy="22" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="440" cy="16" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5"/>
+    </svg>
+    <span class="stat">AVG <span class="v num">3.75</span></span>
+    <span class="stat dim">1ST <span class="v num">0</span></span>
+    <span class="stat dim">LST <span class="v num">0</span></span>
+  </div>
+
+  <!-- Aming -->
+  <div class="rank-spark-row">
+    <span class="ascii-avatar t" style="border-color: var(--team-b); color: var(--team-b);">M</span>
+    <span class="who">阿明 <span class="h">@aming</span></span>
+    <svg viewBox="0 0 440 32" preserveAspectRatio="none">
+      <line x1="0" y1="6" x2="440" y2="6" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <line x1="0" y1="16" x2="440" y2="16" stroke="oklch(28% 0.005 240)" stroke-width="0.5" stroke-dasharray="2 2"/>
+      <line x1="0" y1="26" x2="440" y2="26" stroke="oklch(28% 0.005 240)" stroke-width="0.5"/>
+      <polyline points="0,26 110,22 220,16 330,22" fill="none" stroke="oklch(60% 0.18 250)" stroke-width="1.5"/>
+      <polyline points="330,22 440,26" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5" stroke-dasharray="3 2"/>
+      <circle cx="0" cy="26" r="2.5" fill="oklch(64% 0.20 25)"/>
+      <circle cx="110" cy="22" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="220" cy="16" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="330" cy="22" r="2.5" fill="oklch(60% 0.18 250)"/>
+      <circle cx="440" cy="26" r="3" fill="none" stroke="oklch(80% 0.16 80)" stroke-width="1.5"/>
+    </svg>
+    <span class="stat down">AVG <span class="v num">5.00</span></span>
+    <span class="stat dim">1ST <span class="v num">0</span></span>
+    <span class="stat down">LST <span class="v num">1</span></span>
+  </div>
+</div>
+
+<!-- ============== HONORS GALLERY (in-progress) ============== -->
+<div class="sec">
+  <h2>// HONORS GALLERY · 特殊荣誉 · IN PROGRESS</h2>
+  <span class="meta">0 of 16 EARNED · 4 RND IN · TAG[archetype] @candidate stat → 進行中</span>
+</div>
+
+<div class="honors">
+  <div class="honor">
+    <div class="tag">[LVBU·CAND]<span class="name">吕布</span></div>
+    <div class="who-line">
+      <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">W</span>
+      <span><span class="who">阿伟</span> <span class="h">@awei</span></span>
+    </div>
+    <div class="stat-tag cand">2/4 FIRST · LEAD</div>
+  </div>
+
+  <div class="honor">
+    <div class="tag">[FLASH·CAND]<span class="name">闪电侠</span></div>
+    <div class="who-line">
+      <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">Z</span>
+      <span><span class="who">老张</span> <span class="h">@laozhang</span></span>
+    </div>
+    <div class="stat-tag cand">RANK Δ 3/4 · LEAD</div>
+  </div>
+
+  <div class="honor">
+    <div class="tag">[ADOU·CAND]<span class="name">阿斗</span></div>
+    <div class="who-line">
+      <span class="ascii-avatar t" style="border-color: var(--team-b); color: var(--team-b);">M</span>
+      <span><span class="who">阿明</span> <span class="h">@aming</span></span>
+    </div>
+    <div class="stat-tag cand">1/4 LAST · LOW SAMPLE</div>
+  </div>
+
+  <div class="honor">
+    <div class="tag">[SHIFO·CAND]<span class="name">石佛</span></div>
+    <div class="who-line">
+      <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">W</span>
+      <span><span class="who">阿伟</span> <span class="h">@awei</span></span>
+    </div>
+    <div class="stat-tag cand">VAR 0.50 · LEAD</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[GUARD·TBD]<span class="name">守门员</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · 4 RND TOO EARLY</span>
+    </div>
+    <div class="stat-tag tbd">N &lt; THRESHOLD</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[SLAM·TBD]<span class="name">大满贯</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · 體驗 0/6 POS</span>
+    </div>
+    <div class="stat-tag tbd">N &lt; THRESHOLD</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[STREAK·TBD]<span class="name">连胜王</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · TOP 3 STREAK MAX 2</span>
+    </div>
+    <div class="stat-tag tbd">N &lt; THRESHOLD</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[ZEN·TBD]<span class="name">佛系玩家</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · MEDIAN GAP 0.50</span>
+    </div>
+    <div class="stat-tag tbd">N &lt; THRESHOLD</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[CARP·TBD]<span class="name">鲤鱼王</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · 0 REVERSALS YET</span>
+    </div>
+    <div class="stat-tag tbd">NO QUALIFIER</div>
+  </div>
+
+  <div class="honor is-pending">
+    <div class="tag">[CLOWN·TBD]<span class="name">🤡</span></div>
+    <div class="who-line">
+      <span class="pending-text">// 進行中 · 需 0 FIRST + LOW AVG</span>
+    </div>
+    <div class="stat-tag tbd">NO QUALIFIER</div>
+  </div>
+</div>
+
+<!-- ============== SAMPLE VICTORY (示例 · 通关时刻) ============== -->
+<div class="sec">
+  <h2>// SAMPLE · 示例 · 通关时刻 (REFERENCE)</h2>
+  <span class="meta">PREVIEW OF END-STATE · ACHIEVED WHEN OWN A + 头游 + 无末游</span>
+</div>
+
+<div class="sample-victory">
+  <div class="sample-tag">SAMPLE · NOT CURRENT STATE</div>
+  <div class="stars">*** A LEVEL CLEARED ***</div>
+  <div class="sub">RED · 红队 · 通关 SUCCESS · (示例)</div>
+  <div class="meta-row">
+    <span>ROUND <span class="v num">22</span></span>
+    <span class="mono-rule">│</span>
+    <span>ELAPSED <span class="v num">47:23</span></span>
+    <span class="mono-rule">│</span>
+    <span>COMBO <span class="v num">(1, 2, 4)</span></span>
+    <span class="mono-rule">│</span>
+    <span>DIFF <span class="v num">+8 · ≥7</span></span>
+    <span class="mono-rule">│</span>
+    <span>FINAL Δ <span class="v">+11 LVL · 2→A</span></span>
+  </div>
+</div>
+
+<!-- ============== PLAYER PROFILE (阿伟) ============== -->
+<div class="sec">
+  <h2>// PROFILE · @AWEI · CAREER STATS</h2>
+  <span class="meta">CURRENT SLOT 一 · 吕布 CAND THIS SESSION &nbsp; <span>[P] OPEN FULL PROFILE</span></span>
+</div>
+
+<div class="profile">
+  <aside class="profile-side">
+    <div class="profile-avatar">W</div>
+    <div>
+      <div class="name" style="text-align:center;">阿伟</div>
+      <div class="handle" style="text-align:center;">@awei</div>
+    </div>
+    <div class="badge-row">
+      <span class="b">吕布 ×7</span>
+      <span class="b">石佛 ×3</span>
+      <span class="b">+11A</span>
+    </div>
+    <div style="font-size:10px; color: var(--ink-dimmer); text-transform: uppercase; letter-spacing: 0.06em; text-align: center;">
+      ACT · IN ROOM<br>A1B2C3 · LIVE
+    </div>
+  </aside>
+
+  <div class="profile-stats">
+    <div class="stat-cell">
+      <span class="k">SESSIONS</span>
+      <span class="v num">47<span class="unit">PLD</span></span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">WINS</span>
+      <span class="v up num">29<span class="unit">61.7% WR</span></span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">ROUNDS</span>
+      <span class="v num">412<span class="unit">PLD</span></span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">AVG RANK</span>
+      <span class="v amber num">2.84</span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">PLAYTIME</span>
+      <span class="v num">38<span class="unit">H 22M</span></span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">PEAK STREAK</span>
+      <span class="v up num">6<span class="unit">SESS</span></span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">VOTES 最C</span>
+      <span class="v up num">23</span>
+    </div>
+    <div class="stat-cell">
+      <span class="k">VOTES 最闹</span>
+      <span class="v down num">2</span>
+    </div>
+
+    <div class="partners">
+      <div class="partner-row">
+        <span class="lab">[PARTNER+]</span>
+        <span class="ascii-avatar t" style="border-color: var(--team-a); color: var(--team-a);">Z</span>
+        <span><span class="who">老张</span> <span class="h">@laozhang</span></span>
+        <span class="ext"><span class="k">SESS</span> <span class="v num">24</span> <span class="mono-rule">/</span> <span class="v num">75%</span> WR</span>
+      </div>
+      <div class="partner-row">
+        <span class="lab">[RIVAL−]</span>
+        <span class="ascii-avatar t" style="border-color: var(--team-b); color: var(--team-b);">X</span>
+        <span><span class="who">小王</span> <span class="h">@xiaowang</span></span>
+        <span class="ext"><span class="k">FACE</span> <span class="v num">31</span> <span class="mono-rule">/</span> <span class="v down num">42%</span> WR</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ============== KEYBOARD HINT BAR (sticky bottom) ============== -->
+<div class="keybar">
+  <span class="kb"><kbd>E</kbd> APPLY</span>
+  <span class="kb"><kbd>↵</kbd> ADVANCE</span>
+  <span class="kb"><kbd>U</kbd> UNDO</span>
+  <span class="kb"><kbd>R</kbd> ROLLBACK</span>
+  <span class="kb"><kbd>V</kbd> VOTE PANEL</span>
+  <span class="kb"><kbd>P</kbd> PROFILE</span>
+  <span class="kb"><kbd>K</kbd> HISTORY</span>
+  <span class="kb"><kbd>M</kbd> MODE</span>
+  <span class="kb"><kbd>⌘</kbd>+<kbd>K</kbd> CMD PALETTE</span>
+  <span class="kb-meta"><span class="live-dot"></span>SYNC 1.8s · HOST 10s · VIEW 2s · 14 WATCHING</span>
+</div>
+
+</body>
+</html>
