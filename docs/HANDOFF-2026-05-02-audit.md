@@ -61,29 +61,45 @@ by entering the token in `players.html`.
 Ranked by impact. Each item links to the audit finding source so context is
 preserved.
 
-### P0 — Unblocks user-facing feature
+### P0 — ✅ Shipped 2026-05-03
 
-#### 1. Per-user ownership tokens (unblocks self-edit profile)
+#### 1. Per-user ownership tokens (unblocks self-edit profile) — DONE
 
-**Why:** Audit gated `PROFILE_UPDATE` behind admin token to stop vandalism.
-Side effect: regular users can't self-edit anymore.
+Server issues 32-byte CSPRNG token at create, stores SHA-256 hash on the
+player record (raw never persisted). PUT PROFILE_UPDATE accepts either
+`adminToken` body field or `Authorization: Bearer <token>` header. Client
+persists token to `localStorage` as `gd_owner_token_<handle>`. Edit modal
+reveals admin-token input only when local owner token is absent.
 
-**Implementation sketch:**
-1. `api/players/create.js` — generate `ownershipToken` (32-byte hex), store on
-   player record, return ONCE in response.
-2. `src/api/playerApi.js` `createPlayer` — receive token, persist to
-   `localStorage` as `gd_owner_token_${handle}`.
-3. `src/api/playerApi.js` `updatePlayerProfile` — read token from localStorage,
-   send in `Authorization: Bearer <token>` header.
-4. `api/players/[handle].js` PROFILE_UPDATE — accept either admin token OR
-   ownership token (constant-time compare against stored).
-5. `playerEditModal.js` — if no token in localStorage, show admin-token input
-   (current fallback).
+Hash is stripped from every player-shaped API response (create / GET /
+list / reset-stats / PROFILE_UPDATE return). 21-test verification script
+at `scripts/ops/verify-ownership-tokens.mjs`.
 
-**Files:** `api/players/create.js`, `api/players/[handle].js`,
-`src/api/playerApi.js`, `src/player/playerEditModal.js`
+Auth model documented in `docs/SECURITY.md` § "PROFILE_UPDATE auth".
 
-**Estimated effort:** 1 focused session.
+### P0 — ✅ Shipped 2026-05-03 (uncovered + closed same day)
+
+#### 1b. Stats-update path 3-tier auth gate — DONE
+
+Previously `PUT /api/players/<handle>` with `mode !== 'PROFILE_UPDATE'` had no
+auth and let any anonymous client pollute career stats. Closed the same day:
+
+- 3-tier auth gate: admin token (body) OR owner Bearer (matches target hash)
+  OR room-host Bearer (matches `room.authToken` AND target in `room.players[]`)
+- Client wiring: `updatePlayerStats(handle, gameResult, roomAuthToken)`,
+  `syncProfileStats` threads the host's room token through, `votingSync.js`
+  does the same. main.js passes `getRoomInfo().authToken` for host-only auth
+- Defense in depth: snapshot/restore of `ownershipTokenHash` + `id`
+- 7 new tests in `scripts/ops/verify-ownership-tokens.mjs` (37 total, all pass)
+
+Auth model documented in `docs/SECURITY.md` § "Stats-update auth".
+
+#### 1c. No ownership-token rotation / revocation (P3)
+
+Once issued at create-time, the ownership token is the only credential
+forever. If a user suspects compromise (browser shared, localStorage scraped),
+they need an admin to delete + recreate. Future affordance: `POST
+/api/players/<handle>/rotate-token` requiring current Bearer (or admin).
 
 ### P1 — Security hardening
 

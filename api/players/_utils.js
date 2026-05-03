@@ -209,3 +209,82 @@ export function validateAdminToken(provided) {
   }
   return mismatch === 0;
 }
+
+/**
+ * Generic constant-time string compare. Used for raw tokens (not hashes) where
+ * both sides are full secrets — e.g., room auth tokens stored in KV. For
+ * ownership-token validation prefer `validateOwnershipToken` which hashes first.
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function constantTimeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+// ===== Per-user ownership tokens =====
+// Issued at create, sent as `Authorization: Bearer <token>` for self-edit.
+// Stored hashed (SHA-256 hex) so a KV leak can't be replayed: preimage resistance
+// means N stored hashes can't be reversed to usable tokens. Admin token is stored
+// raw because it's a single env-var secret, but per-user tokens fan out across all
+// player records so the blast radius justifies hashing.
+
+export function generateOwnershipToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function hashToken(token) {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function validateOwnershipToken(provided, storedHash) {
+  if (!provided || typeof provided !== 'string') return false;
+  if (!storedHash || typeof storedHash !== 'string') return false;
+
+  // Defense in depth: SHA-256 hex is always 64 chars. A length mismatch here
+  // means the stored hash is corrupted or the storage format changed — reject
+  // explicitly rather than fall through to a constant-time compare on garbage.
+  // Without this, a future schema change that stored a non-hashed value would
+  // silently turn the length-equality short-circuit below into a 1-bit oracle.
+  if (storedHash.length !== 64) return false;
+
+  const providedHash = await hashToken(provided);
+  if (providedHash.length !== storedHash.length) return false;
+
+  let mismatch = 0;
+  for (let i = 0; i < providedHash.length; i++) {
+    mismatch |= providedHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+export function extractBearerToken(request) {
+  const auth = request.headers.get('authorization') || request.headers.get('Authorization');
+  if (!auth) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(auth.trim());
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Strip server-only fields before returning a player record to the client.
+ * Centralized so a typo in one endpoint can't silently leak the hash —
+ * the field name is security-relevant and 5 sites would each carry that risk
+ * if duplicated.
+ * @param {object|null} player
+ * @returns {object|null}
+ */
+export function sanitizePlayer(player) {
+  if (!player) return player;
+  const { ownershipTokenHash, ...rest } = player;
+  return rest;
+}

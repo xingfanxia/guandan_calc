@@ -3,6 +3,40 @@
 
 const API_BASE = window.location.origin;
 
+// ===== Ownership token storage =====
+// Issued by server at create-time, kept in localStorage so the original creator
+// can self-edit their profile from the same browser without admin intervention.
+// Per-handle key isolates tokens — useful if multiple players share a device.
+const OWNER_TOKEN_PREFIX = 'gd_owner_token_';
+
+export function getOwnershipToken(handle) {
+  if (!handle) return null;
+  try {
+    return localStorage.getItem(OWNER_TOKEN_PREFIX + handle.toLowerCase()) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveOwnershipToken(handle, token) {
+  if (!handle || !token) return;
+  try {
+    localStorage.setItem(OWNER_TOKEN_PREFIX + handle.toLowerCase(), token);
+  } catch (err) {
+    console.warn(`Failed to persist ownership token for @${handle}:`, err);
+  }
+}
+
+// Currently unused; exists so a future "forget this device / log out" affordance
+// can wipe the local credential. Don't inline at call sites — keep one definition
+// of the storage-key derivation.
+export function clearOwnershipToken(handle) {
+  if (!handle) return;
+  try {
+    localStorage.removeItem(OWNER_TOKEN_PREFIX + handle.toLowerCase());
+  } catch {}
+}
+
 /**
  * Search for players by handle or displayName
  * @param {string} query - Search query
@@ -75,6 +109,13 @@ export async function createPlayer(data) {
 
     if (!response.ok) {
       throw new Error(result.error || `Create player failed: ${response.statusText}`);
+    }
+
+    // Persist the ownership token returned ONCE by the server. The token is the
+    // only credential that lets this device self-edit the profile later — admin
+    // override is the only fallback if the token is lost.
+    if (result.ownershipToken && result.player?.handle) {
+      saveOwnershipToken(result.player.handle, result.ownershipToken);
     }
 
     return result;
@@ -176,15 +217,28 @@ export async function touchPlayer(handle) {
  * Update player stats after game completion
  * @param {string} handle - Player handle
  * @param {Object} gameResult - Game result data
+ * @param {string} [roomAuthToken] - Host's room auth token. When set, used as
+ *   the Bearer credential — the server accepts it for any player in the room.
+ *   When unset, falls back to this device's stored ownership token for the
+ *   target handle (works only if syncing your own stats from your own device).
  * @returns {Promise<{success: boolean, updatedStats: Object}>}
  */
-export async function updatePlayerStats(handle, gameResult) {
+export async function updatePlayerStats(handle, gameResult, roomAuthToken = null) {
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    // Prefer the room-host token: a host has authority over every participant
+    // in the room, so one credential covers the full sync. Owner token is the
+    // LOCAL-game / self-edit fallback.
+    if (roomAuthToken) {
+      headers['Authorization'] = `Bearer ${roomAuthToken}`;
+    } else {
+      const ownerToken = getOwnershipToken(handle);
+      if (ownerToken) headers['Authorization'] = `Bearer ${ownerToken}`;
+    }
+
     const response = await fetch(`${API_BASE}/api/players/${handle}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify(gameResult)
     });
 
@@ -209,8 +263,12 @@ export async function updatePlayerStats(handle, gameResult) {
  * @param {Object} sessionStats - Complete session stats from statistics.js
  * @param {Object} sessionHonors - Calculated honors from honors.js
  * @param {Object} votingResults - Community voting results {mvp: playerId, burden: playerId}
+ * @param {string} [roomAuthToken] - Host's room auth token. Required for room games
+ *   (server rejects writes for any player without a valid credential — see C-1
+ *   fix in api/players/[handle].js auth gate). For LOCAL games, omit and the
+ *   per-player ownership token from localStorage is used.
  */
-export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}, votingResults = null) {
+export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}, votingResults = null, roomAuthToken = null) {
   if (!historyEntry || players.length === 0 || !sessionStats) {
     console.log('Skipping profile stats sync - missing data');
     return;
@@ -317,8 +375,9 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
 
     console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, 对局内排名 #${relativeRank}, honors: ${honorsEarned.join(',')}`, gameResult);
 
-    // Non-blocking stats update
-    updatePlayerStats(player.handle, gameResult).then(result => {
+    // Non-blocking stats update — host token authorizes writes for every
+    // participant of this room; LOCAL games fall back to per-player owner token.
+    updatePlayerStats(player.handle, gameResult, roomAuthToken).then(result => {
       if (result.success) {
         console.log(`✅ Session stats synced for @${player.handle}`);
       } else {
@@ -380,15 +439,22 @@ export async function getPlayersDisplayData(players) {
  * @param {string} updates.photoBase64 - New photo (or null to remove)
  * @param {string} updates.playStyle - New play style
  * @param {string} updates.tagline - New tagline
+ * @param {string} [updates.adminToken] - Optional admin override (used when no owner token in localStorage)
  * @returns {Promise<{success: boolean, player: Object}>}
  */
 export async function updatePlayerProfile(handle, updates) {
   try {
+    // Owner token (if this device created the profile) → Authorization header.
+    // Admin token → request body, server validates either.
+    const headers = { 'Content-Type': 'application/json' };
+    const ownerToken = getOwnershipToken(handle);
+    if (ownerToken) {
+      headers['Authorization'] = `Bearer ${ownerToken}`;
+    }
+
     const response = await fetch(`${API_BASE}/api/players/${handle}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers,
       body: JSON.stringify({
         mode: 'PROFILE_UPDATE',  // New mode to distinguish from stats updates
         ...updates

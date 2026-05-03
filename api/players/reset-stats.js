@@ -2,7 +2,7 @@
 // Clears game history and stats but keeps profile identity
 
 import { kv } from '@vercel/kv';
-import { initializePlayerStats, validateAdminToken } from './_utils.js';
+import { initializePlayerStats, validateAdminToken, sanitizePlayer } from './_utils.js';
 
 export default async function handler(request) {
   // Only allow POST requests
@@ -60,7 +60,7 @@ export default async function handler(request) {
 
     return new Response(JSON.stringify({
       success: true,
-      player: player
+      player: sanitizePlayer(player)
     }), {
       status: 200,
       headers: {

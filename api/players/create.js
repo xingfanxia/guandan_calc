@@ -5,7 +5,10 @@ import { kv } from '@vercel/kv';
 import {
   generatePlayerId,
   validatePlayerData,
-  initializePlayerStats
+  initializePlayerStats,
+  generateOwnershipToken,
+  hashToken,
+  sanitizePlayer
 } from './_utils.js';
 
 export default async function handler(request) {
@@ -69,6 +72,11 @@ export default async function handler(request) {
       });
     }
 
+    // Issue per-user ownership token. Raw token is returned ONCE in this response;
+    // only the hash is persisted, so a KV read can't recover usable tokens.
+    const ownershipToken = generateOwnershipToken();
+    const ownershipTokenHash = await hashToken(ownershipToken);
+
     // Create player object
     const player = {
       id: playerId,
@@ -80,6 +88,7 @@ export default async function handler(request) {
       ...(playerData.photoBase64 && { photoBase64: playerData.photoBase64 }),  // Optional photo
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
+      ownershipTokenHash,
       stats: initializePlayerStats(),
       recentGames: [],
       achievements: []  // Array of achievement IDs
@@ -91,10 +100,11 @@ export default async function handler(request) {
     // Store reverse lookup: ID -> handle
     await kv.set(`player_id:${playerId}`, handle);
 
-    // Return created player
+    // Return created player + raw token (shown once, client persists to localStorage)
     return new Response(JSON.stringify({
       success: true,
-      player: player
+      player: sanitizePlayer(player),
+      ownershipToken
     }), {
       status: 200,
       headers: {

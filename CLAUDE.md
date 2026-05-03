@@ -109,12 +109,12 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - Win rate visualization
 
 ### Admin Mode
-- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js`, and `[handle].js` PROFILE_UPDATE all validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
+- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js` all validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
 - Set `ADMIN_TOKEN=...` in Vercel project env to enable; previous hardcoded password was rotated out 2026-05-02
 - Delete players with confirmation
 - Reset player stats
 - Located on players.html page
-- TODO: per-user ownership tokens for self-edit (currently PROFILE_UPDATE requires admin token)
+- `[handle].js` PROFILE_UPDATE accepts EITHER admin token OR per-user ownership token (Authorization: Bearer); see `docs/SECURITY.md` for the auth model
 
 ### Timer System Overhaul
 - Server-side timestamps (createdAt, finishedAt)

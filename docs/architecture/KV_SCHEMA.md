@@ -36,6 +36,11 @@ All keys use prefixes for namespace organization and efficient querying.
   playStyle: "gambler",          // One of 8 predefined styles
   tagline: "运筹帷幄，决胜千里",  // Personal motto (max 50 chars)
   createdAt: "2024-12-09T10:30:00Z",
+  ownershipTokenHash: "a3f5...",  // SHA-256 hex of self-edit token (since 2026-05-03);
+                                  // never returned to client — stripped from all
+                                  // player-shaped API responses
+
+
 
   // Aggregated Stats
   stats: {
@@ -319,4 +324,4 @@ players: [
 |---|---|---|
 | `KV_REST_API_URL` | Upstash REST endpoint | KV operations fail |
 | `KV_REST_API_TOKEN` | KV write/read auth | KV operations fail |
-| `ADMIN_TOKEN` (since 2026-05) | Admin endpoint gate (delete / reset-stats / migrate-modes / PROFILE_UPDATE) | All admin endpoints reject 403 (fail-closed) |
+| `ADMIN_TOKEN` (since 2026-05) | Admin endpoint gate (delete / reset-stats / migrate-modes); also accepted as override on PROFILE_UPDATE alongside per-user ownership tokens (since 2026-05-03) | All admin endpoints reject 403 (fail-closed); PROFILE_UPDATE still works for owners with their Bearer token |

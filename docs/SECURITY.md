@@ -83,23 +83,92 @@ Without this, deletion / reset / mass migration / profile editing are unavailabl
 
 ## Known limitations & TODOs
 
-### PROFILE_UPDATE is admin-only (regression)
+### PROFILE_UPDATE auth (resolved 2026-05-03)
 
 Before the audit, anyone with a player handle could rewrite that player's
-profile fields (display name, tagline, photo). The audit gated PROFILE_UPDATE
-behind the admin token to stop vandalism — but this also broke regular users'
-ability to self-edit their profile.
+profile fields. The 2026-05-02 audit gated PROFILE_UPDATE behind the admin
+token to stop vandalism, which also broke self-edit. Both holes are now closed
+by per-user ownership tokens shipped 2026-05-03.
 
-**Proper fix (TBD): per-user ownership tokens.**
+**Auth model:**
 
-- At create-time (`POST /api/players/create`), server issues an `ownershipToken`
-  along with the player record and returns it ONCE.
-- Client persists it in `localStorage` keyed by handle (`gd_owner_token_<handle>`).
-- `PUT /api/players/<handle>` PROFILE_UPDATE accepts EITHER admin token OR
-  ownership token in the request body / Authorization header.
-- Self-edit works without admin; vandalism still blocked.
+- At create-time (`POST /api/players/create`), the server generates a 32-byte
+  CSPRNG hex token (`generateOwnershipToken` in `_utils.js`), stores its SHA-256
+  hash on the player record (`ownershipTokenHash`), and returns the raw token
+  ONCE in the response.
+- Hashing matters here even though the admin token isn't hashed — admin is one
+  shared env-var secret; per-user tokens fan out across all KV records, so the
+  KV-leak blast radius justifies preimage resistance. Stripping the hash from
+  every player-shaped response (create / GET / list / reset-stats / PROFILE_UPDATE
+  return) prevents accidental leakage too.
+- Client persists the raw token in `localStorage` keyed by handle
+  (`gd_owner_token_<handle>`) via `playerApi.js → saveOwnershipToken`.
+- `PUT /api/players/<handle>` PROFILE_UPDATE accepts EITHER:
+  - `adminToken` in the body (admin override), validated via `validateAdminToken`
+  - `Authorization: Bearer <token>` header (owner self-edit), validated via
+    `validateOwnershipToken` — async SHA-256 hash + constant-time hex compare
+- The edit modal (`playerEditModal.js`) sends the Bearer header silently when
+  the device has the token in localStorage, otherwise reveals an admin-token
+  input as fallback (cross-device or token-cleared users still need admin).
 
-Until that ships, regular profile editing requires admin.
+**Limitations / future work:**
+
+- No token rotation endpoint — losing localStorage means losing self-edit until
+  admin re-issues. Acceptable for casual game app; revisit if user complaints.
+- Legacy players (created before 2026-05-03) have no `ownershipTokenHash`, so
+  they fall through to admin-only edit. No migration; eventually they re-create
+  or admin handles edits.
+
+### Stats-update auth (resolved 2026-05-03)
+
+`PUT /api/players/<handle>` with `mode !== 'PROFILE_UPDATE'` previously had
+**no auth check** — any unauthenticated client could pollute career stats
+(ranking averages, MVP votes, honor counts, partner/opponent graph, win
+streaks). Uncovered during the ownership-token review when contrasted with
+the now-properly-gated PROFILE_UPDATE path; closed the same day with a
+3-tier auth gate.
+
+**Auth model:**
+
+The stats handler accepts ANY of three credentials, in priority order:
+
+1. **`adminToken` body field** — admin override, validated via
+   `validateAdminToken` (constant-time vs `ADMIN_TOKEN` env)
+2. **`Authorization: Bearer <ownershipToken>`** matching the target handle's
+   stored `ownershipTokenHash` — owner self-update from their own device
+   (only path available for LOCAL games)
+3. **`Authorization: Bearer <roomAuthToken>`** matching the stored
+   `authToken` on the room identified by `gameResult.roomCode` AND the target
+   handle is in that room's `players[]` — host writing for a participant of
+   their own room
+
+Without one of those, writes 403. The room-host check is the primary
+production path — host's `syncProfileStats` passes its room token to every
+`updatePlayerStats` call, the server validates membership before accepting.
+
+**Defense in depth:** even with the gate above, the stats handler snapshots
+`player.ownershipTokenHash` and `player.id` before mutation and restores
+them before save, so a future bug that allowed mutation through gameResult
+fields can't escalate to credential overwrite.
+
+**Vote counts** are still client-supplied within the authenticated request.
+Server-side authoritative fetch from `/api/rooms/vote/<code>` is a P1
+follow-up; the immediate auth gate raises the bar from "anyone" to
+"only the host or owner", which closes the practical attack vector even
+without authoritative vote fetching.
+
+**Accepted LOW findings (security review 2026-05-03):**
+
+- *Room existence oracle.* The auth gate's `kv.get('room:${roomCode}')` runs
+  before the Bearer compare, leaking "room exists?" via timing. Room codes
+  are discoverable via `/api/rooms/list` anyway, so no confidential signal
+  leaks. Adding a dummy-op cover would cost a KV roundtrip per request
+  without raising the bar. Trade-off documented inline in `[handle].js`.
+- *Per-path timing differential.* The three auth checks short-circuit
+  sequentially (admin → owner SHA → host KV+compare). A request with no
+  Bearer returns faster than one that triggers the SHA path. This reveals
+  "you sent a Bearer" vs "you didn't" — not which path matched. No
+  actionable leak; accepted.
 
 ### Vote forgery
 

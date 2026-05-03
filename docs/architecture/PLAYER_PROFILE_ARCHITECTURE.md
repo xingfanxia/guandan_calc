@@ -7,14 +7,20 @@
 **Commits**: 30
 **Lines of Code**: ~5,000
 
-> **Security note (2026-05):** `PUT /api/players/<handle>` with `mode: 'PROFILE_UPDATE'` now
-> requires `adminToken` in the request body (validated against `ADMIN_TOKEN` env var via
-> constant-time compare). Per-user ownership tokens are TBD — until they ship, regular users
-> cannot self-edit their profiles via `playerEditModal`. Admin can edit by entering the token
-> in `players.html`. See `docs/SECURITY.md` and `docs/HANDOFF-2026-05-02-audit.md` P0.
+> **Security note (updated 2026-05-03):** `PUT /api/players/<handle>` with
+> `mode: 'PROFILE_UPDATE'` accepts EITHER `adminToken` in the body OR
+> `Authorization: Bearer <ownershipToken>` header. The ownership token is
+> issued at create-time (one-time response from `POST /api/players/create`),
+> stored as a SHA-256 hash on the player record, and persisted client-side in
+> `localStorage` keyed by handle. Self-edit works on the original device; admin
+> override remains the fallback. See `docs/SECURITY.md` § "PROFILE_UPDATE auth".
 >
-> Stats updates (the non-`PROFILE_UPDATE` PUT path) remain unauthenticated. Vote counts
-> are still client-supplied; server-side authoritative fetch is a P1 follow-up.
+> Stats updates (the non-`PROFILE_UPDATE` PUT path) gained a 3-tier auth gate
+> on 2026-05-03: admin token, owner Bearer (matches target handle's stored
+> hash), or room-host Bearer (matches `room.authToken` AND target handle is in
+> `room.players[]`). Without one of those, writes 403. Vote counts are still
+> client-supplied within the authenticated request; server-side authoritative
+> fetch from `/api/rooms/vote/<code>` is a P1 follow-up.
 
 ---
 

@@ -158,7 +158,8 @@ See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.
 ### Audit follow-ups (2026-05-02 — see `docs/HANDOFF-2026-05-02-audit.md`)
 
 **P0 — unblocks user-facing feature:**
-- [ ] Per-user ownership tokens for `PROFILE_UPDATE` (currently admin-only after audit)
+- [x] Per-user ownership tokens for `PROFILE_UPDATE` (shipped 2026-05-03; admin OR Bearer-token auth, see `docs/SECURITY.md`)
+- [x] 3-tier auth gate on stats-update PUT path (CRITICAL, shipped 2026-05-03; admin OR owner Bearer OR room-host Bearer + player-membership check)
 
 **P1 — security:**
 - [ ] Server-side vote count fetch (don't trust client `mvpVoteCount`/`burdenVoteCount`)

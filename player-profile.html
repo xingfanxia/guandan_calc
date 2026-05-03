@@ -99,6 +99,7 @@ import { ACHIEVEMENTS } from '/src/stats/achievements.js';
 import { Chart, registerables } from 'chart.js';
 import { renderProfileAvatar } from '/src/player/photoRenderer.js';
 import { showEditModal, initializeEditModal } from '/src/player/playerEditModal.js';
+import { escapeHtml } from '/src/core/utils.js';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -631,13 +632,13 @@ async function loadProfile(handle) {
         <div style="margin-bottom: 16px; display: flex; justify-content: center;">
           ${renderProfileAvatar(player, 120, { marginRight: false, borderWidth: 3 })}
         </div>
-        <h2 style="margin: 0 0 8px 0; font-size: 36px;">${player.displayName}</h2>
-        <div style="color: #888; font-size: 18px; margin-bottom: 8px;">@${player.handle}</div>
+        <h2 style="margin: 0 0 8px 0; font-size: 36px;">${escapeHtml(player.displayName)}</h2>
+        <div style="color: #888; font-size: 18px; margin-bottom: 8px;">@${escapeHtml(player.handle)}</div>
         <div style="color: #888; font-size: 16px; margin-bottom: 16px;">
           ${getPlayStyleLabel(player.playStyle)}
         </div>
         <div style="font-style: italic; color: #fbbf24; font-size: 20px;">
-          "${player.tagline}"
+          "${escapeHtml(player.tagline)}"
         </div>
       </div>
 
@@ -986,7 +987,7 @@ async function loadProfile(handle) {
     document.getElementById('profileContent').innerHTML = `
       <div class="card" style="text-align: center; padding: 40px;">
         <h2 style="color: #ef4444;">加载失败</h2>
-        <p style="color: #888;">${error.message}</p>
+        <p style="color: #888;">${escapeHtml(error.message || '')}</p>
         <p style="margin-top: 16px;">
           <a href="/players.html" style="color: #3b82f6;">浏览所有玩家</a>
         </p>

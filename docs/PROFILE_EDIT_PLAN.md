@@ -1,6 +1,13 @@
 # Implementation Plan: Player Profile Editing Feature
 
-**Status**: ⏳ In Progress
+**Status**: ✅ Shipped — historical doc, superseded by:
+- Auth model: `docs/SECURITY.md` § "PROFILE_UPDATE auth" (2026-05-03 ownership tokens)
+- API contract: `docs/architecture/PLAYER_PROFILE_ARCHITECTURE.md` security note
+- Schema: `docs/architecture/KV_SCHEMA.md` (`ownershipTokenHash` field on player record)
+
+The "Decision Needed" sections below (admin-token requirement, etc.) were
+resolved by the 2026-05-02 audit + the 2026-05-03 ownership-token follow-up.
+
 **Start Date**: 2025-12-13
 **Complexity**: Medium (multi-file, cross-backend-frontend)
 

@@ -1,7 +1,7 @@
 // Player Edit Modal
 // Modal UI for editing existing player profiles
 
-import { updatePlayerProfile, validateHandle, getPlayStyles } from '../api/playerApi.js';
+import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken } from '../api/playerApi.js';
 import { $, escapeHtml } from '../core/utils.js';
 
 // Import emoji list from playerManager
@@ -182,6 +182,25 @@ export function showEditModal(player) {
           />
           <div style="color: #888; font-size: 0.85em; margin-top: 4px;">
             最多50个字符，会在胜利时显示
+          </div>
+        </div>
+
+        <!-- Admin token fallback -->
+        <!-- Only visible when no ownership token is in localStorage for this handle.
+             Owner-on-same-device path is silent; cross-device or token-cleared users
+             fall back to admin override. -->
+        <div id="adminTokenFallback" style="margin-bottom: 16px; display: ${getOwnershipToken(player.handle) ? 'none' : 'block'};">
+          <label style="display: block; margin-bottom: 6px; color: #ef4444; font-weight: bold;">
+            ⚠️ 管理员密码 <span style="color: #888; font-weight: normal;">(本设备未保存所有权令牌)</span>
+          </label>
+          <input
+            type="password"
+            id="adminTokenInput"
+            placeholder="输入管理员密码以修改此资料..."
+            style="width: 100%; padding: 8px 12px; background: #2a1a1a; border: 1px solid #ef4444; border-radius: 6px; color: white;"
+          />
+          <div style="color: #888; font-size: 0.8em; margin-top: 4px;">
+            原创建人在本设备保存了令牌则无需输入
           </div>
         </div>
 
@@ -415,10 +434,18 @@ function setupModalHandlers() {
           photoBase64: selectedPhotoBase64  // Can be null (removes photo), string (new/existing), or undefined
         };
 
+        // Admin token only sent when owner token isn't present locally — the API
+        // accepts either, but only one is needed.
+        const adminTokenValue = $('adminTokenInput')?.value?.trim();
+        if (adminTokenValue) {
+          payload.adminToken = adminTokenValue;
+        }
+
         console.log('Updating player profile:', {
           handle: currentPlayer.handle,
           ...payload,
-          photoBase64: payload.photoBase64 ? `${payload.photoBase64.substring(0, 50)}... (${payload.photoBase64.length} bytes)` : payload.photoBase64 === null ? 'REMOVE' : 'unchanged'
+          photoBase64: payload.photoBase64 ? `${payload.photoBase64.substring(0, 50)}... (${payload.photoBase64.length} bytes)` : payload.photoBase64 === null ? 'REMOVE' : 'unchanged',
+          adminToken: payload.adminToken ? '***' : undefined
         });
 
         const result = await updatePlayerProfile(currentPlayer.handle, payload);

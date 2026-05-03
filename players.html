@@ -158,6 +158,7 @@
 import { searchPlayers, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { initializeCreateModal, showCreateModal } from '/src/player/playerCreateModal.js';
 import { renderProfileAvatar } from '/src/player/photoRenderer.js';
+import { escapeHtml } from '/src/core/utils.js';
 
 let currentPage = 0;
 const pageSize = 20;
@@ -267,12 +268,12 @@ function renderPlayers() {
   }
 
   container.innerHTML = playersToShow.map(player => `
-    <div class="player-card" onclick="location.href='/player-profile.html?handle=${player.handle}'">
+    <div class="player-card" onclick="location.href='/player-profile.html?handle=${encodeURIComponent(player.handle)}'">
       <div style="display: flex; align-items: center; margin-bottom: 12px;">
         ${renderProfileAvatar(player, 64)}
         <div style="flex: 1;">
-          <h3 style="margin: 0 0 4px 0; font-size: 24px;">${player.displayName}</h3>
-          <div style="color: #888; font-size: 0.9em;">@${player.handle}</div>
+          <h3 style="margin: 0 0 4px 0; font-size: 24px;">${escapeHtml(player.displayName)}</h3>
+          <div style="color: #888; font-size: 0.9em;">@${escapeHtml(player.handle)}</div>
         </div>
       </div>
 
@@ -281,7 +282,7 @@ function renderPlayers() {
       </div>
 
       <div style="font-style: italic; color: #fbbf24; margin-bottom: 12px; font-size: 0.95em;">
-        "${player.tagline}"
+        "${escapeHtml(player.tagline)}"
       </div>
 
       <div>

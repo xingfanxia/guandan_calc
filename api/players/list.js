@@ -2,6 +2,7 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
+import { sanitizePlayer } from './_utils.js';
 
 export default async function handler(request) {
   // Only allow GET requests
@@ -75,9 +76,12 @@ export default async function handler(request) {
     // Check if there are more results
     const hasMore = (offset + limit) < total;
 
+    // Strip token hash from every record — internal-only, never sent to clients.
+    const sanitized = paginatedPlayers.map(sanitizePlayer);
+
     // Return results
     return new Response(JSON.stringify({
-      players: paginatedPlayers,
+      players: sanitized,
       total: total,
       hasMore: hasMore
     }), {

@@ -284,7 +284,8 @@ function setupModuleEventHandlers() {
                   capturedPlayers,
                   capturedStats,
                   sessionHonors,
-                  votingResults
+                  votingResults,
+                  capturedRoomInfo.authToken || null  // host-only; viewers/LOCAL get null
                 );
               }, 2000);
             }

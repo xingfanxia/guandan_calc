@@ -2,7 +2,16 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
-import { validateHandle } from './_utils.js';
+import {
+  validateHandle,
+  initializePlayerStats,
+  validatePlayerData,
+  validateAdminToken,
+  validateOwnershipToken,
+  extractBearerToken,
+  sanitizePlayer,
+  constantTimeEqual
+} from './_utils.js';
 
 // Achievement checking - inline to avoid module imports in Edge Functions
 function checkAchievements(stats, lastSession = null) {
@@ -54,9 +63,8 @@ function migrateToModeStats(player) {
 
   console.log(`Migrating historical games for @${player.handle}`);
 
-  const { initializePlayerStats } = require('./_utils.js');
-  
-  // Initialize mode-specific stats
+  // Initialize mode-specific stats (initializePlayerStats imported at top — Edge runtime is ESM-only,
+  // a CommonJS `require` here was dead code that would have thrown if this branch ever ran)
   const freshStats = initializePlayerStats();
   player.stats.stats4P = { ...freshStats.stats4P };
   player.stats.stats6P = { ...freshStats.stats6P };
@@ -299,10 +307,10 @@ export default async function handler(request) {
         }
       }
 
-      // Return full player profile
+      // Return full player profile (strip token hash — internal-only)
       return new Response(JSON.stringify({
         success: true,
-        player: player
+        player: sanitizePlayer(player)
       }), {
         status: 200,
         headers: {
@@ -322,15 +330,34 @@ export default async function handler(request) {
         // ===== PROFILE UPDATE MODE =====
         const updates = requestData;
 
-        // SECURITY: profile updates require admin token until per-user ownership tokens
-        // are implemented. Without this gate, anyone with a handle could rewrite any
-        // player's displayName / emoji / tagline / photoBase64.
-        // TODO: implement per-user ownership tokens issued at create + stored in localStorage,
-        //       then relax this gate to "admin OR owner".
-        const { validatePlayerData, validateAdminToken } = await import('./_utils.js');
-        if (!validateAdminToken(updates.adminToken)) {
+        // Get existing player FIRST — needed both for the ownership check
+        // (must compare Bearer against stored hash) and for the update target.
+        const existingData = await kv.get(`player:${handle}`);
+        if (!existingData) {
           return new Response(JSON.stringify({
-            error: 'Unauthorized — profile updates require admin token (per-user ownership tokens TBD)'
+            error: 'Player not found'
+          }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        const player = typeof existingData === 'string' ? JSON.parse(existingData) : existingData;
+
+        // Auth: admin token (body) OR ownership Bearer (header).
+        // Admin always overrides; owner only works if the player record was created
+        // with the new ownership-token flow (legacy records have no hash, fall through to admin-only).
+        const adminOk = validateAdminToken(updates.adminToken);
+        let ownerOk = false;
+        if (!adminOk) {
+          const bearer = extractBearerToken(request);
+          if (bearer && player.ownershipTokenHash) {
+            ownerOk = await validateOwnershipToken(bearer, player.ownershipTokenHash);
+          }
+        }
+
+        if (!adminOk && !ownerOk) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized — profile updates require ownership token or admin token'
           }), {
             status: 403,
             headers: { 'Content-Type': 'application/json' }
@@ -354,20 +381,7 @@ export default async function handler(request) {
           });
         }
 
-        // Get existing player
-        const playerData = await kv.get(`player:${handle}`);
-        if (!playerData) {
-          return new Response(JSON.stringify({
-            error: 'Player not found'
-          }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-          });
-        }
-
-        const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
-
-        // Update ONLY profile fields (not stats, not handle)
+        // Update ONLY profile fields (not stats, not handle, not ownershipTokenHash)
         if (updates.displayName !== undefined) player.displayName = updates.displayName;
         if (updates.emoji !== undefined) player.emoji = updates.emoji;
         if (updates.photoBase64 !== undefined) player.photoBase64 = updates.photoBase64;  // Can be null to remove
@@ -380,11 +394,11 @@ export default async function handler(request) {
         // Save to KV
         await kv.set(`player:${handle}`, JSON.stringify(player));
 
-        console.log(`Profile updated for @${handle}`);
+        console.log(`Profile updated for @${handle} (auth: ${adminOk ? 'admin' : 'owner'})`);
 
         return new Response(JSON.stringify({
           success: true,
-          player: player
+          player: sanitizePlayer(player)
         }), {
           status: 200,
           headers: {
@@ -421,6 +435,67 @@ export default async function handler(request) {
       }
 
       const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+
+      // ===== AUTH GATE for stats path =====
+      // Three valid credentials, in priority order. Any one passes:
+      //   1. adminToken in body — admin override (always valid)
+      //   2. Authorization: Bearer <ownershipToken> matching THIS player's hash —
+      //      owner self-update from their own device
+      //   3. Authorization: Bearer <roomAuthToken> matching the stored token of
+      //      the room identified by gameResult.roomCode AND target handle is
+      //      listed in that room's players[] — host writing for a participant
+      //
+      // For LOCAL games (no room), only paths 1 and 2 are available. Without this
+      // gate, an unauthenticated client could pollute any player's career stats
+      // (ranking averages, MVP votes, partner graph, win streaks) by spamming PUT.
+      const _bearer = extractBearerToken(request);
+      const _adminOk = validateAdminToken(gameResult.adminToken);
+      let _ownerOk = false;
+      let _hostOk = false;
+
+      if (!_adminOk && _bearer) {
+        if (player.ownershipTokenHash) {
+          _ownerOk = await validateOwnershipToken(_bearer, player.ownershipTokenHash);
+        }
+
+        const submittedRoomCode = gameResult.roomCode;
+        if (!_ownerOk && submittedRoomCode && /^[A-Z0-9]{6}$/.test(submittedRoomCode)) {
+          // ACCEPTED LOW (security review 2026-05-03): the KV lookup creates a
+          // small timing-oracle for "room exists?". Room codes are already
+          // discoverable via /api/rooms/list, so the oracle reveals nothing
+          // confidential. Adding a dummy-op cover would cost a KV roundtrip
+          // per request without raising the bar. Documented in SECURITY.md.
+          const roomData = await kv.get(`room:${submittedRoomCode}`);
+          if (roomData) {
+            const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+            if (room.authToken && constantTimeEqual(_bearer, room.authToken)) {
+              const roomPlayers = Array.isArray(room.players) ? room.players : [];
+              const inRoom = roomPlayers.some(p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle);
+              if (inRoom) _hostOk = true;
+            }
+          }
+        }
+      }
+
+      if (!_adminOk && !_ownerOk && !_hostOk) {
+        return new Response(JSON.stringify({
+          error: 'Unauthorized — stats updates require room-host bearer, owner bearer, or admin token'
+        }), {
+          status: 403,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'WWW-Authenticate': 'Bearer realm="player-stats"'
+          }
+        });
+      }
+
+      // Defense in depth: even with the gate above, snapshot security-sensitive
+      // fields BEFORE any mutation so the stats path cannot mutate
+      // `ownershipTokenHash` or `id` even if `gameResult` smuggled in matching
+      // keys via a future code path. Restore the snapshot before save.
+      const _frozenOwnershipHash = player.ownershipTokenHash;
+      const _frozenId = player.id;
 
       // Run migration if needed (once per player)
       const migrated = migrateToModeStats(player);
@@ -676,6 +751,11 @@ export default async function handler(request) {
           }
         }
 
+        // Restore the snapshotted security-sensitive fields. The stats path
+        // shouldn't be able to overwrite these even by accident.
+        if (_frozenOwnershipHash !== undefined) player.ownershipTokenHash = _frozenOwnershipHash;
+        if (_frozenId !== undefined) player.id = _frozenId;
+
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));
 
@@ -714,6 +794,10 @@ export default async function handler(request) {
           burden: newBurdenVotes,
           lastSynced: new Date().toISOString()
         };
+
+        // Restore the snapshotted security-sensitive fields (see stats path above)
+        if (_frozenOwnershipHash !== undefined) player.ownershipTokenHash = _frozenOwnershipHash;
+        if (_frozenId !== undefined) player.id = _frozenId;
 
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));

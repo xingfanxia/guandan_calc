@@ -51,6 +51,11 @@ export async function syncVotingToProfiles() {
       }
     });
 
+    // Host-only auth: viewers see authToken === null and the server will 403
+    // their writes, which is correct (only the host should sync vote-derived
+    // stats). C-1 fix relies on this — see api/players/[handle].js auth gate.
+    const roomAuthToken = roomInfo.authToken || null;
+
     const updates = [];
     Object.entries(playerVotes).forEach(([playerId, votes]) => {
       const player = players.find(p => p.id === parseInt(playerId));
@@ -66,7 +71,7 @@ export async function syncVotingToProfiles() {
           teamWon: false,
           gamesInSession: 0,
           mode: 'VOTE_ONLY'
-        });
+        }, roomAuthToken);
         updates.push(update);
         console.log(`✅ Syncing votes for @${player.handle}: MVP=${votes.mvp}, burden=${votes.burden}`);
       }
