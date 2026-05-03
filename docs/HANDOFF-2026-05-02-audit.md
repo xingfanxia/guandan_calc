@@ -101,51 +101,44 @@ forever. If a user suspects compromise (browser shared, localStorage scraped),
 they need an admin to delete + recreate. Future affordance: `POST
 /api/players/<handle>/rotate-token` requiring current Bearer (or admin).
 
-### P1 — Security hardening
+### P1 — ✅ All 5 shipped 2026-05-03
 
-#### 2. Vote-count forgery (Agent C CRITICAL)
+#### 2. Vote-count forgery — DONE
+`PUT /api/players/<handle>` stats path now overrides client-supplied
+`mvpVoteCount` / `burdenVoteCount` with authoritative values fetched from
+`room.endGameVotes[mvp|burden][playerId]`. The room is loaded once at the top
+of the stats branch and reused for both auth (host-Bearer check) and vote
+fetch (single KV roundtrip). LOCAL games keep client values — there's no
+shared store, and the auth gate already restricts LOCAL writes to the
+player's own profile via owner Bearer.
 
-Server should fetch authoritative vote totals from `/api/rooms/vote/<code>`
-rather than trust client-supplied `mvpVoteCount` / `burdenVoteCount`.
+#### 3. Vote fingerprint cap — DONE
+`api/rooms/vote/[code].js` caps `fingerprints` to the last 1000 entries via
+`.slice(-FINGERPRINT_CAP)` after each push. When the cap is reached, oldest
+fingerprints fall off — acceptable trade for this app's threat model.
 
-**Files:** `api/players/[handle].js` (lines ~488-507, ~675-693),
-`src/share/votingSync.js`
+#### 4. Modal accessibility — DONE
+New `src/core/modal.js` exposes `setupModalAccessibility(modalElement,
+closeModal)`: sets `role="dialog"` + `aria-modal="true"`, locks body scroll,
+adds Escape-to-close, traps Tab within the modal, and auto-focuses the first
+focusable element. Wired into both `playerCreateModal.js` and
+`playerEditModal.js`. Returns a cleanup function that close handlers invoke.
 
-#### 3. Vote fingerprint array unbounded (Agent C MEDIUM)
+#### 5. Touch handler orphan-tile guard — DONE (surgical fix)
+The audit's listener-leak concern is already mitigated by the existing
+`dataset.touchHandlersAttached` guard, so the actual remaining bug was the
+orphan-timer race: if a re-render detaches the tile during the 200ms
+long-press window, the captured `tile` reference operates on an invisible
+orphan. Fix: `if (!tile.isConnected) return;` inside the timer
+(`src/player/touchHandler.js:44`). Full parent-zone delegation refactor
+remains a future improvement if perf measurement ever shows attachment
+overhead — surgical patch fixes the actual bug without disturbing 4 files.
 
-`api/rooms/vote/[code].js` line 49 appends to `fingerprints` array forever.
-Cap to last 1000, or move dedup to per-fingerprint KV keys with TTL.
-
-### P1 — UX / accessibility
-
-#### 4. Modal accessibility (Agent B MEDIUM)
-
-Both `playerCreateModal.js` and `playerEditModal.js` lack:
-- Escape key handler
-- Focus trap
-- `document.body.style.overflow='hidden'` on open
-- `role="dialog"` + `aria-modal="true"`
-
-Affects keyboard users + iOS Safari (backdrop click interferes with address
-bar tap).
-
-#### 5. Touch handler delegation rewrite (Agent B HIGH)
-
-Currently `attachTouchHandlersToAllTiles()` re-attaches 4 listeners per tile on
-every render. Old DOM nodes orphaned with active timers if user mid-long-press
-during re-render. Use event delegation on `#playerPool`, `#rankingArea`,
-`#unassignedPlayers`, `#team1Zone`, `#team2Zone` instead.
-
-**Files:** `src/controllers/gameControls.js` (`attachTouchHandlersToAllTiles`),
-`src/player/playerRenderer.js` (`attachTouchHandlers`),
-`src/ranking/rankingRenderer.js` (`renderRankingSlots`)
-
-#### 6. Mode change ranking-area refresh (Agent B MEDIUM)
-
-`src/controllers/settingsControls.js` lines 37-44: mode change calls
-`generatePlayers(mode, false)` but if that early-returns (empty player list),
-`renderRankingArea(mode)` is never called and ranking shows old slot count.
-Fix: always call `renderRankingArea(mode)` after mode change.
+#### 6. Mode change ranking-area refresh — DONE
+`settingsControls.js` mode-change handler now calls `renderRankingArea(mode)`
+explicitly after `generatePlayers`, regardless of whether the latter
+early-returned. Imports `renderRankingArea` directly rather than relying on
+the unconsumed `ui:modeChanged` event.
 
 ### P2 — Quality
 

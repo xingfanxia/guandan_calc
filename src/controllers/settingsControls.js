@@ -10,6 +10,7 @@ import { updateRuleHint, applyTeamStyles, refreshPreviewOnly } from '../ui/teamD
 import { updateTeamLabels } from '../player/playerRenderer.js';
 import { syncVotingToProfiles } from '../share/votingSync.js';
 import { generatePlayers } from '../player/playerManager.js';
+import { renderRankingArea } from '../ranking/rankingRenderer.js';
 
 /**
  * Update bulk names placeholder based on mode
@@ -36,9 +37,15 @@ export function setupSettingsControls() {
   if (modeSelect) {
     on(modeSelect, 'change', (e) => {
       const newMode = e.target.value;
+      const newModeInt = parseInt(newMode);
       updateRuleHint(newMode);
       updateBulkNamesPlaceholder(newMode);
-      generatePlayers(parseInt(newMode), false);
+      generatePlayers(newModeInt, false);
+      // Always re-render ranking slots — generatePlayers can early-return on
+      // empty player list, leaving the ranking area showing the old mode's
+      // slot count. The ranking renderer is the source of truth for slot count
+      // per mode regardless of whether players were re-generated.
+      renderRankingArea(newModeInt);
       emit('ui:modeChanged', { mode: newMode });
     });
   }

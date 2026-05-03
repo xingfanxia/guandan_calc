@@ -58,9 +58,19 @@ export default async function handler(request) {
       room.endGameVotes.mvp[mvpPlayerId] = (room.endGameVotes.mvp[mvpPlayerId] || 0) + 1;
       room.endGameVotes.burden[burdenPlayerId] = (room.endGameVotes.burden[burdenPlayerId] || 0) + 1;
 
-      // Store fingerprint to prevent duplicate voting
+      // Store fingerprint to prevent duplicate voting.
+      // Cap to last 1000 — without this, fingerprint storage grows linearly forever,
+      // bloating the KV record and slowing JSON serialization on every read/write.
+      // 1000 is a couple orders of magnitude above realistic vote counts per room
+      // (each room has at most a handful of viewers); when the cap is reached,
+      // the oldest fingerprints fall off, allowing those clients to re-vote — an
+      // acceptable trade in this app's threat model (casual vote, not high-stakes).
+      const FINGERPRINT_CAP = 1000;
       if (fingerprint) {
         room.endGameVotes.fingerprints.push(fingerprint);
+        if (room.endGameVotes.fingerprints.length > FINGERPRINT_CAP) {
+          room.endGameVotes.fingerprints = room.endGameVotes.fingerprints.slice(-FINGERPRINT_CAP);
+        }
       }
 
       console.log('Saving votes:', room.endGameVotes);

@@ -436,6 +436,24 @@ export default async function handler(request) {
 
       const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
 
+      // Load the room once (single KV roundtrip) — used by BOTH the auth gate
+      // (host-Bearer check needs room.authToken + room.players[]) and the
+      // authoritative vote-count fetch later (P1 #2 fix: don't trust
+      // client-supplied mvpVoteCount / burdenVoteCount). LOCAL games and
+      // malformed roomCodes skip the load — `_room` stays null.
+      // ACCEPTED LOW (security review 2026-05-03): timing oracle for "room
+      // exists?" is acceptable since room codes are already public via
+      // /api/rooms/list.
+      const submittedRoomCode = gameResult.roomCode;
+      const isRealRoomCode = typeof submittedRoomCode === 'string' && /^[A-Z0-9]{6}$/.test(submittedRoomCode);
+      let _room = null;
+      if (isRealRoomCode) {
+        const roomData = await kv.get(`room:${submittedRoomCode}`);
+        if (roomData) {
+          _room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+        }
+      }
+
       // ===== AUTH GATE for stats path =====
       // Three valid credentials, in priority order. Any one passes:
       //   1. adminToken in body — admin override (always valid)
@@ -458,22 +476,10 @@ export default async function handler(request) {
           _ownerOk = await validateOwnershipToken(_bearer, player.ownershipTokenHash);
         }
 
-        const submittedRoomCode = gameResult.roomCode;
-        if (!_ownerOk && submittedRoomCode && /^[A-Z0-9]{6}$/.test(submittedRoomCode)) {
-          // ACCEPTED LOW (security review 2026-05-03): the KV lookup creates a
-          // small timing-oracle for "room exists?". Room codes are already
-          // discoverable via /api/rooms/list, so the oracle reveals nothing
-          // confidential. Adding a dummy-op cover would cost a KV roundtrip
-          // per request without raising the bar. Documented in SECURITY.md.
-          const roomData = await kv.get(`room:${submittedRoomCode}`);
-          if (roomData) {
-            const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
-            if (room.authToken && constantTimeEqual(_bearer, room.authToken)) {
-              const roomPlayers = Array.isArray(room.players) ? room.players : [];
-              const inRoom = roomPlayers.some(p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle);
-              if (inRoom) _hostOk = true;
-            }
-          }
+        if (!_ownerOk && _room && _room.authToken && constantTimeEqual(_bearer, _room.authToken)) {
+          const roomPlayers = Array.isArray(_room.players) ? _room.players : [];
+          const inRoom = roomPlayers.some(p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle);
+          if (inRoom) _hostOk = true;
         }
       }
 
@@ -488,6 +494,35 @@ export default async function handler(request) {
             'WWW-Authenticate': 'Bearer realm="player-stats"'
           }
         });
+      }
+
+      // ===== AUTHORITATIVE VOTE COUNTS (P1 #2 fix) =====
+      // For room games, override client-supplied mvpVoteCount / burdenVoteCount
+      // with the server's actual stored counts. Even an authenticated host
+      // shouldn't be able to inflate vote totals — auth proves identity, not
+      // truth-of-claim. For LOCAL games there's no shared store, so client
+      // values are the only source — accepted (LOCAL stats only update the
+      // client's own profile via owner-Bearer, so the worst case is self-spam).
+      if (_room) {
+        const roomPlayers = Array.isArray(_room.players) ? _room.players : [];
+        const targetPlayer = roomPlayers.find(
+          p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle
+        );
+        if (targetPlayer && targetPlayer.id !== undefined) {
+          const mvpMap = (_room.endGameVotes && _room.endGameVotes.mvp) || {};
+          const burdenMap = (_room.endGameVotes && _room.endGameVotes.burden) || {};
+          gameResult.mvpVoteCount = Math.max(0, Number(mvpMap[targetPlayer.id]) || 0);
+          gameResult.burdenVoteCount = Math.max(0, Number(burdenMap[targetPlayer.id]) || 0);
+        } else {
+          // Defensive (LOW finding from review 2026-05-03): if room metadata is
+          // malformed and targetPlayer.id can't be resolved, force authoritative
+          // values to 0 rather than leaving client values to flow through. The
+          // host-Bearer path already passed (target handle was in players[]),
+          // but a missing/undefined id means we can't index the vote map, so
+          // refusing to inherit anything is the safest behavior.
+          gameResult.mvpVoteCount = 0;
+          gameResult.burdenVoteCount = 0;
+        }
       }
 
       // Defense in depth: even with the gate above, snapshot security-sensitive
@@ -590,8 +625,12 @@ export default async function handler(request) {
         const mvpDelta = newMvpVotes - oldVotes.mvp;
         const burdenDelta = newBurdenVotes - oldVotes.burden;
 
-        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpDelta;
-        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenDelta;
+        // Clamp running totals at 0 — `votingHistory` deltas can legitimately
+        // go negative (vote reset, authoritative read drops below previously-
+        // synced count), so without the clamp legacy/inflated histories could
+        // push lifetime totals below zero.
+        player.stats.mvpVotes = Math.max(0, (player.stats.mvpVotes || 0) + mvpDelta);
+        player.stats.burdenVotes = Math.max(0, (player.stats.burdenVotes || 0) + burdenDelta);
 
         // Update room history (overwrite)
         player.stats.votingHistory[roomCode] = {
@@ -785,8 +824,12 @@ export default async function handler(request) {
         const mvpDelta = newMvpVotes - oldVotes.mvp;
         const burdenDelta = newBurdenVotes - oldVotes.burden;
 
-        player.stats.mvpVotes = (player.stats.mvpVotes || 0) + mvpDelta;
-        player.stats.burdenVotes = (player.stats.burdenVotes || 0) + burdenDelta;
+        // Clamp running totals at 0 — `votingHistory` deltas can legitimately
+        // go negative (vote reset, authoritative read drops below previously-
+        // synced count), so without the clamp legacy/inflated histories could
+        // push lifetime totals below zero.
+        player.stats.mvpVotes = Math.max(0, (player.stats.mvpVotes || 0) + mvpDelta);
+        player.stats.burdenVotes = Math.max(0, (player.stats.burdenVotes || 0) + burdenDelta);
 
         // Update room history (overwrite)
         player.stats.votingHistory[roomCode] = {

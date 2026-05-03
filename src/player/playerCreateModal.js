@@ -3,6 +3,7 @@
 
 import { createPlayer, validateHandle, getPlayStyles } from '../api/playerApi.js';
 import { $ } from '../core/utils.js';
+import { setupModalAccessibility } from '../core/modal.js';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
@@ -10,6 +11,7 @@ import { ANIMAL_EMOJIS } from './playerManager.js';
 let onPlayerCreatedCallback = null;
 let modalElement = null;
 let selectedPhotoBase64 = null;
+let accessibilityCleanup = null;
 
 /**
  * Initialize player creation modal
@@ -196,6 +198,10 @@ export function showCreateModal() {
   `;
 
   document.body.appendChild(modalElement);
+
+  // a11y wiring (ARIA, Escape, focus trap, scroll lock) — same pattern as
+  // playerEditModal. Centralized in src/core/modal.js.
+  accessibilityCleanup = setupModalAccessibility(modalElement, closeModal);
 
   // Setup event handlers
   setupModalHandlers();
@@ -428,6 +434,12 @@ function setupModalHandlers() {
  * Close modal
  */
 function closeModal() {
+  // Tear down a11y wiring FIRST so the document-level keydown listener doesn't
+  // outlive the modal element.
+  if (accessibilityCleanup) {
+    accessibilityCleanup();
+    accessibilityCleanup = null;
+  }
   if (modalElement) {
     modalElement.remove();
     modalElement = null;

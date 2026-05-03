@@ -170,20 +170,29 @@ without authoritative vote fetching.
   "you sent a Bearer" vs "you didn't" — not which path matched. No
   actionable leak; accepted.
 
-### Vote forgery
+### Vote forgery (resolved 2026-05-03)
 
-`PUT /api/players/<handle>` with stats updates accepts `mvpVoteCount` and
-`burdenVoteCount` from the client body. A malicious player could send
-`mvpVoteCount: 999` to spoof leaderboard standing.
+Previously `PUT /api/players/<handle>` stats path accepted `mvpVoteCount` and
+`burdenVoteCount` from the client body — even an authenticated host could
+inflate vote totals via `mvpVoteCount: 999`. Closed in the same batch as the
+P1 follow-ups.
 
-**Mitigation today:** the API uses `votingHistory[roomCode]` to compute deltas
-(idempotent with a single roomCode), and `LOCAL` is used as the roomCode
-sentinel for non-room sessions — multiple local games stomp the same key, which
-caps the damage per-roomCode but doesn't prevent inflation within one room.
+**Auth proves identity, not truth-of-claim.** For room games, the stats
+handler now reads vote counts from authoritative server storage:
 
-**Proper fix (TBD):** server fetches authoritative vote counts from
-`/api/rooms/vote/<code>` rather than trusting client-supplied counts. Client
-sends only the player handle; server resolves to vote totals.
+1. The room is already loaded for the auth gate (host-Bearer check needs
+   `room.authToken` and `room.players[]`)
+2. After auth passes, the same room is consulted for
+   `room.endGameVotes.mvp[targetPlayerId]` and the burden equivalent
+3. Authoritative values overwrite `gameResult.mvpVoteCount` /
+   `burdenVoteCount` for the rest of the handler — `votingHistory` deltas
+   compute against truth, not claim
+
+For LOCAL games (no shared room storage), client values are still trusted
+because there's no alternative source. This is acceptable because the auth
+gate already restricts LOCAL writes to owner-Bearer (player's own
+profile from their own device) — worst case is self-spam, not cross-player
+inflation.
 
 ### Vote fingerprint array is unbounded
 

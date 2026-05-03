@@ -161,14 +161,14 @@ See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.
 - [x] Per-user ownership tokens for `PROFILE_UPDATE` (shipped 2026-05-03; admin OR Bearer-token auth, see `docs/SECURITY.md`)
 - [x] 3-tier auth gate on stats-update PUT path (CRITICAL, shipped 2026-05-03; admin OR owner Bearer OR room-host Bearer + player-membership check)
 
-**P1 — security:**
-- [ ] Server-side vote count fetch (don't trust client `mvpVoteCount`/`burdenVoteCount`)
-- [ ] Cap `room.endGameVotes.fingerprints` array (currently unbounded)
+**P1 — security (shipped 2026-05-03):**
+- [x] Server-side vote count fetch — stats path overrides client `mvpVoteCount`/`burdenVoteCount` with `room.endGameVotes` authoritative values
+- [x] `fingerprints` array capped at 1000 entries
 
-**P1 — UX/accessibility:**
-- [ ] Modal accessibility (Escape key, focus trap, body scroll lock, `aria-modal`)
-- [ ] Touch handler delegation rewrite (event listener leaks during re-render)
-- [ ] Always re-render ranking area on `ui:modeChanged`
+**P1 — UX/accessibility (shipped 2026-05-03):**
+- [x] Modal accessibility — `src/core/modal.js` helper handles Escape, focus trap, body scroll lock, `aria-modal`; both modals wired
+- [x] Touch handler orphan-tile guard (`!tile.isConnected → abort drag` inside the long-press timer; full delegation refactor noted but not done — existing dataset guard already handled the listener-leak claim)
+- [x] Mode-change always renders ranking area
 
 **P2 — quality:**
 - [ ] `isDevelopment` should read `import.meta.env.DEV`

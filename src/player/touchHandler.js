@@ -42,6 +42,17 @@ export function handleTouchStart(e, player) {
 
   // Set up delayed drag start (long press)
   touchStartTimer = setTimeout(() => {
+    // ORPHAN-TILE GUARD (P1 #5 fix): if a re-render between touchstart and
+    // the 200ms timer detached `tile`, calling style/getBoundingClientRect on
+    // it operates on an invisible orphan — drag clone appears at (0,0), drop
+    // detection misfires, opacity changes invisible. Aborting the drag when
+    // the captured tile is no longer connected is the lightest-touch fix.
+    // The full delegation refactor recommended in the 2026-05-02 audit would
+    // attach listeners to parent zones instead, but the existing
+    // `dataset.touchHandlersAttached` guard already prevents re-attachment
+    // leaks, so the only remaining bug is this race — surgical patch suffices.
+    if (!tile.isConnected) return;
+
     // Start drag after delay
     e.preventDefault();
     isDragging = true;

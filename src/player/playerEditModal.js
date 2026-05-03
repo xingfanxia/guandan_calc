@@ -3,6 +3,7 @@
 
 import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken, clearOwnershipToken } from '../api/playerApi.js';
 import { $, escapeHtml } from '../core/utils.js';
+import { setupModalAccessibility } from '../core/modal.js';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
@@ -11,6 +12,7 @@ let onPlayerUpdatedCallback = null;
 let modalElement = null;
 let selectedPhotoBase64 = null;
 let currentPlayer = null;
+let accessibilityCleanup = null;
 
 /**
  * Initialize player edit modal
@@ -245,6 +247,10 @@ export function showEditModal(player) {
   `;
 
   document.body.appendChild(modalElement);
+
+  // a11y wiring (ARIA, Escape, focus trap, scroll lock) — must happen AFTER
+  // the modal is in the DOM so initial-focus and trap have something to query.
+  accessibilityCleanup = setupModalAccessibility(modalElement, closeModal);
 
   // Setup event handlers
   setupModalHandlers();
@@ -520,6 +526,13 @@ function setupModalHandlers() {
  * Close modal
  */
 function closeModal() {
+  // Tear down a11y wiring FIRST — drops document-level keydown listener and
+  // restores body scroll. If we removed the modal first, the document listener
+  // would dangle until the next showModal() overwrote `accessibilityCleanup`.
+  if (accessibilityCleanup) {
+    accessibilityCleanup();
+    accessibilityCleanup = null;
+  }
   if (modalElement) {
     modalElement.remove();
     modalElement = null;
