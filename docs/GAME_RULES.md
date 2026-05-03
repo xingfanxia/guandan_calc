@@ -57,10 +57,25 @@ When a team reaches A-level, special rules apply:
 - The team can win the match by winning at any level (their own or opponent's)
 - Winning with a last-place player still counts as a failure
 
-### A-Level Failures
+### A-Level Failures (4-player mode ONLY since 2026-05)
+
 - If an A-level team loses or wins with a last-place player, it counts as a failure
-- After 3 failures, the team is reset to level 2
+- After 3 failures (A1 → A2 → A3), the team is reset to level 2
 - The failure count is tracked separately for each team
+
+### 6-Player and 8-Player Mode (since 2026-05)
+
+The 3-strike A-fail rule was **removed** for 6/8-player modes:
+
+- **No A1/A2/A3 failure tracking** — A-level losses don't accumulate strikes
+- **No demotion to level 2** — teams stay at A regardless of how many losing rounds they have at A
+- **Game continues** until either side wins on their own A level (subject to the strict/lenient
+  preference described above)
+- **UI behavior**: the `A 失败` chip is hidden, and the `A 状态` chip displays `通关中` instead of
+  `A0/3` once a team reaches A
+
+This change makes 6/8 sessions less punishing — long Guandan nights no longer rubber-band a team
+back to level 2 after a streak of close losses at A. 4-player rules are unchanged.
 
 ## Calculator-Specific Features
 

@@ -1,0 +1,183 @@
+# Session Handoff — Audit + 6/8 Rule Revision
+
+**Date:** 2026-05-02
+**Commit shipped:** `fa18718`
+**Files touched:** 26 (+621 / -423)
+**Build status:** ✅ green
+**Pushed:** ✅ origin/main
+
+This handoff is for the next session to pick up the deferred audit items.
+
+---
+
+## What this session shipped
+
+1. **6/8-player rule revision** — A1/A2/A3 fail counter removed, no demotion to
+   level 2, game continues until either side wins on their own A. 4-player rules
+   unchanged. UI hides 失败 chips and shows `通关中` for 6/8.
+
+2. **Security CRITICAL (5 fixes)** — see `docs/SECURITY.md` for the full model.
+   - Server-side room auth token + Bearer validation + TOFU for legacy rooms
+   - All admin endpoints validate `ADMIN_TOKEN` env var (constant-time compare)
+   - Hardcoded password rotated out of source / CLAUDE.md / players.html
+   - migrate-modes.js was previously PUBLIC — now admin-gated
+   - XSS escapeHtml applied to player names / taglines / handles in 4 surfaces
+
+3. **Game logic HIGH (8 fixes)** — `nextBaseByRule` after override; rollback
+   restores `nextRoundBase` + `roundOwner`; ranks length validation; deep-clone
+   history entries; idempotent hydrate; sync closure capture; double-submit
+   guard; `Number()` team coercion; minimal config slice.
+
+4. **Stats sync HIGH (4 fixes)** — snapshot N before increment for running avg;
+   `??` not `||` for vote counts; defensive `|| 0` on streaks; combined
+   MVP+burden in single PUT.
+
+5. **Honor scaling** — 翻车王 / 鲤鱼王 thresholds now `ceil(N/3)` instead of
+   fixed top-3 / bottom-3 (was triggering on 75% of field in 4P).
+
+---
+
+## ⚠️ Deployment action item (before next prod deploy)
+
+Set `ADMIN_TOKEN` in Vercel project env. Without it, `delete`, `reset-stats`,
+`migrate-modes`, and `PROFILE_UPDATE` all reject (fail-closed).
+
+```bash
+# Generate token
+openssl rand -hex 32
+
+# Add to Vercel
+vercel env add ADMIN_TOKEN production
+```
+
+Until this is set, regular users CANNOT edit their profiles via
+`playerEditModal` (the modal will get 403 from the server). Admins still can
+by entering the token in `players.html`.
+
+---
+
+## Deferred follow-ups (for next session)
+
+Ranked by impact. Each item links to the audit finding source so context is
+preserved.
+
+### P0 — Unblocks user-facing feature
+
+#### 1. Per-user ownership tokens (unblocks self-edit profile)
+
+**Why:** Audit gated `PROFILE_UPDATE` behind admin token to stop vandalism.
+Side effect: regular users can't self-edit anymore.
+
+**Implementation sketch:**
+1. `api/players/create.js` — generate `ownershipToken` (32-byte hex), store on
+   player record, return ONCE in response.
+2. `src/api/playerApi.js` `createPlayer` — receive token, persist to
+   `localStorage` as `gd_owner_token_${handle}`.
+3. `src/api/playerApi.js` `updatePlayerProfile` — read token from localStorage,
+   send in `Authorization: Bearer <token>` header.
+4. `api/players/[handle].js` PROFILE_UPDATE — accept either admin token OR
+   ownership token (constant-time compare against stored).
+5. `playerEditModal.js` — if no token in localStorage, show admin-token input
+   (current fallback).
+
+**Files:** `api/players/create.js`, `api/players/[handle].js`,
+`src/api/playerApi.js`, `src/player/playerEditModal.js`
+
+**Estimated effort:** 1 focused session.
+
+### P1 — Security hardening
+
+#### 2. Vote-count forgery (Agent C CRITICAL)
+
+Server should fetch authoritative vote totals from `/api/rooms/vote/<code>`
+rather than trust client-supplied `mvpVoteCount` / `burdenVoteCount`.
+
+**Files:** `api/players/[handle].js` (lines ~488-507, ~675-693),
+`src/share/votingSync.js`
+
+#### 3. Vote fingerprint array unbounded (Agent C MEDIUM)
+
+`api/rooms/vote/[code].js` line 49 appends to `fingerprints` array forever.
+Cap to last 1000, or move dedup to per-fingerprint KV keys with TTL.
+
+### P1 — UX / accessibility
+
+#### 4. Modal accessibility (Agent B MEDIUM)
+
+Both `playerCreateModal.js` and `playerEditModal.js` lack:
+- Escape key handler
+- Focus trap
+- `document.body.style.overflow='hidden'` on open
+- `role="dialog"` + `aria-modal="true"`
+
+Affects keyboard users + iOS Safari (backdrop click interferes with address
+bar tap).
+
+#### 5. Touch handler delegation rewrite (Agent B HIGH)
+
+Currently `attachTouchHandlersToAllTiles()` re-attaches 4 listeners per tile on
+every render. Old DOM nodes orphaned with active timers if user mid-long-press
+during re-render. Use event delegation on `#playerPool`, `#rankingArea`,
+`#unassignedPlayers`, `#team1Zone`, `#team2Zone` instead.
+
+**Files:** `src/controllers/gameControls.js` (`attachTouchHandlersToAllTiles`),
+`src/player/playerRenderer.js` (`attachTouchHandlers`),
+`src/ranking/rankingRenderer.js` (`renderRankingSlots`)
+
+#### 6. Mode change ranking-area refresh (Agent B MEDIUM)
+
+`src/controllers/settingsControls.js` lines 37-44: mode change calls
+`generatePlayers(mode, false)` but if that early-returns (empty player list),
+`renderRankingArea(mode)` is never called and ranking shows old slot count.
+Fix: always call `renderRankingArea(mode)` after mode change.
+
+### P2 — Quality
+
+#### 7. `isDevelopment` hardcoded (Agent C LOW)
+
+`src/share/roomManager.js` line 24 has `const isDevelopment = false;` with a
+stale comment. Should read `import.meta.env.DEV` so vite-dev sessions don't
+hit prod KV.
+
+#### 8. Unused achievements (Agent C LOW)
+
+`src/stats/achievements.js` defines `comeback`, `sweep`, `iron_will` but they
+are never checked in `checkAchievements()` — dead definitions.
+
+#### 9. Honors variance n=1 edge (Agent C MEDIUM)
+
+`calculateVariance` returns 0 for length===1 (population variance with n=1 is
+degenerate). Add Bessel correction (n-1) for sample variance OR document
+choice explicitly.
+
+#### 10. `votingManager.js` undefined refs (Agent C MEDIUM)
+
+Lines 175-178 and 920-926 reference `currentRoomCode` and `isHost` that aren't
+imported into module scope — would throw `ReferenceError` in strict mode if
+that codepath ever fires. Use `getRoomInfo()` instead.
+
+### P3 — Drift / hygiene
+
+- `roomManager.js` poll interval is 2000ms but CLAUDE.md says 5s and earlier
+  comment says 10s — pick one and reconcile (Agent C MEDIUM).
+- MVP/burden tie-breaker logic duplicated between `statistics.js` and
+  `exportMobile.js` (Agent C LOW). Extract shared helper.
+- `state.js` `getPlayerStats()` returns shallow copy — nested player objects
+  still mutable (Agent A LOW).
+
+---
+
+## How to start the next session
+
+```bash
+git pull
+cat docs/HANDOFF-2026-05-02-audit.md   # this file
+cat docs/SECURITY.md                    # security model context
+cat ~/.claude/projects/-Users-xingfanxia-projects-side-projects-guandan-scorer/memory/MEMORY.md  # memory index
+```
+
+The memory system has `project_audit_followups.md` keyed to this same list,
+so any agent picking up the work has full context.
+
+Recommended first move: implement P0 (ownership tokens) to unblock
+user-facing self-edit. ~1 session of focused work.
