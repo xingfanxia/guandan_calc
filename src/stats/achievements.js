@@ -28,12 +28,13 @@ export const ACHIEVEMENTS = {
   marathon: { name: '马拉松战士', badge: '🏃', desc: '单场游戏超过50轮' },
   quick_finish: { name: '闪电战', badge: '⚡', desc: '单场游戏少于15轮获胜' },
 
-  // Fun/Special Achievements (5)
-  comeback: { name: '大逆转', badge: '🔄', desc: '落后3级后逆转获胜' },
-  sweep: { name: '零封对手', badge: '🧹', desc: '对手仍在2级时获胜' },
+  // Fun/Special Achievements (2 active — comeback/sweep/iron_will were
+  // defined but never checked because their detection requires data the
+  // session-sync flow doesn't currently track [mid-session level deltas,
+  // opponent final levels, contextual loss-streak history]. Per SIMPLED
+  // "Lean", removed rather than left as dead definitions.)
   perfect: { name: '完美表现', badge: '✨', desc: '单场游戏场均排名1.5以内' },
-  unlucky: { name: '天选之子', badge: '🎲', desc: '单场5次以上垫底仍获胜' },
-  iron_will: { name: '钢铁意志', badge: '💪', desc: '连败5场后获胜' }
+  unlucky: { name: '天选之子', badge: '🎲', desc: '单场5次以上垫底仍获胜' }
 };
 
 /**

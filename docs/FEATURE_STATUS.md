@@ -170,11 +170,17 @@ See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.
 - [x] Touch handler orphan-tile guard (`!tile.isConnected → abort drag` inside the long-press timer; full delegation refactor noted but not done — existing dataset guard already handled the listener-leak claim)
 - [x] Mode-change always renders ranking area
 
-**P2 — quality:**
-- [ ] `isDevelopment` should read `import.meta.env.DEV`
-- [ ] Implement or remove dead achievements (`comeback`, `sweep`, `iron_will`)
-- [ ] Honors variance n=1 edge case (Bessel correction or document)
-- [ ] `votingManager.js` undefined `currentRoomCode`/`isHost` references
+**P2 — quality (shipped 2026-05-03):**
+- [x] `isDevelopment` reads `import.meta.env.DEV`
+- [x] Dead achievements removed (`comeback`/`sweep`/`iron_will` deleted; reduced 20→17)
+- [x] Honors variance n=1 documented (population variance intentional; small-sample callers must gate)
+- [x] `votingManager.js` undefined refs replaced with `getRoomInfo()`
+
+**P3 — drift (shipped 2026-05-03):**
+- [x] Poll interval drift reconciled (CLAUDE.md updated to match code's 2000ms)
+- [x] MVP/burden tie-breaker extracted to `src/stats/mvpBurden.js`
+- [x] `state.js` `getPlayerStats()` returns deep clone
+- [x] Token rotation endpoint (`mode: 'ROTATE_TOKEN'`) + edit modal affordance
 
 ---
 

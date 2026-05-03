@@ -7,7 +7,24 @@ import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
 
 /**
- * Calculate variance
+ * Calculate POPULATION variance (divides by N, not N-1).
+ *
+ * For n=1, the only datapoint equals the mean → variance is 0. That's
+ * mathematically correct (no spread in a single observation) but
+ * uninformative for volatility honors, where "this player has played one
+ * game" should not classify them as stable. Variance-based honors below
+ * gate on `rankings.length < 5` to avoid this case — DO NOT call
+ * calculateVariance from a context that lacks a similar small-sample
+ * guard.
+ *
+ * Population (N) is intentional: we treat each player's session-level
+ * rankings as a complete observed history, not a sample drawn from a
+ * larger distribution. Bessel's correction (N-1) would be appropriate
+ * if we were estimating population variance from a sample, but here
+ * "the population" is "this player's actual games to date".
+ *
+ * @param {number[]} rankings
+ * @returns {number} variance (0 if rankings empty/null)
  */
 function calculateVariance(rankings) {
   if (!rankings || rankings.length === 0) return 0;

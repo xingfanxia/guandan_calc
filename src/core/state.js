@@ -234,7 +234,12 @@ class GameState {
   }
 
   getPlayerStats() {
-    return { ...this.playerStats }; // Return copy
+    // Deep clone — the shallow `{ ...this.playerStats }` would still allow
+    // callers to mutate nested per-player records (e.g., `stats[id].rankings.push(...)`),
+    // which leaked into the source of truth. JSON round-trip is the cheapest deep
+    // clone that handles the plain-data shape stats use; structuredClone would also
+    // work but JSON is well-supported and the hot path is post-game (not per-frame).
+    return JSON.parse(JSON.stringify(this.playerStats));
   }
 
   setPlayerStats(stats) {

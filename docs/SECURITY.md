@@ -111,13 +111,24 @@ by per-user ownership tokens shipped 2026-05-03.
   the device has the token in localStorage, otherwise reveals an admin-token
   input as fallback (cross-device or token-cleared users still need admin).
 
-**Limitations / future work:**
+**Token rotation (added 2026-05-03):**
 
-- No token rotation endpoint — losing localStorage means losing self-edit until
-  admin re-issues. Acceptable for casual game app; revisit if user complaints.
-- Legacy players (created before 2026-05-03) have no `ownershipTokenHash`, so
-  they fall through to admin-only edit. No migration; eventually they re-create
-  or admin handles edits.
+- `PUT /api/players/<handle>` with `mode: 'ROTATE_TOKEN'` issues a fresh
+  ownership token. Auth: admin body token OR current owner Bearer. Server
+  generates new 32-byte CSPRNG token, replaces stored hash, returns raw new
+  token ONCE. Old token is dead the instant the new hash is persisted —
+  pre-existing copies on other devices are immediately invalidated.
+- Edit modal exposes the affordance as "重新生成令牌" alongside
+  "登出本设备" in the device-management section at the bottom of the form.
+- Use cases: shared-device hygiene, suspected token leak, routine rotation.
+
+**Remaining limitations:**
+
+- Legacy players (created before 2026-05-03) have no `ownershipTokenHash`,
+  so they fall through to admin-only edit. No migration; eventually they
+  re-create or admin handles edits. Token rotation does NOT bootstrap one
+  for these players — by design, since rotation requires an existing token
+  to authorize the swap.
 
 ### Stats-update auth (resolved 2026-05-03)
 

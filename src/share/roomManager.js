@@ -20,8 +20,13 @@ let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
 
-// Development mode check (disabled - vercel dev provides API access)
-const isDevelopment = false; // Set to true only if using pure Vite (npm run dev)
+// Development-mode check derived from Vite's build env. `import.meta.env.DEV`
+// is true under `npm run dev` (pure Vite — no Edge Functions / KV) and false
+// for `npm run build` output served by `vercel dev` or production. This blocks
+// pure-Vite sessions from hitting prod KV via stale localStorage room codes.
+const isDevelopment = typeof import.meta !== 'undefined'
+  && import.meta.env
+  && import.meta.env.DEV === true;
 
 /**
  * Create a new room

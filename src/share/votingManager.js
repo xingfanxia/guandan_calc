@@ -173,7 +173,10 @@ export async function getEndGameVotingResults() {
  * @returns {Promise<boolean>} Success
  */
 export async function resetVoting(authToken) {
-  if (!currentRoomCode || !isHost) {
+  // currentRoomCode/isHost were undefined module-scoped refs (P2 #10 fix);
+  // pull current values via getRoomInfo() instead.
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.roomCode || !roomInfo.isHost) {
     return false;
   }
 
@@ -181,7 +184,7 @@ export async function resetVoting(authToken) {
     const history = state.getHistory();
     const roundNumber = history.length;
 
-    const response = await fetch(`/api/rooms/reset-vote/${currentRoomCode}`, {
+    const response = await fetch(`/api/rooms/reset-vote/${roomInfo.roomCode}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -918,7 +921,11 @@ export async function showHostVoting() {
  * Start live vote count polling (host only)
  */
 export function startVotePolling() {
-  if (!isHost) return;
+  // P2 #10 fix: `isHost` was an undefined module-scoped ref; getRoomInfo() is
+  // the canonical source. Note: this function never stops the interval — if
+  // host stops being host (e.g., room ends) the polling continues. Pre-existing
+  // behavior, not in scope of this fix.
+  if (!getRoomInfo().isHost) return;
 
   setInterval(async () => {
     await showHostVoting();

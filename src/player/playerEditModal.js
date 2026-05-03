@@ -1,7 +1,7 @@
 // Player Edit Modal
 // Modal UI for editing existing player profiles
 
-import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken, clearOwnershipToken } from '../api/playerApi.js';
+import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken, clearOwnershipToken, rotatePlayerToken } from '../api/playerApi.js';
 import { $, escapeHtml } from '../core/utils.js';
 import { setupModalAccessibility } from '../core/modal.js';
 
@@ -227,12 +227,18 @@ export function showEditModal(player) {
           </button>
         </div>
 
-        <!-- Forget device — wipes the localStorage ownership token from THIS device.
-             Only shown when a token actually exists; for anyone else (admin path / no token)
-             there's nothing to forget. After this, the user needs admin re-issue to edit
-             from this device again — there's no rotation endpoint yet (P3 follow-up). -->
+        <!-- Device management — rotate or forget the ownership token. Both
+             only meaningful when a token exists locally; admin-only sessions
+             have nothing to rotate or forget. -->
         ${getOwnershipToken(player.handle) ? `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; text-align: center;">
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; text-align: center; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+            <button
+              type="button"
+              id="rotateTokenButton"
+              style="background: none; border: none; color: #888; font-size: 0.85em; cursor: pointer; text-decoration: underline;"
+            >
+              重新生成令牌
+            </button>
             <button
               type="button"
               id="forgetDeviceButton"
@@ -425,6 +431,37 @@ function setupModalHandlers() {
         clearOwnershipToken(currentPlayer.handle);
         alert('已清除本设备的编辑权限');
         closeModal();
+      }
+    });
+  }
+
+  // Rotate-token button — issues a new ownership token, replacing the old.
+  // Only meaningful when a token already exists locally (the API client falls
+  // back to admin token otherwise, but admin rotation belongs in admin tools).
+  const rotateButton = $('rotateTokenButton');
+  if (rotateButton) {
+    rotateButton.addEventListener('click', async () => {
+      const ok = confirm(
+        '将重新生成此账号的编辑权限令牌。\n\n' +
+        '新令牌会替换本设备保存的旧令牌；其他设备保存的旧令牌将立即失效。\n\n' +
+        '确定继续？'
+      );
+      if (!ok) return;
+
+      const originalText = rotateButton.textContent;
+      rotateButton.disabled = true;
+      rotateButton.textContent = '生成中...';
+      try {
+        await rotatePlayerToken(currentPlayer.handle);
+        alert('✅ 令牌已更新，旧令牌已失效');
+      } catch (err) {
+        console.error('Token rotation failed:', err);
+        alert(err.message?.includes('Unauthorized')
+          ? '❌ 权限不足，无法重新生成令牌'
+          : '❌ 令牌更新失败，请重试');
+      } finally {
+        rotateButton.disabled = false;
+        rotateButton.textContent = originalText;
       }
     });
   }

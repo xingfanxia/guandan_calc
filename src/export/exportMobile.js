@@ -7,6 +7,7 @@ import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
+import { findMVPAndBurden } from '../stats/mvpBurden.js';
 
 /**
  * Load image from base64 data URL
@@ -201,70 +202,8 @@ export async function exportMobilePNG() {
   const team2Players = getPlayersByTeam(2);
   // playerStats already declared at top
 
-  const findMVPBurden = (teamPlayers) => {
-    let mvp = null, burden = null;
-    let mvpStats = null, burdenStats = null;
-
-    teamPlayers.forEach(player => {
-      const stats = playerStats[player.id];
-      if (stats && stats.games > 0) {
-        const avg = stats.totalRank / stats.games;
-
-        // MVP: lowest average rank (best performance)
-        if (!mvp) {
-          mvp = player;
-          mvpStats = { avg, stats };
-        } else {
-          const mvpAvg = mvpStats.avg;
-          if (avg < mvpAvg) {
-            mvp = player;
-            mvpStats = { avg, stats };
-          } else if (avg === mvpAvg) {
-            // Tie-breaker 1: more 1st places
-            if (stats.firstPlaceCount > mvpStats.stats.firstPlaceCount) {
-              mvp = player;
-              mvpStats = { avg, stats };
-            } else if (stats.firstPlaceCount === mvpStats.stats.firstPlaceCount) {
-              // Tie-breaker 2: fewer last places
-              if (stats.lastPlaceCount < mvpStats.stats.lastPlaceCount) {
-                mvp = player;
-                mvpStats = { avg, stats };
-              }
-            }
-          }
-        }
-
-        // Burden: highest average rank (worst performance)
-        if (!burden) {
-          burden = player;
-          burdenStats = { avg, stats };
-        } else {
-          const burdenAvg = burdenStats.avg;
-          if (avg > burdenAvg) {
-            burden = player;
-            burdenStats = { avg, stats };
-          } else if (avg === burdenAvg) {
-            // Tie-breaker 1: more last places
-            if (stats.lastPlaceCount > burdenStats.stats.lastPlaceCount) {
-              burden = player;
-              burdenStats = { avg, stats };
-            } else if (stats.lastPlaceCount === burdenStats.stats.lastPlaceCount) {
-              // Tie-breaker 2: fewer 1st places
-              if (stats.firstPlaceCount < burdenStats.stats.firstPlaceCount) {
-                burden = player;
-                burdenStats = { avg, stats };
-              }
-            }
-          }
-        }
-      }
-    });
-
-    return { mvp, burden };
-  };
-
-  const team1Result = findMVPBurden(team1Players);
-  const team2Result = findMVPBurden(team2Players);
+  const team1Result = findMVPAndBurden(team1Players, playerStats);
+  const team2Result = findMVPAndBurden(team2Players, playerStats);
 
   ctx.font = 'bold 24px Arial';
   ctx.fillStyle = config.getTeamColor('t1');

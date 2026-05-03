@@ -10,7 +10,9 @@ import {
   validateOwnershipToken,
   extractBearerToken,
   sanitizePlayer,
-  constantTimeEqual
+  constantTimeEqual,
+  generateOwnershipToken,
+  hashToken
 } from './_utils.js';
 
 // Achievement checking - inline to avoid module imports in Edge Functions
@@ -406,6 +408,73 @@ export default async function handler(request) {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
+          }
+        });
+      }
+
+      // ===== ROTATE OWNERSHIP TOKEN MODE =====
+      // Issues a fresh ownership token for the player and invalidates the old
+      // one (by replacing the stored hash). Auth: same as PROFILE_UPDATE — admin
+      // body token OR current ownership Bearer. The new raw token is returned
+      // ONCE in the response; client persists it (overwriting the old one).
+      // Use case: shared device cleanup, token rotation hygiene, or admin
+      // re-issuing for a user who lost their token.
+      if (requestData.mode === 'ROTATE_TOKEN') {
+        const existingData = await kv.get(`player:${handle}`);
+        if (!existingData) {
+          return new Response(JSON.stringify({
+            error: 'Player not found'
+          }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        const player = typeof existingData === 'string' ? JSON.parse(existingData) : existingData;
+
+        const adminOk = validateAdminToken(requestData.adminToken);
+        let ownerOk = false;
+        if (!adminOk) {
+          const bearer = extractBearerToken(request);
+          if (bearer && player.ownershipTokenHash) {
+            ownerOk = await validateOwnershipToken(bearer, player.ownershipTokenHash);
+          }
+        }
+        if (!adminOk && !ownerOk) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized — token rotation requires current ownership Bearer or admin token'
+          }), {
+            status: 403,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'WWW-Authenticate': 'Bearer realm="player-rotate"'
+            }
+          });
+        }
+
+        const newToken = generateOwnershipToken();
+        player.ownershipTokenHash = await hashToken(newToken);
+        player.lastActiveAt = new Date().toISOString();
+
+        // Race trade-off (accepted): KV has no CAS, so concurrent rotation
+        // requests are last-write-wins. The "loser" client gets a 200 but its
+        // returned token's hash is no longer stored — they'd be silently
+        // logged out. User-initiated rotation rate is near zero in practice,
+        // so the additional infrastructure for atomic CAS isn't justified.
+        await kv.set(`player:${handle}`, JSON.stringify(player));
+        console.log(`Token rotated for @${handle} (auth: ${adminOk ? 'admin' : 'owner'})`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          ownershipToken: newToken,  // shown ONCE — client persists, server forgets
+          player: sanitizePlayer(player)
+        }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
           }
         });
       }

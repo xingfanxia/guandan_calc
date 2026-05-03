@@ -7,13 +7,15 @@
 **Commits**: 30
 **Lines of Code**: ~5,000
 
-> **Security note (updated 2026-05-03):** `PUT /api/players/<handle>` with
-> `mode: 'PROFILE_UPDATE'` accepts EITHER `adminToken` in the body OR
-> `Authorization: Bearer <ownershipToken>` header. The ownership token is
-> issued at create-time (one-time response from `POST /api/players/create`),
-> stored as a SHA-256 hash on the player record, and persisted client-side in
-> `localStorage` keyed by handle. Self-edit works on the original device; admin
-> override remains the fallback. See `docs/SECURITY.md` § "PROFILE_UPDATE auth".
+> **Security note (updated 2026-05-03):** `PUT /api/players/<handle>` accepts
+> EITHER `adminToken` in the body OR `Authorization: Bearer <ownershipToken>`
+> header for the auth-gated modes (`PROFILE_UPDATE`, `ROTATE_TOKEN`, and the
+> stats path). The ownership token is issued at create-time (one-time response
+> from `POST /api/players/create`), stored as a SHA-256 hash, persisted in
+> localStorage. `mode: 'ROTATE_TOKEN'` issues a fresh token (replaces the
+> stored hash, returns the new raw token ONCE). The stats path also accepts a
+> third credential type — room-host Bearer matching the room's stored
+> `authToken` AND target handle in `room.players[]`. See `docs/SECURITY.md`.
 >
 > Stats updates (the non-`PROFILE_UPDATE` PUT path) gained a 3-tier auth gate
 > on 2026-05-03: admin token, owner Bearer (matches target handle's stored

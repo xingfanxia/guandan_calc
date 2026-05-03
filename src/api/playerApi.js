@@ -431,6 +431,59 @@ export async function getPlayersDisplayData(players) {
 }
 
 /**
+ * Rotate the ownership token for a player. The server issues a new token,
+ * invalidates the old one by replacing the stored hash, and returns the new
+ * raw token ONCE. Client persists it to localStorage (overwriting the prior).
+ *
+ * Auth: requires either the current ownership token (sent as Bearer header,
+ * picked up automatically from localStorage) or admin token (passed in body).
+ *
+ * Use case: shared device, suspected token leak, or routine rotation hygiene.
+ *
+ * @param {string} handle - Target player handle
+ * @param {string} [adminToken] - Optional admin override
+ * @returns {Promise<{success: boolean, ownershipToken: string, player: Object}>}
+ */
+export async function rotatePlayerToken(handle, adminToken = null) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    const ownerToken = getOwnershipToken(handle);
+    if (ownerToken) {
+      headers['Authorization'] = `Bearer ${ownerToken}`;
+    }
+
+    const body = { mode: 'ROTATE_TOKEN' };
+    if (adminToken) body.adminToken = adminToken;
+
+    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(body)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || `Rotate token failed: ${response.statusText}`);
+    }
+
+    // Persist the new token only if the rotation was authenticated via
+    // owner-Bearer. When admin overrides via body adminToken, we DO NOT save
+    // the result — admin-rotates-on-behalf intentionally produces a one-time
+    // raw token that the admin must relay to the user out of band.
+    // Otherwise the admin's own localStorage gets polluted with someone
+    // else's token under their handle, which is messy if not exploitable.
+    if (result.ownershipToken && !adminToken) {
+      saveOwnershipToken(handle, result.ownershipToken);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('rotatePlayerToken error:', error);
+    throw error;
+  }
+}
+
+/**
  * Update player profile fields (NOT stats)
  * @param {string} handle - Player handle (immutable identifier)
  * @param {Object} updates - Fields to update

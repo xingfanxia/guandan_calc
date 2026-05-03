@@ -202,7 +202,7 @@ python -m http.server 8000
 - Auth token validation prevents unauthorized control
 
 **Viewer Polling**:
-- Poll every 5 seconds with smart change detection
+- Poll every 2 seconds with smart change detection (`roomManager.js:331` is the source of truth)
 - UI updates only when `lastUpdated` timestamp changes
 - Visual notification system for new updates
 

@@ -140,39 +140,43 @@ explicitly after `generatePlayers`, regardless of whether the latter
 early-returned. Imports `renderRankingArea` directly rather than relying on
 the unconsumed `ui:modeChanged` event.
 
-### P2 — Quality
+### P2 — ✅ All 4 shipped 2026-05-03
 
-#### 7. `isDevelopment` hardcoded (Agent C LOW)
+#### 7. `isDevelopment` from import.meta.env.DEV — DONE
+`src/share/roomManager.js` reads `import.meta.env.DEV` (with safety guards
+for non-vite environments) so pure-Vite sessions don't hit prod KV.
 
-`src/share/roomManager.js` line 24 has `const isDevelopment = false;` with a
-stale comment. Should read `import.meta.env.DEV` so vite-dev sessions don't
-hit prod KV.
+#### 8. Dead achievements removed — DONE
+`comeback`, `sweep`, `iron_will` deleted from `achievements.js`. Their
+detection required mid-session level deltas and opponent final-level
+plumbing the current sync flow doesn't track. Per SIMPLED "Lean", removed
+rather than designed for. Reduced from 20 to 17 achievements.
 
-#### 8. Unused achievements (Agent C LOW)
+#### 9. Honors variance n=1 documented — DONE
+`calculateVariance` keeps population variance (divides by N) — intentional
+because we treat each player's history as a complete observed series, not
+a sample. Doc-comment now explicitly states the choice and warns that
+small-sample callers must gate (variance honors already do via
+`rankings.length < 5`).
 
-`src/stats/achievements.js` defines `comeback`, `sweep`, `iron_will` but they
-are never checked in `checkAchievements()` — dead definitions.
+#### 10. `votingManager.js` undefined refs — DONE
+Lines 175-178 (`resetVoting`) and 920-926 (`startVotePolling`) now read
+`getRoomInfo()` for `roomCode`/`isHost` instead of dangling module-scoped
+references that would have thrown `ReferenceError` if those paths fired.
 
-#### 9. Honors variance n=1 edge (Agent C MEDIUM)
+### P3 — ✅ All 4 shipped 2026-05-03
 
-`calculateVariance` returns 0 for length===1 (population variance with n=1 is
-degenerate). Add Bessel correction (n-1) for sample variance OR document
-choice explicitly.
-
-#### 10. `votingManager.js` undefined refs (Agent C MEDIUM)
-
-Lines 175-178 and 920-926 reference `currentRoomCode` and `isHost` that aren't
-imported into module scope — would throw `ReferenceError` in strict mode if
-that codepath ever fires. Use `getRoomInfo()` instead.
-
-### P3 — Drift / hygiene
-
-- `roomManager.js` poll interval is 2000ms but CLAUDE.md says 5s and earlier
-  comment says 10s — pick one and reconcile (Agent C MEDIUM).
-- MVP/burden tie-breaker logic duplicated between `statistics.js` and
-  `exportMobile.js` (Agent C LOW). Extract shared helper.
-- `state.js` `getPlayerStats()` returns shallow copy — nested player objects
-  still mutable (Agent A LOW).
+- **Poll interval drift** — DONE. `roomManager.js:331` (2000ms) is the
+  canonical value; CLAUDE.md updated to match (was claiming 5s).
+- **MVP/burden tie-breaker dup** — DONE. Extracted to `src/stats/mvpBurden.js`;
+  `statistics.js` and `exportMobile.js` both import the shared `findMVPAndBurden`.
+- **state.js `getPlayerStats()` deep clone** — DONE. JSON round-trip replaces
+  shallow spread so callers can't mutate nested per-player records.
+- **Token rotation endpoint** — DONE. New `mode: 'ROTATE_TOKEN'` on the
+  PUT handler issues a fresh ownership token (replaces stored hash, returns
+  raw new token ONCE). Wired into edit modal as "重新生成令牌" link
+  alongside the existing "登出本设备" affordance. Auth model: same as
+  PROFILE_UPDATE — admin OR current owner Bearer.
 
 ---
 
