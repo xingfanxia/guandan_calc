@@ -182,3 +182,30 @@ export function initializePlayerStats() {
     }
   };
 }
+
+/**
+ * Validate admin token from request body against ADMIN_TOKEN env var.
+ * Uses constant-time compare to prevent timing attacks.
+ *
+ * To enable admin endpoints, set ADMIN_TOKEN in Vercel project env vars.
+ * If unset, ALL admin endpoints reject requests (fail-closed).
+ *
+ * @param {string} provided - Token from request body
+ * @returns {boolean} true if valid
+ */
+export function validateAdminToken(provided) {
+  if (!provided || typeof provided !== 'string') return false;
+
+  const expected = process.env.ADMIN_TOKEN;
+  if (!expected) {
+    console.warn('⚠️ ADMIN_TOKEN env var not set — admin endpoints reject all requests. Set it in Vercel env to enable.');
+    return false;
+  }
+
+  if (provided.length !== expected.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < provided.length; i++) {
+    mismatch |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return mismatch === 0;
+}

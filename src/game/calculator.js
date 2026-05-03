@@ -140,6 +140,14 @@ export function calculateUpgrade(mode, ranks, config, must1 = true) {
   let upgrade = 0;
   let details = {};
 
+  // Validate ranks length matches mode — silently producing upgrade=0 for short
+  // arrays masks bugs in upstream collection.
+  const expectedLength = mode === '4' ? 2 : (mode === '6' ? 3 : 4);
+  if (!Array.isArray(ranks) || ranks.length !== expectedLength) {
+    console.error(`calculateUpgrade: mode ${mode} requires ${expectedLength} ranks, got`, ranks);
+    return { upgrade: 0, details: { error: 'invalid_ranks_length', expected: expectedLength, received: ranks?.length } };
+  }
+
   if (mode === '4') {
     // 4-player mode: Use fixed upgrade table
     const key = `${ranks[0]},${ranks[1]}`;

@@ -3,18 +3,22 @@
 
 import { kv } from '@vercel/kv';
 
-// Generate random room code (6-digit alphanumeric)
+// Cryptographically random room code (6 alphanumeric)
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => chars[b % chars.length]).join('');
+}
+
+// Cryptographically random host auth token (32 bytes hex = 64 chars)
+function generateAuthToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export default async function handler(request) {
-  // Only allow POST requests
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
@@ -23,13 +27,11 @@ export default async function handler(request) {
   }
 
   try {
-    // Parse request body
     const gameData = await request.json();
-    
-    // Validate required fields
+
     if (!gameData.settings || !gameData.state || !gameData.players) {
-      return new Response(JSON.stringify({ 
-        error: 'Invalid game data structure' 
+      return new Response(JSON.stringify({
+        error: 'Invalid game data structure'
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
@@ -42,69 +44,55 @@ export default async function handler(request) {
     do {
       roomCode = generateRoomCode();
       attempts++;
-      
-      // Check if room code already exists
       const existing = await kv.get(`room:${roomCode}`);
-      if (!existing) {
-        break;
-      }
+      if (!existing) break;
     } while (attempts < 10);
 
     if (attempts >= 10) {
-      return new Response(JSON.stringify({ 
-        error: 'Failed to generate unique room code' 
+      return new Response(JSON.stringify({
+        error: 'Failed to generate unique room code'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    // Prepare room data
+    // Server-side host auth token. Stored in KV; required on all PUTs.
+    // Returned to creator ONCE in this response — never exposed via GET.
+    const authToken = generateAuthToken();
+
     const roomData = {
       ...gameData,
-      roomCode: roomCode,
+      roomCode,
+      authToken,
       createdAt: new Date().toISOString(),
       lastUpdated: new Date().toISOString(),
       version: 'v9.0'
     };
 
-    // Store in Vercel KV with 1 year expiration (can be made permanent via favorite)
-    await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(roomData)); // 365 days
+    // 1 year TTL (favorite-aware updates extend permanently)
+    await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(roomData));
 
-    // Add to rooms index for browsing
+    // Add to rooms index for browsing (best-effort — non-critical)
     try {
       const roomsIndexKey = 'rooms:index';
       let roomsIndex = await kv.get(roomsIndexKey) || [];
-      
-      if (!Array.isArray(roomsIndex)) {
-        roomsIndex = [];
-      }
-      
-      // Add new room to index (with limit to prevent unbounded growth)
-      roomsIndex.unshift({
-        roomCode: roomCode,
-        createdAt: roomData.createdAt
-      });
-      
-      // Keep only last 100 rooms in index
-      if (roomsIndex.length > 100) {
-        roomsIndex = roomsIndex.slice(0, 100);
-      }
-      
+      if (!Array.isArray(roomsIndex)) roomsIndex = [];
+      roomsIndex.unshift({ roomCode, createdAt: roomData.createdAt });
+      if (roomsIndex.length > 100) roomsIndex = roomsIndex.slice(0, 100);
       await kv.set(roomsIndexKey, roomsIndex);
     } catch (indexError) {
       console.error('Failed to update rooms index:', indexError);
-      // Non-critical error, room still created successfully
     }
 
-    // Return room code
     return new Response(JSON.stringify({
       success: true,
-      roomCode: roomCode,
-      expiresIn: 31536000 // 1 year (365 days)
+      roomCode,
+      authToken,           // host must persist — not retrievable later
+      expiresIn: 31536000  // 1 year
     }), {
       status: 200,
-      headers: { 
+      headers: {
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
@@ -114,8 +102,8 @@ export default async function handler(request) {
 
   } catch (error) {
     console.error('Failed to create room:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -123,7 +111,6 @@ export default async function handler(request) {
   }
 }
 
-// Handle CORS preflight requests
 export const config = {
   runtime: 'edge'
 };

@@ -4,7 +4,7 @@
  * NEW FEATURE: End-game voting for MVP and burden
  */
 
-import { $ } from '../core/utils.js';
+import { $, escapeHtml } from '../core/utils.js';
 import { getPlayers } from '../player/playerManager.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
@@ -120,11 +120,11 @@ export async function showVictoryModal(teamName) {
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
           ${renderProfileAvatar(mvpPlayer, 64, { marginRight: false })}
           <div style="text-align: left;">
-            <div style="color: ${winningTeamColor}; font-weight: bold; font-size: 18px;">MVP ${mvpPlayer.name}</div>
+            <div style="color: ${winningTeamColor}; font-weight: bold; font-size: 18px;">MVP ${escapeHtml(mvpPlayer.name)}</div>
             <div style="color: #888; font-size: 14px;">平均 ${bestAvg.toFixed(2)}名</div>
           </div>
         </div>
-        <div style="font-style: italic;">"${mvpPlayer.tagline}"</div>
+        <div style="font-style: italic;">"${escapeHtml(mvpPlayer.tagline)}"</div>
       `;
       
       // Insert after team name
@@ -196,7 +196,7 @@ function renderVotingInterface() {
         <h4 style="color: #22c55e; margin-bottom: 10px;">谁是本场 MVP (最C)？</h4>
       <div id="mvpVoting" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
         ${players.map(p => `
-          <button class="vote-btn" data-vote-type="mvp" data-player-id="${p.id}" style="
+          <button class="vote-btn" data-vote-type="mvp" data-player-id="${escapeHtml(p.id)}" style="
             padding: 8px;
             background: #2a2b2c;
             border: 2px solid #444;
@@ -209,8 +209,8 @@ function renderVotingInterface() {
             align-items: center;
             gap: 5px;
           ">
-            <span style="font-size: 24px;">${p.emoji}</span>
-            <span style="font-size: 12px;">${p.name}</span>
+            <span style="font-size: 24px;">${escapeHtml(p.emoji)}</span>
+            <span style="font-size: 12px;">${escapeHtml(p.name)}</span>
             <span class="vote-count" style="font-size: 11px; color: #999;">0 票</span>
           </button>
         `).join('')}
@@ -221,7 +221,7 @@ function renderVotingInterface() {
       <h4 style="color: #ef4444; margin-bottom: 10px;">谁是本场累赘 (最闹)？</h4>
       <div id="burdenVoting" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
         ${players.map(p => `
-          <button class="vote-btn" data-vote-type="burden" data-player-id="${p.id}" style="
+          <button class="vote-btn" data-vote-type="burden" data-player-id="${escapeHtml(p.id)}" style="
             padding: 8px;
             background: #2a2b2c;
             border: 2px solid #444;
@@ -234,8 +234,8 @@ function renderVotingInterface() {
             align-items: center;
             gap: 5px;
           ">
-            <span style="font-size: 24px;">${p.emoji}</span>
-            <span style="font-size: 12px;">${p.name}</span>
+            <span style="font-size: 24px;">${escapeHtml(p.emoji)}</span>
+            <span style="font-size: 12px;">${escapeHtml(p.name)}</span>
             <span class="vote-count" style="font-size: 11px; color: #999;">0 票</span>
           </button>
         `).join('')}
@@ -373,10 +373,10 @@ function renderVoteLeaderboard(votes) {
           <div style="padding: 12px; margin: 8px 0; background: ${i === 0 ? '#22c55e20' : '#2a2b2c'}; border-radius: 8px; border: 2px solid ${i === 0 ? '#22c55e' : '#444'};">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <span style="font-size: 24px;">${v.player.emoji}</span>
-                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${v.player.name}</span>
+                <span style="font-size: 24px;">${escapeHtml(v.player.emoji)}</span>
+                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${escapeHtml(v.player.name)}</span>
               </div>
-              <div style="font-size: 20px; font-weight: bold; color: #22c55e;">${v.count} 票</div>
+              <div style="font-size: 20px; font-weight: bold; color: #22c55e;">${escapeHtml(v.count)} 票</div>
             </div>
           </div>
         `).join('') || '<p style="color: #666; text-align: center;">暂无投票</p>'}
@@ -388,10 +388,10 @@ function renderVoteLeaderboard(votes) {
           <div style="padding: 12px; margin: 8px 0; background: ${i === 0 ? '#ef444420' : '#2a2b2c'}; border-radius: 8px; border: 2px solid ${i === 0 ? '#ef4444' : '#444'};">
             <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <span style="font-size: 24px;">${v.player.emoji}</span>
-                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${v.player.name}</span>
+                <span style="font-size: 24px;">${escapeHtml(v.player.emoji)}</span>
+                <span style="font-size: 16px; margin-left: 8px; ${i === 0 ? 'font-weight: bold;' : ''}">${escapeHtml(v.player.name)}</span>
               </div>
-              <div style="font-size: 20px; font-weight: bold; color: #ef4444;">${v.count} 票</div>
+              <div style="font-size: 20px; font-weight: bold; color: #ef4444;">${escapeHtml(v.count)} 票</div>
             </div>
           </div>
         `).join('') || '<p style="color: #666; text-align: center;">暂无投票</p>'}
@@ -460,17 +460,17 @@ function showVotingResults() {
       <div style="text-align: center; padding: 15px; background: #2a2b2c; border-radius: 8px;">
         <div style="color: #22c55e; font-weight: bold; margin-bottom: 8px;">🥇 MVP</div>
         ${mvpWinner ? `
-          <div style="font-size: 32px;">${mvpWinner.emoji}</div>
-          <div style="font-weight: bold; margin-top: 5px;">${mvpWinner.name}</div>
-          <div style="color: #999; font-size: 12px;">${maxMvpVotes} 票</div>
+          <div style="font-size: 32px;">${escapeHtml(mvpWinner.emoji)}</div>
+          <div style="font-weight: bold; margin-top: 5px;">${escapeHtml(mvpWinner.name)}</div>
+          <div style="color: #999; font-size: 12px;">${escapeHtml(maxMvpVotes)} 票</div>
         ` : '<div style="color: #666;">暂无投票</div>'}
       </div>
       <div style="text-align: center; padding: 15px; background: #2a2b2c; border-radius: 8px;">
         <div style="color: #ef4444; font-weight: bold; margin-bottom: 8px;">😅 最闹</div>
         ${burdenPlayer ? `
-          <div style="font-size: 32px;">${burdenPlayer.emoji}</div>
-          <div style="font-weight: bold; margin-top: 5px;">${burdenPlayer.name}</div>
-          <div style="color: #999; font-size: 12px;">${maxBurdenVotes} 票</div>
+          <div style="font-size: 32px;">${escapeHtml(burdenPlayer.emoji)}</div>
+          <div style="font-weight: bold; margin-top: 5px;">${escapeHtml(burdenPlayer.name)}</div>
+          <div style="color: #999; font-size: 12px;">${escapeHtml(maxBurdenVotes)} 票</div>
         ` : '<div style="color: #666;">暂无投票</div>'}
       </div>
     </div>

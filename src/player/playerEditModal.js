@@ -2,7 +2,7 @@
 // Modal UI for editing existing player profiles
 
 import { updatePlayerProfile, validateHandle, getPlayStyles } from '../api/playerApi.js';
-import { $ } from '../core/utils.js';
+import { $, escapeHtml } from '../core/utils.js';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
@@ -63,7 +63,7 @@ export function showEditModal(player) {
       <!-- Read-only Handle Display -->
       <div style="background: #0b0b0c; border: 1px solid #333; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
         <div style="color: #888; font-size: 0.85em; margin-bottom: 4px;">用户名 (不可修改)</div>
-        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">@${player.handle}</div>
+        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">@${escapeHtml(player.handle)}</div>
       </div>
 
       <form id="editPlayerForm">
@@ -76,7 +76,7 @@ export function showEditModal(player) {
             type="text"
             id="displayNameInput"
             placeholder="小明"
-            value="${player.displayName || ''}"
+            value="${escapeHtml(player.displayName || '')}"
             style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
             required
           />
@@ -99,7 +99,7 @@ export function showEditModal(player) {
               `;
             }).join('')}
           </div>
-          <input type="hidden" id="emojiInput" value="${player.emoji || ''}" required />
+          <input type="hidden" id="emojiInput" value="${escapeHtml(player.emoji || '')}" required />
           <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
             必选 - 用于游戏中显示，也是照片加载失败时的备用头像
           </div>
@@ -114,7 +114,7 @@ export function showEditModal(player) {
           <!-- Current photo (if exists) -->
           ${player.photoBase64 ? `
             <div id="currentPhotoSection" style="text-align: center; margin-bottom: 12px;">
-              <img id="currentPhotoImg" src="${player.photoBase64}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <img id="currentPhotoImg" src="${escapeHtml(player.photoBase64)}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
               <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
                 <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
                   更换照片
@@ -176,7 +176,7 @@ export function showEditModal(player) {
             id="taglineInput"
             placeholder="运筹帷幄，决胜千里"
             maxlength="50"
-            value="${player.tagline || ''}"
+            value="${escapeHtml(player.tagline || '')}"
             style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
             required
           />

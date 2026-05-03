@@ -77,7 +77,10 @@ export async function createRoom() {
 
     if (result.success && result.roomCode) {
       currentRoomCode = result.roomCode;
-      authToken = generateAuthToken(); // Generate client-side auth token
+      // Server issues the auth token at create-time; client persists it for PUTs.
+      // Fall back to client-side generation if server hasn't been redeployed yet
+      // (legacy server returns no token; the next PUT will TOFU-pin it server-side).
+      authToken = result.authToken || generateAuthToken();
       isHost = true;
       isViewer = false;
 

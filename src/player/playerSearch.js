@@ -2,7 +2,7 @@
 // Search existing player profiles and add them to the game
 
 import { searchPlayers, getPlayStyleLabel } from '../api/playerApi.js';
-import { $, on } from '../core/utils.js';
+import { $, on, escapeHtml } from '../core/utils.js';
 
 let searchTimeout = null;
 let onPlayerSelectedCallback = null;
@@ -70,7 +70,7 @@ async function performSearch(query) {
     if (players.length === 0) {
       resultsContainer.innerHTML = `
         <div class="small muted">
-          ${query ? `未找到匹配 "${query}" 的玩家` : '暂无玩家，点击"创建玩家"开始'}
+          ${query ? `未找到匹配 "${escapeHtml(query)}" 的玩家` : '暂无玩家，点击"创建玩家"开始'}
         </div>
       `;
       return;
@@ -111,15 +111,17 @@ function renderSearchResults(players, container) {
       transition: all 0.2s;
     `;
 
+    // SECURITY: escape all dynamic strings — names/handles/play-style come from API and
+    // could carry HTML-breaking chars or stored XSS via tampered profile data.
     playerItem.innerHTML = `
-      <span style="font-size: 24px; margin-right: 12px;">${player.emoji}</span>
+      <span style="font-size: 24px; margin-right: 12px;">${escapeHtml(player.emoji)}</span>
       <div style="flex: 1;">
         <div style="font-weight: bold; margin-bottom: 2px;">
-          ${player.displayName}
-          <span style="color: #888; font-weight: normal; font-size: 0.9em;">@${player.handle}</span>
+          ${escapeHtml(player.displayName)}
+          <span style="color: #888; font-weight: normal; font-size: 0.9em;">@${escapeHtml(player.handle)}</span>
         </div>
         <div style="font-size: 0.85em; color: #888;">
-          ${getPlayStyleLabel(player.playStyle)} · ${player.stats.gamesPlayed} 场游戏
+          ${escapeHtml(getPlayStyleLabel(player.playStyle))} · ${escapeHtml(player.stats.gamesPlayed)} 场游戏
         </div>
       </div>
       <button class="select-player-btn" style="padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">

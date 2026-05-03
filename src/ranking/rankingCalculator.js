@@ -66,11 +66,12 @@ export function calculateFromRanking(mode) {
     };
   }
 
-  // Winner is whoever has first place
-  const winnerKey = firstPlacePlayer.team === 1 ? 't1' : 't2';
+  // Winner is whoever has first place — coerce team to Number to handle string ('1'/'2')
+  // from JSON round-trip / form input where strict === would silently default to 't2'.
+  const winnerKey = Number(firstPlacePlayer.team) === 1 ? 't1' : 't2';
   state.setWinner(winnerKey);
 
-  // Collect ranks for each team
+  // Collect ranks for each team (same coercion)
   const team1Ranks = [];
   const team2Ranks = [];
 
@@ -79,7 +80,7 @@ export function calculateFromRanking(mode) {
     if (playerId) {
       const player = getPlayerById(playerId);
       if (player) {
-        if (player.team === 1) {
+        if (Number(player.team) === 1) {
           team1Ranks.push(rank);
         } else {
           team2Ranks.push(rank);
@@ -92,9 +93,21 @@ export function calculateFromRanking(mode) {
   const winnerRanks = winnerKey === 't1' ? team1Ranks : team2Ranks;
   winnerRanks.sort((a, b) => a - b);
 
-  // Calculate upgrade
+  // Pass minimal config slice instead of full deep-clone via config.getAll().
+  // getAll() does JSON.parse(JSON.stringify(...)) of the entire config (including
+  // team names, colors, preferences) on every ranking update — wasteful when the
+  // calculator only needs c4/t6/p6/t8/p8.
   const must1 = config.getPreference('must1');
-  const calcResult = calculateUpgrade(String(num), winnerRanks, config.getAll(), must1);
+  const sixRules = config.get6PlayerRules();
+  const eightRules = config.get8PlayerRules();
+  const calcConfig = {
+    c4: config.get4PlayerRules(),
+    t6: sixRules.thresholds,
+    p6: sixRules.points,
+    t8: eightRules.thresholds,
+    p8: eightRules.points
+  };
+  const calcResult = calculateUpgrade(String(num), winnerRanks, calcConfig, must1);
 
   emit('ranking:calculated', {
     winner: winnerKey,

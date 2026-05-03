@@ -33,57 +33,42 @@ export async function syncVotingToProfiles() {
 
     console.log('Syncing ALL voting results to profiles');
 
-    // Update profiles for ALL players who received votes
-    const updates = [];
-    const syncedPlayerIds = new Set();  // Track which players we've synced
-
-    // Sync all MVP votes
+    // Build per-player vote totals BEFORE issuing updates so a player who got
+    // both MVP and burden votes gets BOTH credited in a single PUT.
+    // Previously the burden-sync loop skipped any player already synced for MVP,
+    // silently dropping their burden votes.
+    const playerVotes = {};
     Object.entries(data.votes.mvp || {}).forEach(([playerId, voteCount]) => {
       if (voteCount > 0) {
-        const player = players.find(p => p.id === parseInt(playerId));
-        if (player && player.handle) {
-          const update = updatePlayerStats(player.handle, {
-            votedMVP: true,
-            votedBurden: false,
-            mvpVoteCount: voteCount,  // Actual vote count
-            roomCode: roomInfo.roomCode,
-            ranking: 0,
-            team: player.team,
-            teamWon: false,
-            gamesInSession: 0,
-            mode: 'VOTE_ONLY'
-          });
-          updates.push(update);
-          syncedPlayerIds.add(player.id);
-          console.log(`✅ Syncing ${voteCount} MVP votes for @${player.handle}`);
-        }
+        playerVotes[playerId] = playerVotes[playerId] || { mvp: 0, burden: 0 };
+        playerVotes[playerId].mvp = voteCount;
+      }
+    });
+    Object.entries(data.votes.burden || {}).forEach(([playerId, voteCount]) => {
+      if (voteCount > 0) {
+        playerVotes[playerId] = playerVotes[playerId] || { mvp: 0, burden: 0 };
+        playerVotes[playerId].burden = voteCount;
       }
     });
 
-    // Sync all burden votes
-    Object.entries(data.votes.burden || {}).forEach(([playerId, voteCount]) => {
-      if (voteCount > 0) {
-        const player = players.find(p => p.id === parseInt(playerId));
-        if (player && player.handle) {
-          // Skip if already synced as MVP (prevent double-sync of same player)
-          if (syncedPlayerIds.has(player.id)) {
-            console.log(`⚠️ ${player.name} already synced as MVP, skipping burden votes`);
-          } else {
-            const update = updatePlayerStats(player.handle, {
-              votedMVP: false,
-              votedBurden: true,
-              burdenVoteCount: voteCount,  // Actual vote count
-              roomCode: roomInfo.roomCode,
-              ranking: 0,
-              team: player.team,
-              teamWon: false,
-              gamesInSession: 0,
-              mode: 'VOTE_ONLY'
-            });
-            updates.push(update);
-            console.log(`✅ Syncing ${voteCount} burden votes for @${player.handle}`);
-          }
-        }
+    const updates = [];
+    Object.entries(playerVotes).forEach(([playerId, votes]) => {
+      const player = players.find(p => p.id === parseInt(playerId));
+      if (player && player.handle) {
+        const update = updatePlayerStats(player.handle, {
+          votedMVP: votes.mvp > 0,
+          votedBurden: votes.burden > 0,
+          mvpVoteCount: votes.mvp,
+          burdenVoteCount: votes.burden,
+          roomCode: roomInfo.roomCode,
+          ranking: 0,
+          team: player.team,
+          teamWon: false,
+          gamesInSession: 0,
+          mode: 'VOTE_ONLY'
+        });
+        updates.push(update);
+        console.log(`✅ Syncing votes for @${player.handle}: MVP=${votes.mvp}, burden=${votes.burden}`);
       }
     });
 

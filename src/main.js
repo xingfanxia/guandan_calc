@@ -244,44 +244,49 @@ function setupModuleEventHandlers() {
             // Handle final win (A-level victory)
             if (applyResult.finalWin) {
               console.log('🎉 Final win detected! Showing victory modal...');
-              // winnerName already calculated above at line 656
 
               // Show victory celebration first (await to fetch current profile)
               await showVictoryModal(winnerName);
-              
+
               // Schedule auto-sync of voting results (5 minutes)
               scheduleAutoVotingSync();
-              
-              // Wait a moment for potential voting, then sync stats
-              setTimeout(() => {
-                // Calculate session honors
-                const sessionHonors = calculateHonors(parseInt(mode));
-                
-                // Get voting results
-                const votingResults = getVotingResults();
-                
-                // Sync profile stats to database (non-blocking)
-                const roomInfo = getRoomInfo();
-                const allPlayers = getPlayers();
-                const sessionStats = state.getPlayerStats();
 
-                // Calculate session duration from room timestamps if available
-                let sessionDuration = applyResult.historyEntry.sessionDuration || 0;
-                if (roomInfo.createdAt && roomInfo.finishedAt) {
+              // Snapshot all state SYNCHRONOUSLY before the 2-second timeout.
+              // Without this, a user clicking Undo / Reset / Apply during the wait
+              // would cause syncProfileStats to read the post-mutation values
+              // (wrong stats credited to the wrong session).
+              const capturedMode = parseInt(mode);
+              const capturedHistoryEntry = JSON.parse(JSON.stringify(applyResult.historyEntry));
+              const capturedRoomInfo = getRoomInfo();
+              const capturedPlayers = getPlayers().map(p => ({ ...p }));
+              const capturedStats = JSON.parse(JSON.stringify(state.getPlayerStats()));
+
+              setTimeout(() => {
+                const sessionHonors = calculateHonors(capturedMode);
+                const votingResults = getVotingResults();
+
+                let sessionDuration = capturedHistoryEntry.sessionDuration || 0;
+                if (capturedRoomInfo.createdAt && capturedRoomInfo.finishedAt) {
                   sessionDuration = Math.floor(
-                    (new Date(roomInfo.finishedAt).getTime() - new Date(roomInfo.createdAt).getTime()) / 1000
+                    (new Date(capturedRoomInfo.finishedAt).getTime() - new Date(capturedRoomInfo.createdAt).getTime()) / 1000
                   );
                   console.log(`✅ Calculated session duration from room: ${sessionDuration}s`);
                 }
 
-                // Update history entry with calculated duration
                 const historyWithDuration = {
-                  ...applyResult.historyEntry,
+                  ...capturedHistoryEntry,
                   sessionDuration
                 };
 
-                syncProfileStats(historyWithDuration, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
-              }, 2000); // Wait 2 seconds for voting
+                syncProfileStats(
+                  historyWithDuration,
+                  capturedRoomInfo.roomCode || 'LOCAL',
+                  capturedPlayers,
+                  capturedStats,
+                  sessionHonors,
+                  votingResults
+                );
+              }, 2000);
             }
           }
         }

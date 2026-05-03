@@ -3,14 +3,30 @@
 
 import { kv } from '@vercel/kv';
 
+// Constant-time string compare to defeat token-length / prefix timing attacks
+function constantTimeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+}
+
+function extractBearerToken(request) {
+  const header = request.headers.get('Authorization') || request.headers.get('authorization');
+  if (!header || !header.startsWith('Bearer ')) return null;
+  return header.slice(7);
+}
+
 export default async function handler(request) {
   const url = new URL(request.url);
   const roomCode = url.pathname.split('/').pop();
 
-  // Validate room code format (6-digit alphanumeric)
   if (!roomCode || !roomCode.match(/^[A-Z0-9]{6}$/)) {
-    return new Response(JSON.stringify({ 
-      error: 'Invalid room code format - should be 6 alphanumeric characters' 
+    return new Response(JSON.stringify({
+      error: 'Invalid room code format - should be 6 alphanumeric characters'
     }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
@@ -19,12 +35,11 @@ export default async function handler(request) {
 
   try {
     if (request.method === 'GET') {
-      // Get room data
       const roomData = await kv.get(`room:${roomCode}`);
-      
+
       if (!roomData) {
-        return new Response(JSON.stringify({ 
-          error: 'Room not found or expired' 
+        return new Response(JSON.stringify({
+          error: 'Room not found or expired'
         }), {
           status: 404,
           headers: { 'Content-Type': 'application/json' }
@@ -32,60 +47,99 @@ export default async function handler(request) {
       }
 
       const parsedData = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
-      
+
+      // SECURITY: strip authToken from response — viewers must NEVER see it.
+      // Without this, anyone with the room URL could read the host token and forge PUTs.
+      const { authToken, ...publicRoomData } = parsedData;
+
       return new Response(JSON.stringify({
         success: true,
-        data: parsedData
+        data: publicRoomData
       }), {
         status: 200,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         }
       });
 
     } else if (request.method === 'PUT') {
-      // Update room data
       const gameData = await request.json();
-      
-      // Validate required fields
+
       if (!gameData.settings || !gameData.state || !gameData.players) {
-        return new Response(JSON.stringify({ 
-          error: 'Invalid game data structure' 
+        return new Response(JSON.stringify({
+          error: 'Invalid game data structure'
         }), {
           status: 400,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // Check if room exists
       const existingRoom = await kv.get(`room:${roomCode}`);
       if (!existingRoom) {
-        return new Response(JSON.stringify({ 
-          error: 'Room not found or expired' 
+        return new Response(JSON.stringify({
+          error: 'Room not found or expired'
         }), {
           status: 404,
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
-      // Update room data
+      const existingData = typeof existingRoom === 'string' ? JSON.parse(existingRoom) : existingRoom;
+      const storedToken = existingData.authToken || null;
+      const providedToken = extractBearerToken(request);
+
+      // Auth gate:
+      //   - Stored token present → strict constant-time match required.
+      //   - Stored token absent (legacy room created before this fix) → TOFU:
+      //     accept the first PUT's token and pin it as the host token going forward.
+      //     Without this, in-flight rooms would break on rotation.
+      let effectiveToken;
+      if (storedToken) {
+        if (!providedToken || !constantTimeEqual(providedToken, storedToken)) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized — only the host can update this room'
+          }), {
+            status: 403,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'WWW-Authenticate': 'Bearer realm="room"'
+            }
+          });
+        }
+        effectiveToken = storedToken;
+      } else {
+        if (!providedToken) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized — auth token required to update room'
+          }), {
+            status: 403,
+            headers: {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*',
+              'WWW-Authenticate': 'Bearer realm="room"'
+            }
+          });
+        }
+        effectiveToken = providedToken;
+        console.log(`Room ${roomCode}: TOFU pinned host token`);
+      }
+
       const updatedData = {
         ...gameData,
-        roomCode: roomCode,
+        roomCode,
+        authToken: effectiveToken,  // preserve through update — never accept from client body
         lastUpdated: new Date().toISOString(),
         version: 'v9.0'
       };
 
-      // Store updated data - check if favorite for permanent storage
-      const existingData = typeof existingRoom === 'string' ? JSON.parse(existingRoom) : existingRoom;
+      // Favorite rooms get permanent storage; otherwise 1 year TTL
       if (existingData.isFavorite) {
-        // Favorite rooms are permanent
         await kv.set(`room:${roomCode}`, JSON.stringify(updatedData));
       } else {
-        // Regular rooms have 1-year TTL
         await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(updatedData));
       }
 
@@ -94,17 +148,17 @@ export default async function handler(request) {
         lastUpdated: updatedData.lastUpdated
       }), {
         status: 200,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
         }
       });
 
     } else {
-      return new Response(JSON.stringify({ 
-        error: 'Method not allowed' 
+      return new Response(JSON.stringify({
+        error: 'Method not allowed'
       }), {
         status: 405,
         headers: { 'Content-Type': 'application/json' }
@@ -113,8 +167,8 @@ export default async function handler(request) {
 
   } catch (error) {
     console.error('Room API error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Internal server error' 
+    return new Response(JSON.stringify({
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
@@ -122,7 +176,6 @@ export default async function handler(request) {
   }
 }
 
-// Handle CORS preflight requests
 export const config = {
   runtime: 'edge'
 };

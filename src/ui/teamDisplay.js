@@ -79,6 +79,8 @@ export function renderTeams() {
   const t2A = $('t2A');
   const t1AState = $('t1AState');
   const t2AState = $('t2AState');
+  const t1AChip = $('t1AChip');
+  const t2AChip = $('t2AChip');
   const curRoundLvl = $('curRoundLvl');
   const nextRoundPreview = $('nextRoundPreview');
 
@@ -90,16 +92,33 @@ export function renderTeams() {
   const roundOwner = state.getRoundOwner();
   const nextRoundBase = state.getNextRoundBase();
 
+  // 6/8 modes have no A-fail counter — hide the "A失败" chips and show "通关中" status
+  const modeEl = $('mode');
+  const currentMode = modeEl ? modeEl.value : '4';
+  const aFailEnabled = currentMode === '4';
+
   if (t1Lvl) t1Lvl.textContent = t1Level;
   if (t2Lvl) t2Lvl.textContent = t2Level;
   if (t1A) t1A.textContent = t1AFail || 0;
   if (t2A) t2A.textContent = t2AFail || 0;
 
+  // Hide A失败 chips entirely in 6/8 mode where they have no meaning
+  if (t1AChip) t1AChip.style.display = aFailEnabled ? '' : 'none';
+  if (t2AChip) t2AChip.style.display = aFailEnabled ? '' : 'none';
+
   if (t1AState) {
-    t1AState.textContent = t1Level === 'A' ? `A${t1AFail}/3` : '—';
+    if (t1Level !== 'A') {
+      t1AState.textContent = '—';
+    } else {
+      t1AState.textContent = aFailEnabled ? `A${t1AFail}/3` : '通关中';
+    }
   }
   if (t2AState) {
-    t2AState.textContent = t2Level === 'A' ? `A${t2AFail}/3` : '—';
+    if (t2Level !== 'A') {
+      t2AState.textContent = '—';
+    } else {
+      t2AState.textContent = aFailEnabled ? `A${t2AFail}/3` : '通关中';
+    }
   }
 
   // Show round with team name

@@ -47,3 +47,23 @@ export function now() {
     hour12: false
   });
 }
+
+/**
+ * Escape a string for safe interpolation into HTML.
+ * Use whenever user/API-controlled strings (player names, taglines, handles)
+ * are embedded into a template literal that becomes innerHTML.
+ * For attribute values (`value="${x}"`, `src="${x}"`) the same helper applies —
+ * `&quot;` and `&#39;` neutralize attribute-breakout.
+ *
+ * @param {*} value - Any value, will be coerced to string
+ * @returns {string} HTML-safe string
+ */
+export function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

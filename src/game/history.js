@@ -122,14 +122,17 @@ export function rollbackTo(index) {
   state.setTeamAFail('t2', entry.prevT2A || 0);
   state.setRoundLevel(entry.prevRound || '2');
 
-  // Restore round owner from previous history
-  if (index > 0) {
+  // Restore round owner — prefer snapshotted value, fall back to deriving from prior winner
+  if (entry.prevRoundOwner !== undefined) {
+    state.setRoundOwner(entry.prevRoundOwner);
+  } else if (index > 0) {
     state.setRoundOwner(history[index - 1].winKey);
   } else {
-    state.setRoundOwner(null); // First round has no owner
+    state.setRoundOwner(null);
   }
 
-  state.setNextRoundBase(null);
+  // Restore manual-mode pending base (null if entry predates this snapshot field)
+  state.setNextRoundBase(entry.prevNextRoundBase ?? null);
 
   // Trim history to before this entry
   state.rollbackToIndex(index);

@@ -41,9 +41,14 @@ class GameState {
   }
 
   /**
-   * Hydrate state from localStorage
+   * Hydrate state from localStorage. Idempotent — safe to call multiple times,
+   * but skips re-hydration if state has already been loaded (prevents clobbering
+   * in-flight mutations from late module init).
    */
   hydrate() {
+    if (this._hydrated) return;
+    this._hydrated = true;
+
     const savedState = load(KEYS.STATE, null);
 
     if (savedState) {
@@ -180,7 +185,9 @@ class GameState {
   }
 
   addHistoryEntry(entry) {
-    this.history.push(entry);
+    // Deep clone to break reference sharing with callers — prevents external
+    // mutation of a stored entry from corrupting rollback snapshots.
+    this.history.push(JSON.parse(JSON.stringify(entry)));
     this.persist();
     emit('state:historyAdded', { entry });
   }
@@ -206,7 +213,8 @@ class GameState {
    * @param {Array} historyArray - Complete history array
    */
   setHistory(historyArray) {
-    this.history = historyArray || [];
+    // Deep clone to detach from caller's reference (room-sync payload, etc.)
+    this.history = historyArray ? JSON.parse(JSON.stringify(historyArray)) : [];
     this.persist();
     emit('state:historySet', { historyArray });
   }

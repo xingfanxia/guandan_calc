@@ -202,42 +202,36 @@ if (adminModeButton) {
 if (adminTokenInput) {
   adminTokenInput.addEventListener('input', (e) => {
     adminToken = e.target.value;
-    
-    // Visual feedback for correct password
+
+    // SECURITY: client-side token validation removed — comparing against a hardcoded
+    // value here leaked the password to anyone viewing source. The server validates
+    // against the ADMIN_TOKEN env var on every admin endpoint; if wrong, the API
+    // call rejects with 403 and the user sees the error from the action handler.
+    //
+    // UI here just signals "token entered" (neutral) vs "empty" (no admin actions).
+    // Confirmation that it's correct comes from the first successful admin API call.
     const container = document.getElementById('adminTokenContainer');
     const containerInner = container?.querySelector('div');
-    
-    if (adminToken === 'xiaofei0214') {
+    const hasToken = adminToken.length > 0;
+    const successMsg = container?.querySelector('.admin-success-msg');
+
+    if (hasToken) {
       if (containerInner) {
-        containerInner.style.borderColor = '#22c55e';
-        containerInner.style.background = '#1a2e1a';
+        containerInner.style.borderColor = '#fbbf24';
+        containerInner.style.background = '#2a2410';
       }
-      adminTokenInput.style.borderColor = '#22c55e';
-      
-      // Show success message
-      let successMsg = container?.querySelector('.admin-success-msg');
-      if (!successMsg) {
-        successMsg = document.createElement('div');
-        successMsg.className = 'admin-success-msg';
-        successMsg.style.cssText = 'color: #22c55e; font-size: 0.85em; margin-top: 6px; font-weight: bold;';
-        successMsg.textContent = '✓ 管理员权限已激活';
-        containerInner?.appendChild(successMsg);
-      }
-      
-      // Re-render to show admin buttons
+      adminTokenInput.style.borderColor = '#fbbf24';
+      if (successMsg) successMsg.remove();
+      // Re-render to show admin buttons (server will reject if token is wrong)
       renderPlayers();
     } else {
       if (containerInner) {
-        containerInner.style.borderColor = '#ef4444';
-        containerInner.style.background = '#2a1a1a';
+        containerInner.style.borderColor = '#333';
+        containerInner.style.background = '';
       }
-      adminTokenInput.style.borderColor = '#ef4444';
-      
-      // Remove success message
-      const successMsg = container?.querySelector('.admin-success-msg');
-      if (successMsg) {
-        successMsg.remove();
-      }
+      adminTokenInput.style.borderColor = '';
+      if (successMsg) successMsg.remove();
+      renderPlayers();
     }
   });
 }

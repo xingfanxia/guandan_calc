@@ -1,7 +1,11 @@
 /**
  * Game Rules Engine - A-Level Logic and Rule Application
- * Extracted from app.js lines 1525-1644
  * Handles complex A-level victory/failure conditions
+ *
+ * Rule modes:
+ *   4-player: Strict A-level rules with A1/A2/A3 failure tracking; 3 fails → demote to level 2.
+ *   6/8-player (since 2026-05): NO failure tracking, NO demotion. Game keeps playing until either
+ *                               team wins on their own A level (subject to strictA preference).
  */
 
 import { nextLevel } from './calculator.js';
@@ -9,6 +13,13 @@ import state from '../core/state.js';
 import config from '../core/config.js';
 import { emit } from '../core/events.js';
 import { now } from '../core/utils.js';
+
+/**
+ * Whether this mode tracks A-level failures and demotes after 3 strikes.
+ */
+function tracksAFail(mode) {
+  return mode === '4';
+}
 
 /**
  * Check A-level rules and conditions
@@ -20,11 +31,10 @@ import { now } from '../core/utils.js';
 export function checkALevelRules(winnerKey, ranks, mode) {
   const t1Level = state.getTeamLevel('t1');
   const t2Level = state.getTeamLevel('t2');
-  const t1AFail = state.getTeamAFail('t1');
-  const t2AFail = state.getTeamAFail('t2');
   const roundOwner = state.getRoundOwner();
   const roundLevel = state.getRoundLevel();
   const strictA = config.getPreference('strictA');
+  const aFailEnabled = tracksAFail(mode);
 
   let aNote = '';
   let finalWin = false;
@@ -34,90 +44,106 @@ export function checkALevelRules(winnerKey, ranks, mode) {
 
   // Determine which team is at A-level
   if (t1Level === 'A' && t2Level === 'A') {
-    aTeam = winnerKey; // Both at A, so winner is the A-team
+    aTeam = winnerKey; // Both at A — winner is the A-team being evaluated
   } else if (t1Level === 'A') {
     aTeam = 't1';
   } else if (t2Level === 'A') {
     aTeam = 't2';
   }
 
-  // If no team at A-level, no special rules apply
+  // No team at A-level → no special rules apply
   if (!aTeam) {
     return { aNote, finalWin };
   }
 
-  // Determine if winner has last place
   const lastRank = mode === '4' ? 4 : (mode === '6' ? 6 : 8);
   const winnerHasLast = ranks.indexOf(lastRank) >= 0;
 
   const loserKey = winnerKey === 't1' ? 't2' : 't1';
-  const aTeamName = aTeam === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-  const roundOwnerName = roundOwner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+  const aTeamName = config.getTeamName(aTeam);
+  // Guard roundOwner === null (first-round / brand-new game)
+  const roundOwnerName = roundOwner ? config.getTeamName(roundOwner) : '未定';
 
-  // Case 1: A-team won the round
+  /**
+   * Increment A-fail counter for a team. Returns the new count + whether the team is demoted.
+   * In 6/8 mode this is a no-op (returns null).
+   */
+  function recordAFail(team) {
+    if (!aFailEnabled) return null;
+    const current = state.getTeamAFail(team);
+    const next = current + 1;
+    if (next >= 3) {
+      state.setTeamAFail(team, 0); // reset counter on demotion
+      return { count: next, demoted: true };
+    }
+    state.setTeamAFail(team, next);
+    return { count: next, demoted: false };
+  }
+
+  // Case 1: A-team WON the round
   if (aTeam === winnerKey) {
     if (winnerHasLast) {
-      // Winner has last place - cannot pass A-level
+      // Winner has last place → cannot pass A this round
       if (roundOwner === aTeam) {
-        // It's their own round - counts as failure
-        const newAFail = (aTeam === 't1' ? t1AFail : t2AFail) + 1;
-        state.setTeamAFail(aTeam, newAFail);
-
-        aNote = `${aTeamName} A级失败（在自己的A级胜方含末游）→ A${newAFail}`;
-
-        if (newAFail >= 3) {
-          // Reset to level 2 after 3 failures
-          winnerNewLevel = '2';
-          state.setTeamAFail(aTeam, 0);
-          aNote += '｜累计3次失败，仅该队重置到2';
+        // Own A round, won with last → failure
+        const fail = recordAFail(aTeam);
+        if (fail) {
+          // 4-player: track and possibly demote
+          aNote = `${aTeamName} A级失败（在自己的A级胜方含末游）→ A${fail.count}`;
+          if (fail.demoted) {
+            winnerNewLevel = '2';
+            aNote += '｜累计3次失败，仅该队重置到2';
+          } else {
+            winnerNewLevel = state.getTeamLevel(winnerKey);
+          }
         } else {
-          // No upgrade this round
+          // 6/8: no failure tracking, just stay at A
           winnerNewLevel = state.getTeamLevel(winnerKey);
+          aNote = `${aTeamName} 在自己的A级胜方含末游，不通关，继续打到通关`;
         }
       } else {
-        // Not their own round - doesn't count as failure
+        // Not their own A round — doesn't trigger failure regardless of mode
         winnerNewLevel = state.getTeamLevel(winnerKey);
-        aNote = `${aTeamName} 在对方回合（${roundOwnerName}的级）胜但含末游，不通关但A失败不计`;
+        const tail = aFailEnabled ? '但A失败不计' : '继续打到通关';
+        aNote = `${aTeamName} 在对方回合（${roundOwnerName}的级）胜但含末游，不通关，${tail}`;
       }
     } else {
-      // Winner does not have last place
+      // Winner does not have last place — eligible for victory
       if (strictA && (roundLevel !== 'A' || roundOwner !== aTeam)) {
-        // Strict mode: Must win at own A-level
+        // Strict mode: must win at OWN A-level
         if (roundLevel !== 'A') {
           aNote = `${aTeamName} A级胜利（但本局级牌为${roundLevel}，需在自己的A级获胜才能通关）`;
         } else {
           aNote = `${aTeamName} A级胜利（但在${roundOwnerName}的回合，需在自己的A级获胜才能通关）`;
         }
-        // No upgrade, but no failure count
+        // No upgrade past A (calculator.nextLevel clamps), no failure
         winnerNewLevel = state.getTeamLevel(winnerKey);
       } else {
-        // Victory! (Either lenient mode, or strict mode at own A-level)
+        // Victory! (Lenient mode, OR strict mode at own A-level)
         finalWin = true;
         aNote = `${aTeamName} A级通关（胜方无末游${strictA ? '，在自己的A级' : ''}）`;
       }
     }
   } else {
-    // Case 2: A-team lost the round
+    // Case 2: A-team LOST the round
     if (roundOwner === aTeam) {
-      // It's their own round - counts as failure
-      const newAFail = (aTeam === 't1' ? t1AFail : t2AFail) + 1;
-      state.setTeamAFail(aTeam, newAFail);
-
-      aNote = `${aTeamName} A级失败（在自己的A级未取胜）→ A${newAFail}`;
-
-      if (newAFail >= 3) {
-        // Reset the A-team to level 2
-        if (aTeam === winnerKey) {
-          winnerNewLevel = '2';
-        } else {
+      // Own A round, didn't win → failure
+      const fail = recordAFail(aTeam);
+      if (fail) {
+        // 4-player: track and possibly demote (the loser, since aTeam !== winnerKey here)
+        aNote = `${aTeamName} A级失败（在自己的A级未取胜）→ A${fail.count}`;
+        if (fail.demoted) {
           loserNewLevel = '2';
+          aNote += '｜累计3次失败，仅该队重置到2';
         }
-        state.setTeamAFail(aTeam, 0);
-        aNote += '｜累计3次失败，仅该队重置到2';
+      } else {
+        // 6/8: stay at A and keep playing
+        aNote = `${aTeamName} 在自己的A级未取胜，继续打到通关`;
       }
     } else {
-      // Not their own round - doesn't count as failure
-      aNote = `${aTeamName} 在对方回合（${roundOwnerName}的级）未胜，A失败不计`;
+      // Not their own A round — doesn't trigger failure regardless of mode
+      const tail = aFailEnabled ? '，A失败不计' : '';
+      aNote = `${aTeamName} 在对方回合（${roundOwnerName}的级）未胜${tail}`;
     }
   }
 
@@ -143,7 +169,6 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
     return { applied: false };
   }
 
-  // Ensure ranks array exists
   if (!calcResult.ranks || !Array.isArray(calcResult.ranks)) {
     console.error('calcResult.ranks is missing or invalid:', calcResult);
     return { applied: false };
@@ -152,33 +177,35 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
   const loserKey = winnerKey === 't1' ? 't2' : 't1';
   const thisRound = state.getRoundLevel();
 
-  // Create snapshot for rollback
+  // Snapshot for rollback — includes nextRoundBase so rollback restores manual-mode state correctly
   const snapshot = {
     prevT1Lvl: state.getTeamLevel('t1'),
     prevT1A: state.getTeamAFail('t1'),
     prevT2Lvl: state.getTeamLevel('t2'),
     prevT2A: state.getTeamAFail('t2'),
-    prevRound: thisRound
+    prevRound: thisRound,
+    prevRoundOwner: state.getRoundOwner(),
+    prevNextRoundBase: state.getNextRoundBase()
   };
 
-  // Calculate new levels
+  // Calculate naive new levels (calculator clamps at 'A')
   const winnerCurrentLevel = state.getTeamLevel(winnerKey);
   let winnerNewLevel = nextLevel(winnerCurrentLevel, calcResult.upgrade);
   let loserNewLevel = state.getTeamLevel(loserKey);
 
-  // Next round base is winner's new level
-  const nextBaseByRule = winnerNewLevel;
-
-  // Apply A-level rules
+  // Apply A-level rules — may override winnerNewLevel / loserNewLevel
   const aLevelResult = checkALevelRules(winnerKey, calcResult.ranks, calcResult.mode);
 
-  // Override levels if A-level rules dictate
   if (aLevelResult.winnerNewLevel !== null && aLevelResult.winnerNewLevel !== undefined) {
     winnerNewLevel = aLevelResult.winnerNewLevel;
   }
   if (aLevelResult.loserNewLevel !== null && aLevelResult.loserNewLevel !== undefined) {
     loserNewLevel = aLevelResult.loserNewLevel;
   }
+
+  // Compute next-round base AFTER A-level override so demotion paths advance correctly.
+  // Previously this was captured before override, causing round to advance to stale level.
+  const nextBaseByRule = winnerNewLevel;
 
   // Apply upgrades to teams
   state.setTeamLevel(winnerKey, winnerNewLevel);
@@ -187,21 +214,19 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
   // Decide round advancement
   const autoNext = config.getPreference('autoNext');
   if (autoNext || aLevelResult.finalWin) {
-    // Advance to next round
     state.setRoundLevel(String(nextBaseByRule));
     state.setRoundOwner(winnerKey);
     state.setNextRoundBase(null);
   } else {
-    // Stay at current round (manual mode)
     state.setRoundLevel(String(thisRound));
     state.setNextRoundBase(String(nextBaseByRule));
   }
 
-  // Create history entry
-  const winnerName = winnerKey === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+  // Build history entry
+  const winnerName = config.getTeamName(winnerKey);
   const historyEntry = {
     ts: now(),
-    mode: calcResult.mode,
+    mode: String(calcResult.mode),
     combo: '(' + calcResult.ranks.join(',') + ')',
     ranks: calcResult.ranks,
     up: calcResult.upgrade,
@@ -211,16 +236,14 @@ export function applyGameResult(calcResult, winnerKey, playerRankingData) {
     t2: state.getTeamLevel('t2'),
     round: thisRound,
     aNote: aLevelResult.aNote,
-    sessionDuration: state.getSessionDuration(),  // Add session duration
-    gameEndedAt: aLevelResult.finalWin ? new Date().toISOString() : null,  // Track game end time
+    sessionDuration: state.getSessionDuration(),
+    gameEndedAt: aLevelResult.finalWin ? new Date().toISOString() : null,
     ...snapshot,
     playerRankings: playerRankingData || {}
   };
 
-  // Add to history
   state.addHistoryEntry(historyEntry);
 
-  // Emit events
   emit('game:resultApplied', {
     winner: winnerKey,
     upgrade: calcResult.upgrade,
@@ -260,14 +283,12 @@ export function advanceToNextRound() {
     };
   }
 
-  // Get last winner from history
   const history = state.getHistory();
   let lastWinner = null;
   if (history.length > 0) {
     lastWinner = history[history.length - 1].winKey;
   }
 
-  // Advance round
   state.setRoundLevel(nextRoundBase);
   if (lastWinner) {
     state.setRoundOwner(lastWinner);

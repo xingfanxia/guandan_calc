@@ -322,8 +322,20 @@ export default async function handler(request) {
         // ===== PROFILE UPDATE MODE =====
         const updates = requestData;
 
-        // Validate fields (but don't require all - only validate what's provided)
-        const { validatePlayerData } = await import('./_utils.js');
+        // SECURITY: profile updates require admin token until per-user ownership tokens
+        // are implemented. Without this gate, anyone with a handle could rewrite any
+        // player's displayName / emoji / tagline / photoBase64.
+        // TODO: implement per-user ownership tokens issued at create + stored in localStorage,
+        //       then relax this gate to "admin OR owner".
+        const { validatePlayerData, validateAdminToken } = await import('./_utils.js');
+        if (!validateAdminToken(updates.adminToken)) {
+          return new Response(JSON.stringify({
+            error: 'Unauthorized — profile updates require admin token (per-user ownership tokens TBD)'
+          }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
         const validation = validatePlayerData({
           handle,  // For validation only (not updated)
           displayName: updates.displayName || 'dummy',  // Required for validation
@@ -424,21 +436,26 @@ export default async function handler(request) {
       
       if (!isVoteOnly) {
         // ===== UPDATE OVERALL STATS =====
-        // Session-level stats
-        player.stats.sessionsPlayed = (player.stats.sessionsPlayed || 0) + 1;
+        // Snapshot the OLD count BEFORE incrementing — running averages must use N_old.
+        // Previously: prevSessionTotal multiplied by (sessionsPlayed - 1) AFTER increment,
+        // which is mathematically `N_new - 1 = N_old`, but only by accident on first session
+        // (because `|| 1` masked N_old=0). On subsequent sessions, the new ranking was
+        // double-counted in the running average.
+        const prevSessionsPlayed = player.stats.sessionsPlayed || 0;
+
+        player.stats.sessionsPlayed = prevSessionsPlayed + 1;
         if (gameResult.teamWon) {
           player.stats.sessionsWon = (player.stats.sessionsWon || 0) + 1;
         }
         player.stats.sessionWinRate = player.stats.sessionsPlayed > 0
           ? player.stats.sessionsWon / player.stats.sessionsPlayed
           : 0;
-        
-        // Update avgRankingPerSession (average of session averages)
-        const prevSessionTotal = (player.stats.avgRankingPerSession || 0) * ((player.stats.sessionsPlayed || 1) - 1);
+
+        // Running average using N_old (snapshotted above)
+        const prevSessionTotal = (player.stats.avgRankingPerSession || 0) * prevSessionsPlayed;
         player.stats.avgRankingPerSession = (prevSessionTotal + gameResult.ranking) / player.stats.sessionsPlayed;
-        
-        // Update avgRoundsPerSession
-        const prevRoundsTotal = (player.stats.avgRoundsPerSession || 0) * ((player.stats.sessionsPlayed || 1) - 1);
+
+        const prevRoundsTotal = (player.stats.avgRoundsPerSession || 0) * prevSessionsPlayed;
         player.stats.avgRoundsPerSession = (prevRoundsTotal + gamesInSession) / player.stats.sessionsPlayed;
         
         // Update longest session by rounds
@@ -490,8 +507,10 @@ export default async function handler(request) {
         player.stats.votingHistory = player.stats.votingHistory || {};
 
         const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
-        const newMvpVotes = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
-        const newBurdenVotes = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+        // Use ?? not || so explicit `0` from client is respected (0 votes received).
+        // Previously `||` would fall through to the votedMVP boolean and flip 0 to 1.
+        const newMvpVotes = gameResult.mvpVoteCount ?? (gameResult.votedMVP ? 1 : 0);
+        const newBurdenVotes = gameResult.burdenVoteCount ?? (gameResult.votedBurden ? 1 : 0);
 
         const mvpDelta = newMvpVotes - oldVotes.mvp;
         const burdenDelta = newBurdenVotes - oldVotes.burden;
@@ -541,16 +560,18 @@ export default async function handler(request) {
         }
 
         // Update win/loss streaks (session counts as 1)
+        // Defensive `|| 0` guards against legacy players where a NaN/undefined could
+        // poison the field permanently (NaN + 1 = NaN forever after).
         if (gameResult.teamWon) {
-          player.stats.currentWinStreak += 1;
+          player.stats.currentWinStreak = (player.stats.currentWinStreak || 0) + 1;
           player.stats.currentLossStreak = 0;
-          if (player.stats.currentWinStreak > player.stats.longestWinStreak) {
+          if (player.stats.currentWinStreak > (player.stats.longestWinStreak || 0)) {
             player.stats.longestWinStreak = player.stats.currentWinStreak;
           }
         } else {
-          player.stats.currentLossStreak += 1;
+          player.stats.currentLossStreak = (player.stats.currentLossStreak || 0) + 1;
           player.stats.currentWinStreak = 0;
-          if (player.stats.currentLossStreak > player.stats.longestLossStreak) {
+          if (player.stats.currentLossStreak > (player.stats.longestLossStreak || 0)) {
             player.stats.longestLossStreak = player.stats.currentLossStreak;
           }
         }
@@ -587,22 +608,23 @@ export default async function handler(request) {
         const gameMode = gameResult.mode; // '4P', '6P', '8P'
         if (gameMode && player.stats[`stats${gameMode}`]) {
           const modeStats = player.stats[`stats${gameMode}`];
-          
-          // Session-level stats for this mode
-          modeStats.sessionsPlayed = (modeStats.sessionsPlayed || 0) + 1;
+
+          // Snapshot OLD count before increment — same fix as overall stats above
+          const mPrevSessionsPlayed = modeStats.sessionsPlayed || 0;
+
+          modeStats.sessionsPlayed = mPrevSessionsPlayed + 1;
           if (gameResult.teamWon) {
             modeStats.sessionsWon = (modeStats.sessionsWon || 0) + 1;
           }
           modeStats.sessionWinRate = modeStats.sessionsPlayed > 0
             ? modeStats.sessionsWon / modeStats.sessionsPlayed
             : 0;
-          
-          // Update avgRankingPerSession for this mode
-          const mPrevSessionTotal = (modeStats.avgRankingPerSession || 0) * ((modeStats.sessionsPlayed || 1) - 1);
+
+          // Running averages using N_old
+          const mPrevSessionTotal = (modeStats.avgRankingPerSession || 0) * mPrevSessionsPlayed;
           modeStats.avgRankingPerSession = (mPrevSessionTotal + gameResult.ranking) / modeStats.sessionsPlayed;
-          
-          // Update avgRoundsPerSession for this mode
-          const mPrevRoundsTotal = (modeStats.avgRoundsPerSession || 0) * ((modeStats.sessionsPlayed || 1) - 1);
+
+          const mPrevRoundsTotal = (modeStats.avgRoundsPerSession || 0) * mPrevSessionsPlayed;
           modeStats.avgRoundsPerSession = (mPrevRoundsTotal + gamesInSession) / modeStats.sessionsPlayed;
           
           // Update longest session by rounds
@@ -676,8 +698,9 @@ export default async function handler(request) {
         player.stats.votingHistory = player.stats.votingHistory || {};
 
         const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
-        const newMvpVotes = gameResult.mvpVoteCount || (gameResult.votedMVP ? 1 : 0);
-        const newBurdenVotes = gameResult.burdenVoteCount || (gameResult.votedBurden ? 1 : 0);
+        // Use ?? not || — see comment in non-vote-only path above
+        const newMvpVotes = gameResult.mvpVoteCount ?? (gameResult.votedMVP ? 1 : 0);
+        const newBurdenVotes = gameResult.burdenVoteCount ?? (gameResult.votedBurden ? 1 : 0);
 
         const mvpDelta = newMvpVotes - oldVotes.mvp;
         const burdenDelta = newBurdenVotes - oldVotes.burden;

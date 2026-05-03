@@ -2,7 +2,7 @@
 // Clears game history and stats but keeps profile identity
 
 import { kv } from '@vercel/kv';
-import { initializePlayerStats } from './_utils.js';
+import { initializePlayerStats, validateAdminToken } from './_utils.js';
 
 export default async function handler(request) {
   // Only allow POST requests
@@ -25,8 +25,8 @@ export default async function handler(request) {
       });
     }
 
-    // Require admin token for reset
-    if (adminToken !== 'xiaofei0214') {
+    // Admin auth — token validated against ADMIN_TOKEN env var with constant-time compare
+    if (!validateAdminToken(adminToken)) {
       return new Response(JSON.stringify({
         error: 'Unauthorized - Invalid admin token'
       }), {

@@ -167,10 +167,10 @@
   <div class="card">
     <h3>队伍</h3>
     <div class="team">
-      <span class="chip" id="t1NameChip"><b>蓝队</b></span><span class="chip">级牌：<b id="t1Lvl">2</b></span><span class="chip">A失败：<b id="t1A">0</b>/3</span><span class="chip">A状态：<b id="t1AState">—</b></span>
+      <span class="chip" id="t1NameChip"><b>蓝队</b></span><span class="chip">级牌：<b id="t1Lvl">2</b></span><span class="chip" id="t1AChip">A失败：<b id="t1A">0</b>/3</span><span class="chip">A状态：<b id="t1AState">—</b></span>
     </div>
     <div class="team">
-      <span class="chip" id="t2NameChip"><b>红队</b></span><span class="chip">级牌：<b id="t2Lvl">2</b></span><span class="chip">A失败：<b id="t2A">0</b>/3</span><span class="chip">A状态：<b id="t2AState">—</b></span>
+      <span class="chip" id="t2NameChip"><b>红队</b></span><span class="chip">级牌：<b id="t2Lvl">2</b></span><span class="chip" id="t2AChip">A失败：<b id="t2A">0</b>/3</span><span class="chip">A状态：<b id="t2AState">—</b></span>
     </div>
     <hr>
     <div class="team">
@@ -222,7 +222,8 @@
         <button id="advance" title="将本局级牌推进到预览的下一局">进入下一局</button>
       </div>
       <div class="small muted">
-        A 局规则：胜方带末游→本局胜但不通关，失败数+1；A连败到3（A3）→仅该队回2。<br>
+        A 局规则：胜方带末游→本局胜但不通关。<br>
+        4人：A连败3次（A3）→ 仅该队回2；6/8人：不计失败次数、不掉级，继续打到任意一方在自己的A级获胜。<br>
         严格模式：必须在自己的A级获胜才能通关 | 宽松模式：任何时候A级获胜都可通关
       </div>
       <div class="small muted toggle" style="margin-top:6px;">

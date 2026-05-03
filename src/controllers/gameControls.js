@@ -75,100 +75,100 @@ export function setupGameControls(renderInitialState) {
   // Apply button - Apply calculated results
   if (applyBtn) {
     on(applyBtn, 'click', async () => {
-      // Check if game has ended (A级通关)
-      const victory = checkGameEnded();
-      if (victory) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束，请重置游戏开始新一局';
-        return;
-      }
+      // Double-submit guard — `await showVictoryModal(...)` makes this handler
+      // async, so a fast double-click could trigger two applyGameResult runs and
+      // double-increment team levels before the first finishes.
+      if (applyBtn.disabled) return;
+      applyBtn.disabled = true;
 
-      const mode = $('mode').value;
-      const result = calculateFromRanking(parseInt(mode));
-
-      if (result.ok) {
-        const playerRankingData = getPlayerRankingData();
-
-        // Merge ranks into calcResult for applyGameResult
-        const fullCalcResult = {
-          ...result.calcResult,
-          ranks: result.ranks,
-          mode: String(mode)
-        };
-
-        const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
-
-        if (applyResult && applyResult.applied) {
-          // Update player stats
-          updatePlayerStats(parseInt(mode));
-
-          // Clear ranking for next round
-          clearRankingState();
-
-          // Show message
+      try {
+        // Check if game has ended (A级通关)
+        const victory = checkGameEnded();
+        if (victory) {
           const applyTip = $('applyTip');
-          if (applyTip) {
-            applyTip.textContent = applyResult.message;
-          }
+          if (applyTip) applyTip.textContent = '比赛已结束，请重置游戏开始新一局';
+          return;
+        }
 
-          // Render updates
-          renderTeams();
-          renderHistory();
-          renderPlayerPool();
-          renderRankingSlots();
-          renderStatistics();
-          attachTouchHandlersToAllTiles();
+        const mode = $('mode').value;
+        const result = calculateFromRanking(parseInt(mode));
 
-          console.log('Game applied, finalWin:', applyResult.finalWin);
+        if (result.ok) {
+          const playerRankingData = getPlayerRankingData();
 
-          // Handle final win (A-level victory)
-          if (applyResult.finalWin) {
-            const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+          const fullCalcResult = {
+            ...result.calcResult,
+            ranks: result.ranks,
+            mode: String(mode)
+          };
 
-            // Show victory celebration first (await to fetch current profile)
-            await showVictoryModal(winnerName);
+          const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
 
-            // Schedule auto-sync of voting results (5 minutes)
-            scheduleAutoVotingSync();
+          if (applyResult && applyResult.applied) {
+            updatePlayerStats(parseInt(mode));
+            clearRankingState();
 
-            // Wait a moment for potential voting, then sync stats
-            setTimeout(() => {
-              // Calculate session honors
-              const sessionHonors = calculateHonors(parseInt(mode));
+            const applyTip = $('applyTip');
+            if (applyTip) applyTip.textContent = applyResult.message;
 
-              // Get voting results (local voting only)
-              const votingResults = getVotingResults();
+            renderTeams();
+            renderHistory();
+            renderPlayerPool();
+            renderRankingSlots();
+            renderStatistics();
+            attachTouchHandlersToAllTiles();
 
-              // Sync profile stats to database (non-blocking)
-              const roomInfo = getRoomInfo();
-              const allPlayers = getPlayers();
-              const sessionStats = state.getPlayerStats();
+            console.log('Game applied, finalWin:', applyResult.finalWin);
 
-              // Calculate session duration from room timestamps if available
-              let sessionDuration = applyResult.historyEntry.sessionDuration || 0;
-              if (roomInfo.createdAt && roomInfo.finishedAt) {
-                sessionDuration = Math.floor(
-                  (new Date(roomInfo.finishedAt).getTime() - new Date(roomInfo.createdAt).getTime()) / 1000
+            if (applyResult.finalWin) {
+              const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+
+              await showVictoryModal(winnerName);
+              scheduleAutoVotingSync();
+
+              // Snapshot all state SYNCHRONOUSLY before the 2-second timeout.
+              // Same reasoning as main.js — undo / reset / re-rank during the wait
+              // would otherwise let the closure see post-mutation values.
+              const capturedMode = parseInt(mode);
+              const capturedHistoryEntry = JSON.parse(JSON.stringify(applyResult.historyEntry));
+              const capturedRoomInfo = getRoomInfo();
+              const capturedPlayers = getPlayers().map(p => ({ ...p }));
+              const capturedStats = JSON.parse(JSON.stringify(state.getPlayerStats()));
+
+              setTimeout(() => {
+                const sessionHonors = calculateHonors(capturedMode);
+                const votingResults = getVotingResults();
+
+                let sessionDuration = capturedHistoryEntry.sessionDuration || 0;
+                if (capturedRoomInfo.createdAt && capturedRoomInfo.finishedAt) {
+                  sessionDuration = Math.floor(
+                    (new Date(capturedRoomInfo.finishedAt).getTime() - new Date(capturedRoomInfo.createdAt).getTime()) / 1000
+                  );
+                  console.log(`✅ Calculated session duration from room: ${sessionDuration}s`);
+                }
+
+                const historyWithDuration = {
+                  ...capturedHistoryEntry,
+                  sessionDuration
+                };
+
+                syncProfileStats(
+                  historyWithDuration,
+                  capturedRoomInfo.roomCode || 'LOCAL',
+                  capturedPlayers,
+                  capturedStats,
+                  sessionHonors,
+                  votingResults
                 );
-                console.log(`✅ Calculated session duration from room: ${sessionDuration}s (${Math.floor(sessionDuration/60)} mins)`);
-              }
-
-              // Update history entry with calculated duration
-              const historyWithDuration = {
-                ...applyResult.historyEntry,
-                sessionDuration
-              };
-
-              syncProfileStats(historyWithDuration, roomInfo.roomCode || 'LOCAL', allPlayers, sessionStats, sessionHonors, votingResults);
-            }, 2000); // Wait 2 seconds for voting
+              }, 2000);
+            }
           }
+        } else {
+          const applyTip = $('applyTip');
+          if (applyTip) applyTip.textContent = result.message || '请先完成排名';
         }
-      } else {
-        // Show error message
-        const applyTip = $('applyTip');
-        if (applyTip) {
-          applyTip.textContent = result.message || '请先完成排名';
-        }
+      } finally {
+        applyBtn.disabled = false;
       }
     });
   }

@@ -2,7 +2,7 @@
 // Run this once to migrate existing players without waiting for next game
 
 import { kv } from '@vercel/kv';
-import { initializePlayerStats } from './_utils.js';
+import { initializePlayerStats, validateAdminToken } from './_utils.js';
 
 // Migrate single player's historical games to mode-specific stats
 function migratePlayerToModeStats(player) {
@@ -92,6 +92,19 @@ export default async function handler(request) {
   }
 
   try {
+    // Admin auth — previously this endpoint was PUBLIC, allowing anyone to trigger
+    // a mass-rewrite of every player profile in KV (DoS + data corruption risk).
+    let body = {};
+    try { body = await request.json(); } catch { /* empty body OK for legacy curl */ }
+    if (!validateAdminToken(body.adminToken)) {
+      return new Response(JSON.stringify({
+        error: 'Unauthorized - Invalid admin token'
+      }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     // Get all player keys
     const keys = [];
     let cursor = 0;

@@ -122,15 +122,18 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // Crash count
+  // 翻车王 (Crash) - From top tier to dead last in consecutive games.
+  // Top tier scales by mode: ceil(N/3) so 4P=top 1-2, 6P=top 1-2, 8P=top 1-3.
+  // Previously hardcoded `<= 3`, which in 4P meant 75% of the field qualified — trivially true.
   let maxCrash = 0;
+  const topTierThreshold = Math.max(1, Math.ceil(totalPlayers / 3));
 
   eligible.forEach(player => {
     const stats = allStats[player.id];
     let crashes = 0;
 
     for (let i = 1; i < stats.rankings.length; i++) {
-      if (stats.rankings[i - 1] <= 3 && stats.rankings[i] === totalPlayers) {
+      if (stats.rankings[i - 1] <= topTierThreshold && stats.rankings[i] === totalPlayers) {
         crashes++;
       }
     }
@@ -212,8 +215,12 @@ export function calculateHonors(totalPlayers = 8) {
     }
   });
 
-  // 鲤鱼王 (Comeback King) - Bottom 3 to #1 in consecutive games
+  // 鲤鱼王 (Comeback King) - From bottom tier to #1 in consecutive games.
+  // Bottom tier scales by mode: top-third sized window from the bottom — 4P=bottom 1-2 (3,4),
+  // 6P=bottom 1-2 (5,6), 8P=bottom 1-3 (6,7,8). Previously `>= totalPlayers - 2`, which in 4P
+  // included rank 2 as "bottom 3" — too lax.
   let maxLeaps = 0;
+  const bottomTierThreshold = totalPlayers - Math.max(1, Math.ceil(totalPlayers / 3)) + 1;
 
   eligible.forEach(player => {
     const stats = allStats[player.id];
@@ -223,8 +230,8 @@ export function calculateHonors(totalPlayers = 8) {
       const prevRank = stats.rankings[i - 1];
       const currRank = stats.rankings[i];
 
-      // From bottom 3 to #1
-      if (prevRank >= totalPlayers - 2 && currRank === 1) {
+      // From bottom tier to #1
+      if (prevRank >= bottomTierThreshold && currRank === 1) {
         leaps++;
       }
     }

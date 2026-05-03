@@ -2,6 +2,7 @@
 // Use with caution - permanent deletion
 
 import { kv } from '@vercel/kv';
+import { validateAdminToken } from './_utils.js';
 
 export default async function handler(request) {
   // Only allow POST requests (safer than DELETE)
@@ -24,8 +25,8 @@ export default async function handler(request) {
       });
     }
 
-    // Require admin token for deletion
-    if (adminToken !== 'xiaofei0214') {
+    // Admin auth — token validated against ADMIN_TOKEN env var with constant-time compare
+    if (!validateAdminToken(adminToken)) {
       return new Response(JSON.stringify({
         error: 'Unauthorized - Invalid admin token'
       }), {
