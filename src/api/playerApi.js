@@ -27,9 +27,9 @@ export function saveOwnershipToken(handle, token) {
   }
 }
 
-// Currently unused; exists so a future "forget this device / log out" affordance
-// can wipe the local credential. Don't inline at call sites — keep one definition
-// of the storage-key derivation.
+// Wired to the "登出本设备" affordance in playerEditModal — wipes the ownership
+// token for this handle from this device's localStorage. After clearing, edits
+// from this browser require admin re-issue (there's no rotation endpoint yet).
 export function clearOwnershipToken(handle) {
   if (!handle) return;
   try {

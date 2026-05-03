@@ -1,7 +1,7 @@
 // Player Edit Modal
 // Modal UI for editing existing player profiles
 
-import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken } from '../api/playerApi.js';
+import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken, clearOwnershipToken } from '../api/playerApi.js';
 import { $, escapeHtml } from '../core/utils.js';
 
 // Import emoji list from playerManager
@@ -224,6 +224,22 @@ export function showEditModal(player) {
             保存更改
           </button>
         </div>
+
+        <!-- Forget device — wipes the localStorage ownership token from THIS device.
+             Only shown when a token actually exists; for anyone else (admin path / no token)
+             there's nothing to forget. After this, the user needs admin re-issue to edit
+             from this device again — there's no rotation endpoint yet (P3 follow-up). -->
+        ${getOwnershipToken(player.handle) ? `
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; text-align: center;">
+            <button
+              type="button"
+              id="forgetDeviceButton"
+              style="background: none; border: none; color: #888; font-size: 0.85em; cursor: pointer; text-decoration: underline;"
+            >
+              登出本设备 (清除编辑权限)
+            </button>
+          </div>
+        ` : ''}
       </form>
     </div>
   `;
@@ -388,6 +404,23 @@ function setupModalHandlers() {
   // Cancel button
   if (cancelButton) {
     cancelButton.addEventListener('click', closeModal);
+  }
+
+  // Forget-device button — only present when a token exists for this handle.
+  const forgetButton = $('forgetDeviceButton');
+  if (forgetButton) {
+    forgetButton.addEventListener('click', () => {
+      const ok = confirm(
+        '将清除本设备保存的编辑权限令牌。\n\n' +
+        '清除后，您将无法在本设备直接编辑此玩家资料，需要管理员重新授权才能恢复。\n\n' +
+        '确定继续？'
+      );
+      if (ok) {
+        clearOwnershipToken(currentPlayer.handle);
+        alert('已清除本设备的编辑权限');
+        closeModal();
+      }
+    });
   }
 
   // Close on outside click
