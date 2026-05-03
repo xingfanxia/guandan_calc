@@ -19,7 +19,15 @@ KV_REST_API_TOKEN=AUGXAAInc...
 KV_REST_API_READ_ONLY_TOKEN=AkGXAAIgc...
 KV_URL=rediss://default:...@together-mackerel-16791.upstash.io:6379
 REDIS_URL=rediss://default:...@together-mackerel-16791.upstash.io:6379
+
+# Admin token (since 2026-05 audit) — REQUIRED or all admin endpoints fail-closed.
+# Gates: api/players/delete, api/players/reset-stats, api/players/migrate-modes,
+# and api/players/[handle].js PROFILE_UPDATE mode. See docs/SECURITY.md.
+ADMIN_TOKEN=replace_with_long_random_string  # e.g., openssl rand -hex 32
 ```
+
+**⚠️ Without `ADMIN_TOKEN` set, profile editing in `playerEditModal` returns 403** until per-user
+ownership tokens are implemented (see `docs/HANDOFF-2026-05-02-audit.md` P0).
 
 #### Deployment Configuration (`vercel.json`)
 ```json
@@ -158,9 +166,17 @@ Mobile Performance: 90+ Lighthouse score
 
 ### Data Security
 - **Encryption in transit**: HTTPS/TLS for all communications
-- **Encryption at rest**: Upstash Redis provides encryption  
-- **Token security**: 32-character cryptographically random auth tokens
+- **Encryption at rest**: Upstash Redis provides encryption
+- **Room host auth**: server generates 32-byte hex tokens at create-time, stores in KV,
+  validates on PUT via `Authorization: Bearer <token>` (constant-time compare).
+  GET strips token from response. TOFU pinning for legacy rooms in flight.
+- **Admin endpoints**: gated by `ADMIN_TOKEN` env var via `validateAdminToken` helper
+  (constant-time compare). Fail-closed if env unset.
+- **XSS escape**: `escapeHtml` helper in `src/core/utils.js` applied to all dynamic
+  string interpolation in modals / search / voting surfaces.
 - **Data isolation**: Room-based namespacing prevents cross-contamination
+
+See `docs/SECURITY.md` for full threat model and known limitations.
 
 ### Privacy Compliance
 - **No PII collection**: Only user-provided game data and player names

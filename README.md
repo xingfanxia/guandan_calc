@@ -58,6 +58,8 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
   - Drag-and-drop ranking with automatic upgrade calculation
   - Team level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
   - A-level rules: Strict mode (must win at own A-level) vs. Lenient mode
+  - **4-player only**: 3 A-level failures (A1/A2/A3) → demote to level 2
+  - **6/8-player (since 2026-05)**: no failure counter, no demotion — keep playing until either side wins on their own A
   - 8-player sweep bonus: Top 4 positions = 4 level upgrade
   
 - **🏆 Comprehensive Honor System** 
@@ -146,6 +148,7 @@ The calculator supports customizable scoring rules:
 - **4-player mode**: Configure upgrade points for each ranking combination (1,2), (1,3), (1,4)
 - **6/8-player mode**: Configure point thresholds for 1, 2, or 3 level upgrades based on score differences
 - **A-level rules**: Strict mode (must win at own A-level) vs. Lenient mode (can win at any level)
+- **A-level failure (4-player only)**: 3 strikes (A1→A2→A3) → reset to level 2; 6/8 modes have no counter and no demotion (since 2026-05)
 - **Special bonuses**: 8-player sweep (positions 1,2,3,4) grants 4-level upgrade
 
 ### Browser Compatibility

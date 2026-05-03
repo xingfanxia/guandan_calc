@@ -150,10 +150,21 @@ All keys use prefixes for namespace organization and efficient querying.
   ],
 
   // Room metadata
-  isFavorite: false,      // If true, permanent storage
-  authToken: "secret123"  // Host authentication (if applicable)
+  isFavorite: false,             // If true, permanent storage
+  authToken: "<64-hex-chars>"    // Server-generated host auth token (since 2026-05).
+                                 // Stripped from GET responses. Validated on PUT via
+                                 // `Authorization: Bearer <token>` header (constant-time
+                                 // compare). TOFU-pinned for legacy rooms in flight.
+                                 // See docs/SECURITY.md.
 }
 ```
+
+> **Stats schema note (2026-05):** the `stats` object shown above is a simplified historical
+> snapshot. The current canonical structure is in `api/players/_utils.js` `initializePlayerStats`
+> and includes mode-specific sub-stats (`stats4P`, `stats6P`, `stats8P`), time tracking
+> (`totalPlayTimeSeconds`, `longestSessionSeconds`, `avgSessionSeconds`), session vs. round
+> separation (`sessionsPlayed`/`roundsPlayed`), partner/opponent maps, voting history, and
+> 14 honors. Treat `_utils.js` as the source of truth.
 
 **Access Patterns**:
 - Create: `kv.setex(`room:${code}`, 31536000, JSON.stringify(roomData))`
@@ -299,3 +310,13 @@ players: [
 4. **Batch operations**: Use `Promise.all()` for multiple reads
 5. **Error handling**: Wrap all KV operations in try-catch
 6. **Key naming**: Use consistent prefixes for querying efficiency
+7. **Strip secrets on read**: when returning room data via GET, destructure out
+   `authToken` before serializing — viewers must never see the host token
+
+## Required Environment
+
+| Variable | Purpose | What happens if unset |
+|---|---|---|
+| `KV_REST_API_URL` | Upstash REST endpoint | KV operations fail |
+| `KV_REST_API_TOKEN` | KV write/read auth | KV operations fail |
+| `ADMIN_TOKEN` (since 2026-05) | Admin endpoint gate (delete / reset-stats / migrate-modes / PROFILE_UPDATE) | All admin endpoints reject 403 (fail-closed) |

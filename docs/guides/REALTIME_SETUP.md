@@ -53,6 +53,24 @@ The following environment variables are automatically available in Vercel:
 - `KV_REST_API_URL` - Upstash Redis API endpoint
 - `KV_REST_API_TOKEN` - Authentication token
 - `KV_REST_API_READ_ONLY_TOKEN` - Read-only token (for future use)
+- `ADMIN_TOKEN` - **(NEW since 2026-05)** required for admin endpoints (delete/reset/migrate/PROFILE_UPDATE).
+  Set with `openssl rand -hex 32 | vercel env add ADMIN_TOKEN production`. Without it, those
+  endpoints fail-closed with 403. See `docs/SECURITY.md`.
+
+### Room Authentication Model (since 2026-05)
+
+Rooms now have **server-issued auth tokens**:
+
+1. `POST /api/rooms/create` — server generates 32-byte hex `authToken`, stores it on the
+   room object in KV, and returns it ONCE in the response. Host persists it (URL `?auth=`
+   parameter, in-memory in `roomManager.js`).
+2. `GET /api/rooms/<code>` — strips `authToken` from response. Viewers never see the token.
+3. `PUT /api/rooms/<code>` — requires `Authorization: Bearer <token>` header. Constant-time
+   comparison against stored token. Returns 403 on mismatch.
+
+**TOFU (trust-on-first-use)**: legacy rooms created before this audit have no stored token;
+the first PUT to such a room accepts whatever token the client sends and pins it. This avoids
+breaking active 24h sessions during the rollout.
 
 ### 3. API Routes
 

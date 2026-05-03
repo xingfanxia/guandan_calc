@@ -89,7 +89,9 @@ GET /api/rooms/{code}
     autoApply: true
   },
   
-  // 游戏状态  
+  // 游戏状态
+  // NOTE: aFail tracking is 4-player ONLY since 2026-05 — in 6/8 modes the field
+  // stays at 0 (no failure counter, no demotion to 2). See docs/GAME_RULES.md.
   state: {
     t1: {lvl: "K", aFail: 1},
     t2: {lvl: "A", aFail: 0},

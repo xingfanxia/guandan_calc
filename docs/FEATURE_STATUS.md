@@ -3,7 +3,7 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2025-12-11
+**Last Updated**: 2026-05-02 (audit + 6/8 rule revision shipped)
 **Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs
 **Version**: v10.0
 
@@ -25,7 +25,7 @@
 - [x] Profile photo upload system (base64, auto-resize)
 - [x] Enhanced partner/rival bar charts (Chart.js)
 - [x] Modern pill-style navigation tabs
-- [x] Admin mode (password-protected delete/reset)
+- [x] Admin mode — ADMIN_TOKEN env var (constant-time validate); previous hardcoded password rotated out 2026-05
 - [x] Server-side timer tracking (finishedAt timestamps)
 - [x] MVP photos in victory modal and PNG export
 - [x] Viewer voting winner display
@@ -37,6 +37,7 @@
 - [x] 8-player mode with sweep bonus
 - [x] Level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
 - [x] A-level rules (strict/lenient modes)
+- [x] **A-fail counter / demotion** — 4-player only since 2026-05; 6/8 modes simplified to "keep playing until win at own A"
 - [x] Configurable scoring rules
 
 ### Player System (100%)
@@ -66,7 +67,7 @@
 
 ### Real-Time Rooms (100%)
 - [x] 6-digit room codes (A1B2C3 format)
-- [x] Host authentication with secure tokens
+- [x] Host authentication — server-issued tokens, Bearer header validation, TOFU for legacy rooms (since 2026-05)
 - [x] Auto-sync every 10 seconds (host)
 - [x] Viewer polling every 5 seconds
 - [x] State recovery on page refresh
@@ -153,6 +154,26 @@ See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.
 - [ ] API versioning strategy
 - [ ] Client-side caching improvements
 - [ ] Error boundary implementation
+
+### Audit follow-ups (2026-05-02 — see `docs/HANDOFF-2026-05-02-audit.md`)
+
+**P0 — unblocks user-facing feature:**
+- [ ] Per-user ownership tokens for `PROFILE_UPDATE` (currently admin-only after audit)
+
+**P1 — security:**
+- [ ] Server-side vote count fetch (don't trust client `mvpVoteCount`/`burdenVoteCount`)
+- [ ] Cap `room.endGameVotes.fingerprints` array (currently unbounded)
+
+**P1 — UX/accessibility:**
+- [ ] Modal accessibility (Escape key, focus trap, body scroll lock, `aria-modal`)
+- [ ] Touch handler delegation rewrite (event listener leaks during re-render)
+- [ ] Always re-render ranking area on `ui:modeChanged`
+
+**P2 — quality:**
+- [ ] `isDevelopment` should read `import.meta.env.DEV`
+- [ ] Implement or remove dead achievements (`comeback`, `sweep`, `iron_will`)
+- [ ] Honors variance n=1 edge case (Bessel correction or document)
+- [ ] `votingManager.js` undefined `currentRoomCode`/`isHost` references
 
 ---
 

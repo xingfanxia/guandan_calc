@@ -163,3 +163,72 @@ Standard MVP/stats are boring and don't engage players
 - **Generational appeal**: Historical references span age groups
 
 This design approach creates an engaging, culturally relevant, and technically sophisticated gaming platform that serves both casual family games and serious competitive play.
+
+---
+
+## 🎲 Game Rule Decisions (2026-05)
+
+### 6/8-player A-level simplification
+
+**Decision (2026-05-02):** Remove the A1/A2/A3 failure counter and demotion-to-level-2 rule
+for 6 and 8-player modes. Game continues until either side wins on their own A level
+(subject to the strict/lenient `strictA` preference). 4-player rules unchanged.
+
+**Why:**
+- Long Guandan nights had teams rubber-banding back to level 2 after streaks of close losses
+  at A — deflating to play through.
+- The 3-strike penalty is a rule that scaled poorly to 6/8 modes (more players → harder to
+  avoid last-place rotations → easier to accumulate strikes through no fault of yours).
+- Keeping the rule in 4-player mode preserves the traditional Guandan experience for the
+  most-played mode.
+
+**Implementation:** `tracksAFail(mode)` helper in `src/game/rules.js` returns `true` only
+for `'4'`. The `recordAFail()` helper inside `checkALevelRules` no-ops in 6/8.
+`teamDisplay.js` hides the `A 失败` chip and shows `通关中` instead of `A0/3` in 6/8 modes.
+
+**Trade-off:** 6/8 sessions can theoretically run forever if both teams reach A and neither
+manages a clean win at their own A. In practice this is rare and the game state (long history
+of A-level rounds) makes it self-limiting.
+
+---
+
+## 🔒 Security Model Decisions (2026-05)
+
+### Server-side room auth token (replacing client-only)
+
+**Decision (2026-05-02):** Room hosts get a 32-byte hex `authToken` issued by the server at
+create-time, stored in KV alongside the room data, validated on every PUT via
+`Authorization: Bearer <token>` header with constant-time compare. GET strips the token from
+responses. Legacy rooms in flight get TOFU-pinned on first PUT.
+
+**Why:** The previous design generated tokens client-side (`Math.random()`) and the server
+ignored them — anyone with a room URL could PUT corrupted state. The audit found this as
+CRITICAL #1.
+
+### Admin endpoints behind `ADMIN_TOKEN` env var
+
+**Decision (2026-05-02):** All admin endpoints (`delete`, `reset-stats`, `migrate-modes`,
+`PROFILE_UPDATE`) validate `adminToken` from request body against `process.env.ADMIN_TOKEN`
+using `validateAdminToken` (constant-time compare). Fail-closed if env unset.
+
+**Why:** The previous design hardcoded the admin password (`xiaofei0214`) in source AND in
+CLAUDE.md AND in the client-side JS check on `players.html`. Three layers of leak for one
+secret. `migrate-modes` was previously fully public and would mass-rewrite every player on
+demand.
+
+**Trade-off:** Profile editing in `playerEditModal` is admin-only until per-user ownership
+tokens land (deferred follow-up P0 — see `docs/HANDOFF-2026-05-02-audit.md`).
+
+### `escapeHtml` helper for all dynamic interpolation
+
+**Decision (2026-05-02):** Add `escapeHtml(value)` to `src/core/utils.js`. Apply to every
+dynamic string (player names, taglines, handles, photo URLs) interpolated into innerHTML
+across `playerSearch`, `playerEditModal`, `victoryModal` (vote buttons + leaderboards +
+results + MVP tagline).
+
+**Why:** Vanilla JS template literals offer no auto-escaping. A malicious display name
+(`<script>...</script>`) entered in profile-create would execute when rendered in another
+user's victory modal or search results. Audit found this as CRITICAL #2.
+
+**Pattern to maintain:** any new innerHTML interpolation must wrap dynamic values with
+`escapeHtml`. Static HTML structure is fine raw.

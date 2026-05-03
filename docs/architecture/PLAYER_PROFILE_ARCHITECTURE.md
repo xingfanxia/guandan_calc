@@ -7,6 +7,15 @@
 **Commits**: 30
 **Lines of Code**: ~5,000
 
+> **Security note (2026-05):** `PUT /api/players/<handle>` with `mode: 'PROFILE_UPDATE'` now
+> requires `adminToken` in the request body (validated against `ADMIN_TOKEN` env var via
+> constant-time compare). Per-user ownership tokens are TBD — until they ship, regular users
+> cannot self-edit their profiles via `playerEditModal`. Admin can edit by entering the token
+> in `players.html`. See `docs/SECURITY.md` and `docs/HANDOFF-2026-05-02-audit.md` P0.
+>
+> Stats updates (the non-`PROFILE_UPDATE` PUT path) remain unauthenticated. Vote counts
+> are still client-supplied; server-side authoritative fetch is a P1 follow-up.
+
 ---
 
 ## Table of Contents
