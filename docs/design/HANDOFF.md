@@ -9,13 +9,12 @@
 
 A new dark-themed theme system with 5 distinctive layouts (not just CSS-variable swaps) was prototyped end-to-end. **All 10 demos exist** (5 desktop + 5 mobile). **Architecture is documented**. **A working switcher prototype** demonstrates the swap UX.
 
-**Status update — 2026-05-03:** Phases 0 + 1 of the production build are **MERGED to main**
-(PR #1, squash 94b648b — token contract + theme manager + Broadcast registered as the
-default theme). The visible result on the live app is *almost identical to before* — only
-the palette + typography shifted. The big visible win — DOM restructure to match
-`docs/design/demos/demo-broadcast-v3.html` (top nav + ticker + giant card-rank scoreboard
-+ redesigned active-game hero) — is **Phase 1.5**, the next session's first task.
-See "Status: what's actually shipped" section below.
+**Status update — 2026-05-03:** Phases 0 + 1 + **1.5** are now in main (or the active PR).
+Phase 1.5 ships the **visible transformation** — top nav, ticker, giant card-rank
+scoreboard, editorial active-game hero, honors grid, sample/championship preview, profile
+snippet, footer — applied across all 4 HTML pages (`index.html`, `players.html`,
+`rooms.html`, `player-profile.html`). All 130+ JS-bound IDs were preserved during the
+rewrite; build remains green. See "Status: what's actually shipped" section below.
 
 **Default theme:** A · Broadcast Editorial.
 **Other themes preserved as alternates:** C · Tea-Table · D · Trading Terminal · E · Linear/Vercel Console · F · Atelier Console.
@@ -27,7 +26,7 @@ See "Status: what's actually shipped" section below.
 | Phase | Description | Status | Commit / PR |
 |---|---|---|---|
 | 0 + 1 | Token contract + Broadcast palette + theme manager + featureManifest + ThemePicker + Broadcast registered (palette + typography only — invisible visually) | **MERGED** | main 94b648b (PR #1) |
-| **1.5** | **DOM restructure to match the Broadcast demo (top nav, ticker, scoreboard with huge card-rank glyphs, redesigned active-game hero, ranking-slots grid).** This is the visible transformation. **Next session starts here.** | **TODO — START HERE** | — |
+| **1.5** | DOM restructure to match the Broadcast demo (top nav, ticker, scoreboard with huge card-rank glyphs, redesigned active-game hero, ranking-slots grid, honors grid, sample/championship preview, profile snippet, footer). All 4 HTML pages aligned. ~840 inline `<style>` lines moved into scoped `theme.css`. ~130 JS-bound IDs preserved. Ticker wired to live state via `src/ui/tickerSync.js`. | **SHIPPED** | feat/theme-system branch (PR #2) |
 | 0b | Eliminate ~235 inline `style=""` attributes from HTML pages (still hardcode legacy palette) | TODO | (lower priority; not blocking) |
 | 2 | Add Linear theme (sidebar layout — most divergent, stress-tests the abstraction) | TODO | |
 | 3 | Add Trading theme (monospace + sparklines) | TODO | |
@@ -36,7 +35,20 @@ See "Status: what's actually shipped" section below.
 | — | Visual regression CI (Percy/Chromatic/pixelmatch) | TODO | (Phase 5+) |
 | — | PNG export theme-awareness | TODO | (Phase 5) |
 
-Visual baseline for the shipped state: `docs/reports/phase0-1-visual/` (4 routes × desktop+mobile, captured via `npm run capture:visual`).
+### Phase 1.5 follow-ups (deferred to Phase 2 with autonomy log)
+
+| ID | Description | Why deferred |
+|---|---|---|
+| L2 | Hardcoded "玩 / 访客 / @guest" identity in topnav | Session identity wiring lives with Phase 2's auth refactor |
+| L4 | `theme.css` is now 2978 lines — split into `theme.tokens.css` + `theme.layout.css` + `theme.components.css` | Cleanup; not blocking; scheduled with Phase 2 to share infra with the Linear theme |
+| I1 | Cross-page theme bootstrap is statically `data-theme="broadcast"` | Multi-theme switching ships in Phase 2 |
+| I2 | Google Fonts loaded 4× (one per page) | Self-host woff2 + preload — perf, not correctness |
+| I3 | Pre-existing XSS in `src/player/photoRenderer.js:53` (unescaped `displayName`) | Out of scope for theme PR; tracked as a separate fix |
+| F1 | Mobile topnav labels wrap to 2 lines on `<390px` | Cosmetic; tighten with `nowrap` + smaller font in Phase 2 mobile pass |
+| F3 | `.sample` and `.profile` snippets at bottom of `index.html` are placeholders | Wire to last-victory + selected-player data in Phase 2 |
+| — | "我的资料 / PROFILE" topnav tab | Removed in this PR — duplicated `/players.html`. Returns when session identity ships in Phase 2 |
+
+Visual baseline for the shipped state: `docs/reports/phase1-5-visual/` (4 routes × desktop+mobile, captured via `npm run capture:visual` after Phase 1.5).
 
 ---
 

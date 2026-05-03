@@ -3,160 +3,130 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>玩家浏览器 - 掼蛋计分器</title>
+<title>玩家浏览器 · GD LIVE BROADCAST</title>
 <meta name="theme-color" content="#1c1f29">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="掼蛋计分器">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+
+<!-- Theme: Broadcast Editorial. Fonts match index.html exactly. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
+
 <link rel="stylesheet" href="/src/style.css">
 <link rel="stylesheet" href="/src/themes/broadcast/theme.css">
-<style>
-  /* Modern Tab Navigation */
-  .nav-tabs {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 20px;
-    padding: 6px;
-    background: #1a1a1a;
-    border-radius: 12px;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  
-  .nav-tab {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 500;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  
-  .nav-tab:not(.active) {
-    color: #888;
-    background: transparent;
-  }
-  
-  .nav-tab:not(.active):hover {
-    color: #fff;
-    background: #252525;
-  }
-  
-  .nav-tab.active {
-    color: #fff;
-    background: #3b82f6;
-  }
-  
-  .nav-tab-icon {
-    font-size: 18px;
-  }
 
-  .player-card {
-    background: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 12px;
-    transition: all 0.2s;
-    cursor: pointer;
-  }
-  .player-card:hover {
-    background: #252525;
-    border-color: #444;
-    transform: translateY(-2px);
-  }
-  .player-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 16px;
-    margin-top: 16px;
-  }
-  .stat-badge {
-    display: inline-block;
-    background: #2a2a2a;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    margin: 2px;
-  }
-</style>
 </head>
 <body>
-<div class="wrap">
-  <h1>👥 玩家浏览器</h1>
 
-  <!-- Modern Navigation Tabs -->
-  <div class="nav-tabs">
-    <a href="/players.html" class="nav-tab active">
-      <span class="nav-tab-icon">👥</span>
-      <span>浏览玩家</span>
-    </a>
-    <a href="/rooms.html" class="nav-tab">
-      <span class="nav-tab-icon">🏠</span>
-      <span>浏览房间</span>
-    </a>
-    <a href="/" class="nav-tab">
-      <span class="nav-tab-icon">🎮</span>
-      <span>游戏</span>
-    </a>
+<!-- TOP NAVIGATION -->
+<nav class="topnav" aria-label="主导航">
+  <div class="container topnav__inner">
+    <div class="topnav__brand">
+      <div class="topnav__brand-mark">A</div>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+    </div>
+    <div class="topnav__tabs">
+      <a class="topnav__tab" href="/">
+        <span class="topnav__tab-cn">游戏</span>
+        <span class="topnav__tab-meta">GAME</span>
+      </a>
+      <a class="topnav__tab topnav__tab--active" href="/players.html" aria-current="page">
+        <span class="topnav__tab-cn">玩家</span>
+        <span class="topnav__tab-meta">PLAYERS</span>
+      </a>
+      <a class="topnav__tab" href="/rooms.html">
+        <span class="topnav__tab-cn">房间</span>
+        <span class="topnav__tab-meta">ROOMS</span>
+      </a>
+    </div>
+    <div class="topnav__user">
+      <div class="topnav__user-avatar">玩</div>
+      <div class="topnav__user-meta">
+        <span class="topnav__user-name">访客</span>
+        <span class="topnav__user-handle">@guest</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main class="container wrap">
+
+  <!-- PAGE HEADING -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">玩家浏览器 · Player Registry</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta">CAREER STATS · COMMUNITY PROFILES</span>
   </div>
 
-  <div class="card">
-    <div class="row" style="margin-bottom: 16px;">
+  <!-- SEARCH BLOCK -->
+  <div class="search-block">
+    <div class="row">
       <input
         type="text"
         id="searchInput"
         placeholder="搜索用户名或昵称..."
-        style="flex: 1; padding: 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; margin-right: 8px;"
+        class="search-block__input"
       />
-      <button id="searchButton" style="padding: 12px 24px; background: #3b82f6; color: white;">搜索</button>
-      <button id="createPlayerButton" style="padding: 12px 24px; background: #22c55e; color: white; margin-left: 8px;">创建新玩家</button>
-      <button id="adminModeButton" style="padding: 12px 24px; background: #ef4444; color: white; margin-left: 8px;">🔒 管理模式</button>
-    </div>
-
-    <!-- Admin token input (hidden by default) -->
-    <div id="adminTokenContainer" style="margin-bottom: 16px; display: none;">
-      <div style="background: #2a1a1a; border: 1px solid #ef4444; padding: 12px; border-radius: 6px;">
-        <label style="display: block; margin-bottom: 6px; color: #ef4444; font-weight: bold;">⚠️ 管理员密码</label>
-        <input
-          type="password"
-          id="adminTokenInput"
-          placeholder="输入管理员密码..."
-          style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #ef4444; border-radius: 6px; color: white;"
-        />
-        <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
-          管理模式可以删除玩家或重置统计数据
-        </div>
-      </div>
-    </div>
-
-    <div style="color: #888; font-size: 0.9em; margin-bottom: 16px;">
-      <span id="playerCount">加载中...</span>
-    </div>
-
-    <div id="playersList" class="player-grid">
-      <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">
-        加载中...
-      </div>
-    </div>
-
-    <div id="pagination" style="margin-top: 20px; text-align: center; display: none;">
-      <button id="prevPage" style="margin-right: 8px;" disabled>← 上一页</button>
-      <span id="pageInfo" style="color: #888; margin: 0 16px;"></span>
-      <button id="nextPage" disabled>下一页 →</button>
+      <button id="searchButton" class="btn-primary">搜索</button>
+      <button id="createPlayerButton" class="btn-secondary">创建玩家</button>
+      <button id="adminModeButton" class="btn-danger">🔒 管理模式</button>
     </div>
   </div>
-</div>
+
+  <!-- Admin token panel (JS shows/hides) -->
+  <div id="adminTokenContainer" style="display: none;">
+    <div class="admin-panel">
+      <label class="admin-panel__label" for="adminTokenInput">⚠ 管理员密码</label>
+      <input
+        type="password"
+        id="adminTokenInput"
+        class="admin-panel__input"
+        placeholder="输入管理员密码..."
+        autocomplete="current-password"
+      />
+      <p class="admin-panel__hint">管理模式可删除玩家或重置统计数据。密码由服务端验证。</p>
+    </div>
+  </div>
+
+  <!-- ALL PLAYERS -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">全部玩家 · All Players</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta" id="playerCount">加载中...</span>
+  </div>
+
+  <div id="playersList" class="players-grid">
+    <div class="players-empty">加载中...</div>
+  </div>
+
+  <!-- PAGINATION -->
+  <div id="pagination" class="players-pagination" style="display: none;">
+    <button id="prevPage" class="btn-tertiary" disabled>← 上一页</button>
+    <span id="pageInfo" class="players-pagination__info"></span>
+    <button id="nextPage" class="btn-tertiary" disabled>下一页 →</button>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__meta">
+      <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
+      · MADE WITH ❤️ BY XINGFAN XIA
+    </div>
+  </footer>
+
+</main>
 
 <script type="module">
 import { searchPlayers, getPlayStyleLabel } from '/src/api/playerApi.js';
@@ -186,19 +156,21 @@ const adminTokenInput = document.getElementById('adminTokenInput');
 if (adminModeButton) {
   adminModeButton.addEventListener('click', () => {
     isAdminMode = !isAdminMode;
-    
+
     if (isAdminMode) {
       adminTokenContainer.style.display = 'block';
       adminModeButton.textContent = '🔓 退出管理';
-      adminModeButton.style.background = '#f59e0b';
+      adminModeButton.classList.remove('btn-danger');
+      adminModeButton.classList.add('btn-accent');
     } else {
       adminTokenContainer.style.display = 'none';
       adminModeButton.textContent = '🔒 管理模式';
-      adminModeButton.style.background = '#ef4444';
+      adminModeButton.classList.remove('btn-accent');
+      adminModeButton.classList.add('btn-danger');
       adminToken = '';
       if (adminTokenInput) adminTokenInput.value = '';
     }
-    
+
     // Re-render players to show/hide admin buttons
     renderPlayers();
   });
@@ -216,28 +188,12 @@ if (adminTokenInput) {
     // UI here just signals "token entered" (neutral) vs "empty" (no admin actions).
     // Confirmation that it's correct comes from the first successful admin API call.
     const container = document.getElementById('adminTokenContainer');
-    const containerInner = container?.querySelector('div');
     const hasToken = adminToken.length > 0;
     const successMsg = container?.querySelector('.admin-success-msg');
 
-    if (hasToken) {
-      if (containerInner) {
-        containerInner.style.borderColor = '#fbbf24';
-        containerInner.style.background = '#2a2410';
-      }
-      adminTokenInput.style.borderColor = '#fbbf24';
-      if (successMsg) successMsg.remove();
-      // Re-render to show admin buttons (server will reject if token is wrong)
-      renderPlayers();
-    } else {
-      if (containerInner) {
-        containerInner.style.borderColor = '#333';
-        containerInner.style.background = '';
-      }
-      adminTokenInput.style.borderColor = '';
-      if (successMsg) successMsg.remove();
-      renderPlayers();
-    }
+    if (successMsg) successMsg.remove();
+    // Re-render to show/hide admin buttons (server will reject if token is wrong)
+    renderPlayers();
   });
 }
 
@@ -248,14 +204,14 @@ async function loadPlayers(query = '') {
     filteredPlayers = allPlayers;
 
     document.getElementById('playerCount').textContent =
-      `共 ${result.total} 位玩家${query ? ` (匹配 "${query}")` : ''}`;
+      `共 ${result.total} 位玩家${query ? ` · 匹配 "${query}"` : ''}`;
 
     currentPage = 0;
     renderPlayers();
   } catch (error) {
     console.error('Failed to load players:', error);
     document.getElementById('playersList').innerHTML =
-      '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #ef4444;">加载失败，请刷新重试</div>';
+      '<div class="players-empty" style="color: var(--danger, #e05252);">加载失败，请刷新重试</div>';
   }
 }
 
@@ -266,46 +222,41 @@ function renderPlayers() {
   const playersToShow = filteredPlayers.slice(start, end);
 
   if (playersToShow.length === 0) {
-    container.innerHTML =
-      '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #888;">暂无玩家</div>';
+    container.innerHTML = '<div class="players-empty">暂无玩家</div>';
     return;
   }
 
   container.innerHTML = playersToShow.map(player => `
     <div class="player-card" onclick="location.href='/player-profile.html?handle=${encodeURIComponent(player.handle)}'">
-      <div style="display: flex; align-items: center; margin-bottom: 12px;">
-        ${renderProfileAvatar(player, 64)}
-        <div style="flex: 1;">
-          <h3 style="margin: 0 0 4px 0; font-size: 24px;">${escapeHtml(player.displayName)}</h3>
-          <div style="color: #888; font-size: 0.9em;">@${escapeHtml(player.handle)}</div>
+      <div class="player-card__head">
+        <div class="player-card__avatar-wrap">
+          ${renderProfileAvatar(player, 56)}
+        </div>
+        <div class="player-card__identity">
+          <h3 class="player-card__name">${escapeHtml(player.displayName)}</h3>
+          <div class="player-card__handle">@${escapeHtml(player.handle)}</div>
         </div>
       </div>
 
-      <div style="color: #888; margin-bottom: 8px; font-size: 0.9em;">
-        ${getPlayStyleLabel(player.playStyle)}
-      </div>
+      ${player.tagline ? `<p class="player-card__tagline">${escapeHtml(player.tagline)}</p>` : ''}
 
-      <div style="font-style: italic; color: #fbbf24; margin-bottom: 12px; font-size: 0.95em;">
-        "${escapeHtml(player.tagline)}"
-      </div>
-
-      <div>
+      <div class="player-card__stats">
         <span class="stat-badge">🎮 ${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0} 场</span>
         <span class="stat-badge">🏆 ${player.stats.sessionsWon || player.stats.wins || 0} 胜</span>
-        <span class="stat-badge">📊 胜率 ${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
-        <span class="stat-badge">📈 场均 ${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)} 名</span>
+        <span class="stat-badge">胜率 ${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
+        <span class="stat-badge">场均 ${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)} 名</span>
       </div>
 
-      ${isAdminMode ? `
-        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #333; display: flex; gap: 8px;">
-          <button 
-            onclick="event.stopPropagation(); resetPlayerStats('${player.handle}')"
-            style="flex: 1; padding: 8px; background: #f59e0b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+      ${isAdminMode && adminToken ? `
+        <div class="player-card__admin" onclick="event.stopPropagation()">
+          <button
+            class="player-card__admin-btn player-card__admin-btn--reset"
+            onclick="event.stopPropagation(); resetPlayerStats('${player.handle}')">
             🔄 重置统计
           </button>
-          <button 
-            onclick="event.stopPropagation(); deletePlayer('${player.handle}')"
-            style="flex: 1; padding: 8px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9em;">
+          <button
+            class="player-card__admin-btn player-card__admin-btn--delete"
+            onclick="event.stopPropagation(); deletePlayer('${player.handle}')">
             🗑️ 删除玩家
           </button>
         </div>
@@ -329,7 +280,7 @@ function updatePagination() {
     return;
   }
 
-  pagination.style.display = 'block';
+  pagination.style.display = 'flex';
   pageInfo.textContent = `第 ${currentPage + 1} / ${totalPages} 页`;
 
   prevBtn.disabled = currentPage === 0;
