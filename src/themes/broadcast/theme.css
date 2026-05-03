@@ -907,65 +907,290 @@
   background: var(--accent-soft);
 }
 
-/* The JS produces .ranking-player-tile in the pool/slots; style as pool-tile */
+/* ─────────────────────────────────────────────
+   POOL TILES — `.pool-tile` (editorial avatar + name + handle)
+   Lifted from demo-broadcast-v3.html (the design source of truth).
+   The JS emits `.ranking-player-tile.pool-tile.pool-tile--red|blue` on each
+   draggable tile in #playerPool. Legacy `.ranking-player-tile` selectors
+   below are intentionally kept narrow so they don't fight `.pool-tile` rules.
+   ───────────────────────────────────────────── */
+
+/* Reset the legacy .ranking-player-tile box so .pool-tile styles below can
+   define the visual on their own. We KEEP the class on elements (drag-drop +
+   gameControls.js depend on it) but strip its standalone box decoration. */
 :root[data-theme="broadcast"] .ranking-player-tile {
+  /* No background / border here — .pool-tile rules below own the visual. */
+  font-family: var(--font-body);
+  color: var(--ink);
+  position: relative;
+}
+
+:root[data-theme="broadcast"] .pool-tile {
   background: var(--surface-2);
   border: 1px solid var(--rule);
   padding: var(--s3);
   display: flex;
   align-items: center;
-  gap: var(--s2);
+  gap: var(--s3);
   cursor: grab;
   position: relative;
   transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
-  font-family: var(--font-body);
-  color: var(--ink);
 }
-:root[data-theme="broadcast"] .ranking-player-tile:hover {
+:root[data-theme="broadcast"] .pool-tile:hover {
   border-color: var(--ink-dim);
   transform: translateY(-1px);
 }
-:root[data-theme="broadcast"] .ranking-player-tile.dragging {
-  cursor: grabbing;
-  opacity: 0.5;
-  border-color: var(--accent);
+:root[data-theme="broadcast"] .pool-tile__avatar {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  color: var(--ink);
 }
-:root[data-theme="broadcast"] .ranking-player-tile .emoji {
-  font-size: 22px;
-  line-height: 1;
+:root[data-theme="broadcast"] .pool-tile--red .pool-tile__avatar {
+  color: var(--team-red);
+  border-color: var(--team-red-line);
 }
-:root[data-theme="broadcast"] .ranking-player-tile .name {
+:root[data-theme="broadcast"] .pool-tile--blue .pool-tile__avatar {
+  color: var(--team-blue);
+  border-color: var(--team-blue-line);
+}
+:root[data-theme="broadcast"] .pool-tile__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+:root[data-theme="broadcast"] .pool-tile__top {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+:root[data-theme="broadcast"] .pool-tile__dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+:root[data-theme="broadcast"] .pool-tile--red .pool-tile__dot { background: var(--team-red); }
+:root[data-theme="broadcast"] .pool-tile--blue .pool-tile__dot { background: var(--team-blue); }
+:root[data-theme="broadcast"] .pool-tile__name {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.1;
   color: var(--ink);
+}
+:root[data-theme="broadcast"] .pool-tile__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+}
+
+/* MID-DRAG state — lift, glow, and accent the dragged tile */
+:root[data-theme="broadcast"] .pool-tile--dragging,
+:root[data-theme="broadcast"] .pool-tile.dragging {
+  cursor: grabbing;
+  border-color: var(--accent);
+  background: oklch(28% 0.04 250);
+  box-shadow:
+    0 16px 40px -8px oklch(0% 0 0 / 0.6),
+    0 0 0 2px var(--accent),
+    0 0 30px var(--accent-glow);
+  z-index: 10;
+}
+:root[data-theme="broadcast"] .pool-tile--dragging .pool-tile__avatar,
+:root[data-theme="broadcast"] .pool-tile.dragging .pool-tile__avatar {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ============== SLOTS (ranking grid) ============== */
 :root[data-theme="broadcast"] .slots__grid,
 :root[data-theme="broadcast"] .ranking-area {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: var(--s3);
 }
 /* When mode = 4 use 4 cols, 6 → 6 cols, 8 → 8 cols (auto-fill handles it). */
 
-/* JS creates .rank-slot[data-rank=N] inside #rankingArea */
-:root[data-theme="broadcast"] .rank-slot {
-  background: var(--bg-deep);
-  border: 1px solid var(--rule-soft);
-  padding: var(--s4) var(--s3);
-  text-align: center;
-  position: relative;
-  min-height: 156px;
+/* ─────────────────────────────────────────────
+   RANK SLOTS — `.slot` editorial card (POS index + Chinese rank + content)
+   The JS adds `.slot` alongside the legacy `.rank-slot` class. New rules below
+   target `.slot` exclusively to avoid colliding with the global style.css
+   `.rank-slot` rules.
+   ───────────────────────────────────────────── */
+
+/* Base slot card — reset legacy .rank-slot defaults from style.css and
+   establish the editorial frame. */
+:root[data-theme="broadcast"] .rank-slot.slot,
+:root[data-theme="broadcast"] .slot {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: var(--s2);
+  gap: 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--rule-soft);
+  border-radius: 0;
+  padding: var(--s4) var(--s3);
+  margin: 0;
+  text-align: center;
+  position: relative;
+  min-height: 156px;
+  min-width: auto;
   transition: border-color 0.15s, background 0.15s;
 }
+:root[data-theme="broadcast"] .slot__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.16em;
+  margin-bottom: var(--s2);
+  text-transform: uppercase;
+}
+:root[data-theme="broadcast"] .slot__rank-cn {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 26px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--s3);
+  line-height: 1;
+}
+
+/* FILLED slot (player placed) */
+:root[data-theme="broadcast"] .slot--filled {
+  background: var(--surface);
+  border-color: var(--rule);
+  cursor: grab;
+}
+:root[data-theme="broadcast"] .slot--filled-red {
+  border-top: 3px solid var(--team-red);
+}
+:root[data-theme="broadcast"] .slot--filled-blue {
+  border-top: 3px solid var(--team-blue);
+}
+:root[data-theme="broadcast"] .slot__avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  margin: 0 auto var(--s2);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 16px;
+  border: 1px solid var(--rule);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+:root[data-theme="broadcast"] .slot--filled-red .slot__avatar {
+  color: var(--team-red);
+  border-color: var(--team-red-line);
+}
+:root[data-theme="broadcast"] .slot--filled-blue .slot__avatar {
+  color: var(--team-blue);
+  border-color: var(--team-blue-line);
+}
+:root[data-theme="broadcast"] .slot__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+}
+:root[data-theme="broadcast"] .slot__handle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink-dimmer);
+  margin-top: 2px;
+}
+:root[data-theme="broadcast"] .slot__check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--win);
+}
+
+/* TARGET slot (next-to-fill, glowing) */
+:root[data-theme="broadcast"] .slot--target {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 50%, var(--accent-soft), transparent 70%),
+    var(--bg-deep);
+  border: 2px dashed var(--accent);
+  box-shadow:
+    inset 0 0 30px oklch(70% 0.20 45 / 0.20),
+    0 0 24px oklch(70% 0.20 45 / 0.30);
+  animation: bc-pulse-border 1.6s ease-in-out infinite;
+}
+:root[data-theme="broadcast"] .slot--target .slot__rank-cn {
+  color: var(--accent);
+  font-size: 30px;
+}
+:root[data-theme="broadcast"] .slot__target-icon {
+  margin-top: var(--s3);
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 24px;
+  color: var(--accent);
+  opacity: 0.6;
+}
+:root[data-theme="broadcast"] .slot__target-label {
+  margin-top: var(--s2);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--accent);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+}
+
+/* EMPTY slot (placeholder circle + "empty" label) */
+:root[data-theme="broadcast"] .slot--empty .slot__rank-cn {
+  color: var(--ink-dim);
+}
+:root[data-theme="broadcast"] .slot__placeholder {
+  margin-top: var(--s3);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 1px dashed var(--rule);
+}
+:root[data-theme="broadcast"] .slot__placeholder-label {
+  margin-top: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* DRAG-OVER (drop hover feedback) — accent dashed glow on any slot */
+:root[data-theme="broadcast"] .rank-slot.drag-over,
+:root[data-theme="broadcast"] .slot.drag-over {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 50%, var(--accent-soft), transparent 70%),
+    var(--bg-deep);
+  border: 2px dashed var(--accent);
+  box-shadow:
+    inset 0 0 30px oklch(70% 0.20 45 / 0.20),
+    0 0 24px oklch(70% 0.20 45 / 0.30);
+  animation: bc-pulse-border 1.6s ease-in-out infinite;
+}
+:root[data-theme="broadcast"] .rank-slot.drag-over .slot__rank-cn,
+:root[data-theme="broadcast"] .slot.drag-over .slot__rank-cn {
+  color: var(--accent);
+}
+
+@keyframes bc-pulse-border {
+  0%, 100% { box-shadow: inset 0 0 30px oklch(70% 0.20 45 / 0.20), 0 0 24px oklch(70% 0.20 45 / 0.30); }
+  50%      { box-shadow: inset 0 0 40px oklch(70% 0.20 45 / 0.32), 0 0 36px oklch(70% 0.20 45 / 0.50); }
+}
+
+/* Legacy `.rank-number` (only exists pre-refactor; harmless if absent) — keep
+   styled in case any downstream tooling still emits it. */
 :root[data-theme="broadcast"] .rank-slot .rank-number {
   font-family: var(--font-display);
   font-weight: 900;
@@ -978,24 +1203,6 @@
 :root[data-theme="broadcast"] .rank-slot.filled {
   background: var(--surface);
   border-color: var(--rule);
-}
-/* Drag-over (target) styling — accent dashed border with glow */
-:root[data-theme="broadcast"] .rank-slot.drag-over {
-  background:
-    radial-gradient(ellipse 60% 80% at 50% 50%, var(--accent-soft), transparent 70%),
-    var(--bg-deep);
-  border: 2px dashed var(--accent);
-  box-shadow:
-    inset 0 0 30px oklch(70% 0.20 45 / 0.20),
-    0 0 24px oklch(70% 0.20 45 / 0.30);
-  animation: bc-pulse-border 1.6s ease-in-out infinite;
-}
-@keyframes bc-pulse-border {
-  0%, 100% { box-shadow: inset 0 0 30px oklch(70% 0.20 45 / 0.20), 0 0 24px oklch(70% 0.20 45 / 0.30); }
-  50%      { box-shadow: inset 0 0 40px oklch(70% 0.20 45 / 0.32), 0 0 36px oklch(70% 0.20 45 / 0.50); }
-}
-:root[data-theme="broadcast"] .rank-slot.drag-over .rank-number {
-  color: var(--accent);
 }
 
 /* ============== CALC PREVIEW ============== */
