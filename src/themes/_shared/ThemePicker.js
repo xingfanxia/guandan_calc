@@ -1,13 +1,23 @@
 /**
- * Theme picker — settings-drawer UI for selecting the active theme.
+ * Theme picker — compact navbar dropdown.
  *
- * Phase 1: single theme (Broadcast). The picker renders a status row plus
- * a placeholder for future themes. Phase 2+ replaces the placeholder with
- * a real radio-group of registered themes that calls themeManager.switchTo().
+ * Renders as a `<details>`/`<summary>` dropdown so it works without JS for
+ * the open/close mechanics. The summary shows the active theme's display
+ * name + a caret. Clicking it opens a panel positioned absolutely below
+ * with one row per registered theme. Selecting a row calls
+ * `themeManager.switchTo()` and closes the dropdown.
  *
  * All DOM is built with createElement + textContent (no innerHTML) so the
  * picker can never become an XSS vector even if a theme registers a malicious
  * name string.
+ *
+ * The `theme:changed` event re-renders the trigger label so the visible
+ * "active theme" stays in sync if a switch is initiated elsewhere.
+ *
+ * Outside-click handler closes the panel when the user taps anywhere outside
+ * the dropdown — `<details>` doesn't auto-close on blur. Both listeners are
+ * tracked at module scope so re-mounts (or future host/viewer surface swaps)
+ * don't accumulate listeners.
  */
 
 import { listThemes, getCurrent, switchTo, STORAGE_KEY } from './themeManager.js';
@@ -15,15 +25,12 @@ import { on as onEvent } from '../../core/events.js';
 
 const PICKER_ID = 'themePicker';
 
-// Held across mountPicker() calls so we can release the prior subscription
-// before installing a fresh one — prevents listener accumulation if a future
-// surface (settings drawer reopen, host/viewer swap) re-mounts the picker.
 let unsubscribeChanged = null;
+let outsideClickHandler = null;
 
 /**
  * Mount the picker into a container element. Idempotent — calling twice
- * removes the prior render, releases the prior theme:changed listener,
- * and re-attaches both fresh.
+ * removes the prior render, releases prior listeners, and re-attaches fresh.
  */
 export function mountPicker(containerEl) {
   if (!containerEl) return;
@@ -31,6 +38,10 @@ export function mountPicker(containerEl) {
   if (unsubscribeChanged) {
     unsubscribeChanged();
     unsubscribeChanged = null;
+  }
+  if (outsideClickHandler) {
+    document.removeEventListener('click', outsideClickHandler);
+    outsideClickHandler = null;
   }
 
   const existing = containerEl.querySelector(`#${PICKER_ID}`);
@@ -46,75 +57,94 @@ export function mountPicker(containerEl) {
   unsubscribeChanged = onEvent('theme:changed', () => render(wrapper));
 }
 
-/** Replace `wrapper`'s children with a fresh tree. */
 function render(wrapper) {
   while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
 
   const all = listThemes();
   const active = getCurrent()?.name ?? null;
+  const activeMatch = all.find(t => t.name === active);
 
-  const head = document.createElement('div');
-  head.className = 'theme-picker__head';
-  const label = document.createElement('span');
-  label.className = 'theme-picker__label';
-  label.textContent = '主题 Theme';
-  head.appendChild(label);
-
+  // Phase-0 fallback — single theme registered → show the name as plain text,
+  // no dropdown affordance.
   if (all.length <= 1) {
-    const activeBadge = document.createElement('span');
-    activeBadge.className = 'theme-picker__active';
-    activeBadge.textContent = activeDisplay(all, active);
-    head.appendChild(activeBadge);
-    wrapper.appendChild(head);
-
-    const hint = document.createElement('div');
-    hint.className = 'theme-picker__hint muted small';
-    hint.textContent = '更多主题（Linear · Trading · Atelier · Tea-Table）即将上线';
-    wrapper.appendChild(hint);
+    const solo = document.createElement('span');
+    solo.className = 'theme-picker__solo';
+    solo.textContent = activeMatch?.displayName ?? '主题';
+    wrapper.appendChild(solo);
     return;
   }
 
-  wrapper.appendChild(head);
+  const details = document.createElement('details');
+  details.className = 'theme-picker__dropdown';
 
-  const group = document.createElement('div');
-  group.className = 'theme-picker__group';
+  const summary = document.createElement('summary');
+  summary.className = 'theme-picker__trigger';
+  summary.setAttribute('aria-label', '选择主题');
+
+  const triggerIcon = document.createElement('span');
+  triggerIcon.className = 'theme-picker__trigger-icon';
+  triggerIcon.textContent = '🎨';
+  triggerIcon.setAttribute('aria-hidden', 'true');
+
+  const triggerLabel = document.createElement('span');
+  triggerLabel.className = 'theme-picker__trigger-label';
+  triggerLabel.textContent = activeMatch?.displayName ?? '主题';
+
+  const triggerCaret = document.createElement('span');
+  triggerCaret.className = 'theme-picker__trigger-caret';
+  triggerCaret.textContent = '▾';
+  triggerCaret.setAttribute('aria-hidden', 'true');
+
+  summary.appendChild(triggerIcon);
+  summary.appendChild(triggerLabel);
+  summary.appendChild(triggerCaret);
+  details.appendChild(summary);
+
+  const panel = document.createElement('div');
+  panel.className = 'theme-picker__panel';
+  panel.setAttribute('role', 'menu');
+
   for (const t of all) {
-    group.appendChild(buildRadio(t, active));
-  }
-  wrapper.appendChild(group);
-}
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'theme-picker__row';
+    row.setAttribute('role', 'menuitem');
+    if (t.name === active) {
+      row.classList.add('theme-picker__row--active');
+      row.setAttribute('aria-current', 'true');
+    }
 
-function buildRadio(theme, activeName) {
-  const label = document.createElement('label');
-  label.className = 'theme-picker__opt';
+    const rowName = document.createElement('span');
+    rowName.className = 'theme-picker__row-name';
+    rowName.textContent = t.displayName;
+    row.appendChild(rowName);
 
-  const radio = document.createElement('input');
-  radio.type = 'radio';
-  radio.name = 'theme';
-  radio.value = theme.name;
-  if (theme.name === activeName) radio.checked = true;
+    if (t.name === active) {
+      const check = document.createElement('span');
+      check.className = 'theme-picker__row-check';
+      check.textContent = '✓';
+      check.setAttribute('aria-hidden', 'true');
+      row.appendChild(check);
+    }
 
-  radio.addEventListener('change', e => {
-    const next = e.target.value;
-    if (!next) return;
-    Promise.resolve(switchTo(next)).catch(err => {
-      console.error('[theme-picker] switch failed:', err);
+    row.addEventListener('click', () => {
+      details.open = false;
+      Promise.resolve(switchTo(t.name)).catch(err => {
+        console.error('[theme-picker] switch failed:', err);
+      });
     });
-  });
+    panel.appendChild(row);
+  }
+  details.appendChild(panel);
+  wrapper.appendChild(details);
 
-  const name = document.createElement('span');
-  name.className = 'theme-picker__opt-name';
-  name.textContent = theme.displayName;
-
-  label.appendChild(radio);
-  label.appendChild(name);
-  return label;
-}
-
-function activeDisplay(all, activeName) {
-  const match = all.find(t => t.name === activeName);
-  if (match) return match.displayName;
-  return activeName ?? '未挂载';
+  // Outside-click handler — `<details>` doesn't auto-close on blur.
+  outsideClickHandler = (e) => {
+    if (details.open && !details.contains(e.target)) {
+      details.open = false;
+    }
+  };
+  document.addEventListener('click', outsideClickHandler);
 }
 
 export { STORAGE_KEY };

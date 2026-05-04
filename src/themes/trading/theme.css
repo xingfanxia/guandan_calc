@@ -1903,54 +1903,115 @@
   letter-spacing: 0.04em;
 }
 
-/* ============== THEME PICKER (now in topnav) ============== */
+/* ============== THEME PICKER (dropdown in topnav) ============== */
 :root[data-theme="trading"] .topnav__picker {
+  position: relative;
   display: inline-flex;
   align-items: center;
 }
-:root[data-theme="trading"] .topnav__picker .theme-picker {
+:root[data-theme="trading"] .theme-picker {
   font-family: var(--font-mono);
+  position: relative;
+}
+:root[data-theme="trading"] .theme-picker__dropdown { position: relative; }
+:root[data-theme="trading"] .theme-picker__trigger {
+  list-style: none;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
-}
-/* Hide the section label inside the picker when in navbar (the radios speak
- * for themselves; saving navbar real estate). */
-:root[data-theme="trading"] .topnav__picker .theme-picker__head { display: none; }
-:root[data-theme="trading"] .topnav__picker .theme-picker__group {
-  display: inline-flex;
-  gap: 4px;
-}
-:root[data-theme="trading"] .topnav__picker .theme-picker__opt input[type="radio"] { display: none; }
-:root[data-theme="trading"] .theme-picker {
-  font-family: var(--font-mono);
-}
-:root[data-theme="trading"] .theme-picker__label {
-  color: var(--accent);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 11px;
-}
-:root[data-theme="trading"] .theme-picker__opt {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--ink-dim);
-  padding: 2px 6px;
+  padding: 4px 10px;
+  background: var(--bg);
   border: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  cursor: pointer;
-  background: var(--bg);
   font-weight: 500;
+  user-select: none;
 }
-:root[data-theme="trading"] .theme-picker__opt:has(input:checked) {
+:root[data-theme="trading"] .theme-picker__trigger::-webkit-details-marker { display: none; }
+:root[data-theme="trading"] .theme-picker__trigger:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="trading"] .theme-picker__dropdown[open] > .theme-picker__trigger {
   border-color: var(--accent);
   color: var(--accent);
   background: var(--accent-soft);
+}
+:root[data-theme="trading"] .theme-picker__trigger-icon { font-size: 12px; }
+:root[data-theme="trading"] .theme-picker__trigger-label {
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-theme="trading"] .theme-picker__trigger-caret {
+  font-size: 9px;
+  color: var(--ink-dim);
+  transition: transform 0.15s ease;
+}
+:root[data-theme="trading"] .theme-picker__dropdown[open] .theme-picker__trigger-caret {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+:root[data-theme="trading"] .theme-picker__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 200;
+  min-width: 220px;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  box-shadow: 0 6px 24px oklch(0% 0 0 / 0.5), inset 0 0 0 1px oklch(80% 0.16 80 / 0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 2px;
+}
+:root[data-theme="trading"] .theme-picker__row {
+  appearance: none;
+  -webkit-appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: left;
+  width: 100%;
+}
+:root[data-theme="trading"] .theme-picker__row:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+:root[data-theme="trading"] .theme-picker__row--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+:root[data-theme="trading"] .theme-picker__row-name { flex: 1; }
+:root[data-theme="trading"] .theme-picker__row-check {
+  color: var(--accent);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .theme-picker__solo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 /* ============== TOP-LEVEL NEW-ROOM CTA ============== */
@@ -2057,13 +2118,17 @@
   :root[data-theme="trading"] .slot__name { font-size: 11px; }
   :root[data-theme="trading"] .slot__handle { font-size: 9px; }
 
-  /* Theme picker in navbar — hide on mobile to save room */
-  :root[data-theme="trading"] .topnav__picker .theme-picker__opt-name {
-    font-size: 9px;
-    padding: 0 2px;
-  }
-  :root[data-theme="trading"] .topnav__picker {
+  /* Theme picker on mobile — show only the icon-trigger, hide the label.
+   * The dropdown panel still expands to full width when opened. */
+  :root[data-theme="trading"] .theme-picker__trigger-label,
+  :root[data-theme="trading"] .theme-picker__trigger-caret {
     display: none;
+  }
+  :root[data-theme="trading"] .theme-picker__trigger {
+    padding: 4px 6px;
+  }
+  :root[data-theme="trading"] .theme-picker__panel {
+    min-width: 200px;
   }
   /* Hide the topnav user-meta on very narrow screens, keep avatar only */
   :root[data-theme="trading"] .topnav__user-meta { display: none; }
