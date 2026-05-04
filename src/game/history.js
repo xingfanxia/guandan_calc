@@ -32,24 +32,64 @@ function makeSpan(className, text) {
   return span;
 }
 
-function comboTextFor(entry) {
-  // Prefer rich playerRankings data when available.
-  if (entry.playerRankings) {
-    const mode = parseInt(entry.mode);
-    const names = RANK_NAMES[mode] || RANK_NAMES[8];
-    const winnerSide = entry.winKey === 't1' ? 1 : 2;
-    const labels = [];
+/**
+ * Build the 组合 cell — all N positions for the round, winner positions in
+ * the team-winner accent, loser positions dimmed. Reads as "1·2·4·7 │ 3·5·6·8"
+ * for an 8-player game where blue won 1/2/4/7. The verbose
+ * "头游 #1 · 二游 #2 · …" format ate column width and only listed half the
+ * field — this version is compact AND complete.
+ */
+function makeComboCell(entry) {
+  const cell = document.createElement('span');
+  cell.className = 'history__combo';
+
+  const mode = parseInt(entry.mode) || 0;
+  const winnerSide = entry.winKey === 't1' ? 1 : 2;
+  const winnerColor = entry.winKey === 't1' ? 'blue' : 'red';
+
+  // Prefer rich playerRankings (carries team membership per rank).
+  if (entry.playerRankings && mode) {
+    const winners = [];
+    const losers = [];
     for (let r = 1; r <= mode; r++) {
       const p = entry.playerRankings[r];
       if (!p) continue;
-      if (Number(p.team) === winnerSide) {
-        labels.push(`${names[r - 1]} #${r}`);
-      }
+      (Number(p.team) === winnerSide ? winners : losers).push(r);
     }
-    if (labels.length) return labels.join(' · ');
+    if (winners.length || losers.length) {
+      if (winners.length) {
+        cell.appendChild(
+          makeSpan(`history__combo-group history__combo-group--win history__combo-group--${winnerColor}`,
+            winners.join('·'))
+        );
+      }
+      if (losers.length) {
+        cell.appendChild(makeSpan('history__combo-sep', '│'));
+        cell.appendChild(
+          makeSpan('history__combo-group history__combo-group--loss', losers.join('·'))
+        );
+      }
+      return cell;
+    }
   }
-  // Fallback: use combo string from entry
-  return entry.combo || '—';
+
+  // Fallback: only the winner positions are known (combo string or ranks array).
+  let winnerDigits = [];
+  if (entry.combo) {
+    winnerDigits = entry.combo.replace(/[^\d,]/g, '').split(',').filter(Boolean);
+  } else if (Array.isArray(entry.ranks) && entry.ranks.length) {
+    winnerDigits = entry.ranks.map(String);
+  }
+  if (winnerDigits.length) {
+    cell.appendChild(
+      makeSpan(`history__combo-group history__combo-group--win history__combo-group--${winnerColor}`,
+        winnerDigits.join('·'))
+    );
+    return cell;
+  }
+
+  cell.textContent = '—';
+  return cell;
 }
 
 function upgradeCellFor(entry) {
@@ -118,8 +158,8 @@ export function renderHistory() {
     winnerCell.appendChild(winnerBadge);
     row.appendChild(winnerCell);
 
-    // 组合 (combo / ranking summary)
-    row.appendChild(makeSpan('history__combo', comboTextFor(entry)));
+    // 组合 (combo / ranking summary) — winner positions accent + loser dim
+    row.appendChild(makeComboCell(entry));
 
     // 升级
     const up = upgradeCellFor(entry);

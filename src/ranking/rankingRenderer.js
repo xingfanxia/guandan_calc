@@ -46,36 +46,32 @@ function rankCn(rank, mode) {
 
 /**
  * Pick the avatar character for a player.
- * Profile players: prefer first char of name (Chinese surname feel).
- * Session players (`玩家1`, `玩家2`): use the digit so each has a distinct mark.
- * Falls back to emoji if name is empty.
+ * Prefer the assigned emoji — profile players carry their chosen emoji,
+ * default-generated players pick one at generation time. Falls back to a
+ * name-derived character only when emoji is missing (paranoid case).
  * @param {Object} player
  * @returns {string}
  */
 function avatarChar(player) {
   if (!player) return '?';
+  if (player.emoji) return player.emoji;
   const name = (player.name || '').trim();
-  if (!name) return player.emoji || '?';
-
-  // For default-generated players like "玩家1", use the trailing digit so each
-  // tile carries a distinct avatar instead of every one showing "玩".
+  if (!name) return '?';
   const digitMatch = name.match(/^玩家(\d+)$/);
   if (digitMatch) return digitMatch[1];
-
-  // Otherwise use first character (handles Chinese surnames + Latin first letter).
   return Array.from(name)[0];
 }
 
 /**
  * Pick handle to display ("@..." line). Profile players have one;
- * session players don't — fall back to id for visual rhythm.
+ * session players don't — emit an empty string so the slot collapses
+ * instead of showing a meaningless "#N" id.
  * @param {Object} player
  * @returns {string}
  */
 function handleText(player) {
   if (player?.handle) return `@${player.handle}`;
-  if (player?.id != null) return `#${player.id}`;
-  return '—';
+  return '';
 }
 
 /**

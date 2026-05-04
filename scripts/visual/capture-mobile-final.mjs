@@ -20,8 +20,11 @@ for (const theme of ['broadcast', 'linear', 'trading']) {
   await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded' });
   await page.evaluate(t => { localStorage.setItem('gd_v9_theme', t); localStorage.removeItem('gd_v9_state'); }, theme);
   await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForSelector('#mode', { timeout: 5000 });
-  await page.selectOption('#mode', '8');
+  // The native <select id="mode"> is now SR-only across all themes; click
+  // the visible chip button instead. The inline sync script in index.html
+  // mirrors the chip click into the native select.
+  await page.waitForSelector('.modeselect__opt[data-mode="8"]', { timeout: 5000 });
+  await page.click('.modeselect__opt[data-mode="8"]');
   await page.waitForTimeout(200);
   await page.click('#generatePlayers');
   await page.waitForTimeout(400);

@@ -3997,3 +3997,309 @@
   color: var(--win);
   margin-left: var(--s2);
 }
+
+/* ===================================================================
+   QC FIXES 2026-05-04
+   Addresses HANDOFF-2026-05-04-mobile-failures.md open issues.
+   Appended last so source-order overrides earlier !important rules.
+   =================================================================== */
+
+/* History 组合 cell — winner accent + loser dim, all positions visible.
+ * Replaces verbose "头游 #1 · 二游 #2 · …" with compact digits like
+ * "1·2·4·7 │ 3·5·6·8" where the first group is the winning team. */
+:root[data-theme="broadcast"] .history__combo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-theme="broadcast"] .history__combo-group {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+:root[data-theme="broadcast"] .history__combo-group--win.history__combo-group--blue {
+  color: var(--team-blue);
+  font-weight: 600;
+}
+:root[data-theme="broadcast"] .history__combo-group--win.history__combo-group--red {
+  color: var(--team-red);
+  font-weight: 600;
+}
+:root[data-theme="broadcast"] .history__combo-group--loss {
+  color: var(--ink-dimmer);
+}
+:root[data-theme="broadcast"] .history__combo-sep {
+  color: var(--rule);
+  font-weight: 400;
+  margin: 0 2px;
+}
+
+/* Image 44 — desktop pool/slot column alignment.
+ * Previously: slot min-height 156px, pool tile 36-44px → columns drift apart.
+ * Fix: cap slot at 96px, grow pool tile to 96px so per-row heights match. */
+@media (min-width: 769px) {
+  :root[data-theme="broadcast"] .rank-slot.slot,
+  :root[data-theme="broadcast"] .slot {
+    min-height: 96px;
+    padding: var(--s2) var(--s3);
+  }
+  :root[data-theme="broadcast"] .slot__rank-cn {
+    font-size: 18px;
+    margin-bottom: var(--s1);
+  }
+  :root[data-theme="broadcast"] .slot__index {
+    font-size: 9px;
+    margin-bottom: 2px;
+  }
+  /* Stop "drop here" wrapping inside the narrow target slot. */
+  :root[data-theme="broadcast"] .slot__target-icon,
+  :root[data-theme="broadcast"] .slot__target-label,
+  :root[data-theme="broadcast"] .slot__placeholder-label {
+    white-space: nowrap;
+  }
+  :root[data-theme="broadcast"] .slot__target-icon {
+    font-size: 16px;
+    margin-top: 4px;
+  }
+  :root[data-theme="broadcast"] .slot__placeholder {
+    width: 24px;
+    height: 24px;
+    margin-top: 4px;
+  }
+  :root[data-theme="broadcast"] .slot__target-label,
+  :root[data-theme="broadcast"] .slot__placeholder-label {
+    margin-top: 4px;
+  }
+  :root[data-theme="broadcast"] .slot__avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    margin: 2px auto;
+  }
+  /* Pool tile — column layout matching slot height for visual rhythm */
+  :root[data-theme="broadcast"] .pool-tile {
+    min-height: 96px;
+    align-items: stretch;
+    padding: var(--s3) var(--s2);
+    flex-direction: column;
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .pool-tile__avatar {
+    align-self: center;
+    margin: 0;
+  }
+  :root[data-theme="broadcast"] .pool-tile__body {
+    text-align: center;
+    align-items: center;
+  }
+  :root[data-theme="broadcast"] .pool-tile__top {
+    justify-content: center;
+  }
+}
+
+/* ============== Mobile QC fixes (max-width: 768px) ============== */
+@media (max-width: 768px) {
+  /* Image 36/37 — surface player tiles above the search/create card.
+   * Setup section uses CSS order on flex children so the unassigned-players
+   * (where draggable tiles render) sits right under the summary, with search
+   * + generate buttons below. */
+  :root[data-theme="broadcast"] #playerSetupSection > details {
+    display: flex;
+    flex-direction: column;
+  }
+  :root[data-theme="broadcast"] #playerSetupSection > details > summary { order: 0; }
+  :root[data-theme="broadcast"] #playerSetupSection .unassigned-players {
+    order: 1;
+    margin-top: var(--s3);
+  }
+  :root[data-theme="broadcast"] #playerSetupSection .search-block { order: 2; }
+  :root[data-theme="broadcast"] #playerSetupSection .divider-text { order: 3; }
+  :root[data-theme="broadcast"] #playerSetupSection .row { order: 4; }
+
+  /* Image 39 — native <select> already SR-only, but enforce no display anywhere */
+  :root[data-theme="broadcast"] .modeselect__native {
+    display: none !important;
+  }
+
+  /* Image 51 — team roster in scoreboard becomes 2-col grid of compact tiles
+   * (only when populated — empty state stays as the dashed drop-zone). */
+  :root[data-theme="broadcast"] .team__roster:not(:has(> .label:only-child)),
+  :root[data-theme="broadcast"] .team__roster.team-drop-zone:not(:has(> .label:only-child)) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+  }
+  /* Vertical card: avatar on top, name below — matches user's "square tile
+   * with emoji + name, NO tag" intent and gives the name full cell width
+   * (horizontal layout truncated "玩家1" at this column width). */
+  :root[data-theme="broadcast"] .team__roster .roster-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    grid-template-columns: none;
+    padding: 6px 4px;
+    gap: 3px;
+    min-height: 56px;
+    text-align: center;
+  }
+  :root[data-theme="broadcast"] .team__roster .roster-row__avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+  :root[data-theme="broadcast"] .team__roster .roster-row__name {
+    width: 100%;
+    text-align: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 0;
+  }
+  :root[data-theme="broadcast"] .team__roster .roster-row__display {
+    display: block;
+    font-size: 11px;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Handle stays compact below name when present, dimmed */
+  :root[data-theme="broadcast"] .team__roster .roster-row__handle {
+    display: block;
+    font-size: 9px;
+    width: 100%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* POOL pill carries no info; hide it. (Ranked rows still get team-color tag.) */
+  :root[data-theme="broadcast"] .team__roster .roster-row__tag {
+    display: none;
+  }
+  /* Remove (×) button positioned absolute so vertical card layout isn't
+   * broken by an inline button at the bottom. */
+  :root[data-theme="broadcast"] .team__roster .roster-row__remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+  }
+  :root[data-theme="broadcast"] .team__roster .roster-row {
+    position: relative;
+  }
+
+  /* Image 52 follow-up — avatarChar() now returns the player emoji, so the
+   * display name is no longer redundant with the avatar. Unhide name/top. */
+  :root[data-theme="broadcast"] .pool-tile__top {
+    display: flex !important;
+    align-items: baseline;
+    gap: 4px;
+  }
+  :root[data-theme="broadcast"] .pool-tile__name {
+    display: inline-block !important;
+    font-size: 12px !important;
+    color: var(--ink) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left !important;
+  }
+  /* Team-color dot stays hidden — tile border carries the team color. */
+  :root[data-theme="broadcast"] .pool-tile__dot { display: none !important; }
+
+  /* Image 47 — honors gallery 2-col with bigger text for readability */
+  :root[data-theme="broadcast"] .honors {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .honor {
+    padding: var(--s3);
+  }
+  /* Drop the index + English description on mobile — the Chinese cat + name
+   * + recipient row is enough info per card. */
+  :root[data-theme="broadcast"] .honor__index,
+  :root[data-theme="broadcast"] .honor__desc {
+    display: none;
+  }
+  :root[data-theme="broadcast"] .honor__cat {
+    font-size: 10px;
+  }
+  :root[data-theme="broadcast"] .honor__name {
+    font-size: 22px;
+    margin: 4px 0;
+    line-height: 1.05;
+  }
+  :root[data-theme="broadcast"] .honor__avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  :root[data-theme="broadcast"] .honor__playername {
+    font-size: 13px;
+  }
+  :root[data-theme="broadcast"] .honor__stat {
+    font-size: 11px;
+  }
+  :root[data-theme="broadcast"] .honor__status {
+    font-size: 9px;
+  }
+  :root[data-theme="broadcast"] .honor__top {
+    gap: 4px;
+  }
+
+  /* Image 48 — team awards: 2-col grid with bigger badges */
+  :root[data-theme="broadcast"] .team-honors {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .team-honors__card {
+    padding: var(--s3);
+  }
+  :root[data-theme="broadcast"] .team-honors__title {
+    font-size: 14px;
+    margin-bottom: var(--s2);
+  }
+  :root[data-theme="broadcast"] .team-honors__card .row {
+    gap: var(--s2);
+    flex-wrap: wrap;
+  }
+  :root[data-theme="broadcast"] .team-honors__card .badge {
+    font-size: 13px;
+    padding: 6px 10px;
+    line-height: 1.2;
+  }
+
+  /* Image 28/32/34 — setup-phase team panel: stack head into a column so
+   * the chip + en-name + A-fail status don't cram on the same row. */
+  :root[data-theme="broadcast"] .team__head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s1);
+  }
+  :root[data-theme="broadcast"] .team__head > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  :root[data-theme="broadcast"] .team__name-en {
+    font-size: 9px;
+  }
+  :root[data-theme="broadcast"] .card-level__glyph {
+    font-size: 48px;
+  }
+
+  /* Mobile-tightened combo cell */
+  :root[data-theme="broadcast"] .history__combo {
+    font-size: 11px;
+    gap: 4px;
+  }
+  :root[data-theme="broadcast"] .history__combo-sep {
+    margin: 0 1px;
+  }
+}

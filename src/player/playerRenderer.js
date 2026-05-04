@@ -35,8 +35,9 @@ const RANK_NAMES = {
 
 function avatarChar(player) {
   if (!player) return '?';
+  if (player.emoji) return player.emoji;
   const name = (player.name || '').trim();
-  if (!name) return player.emoji || '?';
+  if (!name) return '?';
   const digitMatch = name.match(/^玩家(\d+)$/);
   if (digitMatch) return digitMatch[1];
   return Array.from(name)[0];
@@ -101,7 +102,10 @@ export function createRosterRow(player) {
 
   const handle = document.createElement('span');
   handle.className = 'roster-row__handle';
-  handle.textContent = player.handle ? `@${player.handle}` : (player.emoji || '');
+  // Profile players show "@handle"; session players have no handle and the
+  // avatar already shows the emoji, so leave this line empty rather than
+  // duplicating the emoji.
+  handle.textContent = player.handle ? `@${player.handle}` : '';
   nameBlock.appendChild(handle);
 
   const tagInfo = rosterTagFor(player);
