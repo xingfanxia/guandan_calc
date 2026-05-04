@@ -1608,7 +1608,7 @@
   position: relative;
   font-family: var(--font-body);
 }
-:root[data-theme="linear"] .theme-picker__dropdown { position: relative; }
+:root[data-theme="linear"] .theme-picker__dropdown { position: relative; display: inline-block; }
 :root[data-theme="linear"] .theme-picker__trigger {
   list-style: none;
   cursor: pointer;
@@ -1733,10 +1733,12 @@
   /* Navbar — nowrap + hide wordmark + compact tabs so 390px viewport fits
    * brand-mark + 3 tabs + picker icon + user avatar without overflowing. */
   :root[data-theme="linear"] .topnav { padding: 6px var(--s3); }
+  /* No overflow:hidden — would clip the picker dropdown panel positioned
+   * absolutely below the trigger. */
   :root[data-theme="linear"] .topnav__inner {
     flex-wrap: nowrap;
     gap: var(--s2);
-    overflow: hidden;
+    overflow: visible;
   }
   :root[data-theme="linear"] .topnav__brand { flex-shrink: 0; gap: 0; font-size: 0; }
   :root[data-theme="linear"] .topnav__brand::before { width: 22px; height: 22px; flex-shrink: 0; }
@@ -1801,32 +1803,67 @@
   :root[data-theme="linear"] .pool-tile__avatar { width: 18px; height: 18px; font-size: 10px; }
   :root[data-theme="linear"] .pool-tile__display { font-size: 11px; }
   :root[data-theme="linear"] .pool-tile__handle { font-size: 9px; }
-  /* Slots collapse to single-column rows on mobile so all 6/8 fit alongside
-   * the pool above. Each slot is one horizontal row: position label + name. */
+  /* Mobile gameplay layout — pool LEFT, slots RIGHT, both visible at once.
+   * Active-game body uses grid-template-areas so annotation/controls/calc/
+   * actions span full width while pool + slots split the row. Each tile is
+   * a compact horizontal row (~36px tall) so 8 of each fit one screen. */
+  :root[data-theme="linear"] .activegame__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ann ann"
+      "ctl ctl"
+      "pool slots"
+      "calc calc"
+      "actions actions";
+    gap: 8px;
+    padding: 8px;
+  }
+  :root[data-theme="linear"] .activegame__body > .annotation { grid-area: ann; }
+  :root[data-theme="linear"] .activegame__body > .activegame__inline-controls { grid-area: ctl; }
+  :root[data-theme="linear"] .activegame__body > .pool { grid-area: pool; min-width: 0; }
+  :root[data-theme="linear"] .activegame__body > .slots { grid-area: slots; min-width: 0; }
+  :root[data-theme="linear"] .activegame__body > .calcpreview { grid-area: calc; }
+  :root[data-theme="linear"] .activegame__body > .controls { grid-area: actions; }
+
+  :root[data-theme="linear"] .pool__sub,
+  :root[data-theme="linear"] .slots__sub,
+  :root[data-theme="linear"] .pool__count { display: none; }
+
+  :root[data-theme="linear"] .pool__grid,
   :root[data-theme="linear"] .slots__grid {
     grid-template-columns: 1fr;
-    gap: 4px;
+    gap: 3px;
+    padding: 4px;
   }
+  :root[data-theme="linear"] .pool-tile,
+  :root[data-theme="linear"] .ranking-player-tile.pool-tile {
+    height: 36px !important;
+    min-height: 0 !important;
+    padding: 4px 6px !important;
+    grid-template-columns: 22px 1fr !important;
+    gap: 6px !important;
+  }
+  :root[data-theme="linear"] .pool-tile__avatar { width: 22px; height: 22px; font-size: 11px; }
+  :root[data-theme="linear"] .pool-tile__display { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  :root[data-theme="linear"] .pool-tile__handle { display: none; }
+
   :root[data-theme="linear"] .rank-slot,
   :root[data-theme="linear"] .slot {
-    padding: 6px 8px;
-    min-height: 38px;
-    gap: var(--s2);
-    flex-direction: row;
-    align-items: center;
+    padding: 4px 6px !important;
+    height: 36px !important;
+    min-height: 0 !important;
+    gap: 6px !important;
+    flex-direction: row !important;
+    align-items: center !important;
   }
   :root[data-theme="linear"] .slot__rank-cn,
   :root[data-theme="linear"] .slot__check,
-  :root[data-theme="linear"] .slot__avatar { display: none; }
+  :root[data-theme="linear"] .slot__avatar { display: none !important; }
   :root[data-theme="linear"] .slot__index,
-  :root[data-theme="linear"] .slot__pos { font-size: 10px; min-width: 56px; flex-shrink: 0; }
-  :root[data-theme="linear"] .slot__name { font-size: 12px; }
-  :root[data-theme="linear"] .slot__handle { font-size: 10px; }
+  :root[data-theme="linear"] .slot__pos { font-size: 10px; min-width: 50px; flex-shrink: 0; }
+  :root[data-theme="linear"] .slot__name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   :root[data-theme="linear"] .slot__rank { font-size: 14px; }
-  /* Pool tiles also collapse to single-column rows */
-  :root[data-theme="linear"] .pool__grid {
-    grid-template-columns: 1fr;
-  }
 
   /* Theme picker on mobile — icon-only trigger; panel still drops down. */
   :root[data-theme="linear"] .theme-picker__trigger-label,

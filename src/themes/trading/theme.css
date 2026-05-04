@@ -1913,7 +1913,7 @@
   font-family: var(--font-mono);
   position: relative;
 }
-:root[data-theme="trading"] .theme-picker__dropdown { position: relative; }
+:root[data-theme="trading"] .theme-picker__dropdown { position: relative; display: inline-block; }
 :root[data-theme="trading"] .theme-picker__trigger {
   list-style: none;
   cursor: pointer;
@@ -2045,10 +2045,12 @@
   }
   /* Navbar — nowrap + drop wordmark + compact tabs so 390px fits everything */
   :root[data-theme="trading"] .topnav { padding: 5px var(--s3); }
+  /* No overflow:hidden — would clip the picker dropdown panel positioned
+   * absolutely below the trigger. */
   :root[data-theme="trading"] .topnav__inner {
     flex-wrap: nowrap;
     gap: var(--s2);
-    overflow: hidden;
+    overflow: visible;
   }
   :root[data-theme="trading"] .topnav__brand { padding: 2px 4px; margin-right: 4px; flex-shrink: 0; font-size: 0; }
   :root[data-theme="trading"] .topnav__brand::before { font-size: 11px; }
@@ -2107,42 +2109,64 @@
   :root[data-theme="trading"] .ticker__item--owner,
   :root[data-theme="trading"] .ticker__item--elapsed { display: none; }
 
-  /* Pool + slots — single-column rows so 8 of each fit one mobile screen.
-   * Each slot is one horizontal row: position index + filled name. */
-  :root[data-theme="trading"] .pool__grid {
+  /* Mobile gameplay layout — pool LEFT, slots RIGHT, both visible at once.
+   * Tiles are compact 36px-tall rows so 8 of each fit one viewport. */
+  :root[data-theme="trading"] .activegame__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ann ann"
+      "ctl ctl"
+      "pool slots"
+      "calc calc"
+      "actions actions";
+    gap: 8px;
+    padding: 8px;
+  }
+  :root[data-theme="trading"] .activegame__body > .annotation { grid-area: ann; }
+  :root[data-theme="trading"] .activegame__body > .activegame__inline-controls { grid-area: ctl; }
+  :root[data-theme="trading"] .activegame__body > .pool { grid-area: pool; min-width: 0; }
+  :root[data-theme="trading"] .activegame__body > .slots { grid-area: slots; min-width: 0; }
+  :root[data-theme="trading"] .activegame__body > .calcpreview { grid-area: calc; }
+  :root[data-theme="trading"] .activegame__body > .controls { grid-area: actions; }
+
+  :root[data-theme="trading"] .pool__sub,
+  :root[data-theme="trading"] .slots__sub,
+  :root[data-theme="trading"] .pool__count { display: none; }
+
+  :root[data-theme="trading"] .pool__grid,
+  :root[data-theme="trading"] .slots__grid {
     grid-template-columns: 1fr;
-    padding: 6px;
-    gap: 4px;
+    padding: 4px;
+    gap: 3px;
   }
   :root[data-theme="trading"] .pool-tile,
   :root[data-theme="trading"] .ranking-player-tile.pool-tile {
-    grid-template-columns: 22px 1fr auto;
-    padding: 5px 8px;
-    min-height: 0;
-    gap: var(--s2);
+    height: 36px !important;
+    grid-template-columns: 22px 1fr !important;
+    padding: 4px 6px !important;
+    min-height: 0 !important;
+    gap: 6px !important;
   }
   :root[data-theme="trading"] .pool-tile__avatar { width: 22px; height: 22px; font-size: 11px; }
-  :root[data-theme="trading"] .pool-tile__display { font-size: 12px; }
-  :root[data-theme="trading"] .pool-tile__handle { font-size: 10px; }
-  :root[data-theme="trading"] .slots__grid {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
+  :root[data-theme="trading"] .pool-tile__display { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  :root[data-theme="trading"] .pool-tile__handle { display: none; }
+
   :root[data-theme="trading"] .rank-slot,
   :root[data-theme="trading"] .slot {
-    padding: 6px 8px;
-    min-height: 38px;
-    gap: var(--s2);
-    flex-direction: row;
-    align-items: center;
+    padding: 4px 6px !important;
+    height: 36px !important;
+    min-height: 0 !important;
+    gap: 6px !important;
+    flex-direction: row !important;
+    align-items: center !important;
   }
   :root[data-theme="trading"] .slot__rank-cn,
   :root[data-theme="trading"] .slot__check,
-  :root[data-theme="trading"] .slot__avatar { display: none; }
+  :root[data-theme="trading"] .slot__avatar { display: none !important; }
   :root[data-theme="trading"] .slot__index,
-  :root[data-theme="trading"] .slot__pos { font-size: 10px; min-width: 56px; flex-shrink: 0; }
-  :root[data-theme="trading"] .slot__name { font-size: 12px; }
-  :root[data-theme="trading"] .slot__handle { font-size: 10px; }
+  :root[data-theme="trading"] .slot__pos { font-size: 10px; min-width: 50px; flex-shrink: 0; }
+  :root[data-theme="trading"] .slot__name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   :root[data-theme="trading"] .slot__rank { font-size: 14px; }
 
   /* Theme picker on mobile — show only the icon-trigger, hide the label.

@@ -217,7 +217,7 @@
 :root[data-theme="broadcast"] .theme-picker {
   position: relative;
 }
-:root[data-theme="broadcast"] .theme-picker__dropdown { position: relative; }
+:root[data-theme="broadcast"] .theme-picker__dropdown { position: relative; display: inline-block; }
 :root[data-theme="broadcast"] .theme-picker__trigger {
   list-style: none;
   cursor: pointer;
@@ -2744,12 +2744,16 @@
     padding: 0 var(--s4);
   }
   /* Navbar — nowrap + hide wordmark + compact tabs so 390px viewport fits
-   * brand-mark + 3 tabs + picker icon + user avatar without overflowing. */
+   * brand-mark + 3 tabs + picker icon + user avatar without overflowing.
+   * Critically: NO `overflow: hidden` here — the picker dropdown panel
+   * is positioned absolutely below the trigger; clipping the inner row
+   * also clips the panel. Use `min-width: 0` on flex items instead to
+   * keep the row from blowing out. */
   :root[data-theme="broadcast"] .topnav__inner {
     height: 48px;
     flex-wrap: nowrap;
     gap: var(--s2);
-    overflow: hidden;
+    overflow: visible;
   }
   :root[data-theme="broadcast"] .topnav__brand {
     padding-right: var(--s2);
@@ -2883,21 +2887,57 @@
     padding: var(--s2) 0;
   }
 
-  /* Mobile pool + slots — compact single-column rows so 8 of each fit one
-   * mobile screen alongside the headers. The huge serif slot__rank-cn
-   * (头游/二游/...) is hidden on mobile; the slot__index "POS · 1" is
-   * enough to convey position. Drag works the same. */
+  /* Mobile gameplay layout — pool LEFT, slots RIGHT, both visible at once.
+   * Active-game body uses grid-template-areas so annotation/controls/calc/
+   * actions span full width while pool + slots split the row. Tiles are
+   * SQUARES (aspect-ratio: 1) in a 2-col grid within each half, so the
+   * drag source and drop target both feel like dragable cards. */
+  :root[data-theme="broadcast"] .activegame__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ann ann"
+      "ctl ctl"
+      "pool slots"
+      "calc calc"
+      "actions actions";
+    gap: 8px;
+    padding: 8px;
+  }
+  :root[data-theme="broadcast"] .activegame__body > .annotation { grid-area: ann; }
+  :root[data-theme="broadcast"] .activegame__body > .activegame__inline-controls { grid-area: ctl; }
+  :root[data-theme="broadcast"] .activegame__body > .pool { grid-area: pool; min-width: 0; }
+  :root[data-theme="broadcast"] .activegame__body > .slots { grid-area: slots; min-width: 0; }
+  :root[data-theme="broadcast"] .activegame__body > .calcpreview { grid-area: calc; }
+  :root[data-theme="broadcast"] .activegame__body > .controls { grid-area: actions; }
+
+  :root[data-theme="broadcast"] .pool__head,
+  :root[data-theme="broadcast"] .slots__head { font-size: 10px; gap: 4px; margin-bottom: 4px; }
+  :root[data-theme="broadcast"] .pool__sub,
+  :root[data-theme="broadcast"] .slots__sub,
+  :root[data-theme="broadcast"] .pool__count { display: none; }
+
+  /* Pool LEFT, slots RIGHT — each is 1-col (full half width) with compact
+   * horizontal rows. 8 player tiles × ~32px = ~260px tall — fits easily
+   * alongside the slots column at the same height. NO aspect-ratio:1 or
+   * the tiles balloon to 180px each. */
   :root[data-theme="broadcast"] .pool__grid,
-  :root[data-theme="broadcast"] .player-pool {
+  :root[data-theme="broadcast"] .player-pool,
+  :root[data-theme="broadcast"] .slots__grid,
+  :root[data-theme="broadcast"] .ranking-area {
     grid-template-columns: 1fr;
-    gap: 4px;
-    padding: 6px;
+    gap: 3px;
+    padding: 4px;
   }
   :root[data-theme="broadcast"] .pool-tile {
-    padding: 5px 8px !important;
+    height: 36px !important;
+    aspect-ratio: auto !important;
     min-height: 0 !important;
+    padding: 4px 6px !important;
+    display: grid !important;
     grid-template-columns: 22px 1fr auto !important;
-    gap: var(--s2) !important;
+    align-items: center !important;
+    gap: 6px !important;
     flex-direction: row !important;
   }
   :root[data-theme="broadcast"] .pool-tile__avatar {
@@ -2905,29 +2945,35 @@
     height: 22px !important;
     font-size: 11px !important;
   }
-  :root[data-theme="broadcast"] .pool-tile__display {
-    font-size: 13px !important;
+  :root[data-theme="broadcast"] .pool-tile__display { font-size: 12px !important; }
+  :root[data-theme="broadcast"] .pool-tile__handle { display: none !important; }
+  :root[data-theme="broadcast"] .pool-tile__name {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    text-align: left !important;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
-  :root[data-theme="broadcast"] .pool-tile__handle {
-    font-size: 10px !important;
-  }
-  :root[data-theme="broadcast"] .slots__grid,
-  :root[data-theme="broadcast"] .ranking-area {
-    grid-template-columns: 1fr;
-    gap: 4px;
-  }
+
   :root[data-theme="broadcast"] .rank-slot.slot,
   :root[data-theme="broadcast"] .rank-slot,
   :root[data-theme="broadcast"] .slot {
-    min-height: 40px !important;
-    padding: 6px 8px !important;
+    height: 36px !important;
+    aspect-ratio: auto !important;
+    min-height: 0 !important;
+    padding: 4px 6px !important;
+    display: flex !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: var(--s2) !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
   }
+  /* Hide the giant serif rank-cn + redundant labels on mobile */
   :root[data-theme="broadcast"] .slot__rank-cn,
   :root[data-theme="broadcast"] .slot__check,
-  :root[data-theme="broadcast"] .slot__avatar,
+  :root[data-theme="broadcast"] .slot__handle,
   :root[data-theme="broadcast"] .slot__target-icon,
   :root[data-theme="broadcast"] .slot__target-label,
   :root[data-theme="broadcast"] .slot__placeholder,
@@ -2936,14 +2982,20 @@
   }
   :root[data-theme="broadcast"] .slot__index {
     font-size: 10px !important;
-    min-width: 60px !important;
+    min-width: 50px !important;
     flex-shrink: 0;
   }
-  :root[data-theme="broadcast"] .slot__name {
-    font-size: 13px !important;
-  }
-  :root[data-theme="broadcast"] .slot__handle {
+  :root[data-theme="broadcast"] .slot__avatar {
+    width: 20px !important;
+    height: 20px !important;
     font-size: 10px !important;
+  }
+  :root[data-theme="broadcast"] .slot__name {
+    font-size: 12px !important;
+    text-align: left !important;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 
   /* Stack controls */
