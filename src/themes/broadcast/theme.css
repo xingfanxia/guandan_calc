@@ -639,27 +639,9 @@
 :root[data-theme="broadcast"] .team--blue .card-level__glyph {
   text-shadow: 0 0 80px oklch(60% 0.18 240 / 0.30);
 }
+/* Suit symbols (♥ / ♦) suppressed — design call 2026-05-03: cleaner without */
 :root[data-theme="broadcast"] .card-level__suit {
-  position: absolute;
-  top: 24px;
-  font-family: var(--font-display);
-  font-size: 36px;
-  line-height: 1;
-}
-:root[data-theme="broadcast"] .card-level__suit--tl {
-  left: 8px;
-}
-:root[data-theme="broadcast"] .card-level__suit--br {
-  right: 8px;
-  bottom: 8px;
-  top: auto;
-  transform: rotate(180deg);
-}
-:root[data-theme="broadcast"] .team--red .card-level__suit {
-  color: var(--team-red);
-}
-:root[data-theme="broadcast"] .team--blue .card-level__suit {
-  color: var(--team-blue);
+  display: none;
 }
 :root[data-theme="broadcast"] .card-level__sub {
   margin-top: var(--s3);
