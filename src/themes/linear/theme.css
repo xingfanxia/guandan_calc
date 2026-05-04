@@ -691,6 +691,12 @@
   color: var(--ink);
   border: none;
 }
+/* Renderer adds `.pool-tile--red` / `.pool-tile--blue` to the tile (not the
+ * avatar — see `src/ranking/rankingRenderer.js` `renderPoolTile`). Target
+ * the avatar via descendant selector; the older `.pool-tile__avatar--red`
+ * variants below stay as fallback in case the markup ever switches. */
+:root[data-theme="linear"] .pool-tile--red .pool-tile__avatar  { background: var(--team-red-soft);  color: var(--team-red);  }
+:root[data-theme="linear"] .pool-tile--blue .pool-tile__avatar { background: var(--team-blue-soft); color: var(--team-blue); }
 :root[data-theme="linear"] .pool-tile__avatar--red { background: var(--team-red-soft); color: var(--team-red); }
 :root[data-theme="linear"] .pool-tile__avatar--blue { background: var(--team-blue-soft); color: var(--team-blue); }
 :root[data-theme="linear"] .pool-tile__name {
@@ -1758,24 +1764,36 @@
   :root[data-theme="linear"] .topnav__tab a > span:first-child { white-space: nowrap; }
   :root[data-theme="linear"] .topnav__user-avatar { width: 24px; height: 24px; font-size: 10px; }
 
+  /* Scoreboard: RED LEFT, BLUE RIGHT side-by-side. VS spans full width above. */
   :root[data-theme="linear"] .scorer {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "vs vs"
+      "red blue";
   }
   :root[data-theme="linear"] .team--red {
-    border-right: 0;
-    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    border-bottom: 0;
+    grid-area: red;
+    order: 0;
+  }
+  :root[data-theme="linear"] .team--blue {
+    grid-area: blue;
+    order: 0;
   }
   :root[data-theme="linear"] .versus {
+    grid-area: vs;
     border-left: 0;
     border-right: 0;
-    border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
+    border-top: 0;
     flex-direction: row;
     min-width: 0;
     padding: var(--s2) var(--s4);
+    order: 0;
   }
   :root[data-theme="linear"] .card-level__glyph {
-    font-size: 32px;
+    font-size: 28px;
   }
   /* Compact team panel + drop-zone so player pool fits same screen */
   :root[data-theme="linear"] .team {
@@ -1845,8 +1863,24 @@
     gap: 6px !important;
   }
   :root[data-theme="linear"] .pool-tile__avatar { width: 22px; height: 22px; font-size: 11px; }
-  :root[data-theme="linear"] .pool-tile__display { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  :root[data-theme="linear"] .pool-tile__handle { display: none; }
+  /* Avatar shows the player's first character — hide the duplicated display
+   * name on mobile (single-char names like "超" / "鱼" make it redundant)
+   * and fall back to the handle. */
+  /* The renderer outputs .pool-tile__name (display name) + .pool-tile__handle
+   * (handle text) — there is no .pool-tile__display. Hide the name (which
+   * duplicates the avatar character for single-char profile players like
+   * "超") and let the handle carry the text label. */
+  :root[data-theme="linear"] .pool-tile__name { display: none; }
+  :root[data-theme="linear"] .pool-tile__top { display: none; }
+  :root[data-theme="linear"] .pool-tile__dot { display: none; }
+  :root[data-theme="linear"] .pool-tile__handle {
+    display: inline;
+    font-size: 11px;
+    color: var(--ink-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
   :root[data-theme="linear"] .rank-slot,
   :root[data-theme="linear"] .slot {

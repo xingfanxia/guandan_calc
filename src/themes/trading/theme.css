@@ -828,6 +828,10 @@
   color: var(--ink-dim);
   border: 1px solid var(--rule-strong);
 }
+/* Renderer adds `.pool-tile--red` / `.pool-tile--blue` to the tile (not the
+ * avatar — see `src/ranking/rankingRenderer.js`). Target avatar via descendant. */
+:root[data-theme="trading"] .pool-tile--red .pool-tile__avatar  { background: var(--bg); border-color: var(--team-red);  color: var(--team-red);  }
+:root[data-theme="trading"] .pool-tile--blue .pool-tile__avatar { background: var(--bg); border-color: var(--team-blue); color: var(--team-blue); }
 :root[data-theme="trading"] .pool-tile__avatar--red  { background: var(--bg); border-color: var(--team-red);  color: var(--team-red);  }
 :root[data-theme="trading"] .pool-tile__avatar--blue { background: var(--bg); border-color: var(--team-blue); color: var(--team-blue); }
 :root[data-theme="trading"] .pool-tile__name {
@@ -2070,26 +2074,39 @@
   :root[data-theme="trading"] .topnav__tab a > span:first-child { white-space: nowrap; }
   :root[data-theme="trading"] .topnav__user-avatar { width: 24px; height: 24px; font-size: 10px; }
 
+  /* Scoreboard: RED LEFT, BLUE RIGHT side-by-side. VS bar spans full width
+   * above. Each team panel is compact so both halves fit alongside each
+   * other and the player rosters drop directly below. */
   :root[data-theme="trading"] .scorer {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "vs vs"
+      "red blue";
   }
   :root[data-theme="trading"] .team--red {
-    border-right: 0;
-    border-bottom: 1px solid var(--rule-strong);
+    border-right: 1px solid var(--rule-strong);
+    border-bottom: 0;
+    grid-area: red;
+    order: 0;
+  }
+  :root[data-theme="trading"] .team--blue {
+    grid-area: blue;
+    order: 0;
   }
   :root[data-theme="trading"] .versus {
+    grid-area: vs;
     border-left: 0;
     border-right: 0;
-    border-top: 1px solid var(--rule-strong);
     border-bottom: 1px solid var(--rule-strong);
     flex-direction: row;
     min-width: 0;
     padding: var(--s2) var(--s4);
+    order: 0;
   }
   :root[data-theme="trading"] .card-level__glyph {
-    font-size: 48px;
-    width: 64px;
-    height: 76px;
+    font-size: 36px;
+    width: 48px;
+    height: 56px;
   }
   /* Compact team panel + drop-zone so player pool fits same screen */
   :root[data-theme="trading"] .team {
@@ -2149,8 +2166,33 @@
     gap: 6px !important;
   }
   :root[data-theme="trading"] .pool-tile__avatar { width: 22px; height: 22px; font-size: 11px; }
-  :root[data-theme="trading"] .pool-tile__display { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  :root[data-theme="trading"] .pool-tile__handle { display: none; }
+  /* Avatar already shows the player's first character — hiding the display
+   * name on mobile (which would duplicate it for single-char names like
+   * "超" / "鱼" / "姐") and falling back to the handle keeps the tile
+   * compact and readable. */
+  /* The renderer outputs .pool-tile__name + .pool-tile__handle (no
+   * .pool-tile__display). Hide the name (duplicates the avatar character
+   * for single-char profile players) and let the handle carry the text. */
+  :root[data-theme="trading"] .pool-tile__name { display: none; }
+  :root[data-theme="trading"] .pool-tile__top { display: none; }
+  :root[data-theme="trading"] .pool-tile__handle {
+    display: inline;
+    font-size: 11px;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Compact roster-row inside team panels for setup-phase drag-to-team. */
+  :root[data-theme="trading"] .roster-row {
+    grid-template-columns: 22px 1fr auto !important;
+    padding: 4px 6px !important;
+    gap: 6px !important;
+  }
+  :root[data-theme="trading"] .roster-row__avatar { width: 22px !important; height: 22px !important; font-size: 11px !important; }
+  :root[data-theme="trading"] .roster-row__display { display: none !important; }
+  :root[data-theme="trading"] .roster-row__handle { font-size: 11px !important; }
+  :root[data-theme="trading"] .roster-row__tag { font-size: 9px !important; padding: 1px 4px !important; }
 
   :root[data-theme="trading"] .rank-slot,
   :root[data-theme="trading"] .slot {

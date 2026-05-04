@@ -2834,16 +2834,32 @@
     font-weight: 600;
   }
 
-  /* Stack scoreboard into vertical column */
+  /* Scoreboard: RED LEFT, BLUE RIGHT side-by-side (was stacked vertically).
+   * VS bar spans full width above. Each team panel compact so both halves
+   * fit alongside each other. */
   :root[data-theme="broadcast"] .scorer {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "vs vs"
+      "red blue";
+  }
+  :root[data-theme="broadcast"] .team--red {
+    grid-area: red;
+    border-right: 1px solid var(--rule);
+    border-bottom: 0;
+    order: 0;
+  }
+  :root[data-theme="broadcast"] .team--blue {
+    grid-area: blue;
+    order: 0;
   }
   :root[data-theme="broadcast"] .versus {
+    grid-area: vs;
     border: 0;
-    border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
     flex-direction: row;
     padding: var(--s3) 0;
+    order: 0;
   }
   :root[data-theme="broadcast"] .versus__rule {
     height: 2px;
@@ -2945,8 +2961,22 @@
     height: 22px !important;
     font-size: 11px !important;
   }
-  :root[data-theme="broadcast"] .pool-tile__display { font-size: 12px !important; }
-  :root[data-theme="broadcast"] .pool-tile__handle { display: none !important; }
+  /* Avatar shows the player's first character — hide the duplicated
+   * display name + bullet dot on mobile, fall back to handle. */
+  /* The renderer outputs .pool-tile__name + .pool-tile__handle (no
+   * .pool-tile__display). Hide the name (duplicates the avatar character
+   * for single-char profile players) and let the handle carry the text. */
+  :root[data-theme="broadcast"] .pool-tile__name { display: none !important; }
+  :root[data-theme="broadcast"] .pool-tile__top { display: none !important; }
+  :root[data-theme="broadcast"] .pool-tile__dot { display: none !important; }
+  :root[data-theme="broadcast"] .pool-tile__handle {
+    display: inline !important;
+    font-size: 11px !important;
+    color: var(--ink-dim) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   :root[data-theme="broadcast"] .pool-tile__name {
     display: flex !important;
     flex-direction: row !important;
@@ -2957,6 +2987,9 @@
     text-overflow: ellipsis;
   }
 
+  /* Slots: same 36px height as pool tiles, same left-aligned compact row.
+   * justify-content: flex-start (not center) so empty "POS · N" labels
+   * line up with the pool tile content baseline. */
   :root[data-theme="broadcast"] .rank-slot.slot,
   :root[data-theme="broadcast"] .rank-slot,
   :root[data-theme="broadcast"] .slot {
@@ -2969,6 +3002,11 @@
     align-items: center !important;
     justify-content: flex-start !important;
     gap: 6px !important;
+    text-align: left !important;
+  }
+  :root[data-theme="broadcast"] .slot--empty,
+  :root[data-theme="broadcast"] .slot--target {
+    justify-content: flex-start !important;
   }
   /* Hide the giant serif rank-cn + redundant labels on mobile */
   :root[data-theme="broadcast"] .slot__rank-cn,
