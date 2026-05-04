@@ -1730,6 +1730,32 @@
 
 /* ============== RESPONSIVE (mobile <= 768px) ============== */
 @media (max-width: 768px) {
+  /* Navbar — nowrap + hide wordmark + compact tabs so 390px viewport fits
+   * brand-mark + 3 tabs + picker icon + user avatar without overflowing. */
+  :root[data-theme="linear"] .topnav { padding: 6px var(--s3); }
+  :root[data-theme="linear"] .topnav__inner {
+    flex-wrap: nowrap;
+    gap: var(--s2);
+    overflow: hidden;
+  }
+  :root[data-theme="linear"] .topnav__brand { flex-shrink: 0; gap: 0; font-size: 0; }
+  :root[data-theme="linear"] .topnav__brand::before { width: 22px; height: 22px; flex-shrink: 0; }
+  :root[data-theme="linear"] .topnav__brand-text,
+  :root[data-theme="linear"] .topnav__brand-version { display: none; }
+  :root[data-theme="linear"] .topnav__tabs { gap: var(--s1); flex-shrink: 1; min-width: 0; flex: 0 1 auto; }
+  :root[data-theme="linear"] .topnav__tab,
+  :root[data-theme="linear"] .topnav__tab a {
+    padding: 4px 6px;
+    font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  :root[data-theme="linear"] .topnav__tab-meta,
+  :root[data-theme="linear"] .topnav__tab a > span:nth-child(2) { display: none; }
+  :root[data-theme="linear"] .topnav__tab-cn,
+  :root[data-theme="linear"] .topnav__tab a > span:first-child { white-space: nowrap; }
+  :root[data-theme="linear"] .topnav__user-avatar { width: 24px; height: 24px; font-size: 10px; }
+
   :root[data-theme="linear"] .scorer {
     grid-template-columns: 1fr;
   }
@@ -1775,24 +1801,32 @@
   :root[data-theme="linear"] .pool-tile__avatar { width: 18px; height: 18px; font-size: 10px; }
   :root[data-theme="linear"] .pool-tile__display { font-size: 11px; }
   :root[data-theme="linear"] .pool-tile__handle { font-size: 9px; }
+  /* Slots collapse to single-column rows on mobile so all 6/8 fit alongside
+   * the pool above. Each slot is one horizontal row: position label + name. */
   :root[data-theme="linear"] .slots__grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 4px;
   }
   :root[data-theme="linear"] .rank-slot,
   :root[data-theme="linear"] .slot {
-    padding: 5px 6px;
-    min-height: 56px;
-    gap: 2px;
+    padding: 6px 8px;
+    min-height: 38px;
+    gap: var(--s2);
+    flex-direction: row;
+    align-items: center;
   }
   :root[data-theme="linear"] .slot__rank-cn,
-  :root[data-theme="linear"] .slot__check { display: none; }
-  :root[data-theme="linear"] .slot__avatar {
-    width: 18px; height: 18px; font-size: 10px;
+  :root[data-theme="linear"] .slot__check,
+  :root[data-theme="linear"] .slot__avatar { display: none; }
+  :root[data-theme="linear"] .slot__index,
+  :root[data-theme="linear"] .slot__pos { font-size: 10px; min-width: 56px; flex-shrink: 0; }
+  :root[data-theme="linear"] .slot__name { font-size: 12px; }
+  :root[data-theme="linear"] .slot__handle { font-size: 10px; }
+  :root[data-theme="linear"] .slot__rank { font-size: 14px; }
+  /* Pool tiles also collapse to single-column rows */
+  :root[data-theme="linear"] .pool__grid {
+    grid-template-columns: 1fr;
   }
-  :root[data-theme="linear"] .slot__index { font-size: 9px; }
-  :root[data-theme="linear"] .slot__name { font-size: 11px; }
-  :root[data-theme="linear"] .slot__handle { font-size: 9px; }
 
   /* Theme picker on mobile — icon-only trigger; panel still drops down. */
   :root[data-theme="linear"] .theme-picker__trigger-label,

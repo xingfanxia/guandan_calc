@@ -2043,6 +2043,31 @@
   :root[data-theme="trading"] body {
     background-size: 60px 60px; /* tighter grid on mobile */
   }
+  /* Navbar — nowrap + drop wordmark + compact tabs so 390px fits everything */
+  :root[data-theme="trading"] .topnav { padding: 5px var(--s3); }
+  :root[data-theme="trading"] .topnav__inner {
+    flex-wrap: nowrap;
+    gap: var(--s2);
+    overflow: hidden;
+  }
+  :root[data-theme="trading"] .topnav__brand { padding: 2px 4px; margin-right: 4px; flex-shrink: 0; font-size: 0; }
+  :root[data-theme="trading"] .topnav__brand::before { font-size: 11px; }
+  :root[data-theme="trading"] .topnav__brand-text,
+  :root[data-theme="trading"] .topnav__brand-version { display: none; }
+  :root[data-theme="trading"] .topnav__tabs { gap: 4px; flex-shrink: 1; min-width: 0; flex: 0 1 auto; }
+  :root[data-theme="trading"] .topnav__tab,
+  :root[data-theme="trading"] .topnav__tab a {
+    padding: 3px 6px;
+    font-size: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  :root[data-theme="trading"] .topnav__tab-meta,
+  :root[data-theme="trading"] .topnav__tab a > span:nth-child(2) { display: none; }
+  :root[data-theme="trading"] .topnav__tab-cn,
+  :root[data-theme="trading"] .topnav__tab a > span:first-child { white-space: nowrap; }
+  :root[data-theme="trading"] .topnav__user-avatar { width: 24px; height: 24px; font-size: 10px; }
+
   :root[data-theme="trading"] .scorer {
     grid-template-columns: 1fr;
   }
@@ -2082,41 +2107,43 @@
   :root[data-theme="trading"] .ticker__item--owner,
   :root[data-theme="trading"] .ticker__item--elapsed { display: none; }
 
-  /* Pool + slots — fit pool AND placement grid in one mobile screen so the
-   * user can drag without scrolling. Compact each slot down to a 2-line
-   * layout (index + rank-cn on top, name + handle below). */
+  /* Pool + slots — single-column rows so 8 of each fit one mobile screen.
+   * Each slot is one horizontal row: position index + filled name. */
   :root[data-theme="trading"] .pool__grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: 1fr;
     padding: 6px;
     gap: 4px;
   }
   :root[data-theme="trading"] .pool-tile,
   :root[data-theme="trading"] .ranking-player-tile.pool-tile {
-    grid-template-columns: 20px 1fr;
-    padding: 4px 6px;
+    grid-template-columns: 22px 1fr auto;
+    padding: 5px 8px;
     min-height: 0;
+    gap: var(--s2);
   }
-  :root[data-theme="trading"] .pool-tile__avatar { width: 18px; height: 18px; font-size: 10px; }
-  :root[data-theme="trading"] .pool-tile__display { font-size: 11px; }
-  :root[data-theme="trading"] .pool-tile__handle { font-size: 9px; }
+  :root[data-theme="trading"] .pool-tile__avatar { width: 22px; height: 22px; font-size: 11px; }
+  :root[data-theme="trading"] .pool-tile__display { font-size: 12px; }
+  :root[data-theme="trading"] .pool-tile__handle { font-size: 10px; }
   :root[data-theme="trading"] .slots__grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr;
     gap: 4px;
   }
   :root[data-theme="trading"] .rank-slot,
   :root[data-theme="trading"] .slot {
-    padding: 5px 6px;
-    min-height: 56px;
-    gap: 2px;
+    padding: 6px 8px;
+    min-height: 38px;
+    gap: var(--s2);
+    flex-direction: row;
+    align-items: center;
   }
   :root[data-theme="trading"] .slot__rank-cn,
-  :root[data-theme="trading"] .slot__check { display: none; }
-  :root[data-theme="trading"] .slot__avatar {
-    width: 18px; height: 18px; font-size: 10px;
-  }
-  :root[data-theme="trading"] .slot__index { font-size: 9px; }
-  :root[data-theme="trading"] .slot__name { font-size: 11px; }
-  :root[data-theme="trading"] .slot__handle { font-size: 9px; }
+  :root[data-theme="trading"] .slot__check,
+  :root[data-theme="trading"] .slot__avatar { display: none; }
+  :root[data-theme="trading"] .slot__index,
+  :root[data-theme="trading"] .slot__pos { font-size: 10px; min-width: 56px; flex-shrink: 0; }
+  :root[data-theme="trading"] .slot__name { font-size: 12px; }
+  :root[data-theme="trading"] .slot__handle { font-size: 10px; }
+  :root[data-theme="trading"] .slot__rank { font-size: 14px; }
 
   /* Theme picker on mobile — show only the icon-trigger, hide the label.
    * The dropdown panel still expands to full width when opened. */

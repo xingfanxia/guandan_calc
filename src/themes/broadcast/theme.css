@@ -2743,23 +2743,40 @@
   :root[data-theme="broadcast"] .container {
     padding: 0 var(--s4);
   }
+  /* Navbar — nowrap + hide wordmark + compact tabs so 390px viewport fits
+   * brand-mark + 3 tabs + picker icon + user avatar without overflowing. */
   :root[data-theme="broadcast"] .topnav__inner {
-    height: 52px;
+    height: 48px;
+    flex-wrap: nowrap;
+    gap: var(--s2);
+    overflow: hidden;
   }
   :root[data-theme="broadcast"] .topnav__brand {
-    padding-right: var(--s3);
+    padding-right: var(--s2);
+    flex-shrink: 0;
   }
-  :root[data-theme="broadcast"] .topnav__brand-text small {
-    display: none;
+  :root[data-theme="broadcast"] .topnav__brand-text {
+    display: none; /* leave only the brand-mark icon at small width */
   }
   :root[data-theme="broadcast"] .topnav__tabs {
-    margin-left: var(--s3);
+    margin-left: var(--s2);
+    gap: var(--s2);
+    flex-shrink: 0;
   }
   :root[data-theme="broadcast"] .topnav__tab {
-    padding: 0 var(--s3);
+    padding: 0 var(--s2);
+    flex-shrink: 0;
+  }
+  :root[data-theme="broadcast"] .topnav__tab-cn {
+    white-space: nowrap;
   }
   :root[data-theme="broadcast"] .topnav__tab-meta {
     display: none;
+  }
+  :root[data-theme="broadcast"] .topnav__user-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 11px;
   }
   :root[data-theme="broadcast"] .topnav__user-meta {
     display: none;
@@ -2866,14 +2883,67 @@
     padding: var(--s2) 0;
   }
 
-  /* Single-column pool grid */
+  /* Mobile pool + slots — compact single-column rows so 8 of each fit one
+   * mobile screen alongside the headers. The huge serif slot__rank-cn
+   * (头游/二游/...) is hidden on mobile; the slot__index "POS · 1" is
+   * enough to convey position. Drag works the same. */
   :root[data-theme="broadcast"] .pool__grid,
   :root[data-theme="broadcast"] .player-pool {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 6px;
+  }
+  :root[data-theme="broadcast"] .pool-tile {
+    padding: 5px 8px !important;
+    min-height: 0 !important;
+    grid-template-columns: 22px 1fr auto !important;
+    gap: var(--s2) !important;
+    flex-direction: row !important;
+  }
+  :root[data-theme="broadcast"] .pool-tile__avatar {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+  }
+  :root[data-theme="broadcast"] .pool-tile__display {
+    font-size: 13px !important;
+  }
+  :root[data-theme="broadcast"] .pool-tile__handle {
+    font-size: 10px !important;
   }
   :root[data-theme="broadcast"] .slots__grid,
   :root[data-theme="broadcast"] .ranking-area {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  :root[data-theme="broadcast"] .rank-slot.slot,
+  :root[data-theme="broadcast"] .rank-slot,
+  :root[data-theme="broadcast"] .slot {
+    min-height: 40px !important;
+    padding: 6px 8px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: var(--s2) !important;
+  }
+  :root[data-theme="broadcast"] .slot__rank-cn,
+  :root[data-theme="broadcast"] .slot__check,
+  :root[data-theme="broadcast"] .slot__avatar,
+  :root[data-theme="broadcast"] .slot__target-icon,
+  :root[data-theme="broadcast"] .slot__target-label,
+  :root[data-theme="broadcast"] .slot__placeholder,
+  :root[data-theme="broadcast"] .slot__placeholder-label {
+    display: none !important;
+  }
+  :root[data-theme="broadcast"] .slot__index {
+    font-size: 10px !important;
+    min-width: 60px !important;
+    flex-shrink: 0;
+  }
+  :root[data-theme="broadcast"] .slot__name {
+    font-size: 13px !important;
+  }
+  :root[data-theme="broadcast"] .slot__handle {
+    font-size: 10px !important;
   }
 
   /* Stack controls */
