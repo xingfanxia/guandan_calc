@@ -125,6 +125,36 @@ internal layout of EACH team panel may still cram on small widths.
 **Investigation pointer:** look at `.team__head` + `.card-level` flex
 direction on mobile. They may need to be stacked column not row.
 
+### Image 52 — RENDERER ISSUE (not theme CSS)
+**Pool tiles show no emoji + meaningless `#N` handle.**
+
+User created profile players (鱼, 帆, 夫, 豪, 小, 姐, 大, 塾 — names with
+real handles like `@fzy`, `@axax`) but pool tiles render:
+- Avatar = first character of name (鱼 / 帆 / ...) — should be the
+  player's emoji (🐵 / 🐭 / 🦊 / 🐰 / etc.)
+- Handle text = `#1` / `#2` / `#3` ... — should be the @handle
+  (`@fzy`, `@axax`)
+
+Two distinct renderer bugs in `src/ranking/rankingRenderer.js`:
+
+1. `avatarChar(player)` returns `player.name.charAt(0)` for profile
+   players. Should return `player.emoji` if set, falling back to first
+   char only when emoji is absent.
+2. `handleText(player)` falls back to `#${player.position}` (or similar
+   index) when called for the pool tile. For profile players with a
+   real `player.handle` like "@fzy", that handle should be used. The
+   `#N` fallback is fine for default-name players ("玩家1") but wrong
+   for profile players.
+
+**Investigation pointer:**
+- `grep -n 'avatarChar\|handleText' src/ranking/rankingRenderer.js` —
+  read both functions, confirm the fallback chain.
+- `playerManager.js` `addPlayerFromProfile()` should set
+  `player.emoji` and `player.handle` from the profile data — verify
+  it does.
+- After fixing, the tile in image 52 should read `[🐵] @fzy` not
+  `[鱼] #8`.
+
 ### Image 51 — team roster rows
 **`POOL` tag carries no meaning + long rows waste horizontal space.**
 
