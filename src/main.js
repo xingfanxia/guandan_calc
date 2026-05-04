@@ -68,6 +68,7 @@ import { initSetupVisibility } from './ui/setupVisibility.js';
 import * as themeManager from './themes/_shared/themeManager.js';
 import * as broadcastTheme from './themes/broadcast/index.js';
 import * as linearTheme from './themes/linear/index.js';
+import * as tradingTheme from './themes/trading/index.js';
 import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
 
 /**
@@ -79,6 +80,7 @@ async function init() {
     // Register all themes, then mount whichever the user picked last (or default).
     themeManager.register(broadcastTheme);
     themeManager.register(linearTheme);
+    themeManager.register(tradingTheme);
     await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
 
     // Check for room in URL first

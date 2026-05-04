@@ -1,0 +1,1875 @@
+/* ============================================================
+ * Trading Terminal — theme D
+ *
+ * Source: docs/design/demos/demo-trading-v2.html / .png
+ *
+ * Aesthetic: Bloomberg / Reuters terminal. Near-black `oklch(12% 0.005 240)`
+ * base, amber HUD accent `oklch(80% 0.16 80)`, JetBrains Mono everywhere
+ * (IBM Plex Sans reserved for "prose" surfaces only). Sharp 1px borders,
+ * radius collapsed to 0/2px, density-first scale, `tnum + slashed-zero`
+ * font-feature-settings for honest tabular numerals. ASCII bracket flair
+ * (`// SECTION`, `[BRACKETS]`, `▸ EXPAND`) carried via component CSS.
+ *
+ * Strategy: same DOM as Broadcast / Linear; CSS-only re-paint. Every
+ * TOKEN_SPEC name remapped, then per-component restyles where Broadcast's
+ * editorial markup needs the rougher, console-output rendering. Mirrors
+ * `src/themes/linear/theme.css`'s structure exactly so cross-theme audits
+ * compare apples-to-apples.
+ * ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root[data-theme="trading"] {
+  /* === SURFACES (near-black, depth via 1px borders + tiny lightness ramp) === */
+  --bg:        oklch(12% 0.005 240);
+  --bg-deep:   oklch(9%  0.005 240);
+  --surface:   oklch(16% 0.005 240);
+  --surface-2: oklch(20% 0.005 240);
+  --surface-3: oklch(24% 0.005 240);
+
+  /* === INK === */
+  --ink:        oklch(96% 0.010 250);
+  --ink-dim:    oklch(70% 0.010 250);
+  --ink-dimmer: oklch(50% 0.010 250);
+  --ink-faint:  oklch(36% 0.010 250);
+
+  /* === ACCENT (amber HUD, single accent) === */
+  --accent:        oklch(80% 0.16 80);
+  --accent-soft:   oklch(22% 0.05 80);
+  --accent-line:   oklch(55% 0.14 80);
+  --accent-glow:   oklch(72% 0.16 80);
+
+  /* === TEAMS (red signal-down + blue) === */
+  --team-red:       oklch(64% 0.20 25);
+  --team-red-soft:  oklch(22% 0.06 25);
+  --team-red-line:  oklch(45% 0.16 25);
+
+  --team-blue:      oklch(60% 0.18 250);
+  --team-blue-soft: oklch(22% 0.05 250);
+  --team-blue-line: oklch(42% 0.13 250);
+
+  /* === STATUS (signals) === */
+  --win:  oklch(72% 0.18 145);
+  --loss: oklch(64% 0.20 25);
+
+  /* === RULES (sharp 1px dividers) === */
+  --rule:        oklch(28% 0.005 240);
+  --rule-soft:   oklch(22% 0.005 240);
+  --rule-strong: oklch(40% 0.005 240);
+
+  /* === FONTS (JetBrains Mono dominant; IBM Plex for prose only) === */
+  --font-display: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-body:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-prose:   'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* === SCALE (Linear-tight; trading is no looser) === */
+  --s1: 4px;
+  --s2: 6px;
+  --s3: 10px;
+  --s4: 14px;
+  --s5: 18px;
+  --s6: 24px;
+  --s7: 36px;
+  --s8: 48px;
+
+  /* === RADIUS (sharp; everything is 0 except a tiny chip-radius) === */
+  --radius-none: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 2px;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  /* Honest tabular numerals — every column of digits aligns, slashed zeros */
+  font-feature-settings: 'tnum' 1, 'zero' 1, 'cv02' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* === BODY: terminal grid overlay (subtle, paused under content) === */
+:root[data-theme="trading"] body {
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(to right, var(--rule) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--rule) 1px, transparent 1px);
+  background-size: 80px 80px;
+  background-attachment: fixed;
+  background-position: 0 0;
+}
+
+/* IBM Plex prose escape-hatch for descriptive blocks */
+:root[data-theme="trading"] .prose,
+:root[data-theme="trading"] .honor__desc {
+  font-family: var(--font-prose);
+}
+
+/* ============== TICKER (status-strip / command-bar feel) ============== */
+:root[data-theme="trading"] .ticker {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 7px 0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+:root[data-theme="trading"] .ticker__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 0 var(--s4);
+  max-width: 1280px;
+  margin: 0 auto;
+}
+:root[data-theme="trading"] .ticker__items {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  flex: 1;
+}
+:root[data-theme="trading"] .ticker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px var(--s2);
+  border: 1px solid var(--rule-strong);
+  background: var(--surface);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+:root[data-theme="trading"] .ticker__item-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  font-weight: 500;
+}
+:root[data-theme="trading"] .ticker__item-value {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  font-weight: 500;
+}
+:root[data-theme="trading"] .ticker__item-value--accent {
+  color: var(--accent);
+}
+:root[data-theme="trading"] .ticker__item-value--red { color: var(--team-red); }
+:root[data-theme="trading"] .ticker__item-value--blue { color: var(--team-blue); }
+:root[data-theme="trading"] .ticker__sep {
+  display: none; /* terminal uses bracketed blocks, not separators */
+}
+:root[data-theme="trading"] .ticker__sync {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px var(--s2);
+  background: var(--bg);
+  border: 1px solid var(--win);
+  color: var(--win);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .ticker__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--win);
+  box-shadow: 0 0 8px var(--win);
+  animation: trading-pulse 1.6s ease-in-out infinite;
+}
+@keyframes trading-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+/* ============== TOP NAV (4-tab IA, brackets) ============== */
+:root[data-theme="trading"] .topnav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 6px var(--s4);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .topnav__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 4px 10px;
+  border-right: 1px solid var(--rule-strong);
+  margin-right: var(--s2);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .topnav__brand::before {
+  content: 'GD//';
+  color: var(--accent);
+}
+:root[data-theme="trading"] .topnav__tabs {
+  display: flex;
+  gap: var(--s2);
+  flex: 1;
+}
+:root[data-theme="trading"] .topnav__tab,
+:root[data-theme="trading"] .topnav__tab a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  padding: 4px 10px;
+  border: 1px solid var(--rule-strong);
+  text-decoration: none;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .topnav__tab::before,
+:root[data-theme="trading"] .topnav__tab a::before { content: '['; color: var(--ink-dimmer); margin-right: 2px; }
+:root[data-theme="trading"] .topnav__tab::after,
+:root[data-theme="trading"] .topnav__tab a::after  { content: ']'; color: var(--ink-dimmer); margin-left: 2px; }
+:root[data-theme="trading"] .topnav__tab.active,
+:root[data-theme="trading"] .topnav__tab.active a,
+:root[data-theme="trading"] .topnav__tab a:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+:root[data-theme="trading"] .topnav__tab.active::before,
+:root[data-theme="trading"] .topnav__tab.active::after,
+:root[data-theme="trading"] .topnav__tab a:hover::before,
+:root[data-theme="trading"] .topnav__tab a:hover::after { color: var(--accent); }
+
+/* ============== SECTION RULES (ASCII slash-slash divider) ============== */
+:root[data-theme="trading"] .section-rule {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin: var(--s5) 0 var(--s2);
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--rule-strong);
+}
+:root[data-theme="trading"] .section-rule__bar { display: none; }
+:root[data-theme="trading"] .section-rule__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .section-rule__label::before {
+  content: '// ';
+  color: var(--accent-line);
+}
+:root[data-theme="trading"] .section-rule__line { display: none; }
+:root[data-theme="trading"] .section-rule__meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ============== SCOREBOARD (sharp 1px panels, owner-glow) ============== */
+:root[data-theme="trading"] .scorer {
+  display: grid;
+  grid-template-columns: 1fr 70px 1fr;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  overflow: hidden;
+}
+:root[data-theme="trading"] .team {
+  padding: var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  border-left: 3px solid transparent;
+}
+/* DOM source order in index.html is: blue → versus → red.
+ * Explicit `order` on every grid child guarantees red sits in col 1, versus
+ * in the 70px middle column, blue in col 3 — without it, `order:-1` on red
+ * alone lets blue and versus race for col 2 in source order, and blue ends
+ * up squeezed into the 70px middle. */
+:root[data-theme="trading"] .team--red  { border-left-color: var(--team-red);  order: 1; border-right: 1px solid var(--rule-strong); }
+:root[data-theme="trading"] .versus     { order: 2; }
+:root[data-theme="trading"] .team--blue { border-left-color: var(--team-blue); order: 3; }
+:root[data-theme="trading"] .team__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s3);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .team__name-cn,
+:root[data-theme="trading"] .chip.team__name-cn {
+  font-family: var(--font-display) !important;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 0 !important;
+  background: transparent !important;
+  border: 1px solid var(--rule-strong) !important;
+  color: var(--ink-dim) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .team--red .chip.team__name-cn {
+  border-color: var(--team-red) !important;
+  color: var(--team-red) !important;
+}
+:root[data-theme="trading"] .team--blue .chip.team__name-cn {
+  border-color: var(--team-blue) !important;
+  color: var(--team-blue) !important;
+}
+:root[data-theme="trading"] .team__name-en {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .team__status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+/* Card-level: ASCII tile with corner glyphs */
+:root[data-theme="trading"] .card-level {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: var(--s4);
+  align-items: center;
+  padding: 0;
+  text-align: left;
+  position: static;
+}
+:root[data-theme="trading"] .card-level__glyph {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 84px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-shadow: none !important;
+  border: 2px solid var(--ink-dim);
+  width: 110px;
+  height: 134px;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  position: relative;
+  color: var(--ink);
+}
+:root[data-theme="trading"] .team--red  .card-level__glyph { border-color: var(--team-red);  color: var(--team-red);  }
+:root[data-theme="trading"] .team--blue .card-level__glyph { border-color: var(--team-blue); color: var(--team-blue); }
+/* Corner micro-glyph (top-left + bottom-right) — pure ASCII tile feel */
+:root[data-theme="trading"] .card-level__glyph::before,
+:root[data-theme="trading"] .card-level__glyph::after {
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink-dim);
+  line-height: 1;
+}
+:root[data-theme="trading"] .card-level__glyph::before {
+  content: attr(data-level);
+  top: 6px;
+  left: 8px;
+}
+:root[data-theme="trading"] .card-level__glyph::after {
+  content: attr(data-level);
+  bottom: 6px;
+  right: 8px;
+}
+:root[data-theme="trading"] .team--red  .card-level__glyph::before,
+:root[data-theme="trading"] .team--red  .card-level__glyph::after  { color: var(--team-red); }
+:root[data-theme="trading"] .team--blue .card-level__glyph::before,
+:root[data-theme="trading"] .team--blue .card-level__glyph::after  { color: var(--team-blue); }
+:root[data-theme="trading"] .card-level__suit {
+  display: none; /* trading is utilitarian — no decorative suits */
+}
+:root[data-theme="trading"] .card-level__sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  margin-top: 0;
+}
+:root[data-theme="trading"] .card-level__sub-rank {
+  color: var(--ink-dim);
+  padding-left: 0;
+  border-left: 0;
+  font-family: var(--font-mono);
+}
+
+/* Roster — terminal-list with ASCII avatar tile */
+:root[data-theme="trading"] .team__roster-label {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: var(--s3) 0 var(--s2);
+  border-top: 1px dashed var(--rule);
+  padding-top: var(--s2);
+}
+:root[data-theme="trading"] .team__roster-label::before {
+  content: '// ';
+  color: var(--rule-strong);
+}
+:root[data-theme="trading"] .team__roster,
+:root[data-theme="trading"] .team__roster.team-drop-zone {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  border: none;
+  background: transparent;
+  padding: 0;
+  min-height: 0;
+}
+:root[data-theme="trading"] .team__roster:has(> .label:only-child),
+:root[data-theme="trading"] .team__roster.team-drop-zone:has(> .label:only-child) {
+  padding: var(--s3);
+  border: 1px dashed var(--rule-strong);
+  background: var(--bg-deep);
+  border-radius: 0;
+}
+:root[data-theme="trading"] .team__roster .label {
+  color: var(--ink-dimmer);
+  font-size: 10px;
+  text-align: center;
+  padding: var(--s2) 0;
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+:root[data-theme="trading"] .roster-row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: var(--s2);
+  padding: 4px var(--s2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  cursor: grab;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .roster-row:hover {
+  background: var(--surface-3);
+  border-color: var(--accent-line);
+}
+:root[data-theme="trading"] .roster-row__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface-3);
+  color: var(--ink-dim);
+}
+:root[data-theme="trading"] .team--red  .roster-row__avatar {
+  background: var(--bg);
+  border-color: var(--team-red);
+  color: var(--team-red);
+}
+:root[data-theme="trading"] .team--blue .roster-row__avatar {
+  background: var(--bg);
+  border-color: var(--team-blue);
+  color: var(--team-blue);
+}
+:root[data-theme="trading"] .roster-row__display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+}
+:root[data-theme="trading"] .roster-row__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="trading"] .roster-row__tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .roster-row__tag--ranked {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+:root[data-theme="trading"] .roster-row__tag--last {
+  border-color: var(--loss);
+  color: var(--loss);
+  background: var(--team-red-soft);
+}
+
+/* Versus column — center divider with bracketed round label */
+:root[data-theme="trading"] .versus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s4) var(--s2);
+  background: var(--surface-2);
+  border-left: 1px solid var(--rule-strong);
+  border-right: 1px solid var(--rule-strong);
+  min-width: 70px;
+}
+:root[data-theme="trading"] .versus__rule { display: none; }
+:root[data-theme="trading"] .versus__text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+  writing-mode: horizontal-tb;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .versus__round {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  writing-mode: horizontal-tb;
+  text-transform: uppercase;
+}
+
+/* ============== ACTIVE GAME (the hero, amber-ringed panel) ============== */
+:root[data-theme="trading"] .activegame {
+  margin-top: var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--accent-line);
+  border-radius: 0;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.12);
+}
+:root[data-theme="trading"] .activegame__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--accent-line);
+  background: var(--bg);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+:root[data-theme="trading"] .activegame__live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 0;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: trading-pulse 1.6s ease-in-out infinite;
+}
+:root[data-theme="trading"] .activegame__head-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .activegame__head-label::before {
+  content: '// ';
+  color: var(--accent-line);
+}
+:root[data-theme="trading"] .activegame__head-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--rule-strong);
+}
+:root[data-theme="trading"] .activegame__head-line {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .activegame__head-line .accent { color: var(--accent); }
+:root[data-theme="trading"] .activegame__head-line .glyph {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+:root[data-theme="trading"] .activegame__head-meta {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .activegame__head-meta .key {
+  color: var(--ink-dimmer);
+  margin-right: 4px;
+}
+:root[data-theme="trading"] .activegame__body {
+  padding: var(--s4);
+}
+
+/* Drag annotation strip */
+:root[data-theme="trading"] .annotation {
+  margin-bottom: var(--s3);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: 5px var(--s3);
+  background: var(--bg);
+  border: 1px dashed var(--accent-line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .annotation::before {
+  content: '//';
+  color: var(--accent-line);
+}
+:root[data-theme="trading"] .annotation__device {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .annotation__device kbd {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 1px 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  border-radius: 0;
+  margin-left: 4px;
+  font-weight: 700;
+}
+
+/* ============== POOL + SLOTS ============== */
+:root[data-theme="trading"] .pool { margin-bottom: var(--s4); }
+:root[data-theme="trading"] .pool__head,
+:root[data-theme="trading"] .slots__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  margin-bottom: var(--s2);
+  padding-bottom: 4px;
+  border-bottom: 1px dashed var(--rule);
+}
+:root[data-theme="trading"] .pool__title,
+:root[data-theme="trading"] .slots__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .pool__title::before,
+:root[data-theme="trading"] .slots__title::before {
+  content: '// ';
+  color: var(--accent-line);
+}
+:root[data-theme="trading"] .pool__sub,
+:root[data-theme="trading"] .slots__sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .pool__count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  margin-left: auto;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .pool__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--s2);
+  padding: var(--s3);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  min-height: 60px;
+}
+
+/* Pool tile — drag source */
+:root[data-theme="trading"] .pool-tile,
+:root[data-theme="trading"] .ranking-player-tile.pool-tile {
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s2) var(--s3);
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  gap: var(--s2);
+  align-items: center;
+  cursor: grab;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .pool-tile:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+:root[data-theme="trading"] .pool-tile__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  background: var(--surface-3);
+  color: var(--ink-dim);
+  border: 1px solid var(--rule-strong);
+}
+:root[data-theme="trading"] .pool-tile__avatar--red  { background: var(--bg); border-color: var(--team-red);  color: var(--team-red);  }
+:root[data-theme="trading"] .pool-tile__avatar--blue { background: var(--bg); border-color: var(--team-blue); color: var(--team-blue); }
+:root[data-theme="trading"] .pool-tile__name {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+:root[data-theme="trading"] .pool-tile__display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-theme="trading"] .pool-tile__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0;
+}
+
+/* Ranking slots — terminal slot list */
+:root[data-theme="trading"] .slots__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--s2);
+}
+:root[data-theme="trading"] .rank-slot,
+:root[data-theme="trading"] .slot {
+  background: var(--surface-2);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-height: 90px;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .slot__pos {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .slot__pos::before {
+  content: '> ';
+  color: var(--accent);
+}
+:root[data-theme="trading"] .slot__rank {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--ink);
+  text-align: center;
+}
+:root[data-theme="trading"] .slot--filled {
+  border-color: var(--win);
+  background: oklch(28% 0.06 145 / 0.18);
+}
+:root[data-theme="trading"] .slot--filled .slot__pos::before { color: var(--win); }
+:root[data-theme="trading"] .slot--target,
+:root[data-theme="trading"] .slot.drop-target {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.4), 0 0 14px oklch(80% 0.16 80 / 0.16);
+  animation: trading-drop-pulse 1.4s ease-in-out infinite;
+}
+@keyframes trading-drop-pulse {
+  0%, 100% { box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.4), 0 0 14px oklch(80% 0.16 80 / 0.16); }
+  50%      { box-shadow: inset 0 0 0 1px oklch(80% 0.16 80 / 0.8), 0 0 22px oklch(80% 0.16 80 / 0.30); }
+}
+
+/* ============== CALC PREVIEW (live-calc strip, monospace cells) ============== */
+:root[data-theme="trading"] .calcpreview {
+  margin-top: var(--s3);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s3) var(--s4);
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .calcpreview__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  padding-right: var(--s3);
+  border-right: 1px solid var(--rule-strong);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .calcpreview__seg {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font-mono);
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+:root[data-theme="trading"] .calcpreview__seg .key {
+  color: var(--ink-dimmer);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .calcpreview__seg .val {
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .calcpreview__seg .red  { color: var(--team-red);  font-weight: 700; }
+:root[data-theme="trading"] .calcpreview__seg .blue { color: var(--team-blue); font-weight: 700; }
+:root[data-theme="trading"] .calcpreview__seg .pending {
+  color: var(--accent);
+  font-weight: 700;
+  font-style: italic;
+}
+:root[data-theme="trading"] .calcpreview__sep { color: var(--rule-strong); }
+:root[data-theme="trading"] .calcpreview__hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .calcpreview__hint::before {
+  content: '> ';
+  color: var(--accent-line);
+}
+
+/* ============== TOGGLES + MANUAL BUTTONS ============== */
+:root[data-theme="trading"] .controls {
+  margin-top: var(--s3);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--s4);
+  align-items: stretch;
+}
+:root[data-theme="trading"] .toggles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+}
+:root[data-theme="trading"] .toggles__head {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .toggles__head::before {
+  content: '// ';
+  color: var(--rule-strong);
+}
+:root[data-theme="trading"] .toggles__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2) var(--s3);
+  align-items: center;
+}
+:root[data-theme="trading"] .toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px var(--s2);
+  font-size: 11px;
+  cursor: pointer;
+  border: 1px solid var(--rule-strong);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .toggle input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink-dim);
+  background: var(--bg);
+  border-radius: 0;
+  cursor: pointer;
+  margin: 0;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .toggle input[type="checkbox"]:checked {
+  background: var(--bg);
+  border-color: var(--win);
+}
+:root[data-theme="trading"] .toggle input[type="checkbox"]:checked::after {
+  content: 'X';
+  color: var(--win);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+:root[data-theme="trading"] .toggle__label {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .toggle:has(input[type="checkbox"]:checked) {
+  border-color: var(--win);
+  color: var(--win);
+}
+:root[data-theme="trading"] .toggle:has(input[type="checkbox"]:checked) .toggle__label {
+  color: var(--win);
+}
+
+:root[data-theme="trading"] .manualbtns {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+:root[data-theme="trading"] .manualbtns .btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: var(--s2) var(--s3);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  min-width: 200px;
+  position: relative;
+}
+:root[data-theme="trading"] .manualbtns .btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="trading"] .manualbtns .btn small {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+  text-transform: none;
+  font-weight: 400;
+}
+:root[data-theme="trading"] .btn--disabled-note {
+  position: absolute;
+  top: -6px;
+  right: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  background: var(--bg);
+  color: var(--accent);
+  padding: 1px 6px;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ============== RULES DRAWER (env-style key=val block) ============== */
+:root[data-theme="trading"] .rules-drawer {
+  margin-top: var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 0;
+}
+:root[data-theme="trading"] .rules-drawer details > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--s3) var(--s4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  border-bottom: 1px dashed var(--rule);
+}
+:root[data-theme="trading"] .rules-drawer details > summary::-webkit-details-marker { display: none; }
+:root[data-theme="trading"] .rules-drawer__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .rules-drawer__title::before {
+  content: '// ';
+  color: var(--accent-line);
+}
+:root[data-theme="trading"] .rules-drawer__chips {
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  flex: 1;
+  margin: 0 var(--s4);
+}
+:root[data-theme="trading"] .rule-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--s2);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .rule-chip__key {
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+:root[data-theme="trading"] .rule-chip__key::after {
+  content: '=';
+  color: var(--ink-dimmer);
+  margin: 0 2px;
+}
+:root[data-theme="trading"] .rule-chip__val {
+  color: var(--accent);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .rules-drawer__expand {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px 8px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  border-radius: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .rules-drawer__expand::before {
+  content: '▸';
+  font-size: 10px;
+}
+:root[data-theme="trading"] .rules-drawer details[open] .rules-drawer__expand::before {
+  content: '▾';
+}
+
+/* ============== HISTORY (order-book table) ============== */
+:root[data-theme="trading"] .history {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  margin-top: var(--s3);
+  overflow: hidden;
+}
+:root[data-theme="trading"] .history__head,
+:root[data-theme="trading"] .history__row {
+  display: grid;
+  grid-template-columns: 50px 56px 80px minmax(160px, 1.4fr) minmax(110px, 1fr) 50px 50px auto;
+  gap: var(--s3);
+  padding: var(--s2) var(--s4);
+  align-items: center;
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .history__head {
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  border-bottom: 1px solid var(--rule-strong);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .history__row {
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+}
+:root[data-theme="trading"] .history__row:last-child { border-bottom: 0; }
+:root[data-theme="trading"] .history__row:hover { background: var(--surface-2); }
+:root[data-theme="trading"] .history__row--highlight {
+  background: oklch(20% 0.04 80 / 0.30);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+:root[data-theme="trading"] .history__round {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .history__levelcard {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--ink);
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg);
+}
+:root[data-theme="trading"] .history__winner {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 0;
+  display: inline-block;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .history__winner--red {
+  color: var(--team-red);
+  background: transparent;
+  border: 1px solid var(--team-red);
+}
+:root[data-theme="trading"] .history__winner--blue {
+  color: var(--team-blue);
+  background: transparent;
+  border: 1px solid var(--team-blue);
+}
+:root[data-theme="trading"] .history__winner--inprog {
+  color: var(--accent);
+  background: transparent;
+  border: 1px dashed var(--accent);
+  animation: trading-pulse 1.6s ease-in-out infinite;
+}
+:root[data-theme="trading"] .history__combo {
+  font-family: var(--font-mono);
+  color: var(--ink-dim);
+  font-size: 11px;
+}
+:root[data-theme="trading"] .history__upgrade {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  display: inline-block;
+}
+:root[data-theme="trading"] .history__upgrade--zero {
+  color: var(--ink-dimmer);
+  font-weight: 400;
+}
+:root[data-theme="trading"] .history__upgrade--inprog {
+  color: var(--accent);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .history__lvl {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--rule-strong);
+  background: var(--bg);
+}
+:root[data-theme="trading"] .history__lvl--red  { border-color: var(--team-red);  color: var(--team-red); }
+:root[data-theme="trading"] .history__lvl--blue { border-color: var(--team-blue); color: var(--team-blue); }
+:root[data-theme="trading"] .history__lvl--pending { color: var(--ink-dimmer); border-style: dashed; }
+:root[data-theme="trading"] .history__rollback {
+  border: 1px solid var(--rule-strong);
+  background: var(--bg);
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 0;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .history__rollback:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* ============== HONORS GALLERY (terminal cards) ============== */
+:root[data-theme="trading"] .honors {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+}
+:root[data-theme="trading"] .honor {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--s3) var(--s4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  position: relative;
+  min-height: 0;
+}
+:root[data-theme="trading"] .honors > .honor:nth-child(2n) { border-right: 0; }
+:root[data-theme="trading"] .honors > .honor:nth-last-child(-n+2) { border-bottom: 0; }
+:root[data-theme="trading"] .honor::after { display: none; }
+:root[data-theme="trading"] .honor--leading { background: oklch(20% 0.04 80 / 0.10); }
+:root[data-theme="trading"] .honor--inprog { opacity: 0.85; }
+:root[data-theme="trading"] .honor__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s2);
+  border-bottom: 1px dashed var(--rule);
+  padding-bottom: var(--s2);
+}
+:root[data-theme="trading"] .honor__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .honor__cat {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .honor__cat::before { content: '['; color: var(--accent-line); }
+:root[data-theme="trading"] .honor__cat::after  { content: ']'; color: var(--accent-line); }
+:root[data-theme="trading"] .honor__status {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink-dimmer);
+  background: var(--bg);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .honor__status--leading {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+:root[data-theme="trading"] .honor__status--inprog { color: var(--ink-dim); border-style: dashed; }
+:root[data-theme="trading"] .honor__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+:root[data-theme="trading"] .honor__desc {
+  font-family: var(--font-prose);
+  font-size: 11px;
+  color: var(--ink-dim);
+  line-height: 1.45;
+}
+:root[data-theme="trading"] .honor__recipient {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-top: var(--s2);
+  border-top: 1px dashed var(--rule);
+}
+:root[data-theme="trading"] .honor__avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  background: var(--surface-2);
+  color: var(--ink-dim);
+  border: 1px solid var(--rule-strong);
+}
+:root[data-theme="trading"] .honor__avatar--red  { background: var(--bg); border-color: var(--team-red);  color: var(--team-red); }
+:root[data-theme="trading"] .honor__avatar--blue { background: var(--bg); border-color: var(--team-blue); color: var(--team-blue); }
+:root[data-theme="trading"] .honor__avatar--empty {
+  background: var(--bg);
+  color: var(--ink-dimmer);
+  border: 1px dashed var(--rule-strong);
+}
+:root[data-theme="trading"] .honor__player { flex: 1; min-width: 0; }
+:root[data-theme="trading"] .honor__playername {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+  display: block;
+}
+:root[data-theme="trading"] .honor__playername--placeholder {
+  color: var(--ink-dimmer);
+  font-style: italic;
+  font-weight: 400;
+}
+:root[data-theme="trading"] .honor__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0;
+}
+:root[data-theme="trading"] .honor__stat {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink);
+  text-align: right;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 1px solid var(--win);
+  color: var(--win);
+  padding: 2px 6px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+:root[data-theme="trading"] .honor__stat--big {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+:root[data-theme="trading"] .honor__stat--placeholder {
+  color: var(--ink-dimmer);
+  border-color: var(--rule-strong);
+  border-style: dashed;
+  font-style: italic;
+}
+:root[data-theme="trading"] .honor__stat-label {
+  display: block;
+  font-size: 8px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 1px;
+  font-weight: 500;
+}
+
+/* ============== PROFILE SNIPPET (career-stats card) ============== */
+:root[data-theme="trading"] .profile {
+  margin-top: var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s4);
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: var(--s4);
+}
+:root[data-theme="trading"] .profile__avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 36px;
+  background: var(--bg);
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  letter-spacing: -0.02em;
+}
+:root[data-theme="trading"] .profile__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+}
+:root[data-theme="trading"] .profile__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+:root[data-theme="trading"] .profile__handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0;
+}
+:root[data-theme="trading"] .profile__badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  color: var(--accent);
+  border-radius: 0;
+  margin-left: auto;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .profile__stats {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0;
+  margin-bottom: var(--s3);
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+}
+:root[data-theme="trading"] .profile__stat {
+  background: transparent;
+  border: 0;
+  border-right: 1px dashed var(--rule);
+  border-radius: 0;
+  padding: var(--s2) var(--s3);
+}
+:root[data-theme="trading"] .profile__stats > .profile__stat:last-child { border-right: 0; }
+:root[data-theme="trading"] .profile__stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .profile__stat-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--ink);
+}
+:root[data-theme="trading"] .profile__rels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+:root[data-theme="trading"] .profile__rel {
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s3);
+}
+:root[data-theme="trading"] .profile__rel-key {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: var(--s2);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .profile__rel-key::before { content: '['; color: var(--accent-line); }
+:root[data-theme="trading"] .profile__rel-key::after  { content: ']'; color: var(--accent-line); }
+:root[data-theme="trading"] .profile__rel-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--ink);
+}
+:root[data-theme="trading"] .profile__rel-name .handle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dimmer);
+  font-weight: 400;
+}
+:root[data-theme="trading"] .profile__rel-bar {
+  height: 3px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  margin: var(--s2) 0;
+  overflow: hidden;
+}
+:root[data-theme="trading"] .profile__rel-bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+:root[data-theme="trading"] .profile__rel-bar-fill--win { background: var(--win); }
+:root[data-theme="trading"] .profile__rel-bar-fill--loss { background: var(--loss); }
+:root[data-theme="trading"] .profile__rel-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .profile__rel-meta .pct { color: var(--accent); font-weight: 700; }
+
+/* ============== FOOTER ============== */
+:root[data-theme="trading"] .footer {
+  margin-top: var(--s5);
+  padding: var(--s3) var(--s4);
+  border-top: 1px solid var(--rule-strong);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ============== UTILITY OVERRIDES (chip / badge / etc) ============== */
+:root[data-theme="trading"] .chip {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 0;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-dim);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 0;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* Buttons (generic) — terminal-button language */
+:root[data-theme="trading"] .btn-primary,
+:root[data-theme="trading"] button.btn-primary {
+  background: var(--bg);
+  color: var(--win);
+  border: 1px solid var(--win);
+  border-radius: 0;
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .btn-primary:hover {
+  background: oklch(28% 0.06 145 / 0.18);
+}
+:root[data-theme="trading"] .btn-secondary,
+:root[data-theme="trading"] button.btn-secondary {
+  background: var(--bg);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="trading"] .btn-tertiary,
+:root[data-theme="trading"] button.btn-tertiary {
+  background: transparent;
+  color: var(--ink-dim);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .btn-tertiary:hover { color: var(--ink); border-color: var(--ink-dim); }
+:root[data-theme="trading"] .btn-accent {
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+:root[data-theme="trading"] .btn-danger {
+  background: var(--bg);
+  color: var(--loss);
+  border: 1px solid var(--loss);
+  border-radius: 0;
+  padding: 5px 12px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+/* Cards generic */
+:root[data-theme="trading"] .card,
+:root[data-theme="trading"] section.card {
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--s4);
+}
+
+/* Container max-width */
+:root[data-theme="trading"] .container {
+  max-width: 1280px;
+  padding: 0 var(--s4);
+}
+
+/* ============== ROOM BANNER (host / viewer sticky strip) ============== */
+:root[data-theme="trading"] .room-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 7px var(--s4);
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .room-banner--host {
+  background: var(--bg);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  cursor: pointer;
+  transition: background 0.18s ease;
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+:root[data-theme="trading"] .room-banner--host:hover {
+  background: var(--accent-soft);
+}
+:root[data-theme="trading"] .room-banner--host strong {
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .room-banner--viewer {
+  background: var(--bg);
+  color: var(--win);
+  border-bottom-color: var(--win);
+  box-shadow: inset 0 -1px 0 var(--win);
+}
+:root[data-theme="trading"] .room-banner--viewer strong {
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .room-banner__copied {
+  font-family: var(--font-mono);
+  color: var(--win);
+  margin-left: var(--s2);
+  letter-spacing: 0.04em;
+}
+
+/* ============== THEME PICKER (in settings drawer) ============== */
+:root[data-theme="trading"] .theme-picker {
+  font-family: var(--font-mono);
+}
+:root[data-theme="trading"] .theme-picker__label {
+  color: var(--accent);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+:root[data-theme="trading"] .theme-picker__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  padding: 3px 8px;
+  border: 1px solid var(--rule-strong);
+  margin-right: 6px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+:root[data-theme="trading"] .theme-picker__opt:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ============== RESPONSIVE (mobile <= 768px) ============== */
+@media (max-width: 768px) {
+  :root[data-theme="trading"] body {
+    background-size: 60px 60px; /* tighter grid on mobile */
+  }
+  :root[data-theme="trading"] .scorer {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="trading"] .team--red {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  :root[data-theme="trading"] .versus {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule-strong);
+    flex-direction: row;
+    min-width: 0;
+    padding: var(--s2) var(--s4);
+  }
+  :root[data-theme="trading"] .card-level__glyph {
+    font-size: 56px;
+    width: 80px;
+    height: 96px;
+  }
+  :root[data-theme="trading"] .ticker__items {
+    gap: 4px;
+  }
+  /* Drop low-priority ticker fields on mobile */
+  :root[data-theme="trading"] .ticker__item--room,
+  :root[data-theme="trading"] .ticker__item--owner,
+  :root[data-theme="trading"] .ticker__item--elapsed { display: none; }
+  :root[data-theme="trading"] .controls {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="trading"] .honors {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="trading"] .honors > .honor:nth-child(2n) { border-right: 0; }
+  :root[data-theme="trading"] .honors > .honor { border-right: 0; border-bottom: 1px solid var(--rule); }
+  :root[data-theme="trading"] .honors > .honor:last-child { border-bottom: 0; }
+  :root[data-theme="trading"] .profile {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="trading"] .profile__stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  :root[data-theme="trading"] .profile__stats .profile__stat:nth-child(3n) { border-right: 0; }
+  :root[data-theme="trading"] .profile__stats .profile__stat:nth-child(-n+3) { border-bottom: 1px dashed var(--rule); }
+  :root[data-theme="trading"] .profile__rels {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="trading"] .history__head,
+  :root[data-theme="trading"] .history__row {
+    grid-template-columns: 36px 50px 70px 1fr 60px;
+  }
+  :root[data-theme="trading"] .history__lvl,
+  :root[data-theme="trading"] .history__rollback { display: none; }
+}
