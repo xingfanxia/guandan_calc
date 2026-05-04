@@ -171,6 +171,6 @@ node scripts/visual/capture-game-active.mjs
 
 - **Profile snippet** was deleted from index.html. The user career-stats display still lives at `/player-profile.html` (full page). Decision: don't put a placeholder on game view; let `players.html` and `player-profile.html` be the canonical career data display.
 - **Linear sidebar layout** is documented in `THEME-ARCHITECTURE.md` Section 3 (`layout.mount()`) but not yet implemented. Phase 2 ships token+component restyle only; the sidebar restructure is deferred.
-- **Theme picker location** — currently in a `<details>` at bottom of game view. Discoverability is poor. Consider moving to topnav (gear icon) in Phase 2.5.
+- ~~**Theme picker location**~~ — RESOLVED in commit `ee70c88` (2026-05-04). Picker now sits in the topnav between tabs and user, rendered as inline radio chips per theme (`.topnav__picker` wrapper). No gear icon — the radios speak for themselves.
 - **PNG export** is not theme-aware. The `src/export/exportHandlers.js` and `src/export/exportMobile.js` use hardcoded colors for canvas rendering. Phase 5 should address.
 - **Vercel CLI** is at 52.0.0 in this session; 53.x is current. Upgrade with `npm i -g vercel@latest` when convenient.
