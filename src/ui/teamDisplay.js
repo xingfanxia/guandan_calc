@@ -142,8 +142,9 @@ export function renderTeams() {
     }
   }
 
-  // Versus column — round number, zero-padded ("本局 05" matches demo).
-  if (versusRound) versusRound.textContent = `本局 ${pad2(roundCount)}`;
+  // Versus column — natural round number ("第5局"). Pre-2026-05 used
+  // "本局 05" but unpadded "第N局" reads better in Chinese.
+  if (versusRound) versusRound.textContent = `第${roundCount}局`;
 
   // Round level mirror (active-game header glyph) + label
   let roundTeamName = '';

@@ -106,7 +106,7 @@ function render() {
   if (roundEl) {
     const history = state.getHistory();
     const n = history.length + 1;
-    roundEl.textContent = `本局 ${pad2(n)}`;
+    roundEl.textContent = `第${n}局`;
   }
 
   if (elapsedEl) {
