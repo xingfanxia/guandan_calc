@@ -378,11 +378,14 @@ const HONOR_META = {
 
 function avatarChar(player) {
   if (!player) return '?';
-  const name = (player.name || '').trim();
-  if (!name) return player.emoji || '?';
-  const digitMatch = name.match(/^玩家(\d+)$/);
-  if (digitMatch) return digitMatch[1];
-  return Array.from(name)[0];
+  // Profile players (with @handle): use first char of display name (Chinese surname feel).
+  // Session players (玩家1, 玩家2…): use the player's emoji — much more visually
+  // distinct than the digit; matches the small emoji shown next to their name.
+  if (player.handle) {
+    const name = (player.name || '').trim();
+    if (name) return Array.from(name)[0];
+  }
+  return player.emoji || '?';
 }
 
 function teamColorClass(player) {
@@ -394,20 +397,23 @@ function teamColorClass(player) {
  * Update one honor article with awarded data or empty placeholder.
  */
 function updateHonorArticle(article, honorData, meta) {
-  // Status badge
+  // Status badge — only shown when there's NO clear winner (i.e., honor is still calculating).
+  // When a winner exists, the recipient row already conveys leadership; the badge is noise.
   const statusEl = article.querySelector('.honor__status');
   if (statusEl) {
     statusEl.classList.remove('honor__status--leading', 'honor__status--inprog', 'honor__status--locked');
     if (honorData?.player) {
-      statusEl.textContent = 'leader';
-      statusEl.classList.add('honor__status--leading');
+      // Winner exists — hide the badge entirely
+      statusEl.hidden = true;
+      statusEl.textContent = '';
     } else {
+      statusEl.hidden = false;
       statusEl.textContent = '进行中';
       statusEl.classList.add('honor__status--inprog');
     }
   }
 
-  // Article modifier
+  // Article modifier — keep the orange accent strip on populated cards (visual hierarchy)
   article.classList.remove('honor--leading', 'honor--inprog');
   article.classList.add(honorData?.player ? 'honor--leading' : 'honor--inprog');
 

@@ -13,6 +13,12 @@ import { $ } from '../core/utils.js';
 import { on as onEvent } from '../core/events.js';
 import config from '../core/config.js';
 
+function currentMode() {
+  const el = $('mode');
+  const n = el ? parseInt(el.value, 10) : 4;
+  return Number.isFinite(n) ? n : 4;
+}
+
 function makeChip(keyText, valText) {
   const chip = document.createElement('span');
   chip.className = 'rule-chip';
@@ -30,34 +36,43 @@ function makeChip(keyText, valText) {
   return chip;
 }
 
+/**
+ * Render only the chips relevant to the current player-count mode, plus flags.
+ * 4-player: c4 (combination table) + flags
+ * 6-player: t6 (thresholds) + p6 (points) + flags
+ * 8-player: t8 (thresholds) + p8 (points) + flags
+ */
 export function renderRulesDrawerChips() {
   const target = $('rulesDrawerChips');
   if (!target) return;
 
-  const c4 = config.get4PlayerRules();
-  const six = config.get6PlayerRules();
-  const eight = config.get8PlayerRules();
+  const mode = currentMode();
+  target.replaceChildren();
 
-  // Compose values
-  const c4Val = `${c4['1,2']} - ${c4['1,3']} - ${c4['1,4']}`;
-  const t6Val = `${six.thresholds.g3} / ${six.thresholds.g2} / ${six.thresholds.g1}`;
-  const p6Val = [1, 2, 3, 4, 5, 6].map(r => six.points[r]).join(' - ');
-  const t8Val = `${eight.thresholds.g3} / ${eight.thresholds.g2} / ${eight.thresholds.g1}`;
+  if (mode === 4) {
+    const c4 = config.get4PlayerRules();
+    target.appendChild(makeChip('c4:', `${c4['1,2']} - ${c4['1,3']} - ${c4['1,4']}`));
+  } else if (mode === 6) {
+    const six = config.get6PlayerRules();
+    target.appendChild(makeChip('t6:', `${six.thresholds.g3} / ${six.thresholds.g2} / ${six.thresholds.g1}`));
+    target.appendChild(makeChip('p6:', [1, 2, 3, 4, 5, 6].map(r => six.points[r]).join(' - ')));
+  } else {
+    const eight = config.get8PlayerRules();
+    target.appendChild(makeChip('t8:', `${eight.thresholds.g3} / ${eight.thresholds.g2} / ${eight.thresholds.g1}`));
+    target.appendChild(makeChip('p8:', [1, 2, 3, 4, 5, 6, 7, 8].map(r => eight.points[r]).join(' - ')));
+  }
 
-  // Active automation flags
+  // Active automation flags (always shown, regardless of mode)
   const flags = [];
   if (config.getPreference('autoApply')) flags.push('autoApply');
   if (config.getPreference('autoNext')) flags.push('autoNext');
   if (config.getPreference('strictA')) flags.push('strictA');
   if (config.getPreference('must1')) flags.push('must1');
-  const flagsVal = flags.length ? flags.join(' · ') : '默认';
+  target.appendChild(makeChip('flags:', flags.length ? flags.join(' · ') : '默认'));
 
-  target.replaceChildren();
-  target.appendChild(makeChip('c4:', c4Val));
-  target.appendChild(makeChip('t6:', t6Val));
-  target.appendChild(makeChip('p6:', p6Val));
-  target.appendChild(makeChip('t8:', t8Val));
-  target.appendChild(makeChip('flags:', flagsVal));
+  // Mode-context chip (which mode's rules are showing)
+  const modeChip = makeChip('mode:', `${mode}人`);
+  target.insertBefore(modeChip, target.firstChild);
 }
 
 export function initRulesDrawerSync() {
@@ -66,4 +81,9 @@ export function initRulesDrawerSync() {
   onEvent('config:rulesUpdated', renderRulesDrawerChips);
   onEvent('config:preferenceChanged', renderRulesDrawerChips);
   onEvent('config:preferencesChanged', renderRulesDrawerChips);
+  onEvent('ui:modeChanged', renderRulesDrawerChips);
+
+  // Native change listener as fallback when the harness sets mode before controllers wire up
+  const modeEl = document.getElementById('mode');
+  if (modeEl) modeEl.addEventListener('change', renderRulesDrawerChips);
 }

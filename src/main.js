@@ -62,7 +62,7 @@ import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRost
 import { initTickerSync } from './ui/tickerSync.js';
 import { initCalcPreviewSync, renderCalcPreview } from './ui/calcPreviewSync.js';
 import { initRulesDrawerSync, renderRulesDrawerChips } from './ui/rulesDrawerSync.js';
-import { initProfileSnippetSync, renderProfileSnippet } from './ui/profileSnippetSync.js';
+import { initSetupVisibility } from './ui/setupVisibility.js';
 
 // Theme system
 import * as themeManager from './themes/_shared/themeManager.js';
@@ -175,8 +175,9 @@ function initializeUI() {
   // Wire compact rules drawer chip strip
   initRulesDrawerSync();
 
-  // Wire profile snippet (bottom-of-page personal data card)
-  initProfileSnippetSync();
+  // Hide setup-only sections (multiplayer / mode selector / player setup)
+  // once the game has begun (history > 0 OR ranking placed).
+  initSetupVisibility();
 
   // Wire AUTO badge on apply/advance buttons (toggles when autoApply changes)
   function updateAutoBadges() {
