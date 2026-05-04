@@ -79,16 +79,16 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
-**Theme System (8 modules)**: Token-based 5-theme architecture (Phases 0+1+1.5 shipped 2026-05-03)
+**Theme System (8 modules)**: Token-based 5-theme architecture (Phases 0+1 merged; Phase 1.5 IN PROGRESS — structural shells shipped, ~40-45% visual fidelity vs demo, NOT done)
 - `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
 - `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
 - `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
 - `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
-- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono + ALL Phase 1.5 component styles (topnav, ticker, scoreboard, activegame, pool/slots, honors, sample, profile, footer, page-specific player/room/profile sections) — 2978 lines, every rule scoped under `:root[data-theme="broadcast"]`
+- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono + Phase 1.5 component styles (topnav, ticker, scoreboard, activegame, pool/slots, honors, sample, profile, footer, page-specific player/room/profile sections) — 2978 lines, every rule scoped under `:root[data-theme="broadcast"]`
 - `themes/broadcast/featureManifest.js` - Broadcast's feature flags
 - `themes/broadcast/index.js` - Theme barrel (name, displayName, layout placeholder)
-- `ui/tickerSync.js` - Live ticker state sync (mode, level, owner, round) — subscribes to state events; bootstrapped from `main.js`
-- See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase rollout plan; Phases 2-5 (Linear, Trading, Atelier, Tea-Table) are subsequent PRs. After Phase 1.5, all 4 HTML pages share the editorial top nav + footer pattern.
+- `ui/tickerSync.js` - Live ticker state sync (4 of 6 fields wired — Mode/Level/Owner/Round; Room and Elapsed still TODO) — subscribes to state events; bootstrapped from `main.js`
+- See `docs/design/HANDOFF.md` "Phase 1.5 remaining gap" table for the section-by-section punch list (scoreboard rosters, calc preview, toggles, manual buttons, rules drawer, history, honors, profile snippet, ticker fields, header line). **Do NOT start Phase 2 (Linear) until Phase 1.5 reaches ≥95% per section.** See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase plan.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
