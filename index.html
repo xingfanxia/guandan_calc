@@ -51,6 +51,7 @@
         <span class="topnav__tab-meta">ROOMS</span>
       </a>
     </div>
+    <div id="themePickerMount" class="topnav__picker"></div>
     <div class="topnav__user">
       <div class="topnav__user-avatar">玩</div>
       <div class="topnav__user-meta">
@@ -105,8 +106,9 @@
 <!-- MAIN CONTAINER (preserves .wrap for legacy CSS hooks like installPWA) -->
 <main class="container wrap">
 
-  <!-- PWA install prompt (preserved hidden) -->
-  <button id="installPWA" style="display:none; margin-top:var(--s4); padding:10px 16px; background:var(--accent); color:var(--bg-deep); border:none; border-radius:var(--radius-md); font-family:var(--font-display); font-weight:700; cursor:pointer;">📱 安装到主屏幕</button>
+  <!-- Top-level new-room CTA — visible during gameplay even when the
+       multiplayer setup section is hidden by setupVisibility.js -->
+  <button id="newRoom" class="btn-primary newroom-cta">📺 新房间 · NEW ROOM</button>
 
   <!-- ============== ROOM CONTROLS ============== -->
   <div class="section-rule">
@@ -870,13 +872,6 @@
     <span class="section-rule__line"></span>
     <span class="section-rule__meta">PHASE 0+1 · BROADCAST DEFAULT</span>
   </div>
-
-  <section class="card" id="themePickerSection">
-    <details>
-      <summary class="card__summary">🎨 主题</summary>
-      <div id="themePickerMount" style="margin-top:12px;"></div>
-    </details>
-  </section>
 
   <!-- ============== FOOTER ============== -->
   <footer class="footer">

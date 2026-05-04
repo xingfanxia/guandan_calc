@@ -15,6 +15,14 @@ export function setupRoomControls() {
   const joinRoomBtn = $('joinRoom');
   const browseRoomsBtn = $('browseRooms');
   const leaveRoomBtn = $('leaveRoom');
+  const newRoomBtn = $('newRoom');
+
+  // Top-level new-room CTA at the page header forwards to the same handler
+  // as the in-card createRoom button (visible during gameplay; the
+  // multiplayer setup card is hidden by setupVisibility.js once a game starts).
+  if (newRoomBtn && createRoomBtn) {
+    on(newRoomBtn, 'click', () => createRoomBtn.click());
+  }
 
   // Create room
   if (createRoomBtn) {

@@ -187,16 +187,21 @@
 }
 
 /* ============== TOP NAV (4-tab IA, brackets) ============== */
+/* `.topnav` wraps a single `.topnav__inner` flex container that holds brand,
+ * tabs, and user. Putting flex on `.topnav` alone is pointless (one child);
+ * the row layout has to live on `.topnav__inner`. */
 :root[data-theme="trading"] .topnav {
   background: var(--bg);
   border-bottom: 1px solid var(--rule-strong);
   padding: 6px var(--s4);
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .topnav__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
 }
 :root[data-theme="trading"] .topnav__brand {
   display: inline-flex;
@@ -252,6 +257,51 @@
 :root[data-theme="trading"] .topnav__tab.active::after,
 :root[data-theme="trading"] .topnav__tab a:hover::before,
 :root[data-theme="trading"] .topnav__tab a:hover::after { color: var(--accent); }
+
+/* User identity cluster — pushed right with margin-left:auto. Matches the
+ * terminal aesthetic: square-edged avatar, mono handle, all-caps name. */
+:root[data-theme="trading"] .topnav__user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-left: var(--s3);
+  border-left: 1px solid var(--rule-strong);
+}
+:root[data-theme="trading"] .topnav__user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+  letter-spacing: 0;
+}
+:root[data-theme="trading"] .topnav__user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.2;
+}
+:root[data-theme="trading"] .topnav__user-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+}
+:root[data-theme="trading"] .topnav__user-handle {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0;
+  text-transform: lowercase;
+}
 
 /* ============== SECTION RULES (ASCII slash-slash divider) ============== */
 :root[data-theme="trading"] .section-rule {
@@ -840,10 +890,81 @@
   text-align: center;
 }
 :root[data-theme="trading"] .slot--filled {
-  border-color: var(--win);
-  background: oklch(28% 0.06 145 / 0.18);
+  border-color: var(--rule-strong);
+  background: var(--surface-2);
 }
-:root[data-theme="trading"] .slot--filled .slot__pos::before { color: var(--win); }
+:root[data-theme="trading"] .slot--filled .slot__pos::before { color: var(--accent); }
+
+/* Team color coding — red / blue tint for filled slots so the placement
+ * grid reads as team allocation at a glance. The renderer adds
+ * `.slot--filled-red` / `.slot--filled-blue` per `teamColorClass(player)`. */
+:root[data-theme="trading"] .slot--filled-red {
+  border-color: var(--team-red);
+  background: var(--team-red-soft);
+}
+:root[data-theme="trading"] .slot--filled-blue {
+  border-color: var(--team-blue);
+  background: var(--team-blue-soft);
+}
+
+/* Slot child elements — the renderer drops six children into a filled
+ * slot: index, rank-cn, avatar, name, handle, check. */
+:root[data-theme="trading"] .slot__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  font-weight: 700;
+}
+:root[data-theme="trading"] .slot__index::before {
+  content: '> ';
+  color: var(--accent);
+}
+:root[data-theme="trading"] .slot--filled-red  .slot__index::before { color: var(--team-red); }
+:root[data-theme="trading"] .slot--filled-blue .slot__index::before { color: var(--team-blue); }
+:root[data-theme="trading"] .slot__rank-cn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+:root[data-theme="trading"] .slot__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  color: var(--ink);
+  align-self: flex-start;
+}
+:root[data-theme="trading"] .slot--filled-red  .slot__avatar { border-color: var(--team-red);  color: var(--team-red);  }
+:root[data-theme="trading"] .slot--filled-blue .slot__avatar { border-color: var(--team-blue); color: var(--team-blue); }
+:root[data-theme="trading"] .slot__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--ink);
+}
+:root[data-theme="trading"] .slot__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0;
+}
+:root[data-theme="trading"] .slot__check {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--win);
+  font-weight: 700;
+}
+
 :root[data-theme="trading"] .slot--target,
 :root[data-theme="trading"] .slot.drop-target {
   border: 1px solid var(--accent);
@@ -1782,7 +1903,25 @@
   letter-spacing: 0.04em;
 }
 
-/* ============== THEME PICKER (in settings drawer) ============== */
+/* ============== THEME PICKER (now in topnav) ============== */
+:root[data-theme="trading"] .topnav__picker {
+  display: inline-flex;
+  align-items: center;
+}
+:root[data-theme="trading"] .topnav__picker .theme-picker {
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+/* Hide the section label inside the picker when in navbar (the radios speak
+ * for themselves; saving navbar real estate). */
+:root[data-theme="trading"] .topnav__picker .theme-picker__head { display: none; }
+:root[data-theme="trading"] .topnav__picker .theme-picker__group {
+  display: inline-flex;
+  gap: 4px;
+}
+:root[data-theme="trading"] .topnav__picker .theme-picker__opt input[type="radio"] { display: none; }
 :root[data-theme="trading"] .theme-picker {
   font-family: var(--font-mono);
 }
@@ -1796,20 +1935,45 @@
 :root[data-theme="trading"] .theme-picker__opt {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ink);
-  padding: 3px 8px;
+  font-size: 10px;
+  color: var(--ink-dim);
+  padding: 2px 6px;
   border: 1px solid var(--rule-strong);
-  margin-right: 6px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
+  background: var(--bg);
+  font-weight: 500;
 }
 :root[data-theme="trading"] .theme-picker__opt:has(input:checked) {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ============== TOP-LEVEL NEW-ROOM CTA ============== */
+:root[data-theme="trading"] .newroom-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  margin-bottom: var(--s2);
+  padding: 6px 14px;
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: inset 0 -1px 0 var(--accent);
+}
+:root[data-theme="trading"] .newroom-cta:hover {
   background: var(--accent-soft);
 }
 
@@ -1846,6 +2010,54 @@
   :root[data-theme="trading"] .ticker__item--room,
   :root[data-theme="trading"] .ticker__item--owner,
   :root[data-theme="trading"] .ticker__item--elapsed { display: none; }
+
+  /* Pool + slots — fit pool AND placement grid in one mobile screen so the
+   * user can drag without scrolling. Compact each slot down to a 2-line
+   * layout (index + rank-cn on top, name + handle below). */
+  :root[data-theme="trading"] .pool__grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    padding: 6px;
+    gap: 4px;
+  }
+  :root[data-theme="trading"] .pool-tile,
+  :root[data-theme="trading"] .ranking-player-tile.pool-tile {
+    grid-template-columns: 20px 1fr;
+    padding: 4px 6px;
+    min-height: 0;
+  }
+  :root[data-theme="trading"] .pool-tile__avatar { width: 18px; height: 18px; font-size: 10px; }
+  :root[data-theme="trading"] .pool-tile__display { font-size: 11px; }
+  :root[data-theme="trading"] .pool-tile__handle { font-size: 9px; }
+  :root[data-theme="trading"] .slots__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  :root[data-theme="trading"] .rank-slot,
+  :root[data-theme="trading"] .slot {
+    padding: 5px 6px;
+    min-height: 56px;
+    gap: 2px;
+  }
+  :root[data-theme="trading"] .slot__rank-cn,
+  :root[data-theme="trading"] .slot__check { display: none; }
+  :root[data-theme="trading"] .slot__avatar {
+    width: 18px; height: 18px; font-size: 10px;
+  }
+  :root[data-theme="trading"] .slot__index { font-size: 9px; }
+  :root[data-theme="trading"] .slot__name { font-size: 11px; }
+  :root[data-theme="trading"] .slot__handle { font-size: 9px; }
+
+  /* Theme picker in navbar — hide on mobile to save room */
+  :root[data-theme="trading"] .topnav__picker .theme-picker__opt-name {
+    font-size: 9px;
+    padding: 0 2px;
+  }
+  :root[data-theme="trading"] .topnav__picker {
+    display: none;
+  }
+  /* Hide the topnav user-meta on very narrow screens, keep avatar only */
+  :root[data-theme="trading"] .topnav__user-meta { display: none; }
+
   :root[data-theme="trading"] .controls {
     grid-template-columns: 1fr;
   }

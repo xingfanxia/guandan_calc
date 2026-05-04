@@ -157,10 +157,15 @@
 }
 
 /* ============== TOP NAV ============== */
+/* `.topnav` wraps a single `.topnav__inner` flex container that holds brand,
+ * tabs, and user. Putting flex on `.topnav` alone is pointless (one child);
+ * the row layout has to live on `.topnav__inner`. */
 :root[data-theme="linear"] .topnav {
   background: var(--bg);
   border-bottom: 1px solid var(--rule);
   padding: 10px var(--s5);
+}
+:root[data-theme="linear"] .topnav__inner {
   display: flex;
   align-items: center;
   gap: var(--s4);
@@ -202,6 +207,46 @@
 :root[data-theme="linear"] .topnav__tab a:hover {
   background: var(--surface);
   color: var(--ink);
+}
+
+/* User identity cluster — pushed to the right with margin-left:auto */
+:root[data-theme="linear"] .topnav__user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding-left: var(--s4);
+  border-left: 1px solid var(--rule);
+}
+:root[data-theme="linear"] .topnav__user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--accent-line);
+  background: var(--accent-soft);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+}
+:root[data-theme="linear"] .topnav__user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.2;
+}
+:root[data-theme="linear"] .topnav__user-name {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+}
+:root[data-theme="linear"] .topnav__user-handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
 }
 
 /* ============== SECTION RULES (tight horizontal divider) ============== */
@@ -700,9 +745,70 @@
   text-align: center;
 }
 :root[data-theme="linear"] .slot--filled {
-  border-color: var(--accent-line);
-  background: var(--accent-soft);
+  border-color: var(--rule-strong);
+  background: var(--surface-2);
 }
+
+/* Team color coding — red / blue tint for filled slots so the placement
+ * grid reads as team allocation at a glance. The renderer adds
+ * `.slot--filled-red` / `.slot--filled-blue` per `teamColorClass(player)`. */
+:root[data-theme="linear"] .slot--filled-red {
+  border-color: var(--team-red-line);
+  background: var(--team-red-soft);
+}
+:root[data-theme="linear"] .slot--filled-blue {
+  border-color: var(--team-blue-line);
+  background: var(--team-blue-soft);
+}
+
+/* Slot child elements — six children: index, rank-cn, avatar, name, handle, check. */
+:root[data-theme="linear"] .slot__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  font-weight: 500;
+}
+:root[data-theme="linear"] .slot__rank-cn {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0;
+}
+:root[data-theme="linear"] .slot__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 12px;
+  background: var(--surface-3);
+  color: var(--ink);
+  align-self: flex-start;
+}
+:root[data-theme="linear"] .slot--filled-red  .slot__avatar { background: var(--team-red-soft);  color: var(--team-red);  }
+:root[data-theme="linear"] .slot--filled-blue .slot__avatar { background: var(--team-blue-soft); color: var(--team-blue); }
+:root[data-theme="linear"] .slot__name {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink);
+}
+:root[data-theme="linear"] .slot__handle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="linear"] .slot__check {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--win);
+  font-weight: 600;
+}
+
 :root[data-theme="linear"] .slot--target,
 :root[data-theme="linear"] .slot.drop-target {
   border-color: var(--accent);
@@ -1490,4 +1596,146 @@
   font-family: var(--font-mono);
   color: var(--win);
   margin-left: var(--s2);
+}
+
+/* ============== THEME PICKER (now in topnav) ============== */
+:root[data-theme="linear"] .topnav__picker {
+  display: inline-flex;
+  align-items: center;
+}
+:root[data-theme="linear"] .topnav__picker .theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+:root[data-theme="linear"] .topnav__picker .theme-picker__head { display: none; }
+:root[data-theme="linear"] .topnav__picker .theme-picker__group {
+  display: inline-flex;
+  gap: 4px;
+}
+:root[data-theme="linear"] .topnav__picker .theme-picker__opt input[type="radio"] { display: none; }
+:root[data-theme="linear"] .theme-picker__opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--ink-dim);
+  padding: 3px 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: var(--surface);
+  font-weight: 500;
+}
+:root[data-theme="linear"] .theme-picker__opt:has(input:checked) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* ============== TOP-LEVEL NEW-ROOM CTA ============== */
+:root[data-theme="linear"] .newroom-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s3);
+  margin-bottom: var(--s2);
+  padding: 6px 14px;
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+:root[data-theme="linear"] .newroom-cta:hover {
+  background: var(--accent-line);
+  border-color: var(--accent-line);
+}
+
+/* ============== RESPONSIVE (mobile <= 768px) ============== */
+@media (max-width: 768px) {
+  :root[data-theme="linear"] .scorer {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="linear"] .team--red {
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  :root[data-theme="linear"] .versus {
+    border-left: 0;
+    border-right: 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    flex-direction: row;
+    min-width: 0;
+    padding: var(--s2) var(--s4);
+  }
+  :root[data-theme="linear"] .card-level__glyph {
+    font-size: 32px;
+  }
+
+  /* Pool + slots — fit pool AND placement grid in one mobile screen */
+  :root[data-theme="linear"] .pool__grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    padding: 6px;
+    gap: 4px;
+  }
+  :root[data-theme="linear"] .pool-tile,
+  :root[data-theme="linear"] .ranking-player-tile.pool-tile {
+    grid-template-columns: 20px 1fr;
+    padding: 4px 6px;
+    min-height: 0;
+  }
+  :root[data-theme="linear"] .pool-tile__avatar { width: 18px; height: 18px; font-size: 10px; }
+  :root[data-theme="linear"] .pool-tile__display { font-size: 11px; }
+  :root[data-theme="linear"] .pool-tile__handle { font-size: 9px; }
+  :root[data-theme="linear"] .slots__grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  :root[data-theme="linear"] .rank-slot,
+  :root[data-theme="linear"] .slot {
+    padding: 5px 6px;
+    min-height: 56px;
+    gap: 2px;
+  }
+  :root[data-theme="linear"] .slot__rank-cn,
+  :root[data-theme="linear"] .slot__check { display: none; }
+  :root[data-theme="linear"] .slot__avatar {
+    width: 18px; height: 18px; font-size: 10px;
+  }
+  :root[data-theme="linear"] .slot__index { font-size: 9px; }
+  :root[data-theme="linear"] .slot__name { font-size: 11px; }
+  :root[data-theme="linear"] .slot__handle { font-size: 9px; }
+
+  /* Hide the topnav picker + user-meta on mobile to save room */
+  :root[data-theme="linear"] .topnav__picker { display: none; }
+  :root[data-theme="linear"] .topnav__user-meta { display: none; }
+
+  :root[data-theme="linear"] .controls {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="linear"] .honors {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="linear"] .profile {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="linear"] .profile__stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  :root[data-theme="linear"] .profile__rels {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="linear"] .history__head,
+  :root[data-theme="linear"] .history__row {
+    grid-template-columns: 36px 50px 70px 1fr 60px;
+  }
+  :root[data-theme="linear"] .history__lvl,
+  :root[data-theme="linear"] .history__rollback { display: none; }
 }
