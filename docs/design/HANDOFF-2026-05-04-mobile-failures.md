@@ -125,6 +125,32 @@ internal layout of EACH team panel may still cram on small widths.
 **Investigation pointer:** look at `.team__head` + `.card-level` flex
 direction on mobile. They may need to be stacked column not row.
 
+### Image 44 / 45 / 46
+**Pool / slot column heights don't align on desktop and tablet widths.**
+
+In the side-by-side rank-placement layout (pool LEFT, slots RIGHT), the
+slot column is significantly TALLER than the pool column on desktop:
+each slot ~80-90px tall, each pool tile ~36-44px. Pool tile 1 aligns
+with slot 1 visually but tile 8 ends way above slot 8. Plus "↓ drop
+here" text wraps to multiple lines on the drop-target slot, breaking
+inside the slot bounds.
+
+Affects all 3 themes:
+- Broadcast (image 44): clean pool, tall slots, misaligned
+- Linear (image 45): same — drop-here label overflows slot
+- Trading (image 46): same — drop-here label wraps `↓ drop / here`
+
+**Investigation pointer:**
+- Slot desktop CSS sets `min-height: 96px` (Linear) / `90px` (Trading)
+  / similar (Broadcast). These need to drop to ~44px to match pool
+  tile heights, OR pool tile needs to grow to match slot heights.
+- The mobile `height: 36px !important` only applies <768px. Desktop
+  uses the original tall-card layout.
+- Fix should make slots and pool tiles consistent across all viewports,
+  not just mobile.
+- For drop-here wrapping: `white-space: nowrap` on `.slot__target-label`
+  + `.slot__target-icon` so they stay on one line.
+
 ## Selector mismatches the agent kept hitting
 
 This list exists so the next session does not repeat them:
