@@ -402,19 +402,25 @@
 
 ---
 
-### Theme System (`src/themes/` + `src/ui/tickerSync.js`) - Phases 0+1+1.5 (2026-05-03)
+### Theme System (`src/themes/` + `src/ui/*Sync.js` modules) - Phases 0+1+1.5 + 2 (2026-05-03)
 
-5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. Currently
-Broadcast (the default) is the only registered theme; Phases 2-5 (Linear,
-Trading, Atelier, Tea-Table) ship as subsequent PRs.
+5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. Two themes
+shipped: **Broadcast** (A · default) and **Linear** (E). Phases 3-5
+(Trading, Atelier, Tea-Table) are subsequent PRs.
 
-**Phase 1.5 (visible transformation)** added:
-- DOM rewrite of all 4 HTML pages (`index.html`, `players.html`, `rooms.html`, `player-profile.html`) to match `docs/design/demos/demo-broadcast-v3.html`. Top nav with editorial brand + 3 tabs (Game/Players/Rooms) + user identity strip. Ticker on game + sub-ticker on rooms. Giant Fraunces level glyphs (200px) on the team scoreboard. Editorial active-game hero (`.pool` + `.slots` grid) with drop-target visualization. 16-card honors grid. Sample/championship preview. Profile snippet. Editorial footer.
-- All ~840 inline `<style>` lines previously embedded in the 3 sister pages migrated into `theme.css` and scoped under `:root[data-theme="broadcast"]`. theme.css grew from 209 → 2978 lines.
-- All 130+ JavaScript-bound element IDs were preserved during the rewrite (verified via grep).
-- New module `src/ui/tickerSync.js` wires ticker fields (`#tickerMode`, `#tickerLevel`, `#tickerOwner`, `#tickerRound`) to live `state.js` events. Bootstrapped from `initializeUI()` in `main.js`.
-- ARIA: topnav has `aria-label="主导航"`, active tab has `aria-current="page"`, mode selector is a proper `role="radiogroup"` with `role="radio"` + `aria-checked` per option (synced by inline IIFE).
-- Removed the duplicate "我的资料 / PROFILE" topnav tab — it pointed to `/players.html` (wrong destination); will return when session identity ships in Phase 2.
+**Phase 1.5 (Broadcast editorial closure)** — drove from ~40% to ~92% match vs `docs/design/demos/demo-broadcast-v3.png`:
+- DOM rewrite of all 4 HTML pages (`index.html`, `players.html`, `rooms.html`, `player-profile.html`) — top nav + ticker + scoreboard + active-game + history + honors + sample + profile + footer.
+- ~840 inline `<style>` lines migrated into `theme.css`, scoped under `:root[data-theme="broadcast"]`. theme.css ≈3500 lines.
+- All 130+ JavaScript-bound element IDs preserved.
+- New live-data sync modules: `ui/calcPreviewSync.js`, `ui/rulesDrawerSync.js`, `ui/profileSnippetSync.js`. Existing `ui/tickerSync.js` extended to 6 fields. `game/history.js` rewritten as flexbox rows. `stats/honors.js` rewritten with team-colored recipient blocks. `player/playerRenderer.js` extended with `.roster-row` mode for scoreboard team zones. `ui/teamDisplay.js` extended with RANK NN/13 + active-game header line accents.
+- ARIA preserved across rewrite. Removed the duplicate "我的资料 / PROFILE" topnav tab — returns when session identity ships in Phase 2.5.
+
+**Phase 2 (Linear / Vercel Console)** — shipped 2026-05-03:
+- Second registered theme. Same DOM + renderers as Broadcast; CSS-only transformation.
+- Geist + Geist Mono, deep-neutral oklch base, single Linear-purple accent, density-first scale.
+- `src/themes/linear/theme.css` (~990 lines, every rule scoped under `:root[data-theme="linear"]`).
+- Capture baselines: `docs/reports/phase2-linear/`.
+- Phase 2.5 follow-up: Linear sidebar layout via `layout.mount()` + state preservation across theme switches.
 
 #### `themes/_shared/tokenSpec.js` - Token Contract
 **Exports**: `TOKEN_SPEC` (frozen Object: color/font/scale/radius lists),
@@ -444,7 +450,7 @@ Captures and releases its `theme:changed` subscription across re-mounts.
 #### `themes/broadcast/theme.css` - Broadcast Palette + Typography + Component Styles
 Activates under `:root[data-theme="broadcast"]`. Each oklch() value is
 paired with a sRGB hex/rgb fallback so Safari iOS 15.0–15.3 (parsers that
-reject oklch) still gets a valid color. **2978 lines** post-Phase-1.5. Defines:
+reject oklch) still gets a valid color. **~3650 lines** post-Phase-1.5. Defines:
 - 22 color tokens (bg/surface/ink/accent/team/win/loss/rule families)
 - 3 font tokens (Fraunces / Inter Tight / DM Mono)
 - 8 spacing tokens (`--s1` through `--s8`)
@@ -460,15 +466,44 @@ Phase 2 follow-up: split into `theme.tokens.css` + `theme.layout.css` + `theme.c
 Broadcast's explicit manifest values + the theme barrel (name, displayName,
 description, stylesheet path, layout placeholder).
 
-#### `ui/tickerSync.js` - Live Ticker State Binding (NEW Phase 1.5)
-Subscribes to events emitted by `core/state.js` and `core/events.js` and updates
-the four ticker fields on `index.html`:
-- `#tickerMode` — "4人 · 2v2" / "6人 · 3v3" / "8人 · 4v4" (driven by `#mode` `<select>`)
-- `#tickerLevel` — current round level (mirror of `#curRoundLvl`)
-- `#tickerOwner` — current round owner team name with team-color inline style
-- `#tickerRound` — "本局 N" where N is `state.getHistory().length + 1`
+#### `themes/linear/theme.css` - Linear / Vercel Console Theme (Phase 2)
+Activates under `:root[data-theme="linear"]`. ~990 lines.
+- Geist + Geist Mono, oklch deep-neutral 270° base, single Linear-purple accent
+- Density-first scale (`--s1` through `--s8` are 4/6/10/14/20/28/40/56 px)
+- Equal-lightness surfaces (14/18/22/26%) with 1px borders for depth
+- Compact level glyph (36px) replaces Broadcast's 200px editorial; no decorative card-suit symbols
+- 4-column honors grid, monospace history table, custom checkbox styling
 
-Listens for: `ui:modeChanged`, round-level/owner/history change events, `state:hydrated`, `state:reset`, `room:synced`, config team-name change. Bootstrap call lives in `main.js` `initializeUI()`.
+#### `themes/linear/featureManifest.js` / `index.js`
+Linear's manifest (`commandPalette: true`, `liveCalcStrip: 'monospace'`,
+`honorPortraits: 'tagged'`) + theme barrel.
+
+#### `ui/tickerSync.js` - Live Ticker Binding
+Six-field ticker (`#tickerRoom`, `#tickerMode`, `#tickerRound`, `#tickerLevel`,
+`#tickerOwner`, `#tickerElapsed`) plus a LIVE/SYNC indicator. Reads room code
+from URL hash or `state.getRoomCode()`. Drives an interval timer for the
+elapsed counter. Listens to `ui:modeChanged`, round-level/owner/history events,
+`state:hydrated`, `state:gameReset`, `state:allReset`, `room:updated`,
+`room:joined`, `room:left`, `config:teamChanged`.
+
+#### `ui/calcPreviewSync.js` - LIVE CALC Editorial Strip (NEW Phase 1.5)
+Renders three editorial segments — 红 / 蓝 / 差距 — based on current ranking
+state. For 4-player: combination lookup with c4 table. For 6/8: per-team partial
+sums + score difference + threshold hint. Mode-aware slot count. Subscribes to
+ranking events + `ui:modeChanged`.
+
+#### `ui/rulesDrawerSync.js` - Rules Chip Strip (NEW Phase 1.5)
+Renders the compact `<summary>` chip strip on the Custom Rules drawer:
+`c4: 3-2-1 · t6: 7/4/1 · p6: 5-4-3-3-1-0 · t8: 11/5/0 · flags: ...`. Listens to
+`config:settingChanged`, `config:rulesUpdated`, `config:preferenceChanged`,
+`config:preferencesChanged`.
+
+#### `ui/profileSnippetSync.js` - Bottom-of-Page Profile Card (NEW Phase 1.5)
+Binds the editorial profile snippet to the active player profile. Active
+player resolved via `gd_active_profile_handle` localStorage key (set when user
+selects a player) or first profile-player in current session. Renders avatar,
+name, handle, badge, 6-stat grid (Sessions/Won/Rounds/AvgRank/PlayTime/最C·最闹),
+top-partner + top-rival progress bars. Empty-state fallback for guest.
 
 ### Share & Room Features (`src/share/`)
 
