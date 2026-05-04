@@ -80,6 +80,17 @@ export function setupPlayerControls() {
       const playerIds = players.map(p => p.id);
 
       randomizeRanking(playerIds, mode);
+
+      // Surface what happened — without this hint, autoApply consumes the
+      // random fill in the same frame and the user thinks the click did
+      // nothing. Tells them whether result auto-applied or awaits manual click.
+      const applyTip = $('applyTip');
+      if (applyTip) {
+        const autoApply = document.getElementById('autoApply')?.checked;
+        applyTip.textContent = autoApply
+          ? '✓ 已随机分配名次，结果已自动应用'
+          : '✓ 已随机分配名次，请点击「应用结果到战绩」';
+      }
     });
   }
 

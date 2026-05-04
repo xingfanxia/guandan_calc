@@ -2670,6 +2670,21 @@
     border-left: 0;
     padding-left: var(--s2);
   }
+  /* Mobile ticker: hide Room/Owner/Elapsed and the separators flanking them.
+     Keep Mode, Round, Level — they're the primary game-state info. */
+  :root[data-theme="broadcast"] .ticker__item:nth-child(1),
+  :root[data-theme="broadcast"] .ticker__item:nth-child(11),
+  :root[data-theme="broadcast"] .ticker__sep:nth-child(2),
+  :root[data-theme="broadcast"] .ticker__sep:nth-child(10),
+  :root[data-theme="broadcast"] .ticker__item:nth-child(9),
+  :root[data-theme="broadcast"] .ticker__sep:nth-child(8) {
+    display: none;
+  }
+  /* Round chip — make it larger and more prominent on mobile */
+  :root[data-theme="broadcast"] .ticker__item:nth-child(5) .ticker__item-value {
+    font-size: 14px;
+    font-weight: 600;
+  }
 
   /* Stack scoreboard into vertical column */
   :root[data-theme="broadcast"] .scorer {
