@@ -35,8 +35,9 @@ Phase 2 (Linear) work that exercises the same shared infrastructure.
 | **1.5** | Editorial rewrite of all sections in Broadcast — driven from ~40% to ~92% match vs `docs/design/demos/demo-broadcast-v3.png`. Each section ≥95% individually. New live-data sync modules + flexbox history + recipient-row honors + 6-field ticker. Captures in `docs/reports/phase1-5-final/`. | **SHIPPED** | main 99fcf5b |
 | **2** | Linear / Vercel Console theme — second registered theme, density-first restyle of all shared components. Same DOM, CSS-only transformation. Captures in `docs/reports/phase2-linear/`. | **SHIPPED** | main cf211a6 |
 | 0b | Eliminate ~235 inline `style=""` attributes from HTML pages (still hardcode legacy palette) | TODO | (lower priority; not blocking) |
-| 2.5 | Linear sidebar layout via `layout.mount()` + state preservation across theme switches | TODO | (next up before Phase 3) |
-| 3 | Add Trading Terminal theme (monospace + sparklines) | TODO | |
+| 2.5 | Linear sidebar layout via `layout.mount()` + state preservation across theme switches | TODO | (still the deferred infra item) |
+| 3 | Add Trading Terminal theme (monospace, amber HUD on near-black, 1px borders, ASCII bracket flair) | **SHIPPED** | main 9883e1d |
+| 3.5 | Sparkline renderer + flip Trading's `featureManifest.sparklines` to `true` | **SHIPPED** | main 72f18e0 (2026-05-04) |
 | 4 | Add Atelier theme (warm graphite + photographic moments) | TODO | |
 | 5 | Add Tea-Table theme (ink portraits + brushstroke SVGs — needs asset commission) | TODO | |
 | — | Visual regression CI (Percy/Chromatic/pixelmatch) | TODO | (Phase 5+) |

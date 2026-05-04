@@ -109,13 +109,14 @@ Per `project_theme_system_handoff.md` memory + `THEME-ARCHITECTURE.md`:
 | Phase | What                                                          | Status |
 |-------|---------------------------------------------------------------|--------|
 | 2.5   | Linear sidebar layout via `layout.mount()` + state-preservation across switches | TODO   |
-| 3.5   | Sparkline renderer; flip Trading `featureManifest.sparklines` true | TODO   |
+| 3.5   | Sparkline renderer; flip Trading `featureManifest.sparklines` true | **SHIPPED 2026-05-04** (commit 72f18e0) |
 | 4     | Atelier Console theme                                         | TODO   |
 | 5     | Tea-Table theme (needs commissioned ink illustrations)        | gated  |
 | —     | Visual regression CI (Percy/Chromatic/pixelmatch)             | TODO   |
 | —     | PNG export theme-awareness                                    | TODO   |
 
-The mobile QC pass didn't advance any of these — they remain the open
+The mobile QC pass closed Phase 3.5 follow-up work. Phase 2.5 (sidebar
+layout + state preservation) and Phase 4 (Atelier Console) are the open
 infra/theme items.
 
 ## Memory pointers (auto-loaded next session)

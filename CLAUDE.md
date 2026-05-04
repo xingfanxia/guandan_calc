@@ -10,7 +10,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 ### Modern Modular Implementation ✅ v10.0
 
-**ES6 Modular Architecture**: 38 modules with clean separation of concerns
+**ES6 Modular Architecture**: 39 modules with clean separation of concerns
 - Entry: `index.html` → `src/main.js` (509 lines, -69% from refactoring)
 - Build: `npm run build` → `dist/`
 - Development: `npm run dev` (port 5173)
@@ -21,7 +21,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - Contains all original game logic
 - Useful for understanding complex A-level rules
 
-### Module Organization (38 modules):
+### Module Organization (39 modules):
 
 **Core (5 modules)**: Foundation layer
 - `core/utils.js` - DOM helpers ($, on, now)
@@ -84,6 +84,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
 - `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
 - `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
+- `themes/_shared/sparkline.js` - Pure SVG sparkline renderer (Phase 3.5; gated by `featureManifest.sparklines`)
 - `themes/broadcast/` - A · Broadcast Editorial (default theme): Fraunces + Inter Tight + DM Mono, oklch palette with orange accent, editorial maximalism
 - `themes/linear/` - E · Linear / Vercel Console: Geist + Geist Mono, density-first oklch with single Linear purple accent, no decorative card suits
 - `themes/trading/` - D · Trading Terminal: JetBrains Mono everywhere (IBM Plex Sans for prose only), near-black `oklch(12% 0.005 240)` base, amber HUD accent, sharp 1px borders (radius collapsed to 0/2px), ASCII bracket flair (`// SECTION`, `[CATEGORY]`, `> SLOT 一`), fixed-attachment 80px grid background overlay

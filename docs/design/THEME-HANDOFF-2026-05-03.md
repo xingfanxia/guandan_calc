@@ -15,7 +15,7 @@
 | 4 | Atelier Console theme | TODO |
 | 5 | Tea-Table theme (needs commissioned ink illustrations) | TODO |
 | — | Sidebar layout for Linear via `layout.mount()` + state preservation across switches (was Phase 2.5; deferred — still the canonical infra TODO) | TODO |
-| — | Sparkline renderer + flip Trading's `featureManifest.sparklines` to `true` | TODO (Phase 3.5) |
+| — | Sparkline renderer + flip Trading's `featureManifest.sparklines` to `true` | **SHIPPED 2026-05-04** (commit 72f18e0) — `src/themes/_shared/sparkline.js`, wired into `src/stats/statistics.js`; Trading shows 近况 column. Visual baseline: `docs/reports/phase3-5-sparklines/`. |
 | — | Visual regression CI (Percy / Chromatic / pixelmatch) | TODO |
 | — | PNG export theme-awareness | TODO (Phase 5) |
 

@@ -447,6 +447,16 @@ XSS-safe (createElement + textContent, no innerHTML). Renders a status row
 when only one theme is registered; flips to a radio group when 2+ exist.
 Captures and releases its `theme:changed` subscription across re-mounts.
 
+#### `themes/_shared/sparkline.js` - Pure SVG Sparkline Renderer (Phase 3.5)
+Shipped 2026-05-04. Returns a `<svg>` element from a numeric data series
+(`renderSparkline({ data, width, height, range, invertY, color, ... })`)
+plus a ranking-specific helper (`renderRankingSparkline(rankings, mode)`)
+that auto-inverts Y so rank 1 plots at the top. Class-based grid lines
+(`.sparkline__grid`) and a `--last` dot let themes restyle via CSS without
+re-rendering. Wired into `src/stats/statistics.js` — appears as a 近况
+column in the stats-table when `getManifest().sparklines === true` (Trading
+flipped this on; Broadcast / Linear stay false and render unchanged).
+
 #### `themes/broadcast/theme.css` - Broadcast Palette + Typography + Component Styles
 Activates under `:root[data-theme="broadcast"]`. Each oklch() value is
 paired with a sRGB hex/rgb fallback so Safari iOS 15.0–15.3 (parsers that
