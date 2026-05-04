@@ -2,6 +2,11 @@
 
 > Generated 2026-05-03 at the end of a discovery + prototype session.
 > Next session should pick this up and execute the production build per `THEME-ARCHITECTURE.md`.
+>
+> **For the latest session's session-by-session record + key takeaways for
+> Phase 3+ themes, see `THEME-HANDOFF-2026-05-03.md`** — it's the
+> "what every new theme MUST do" checklist distilled from this session's
+> mistakes.
 
 ---
 
