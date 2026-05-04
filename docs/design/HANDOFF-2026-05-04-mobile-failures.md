@@ -125,6 +125,34 @@ internal layout of EACH team panel may still cram on small widths.
 **Investigation pointer:** look at `.team__head` + `.card-level` flex
 direction on mobile. They may need to be stacked column not row.
 
+### Image 51 — team roster rows
+**`POOL` tag carries no meaning + long rows waste horizontal space.**
+
+Each row in the team__roster (scoreboard area) currently shows:
+`[avatar] display-name + emoji [POOL pill]` — full-width row,
+~36-44px tall, with a "POOL" tag on the right edge.
+
+Two issues:
+1. The "POOL" pill is meaningless — every player in the pool has it
+   when not yet ranked. Remove entirely.
+2. Long horizontal rows waste space. User wants 2-col grid of square
+   tiles (like the standalone player tiles in image 37 — small
+   square card with emoji + name, NO tag).
+
+Affects all three themes — they all consume the same `.roster-row`
+markup from `src/player/playerRenderer.js`.
+
+**Investigation pointer:**
+- Hide `.roster-row__tag` in all three themes (or at least when its
+  text is "POOL").
+- Change `.team__roster` (the wrapper) to `display: grid;
+  grid-template-columns: 1fr 1fr; gap: 4px`.
+- Change each `.roster-row` to a compact square card: aspect-ratio: 1
+  OR fixed height ~64-80px, flex-column with avatar on top + name
+  below. NO POOL tag.
+- Verify drag-drop still works — these tiles are draggable to other
+  team or to ranking slots.
+
 ### Image 49 — RENDERER ISSUE (not theme CSS)
 **History 组合 column: verbose `头游 #1 · 二游 #2 · ...` format eats column width AND only shows top 4 positions for 8-player mode.**
 
