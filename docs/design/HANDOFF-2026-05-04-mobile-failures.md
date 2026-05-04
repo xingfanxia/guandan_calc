@@ -5,6 +5,22 @@
 > manually because the agent's self-QC was insufficient.** This document
 > exists so the next session does not repeat that failure mode.
 
+## ✅ RESOLVED 2026-05-04 (later that day)
+
+All 11 open issues closed in two commits:
+
+- `653635a` — handoff fixes: renderer (`avatarChar` / `handleText` / `makeComboCell`) + CSS QC blocks appended to all three theme files (Broadcast / Linear / Trading).
+- `3098095` — round number format `本局 N → 第N局` per separate user request.
+
+Audit: 21 PNGs in `docs/reports/mobile-qc-2026-05-04/` (populated state, 5 rounds played). Every section verified before commit. Two QC catches saved that would've shipped broken otherwise:
+
+1. **Broadcast roster `玩.. ` truncation** — 2-col 22px+1fr horizontal layout was too narrow for `玩家1`. Switched all three themes to vertical card (avatar top, name below) — name now uses full cell width.
+2. **Linear / Trading history loser-group clipped** — combo at 1fr ≈ 150px column couldn't fit `1·2·4·7 │ 3·5·6·8`. Ported broadcast's `grid-template-areas` (`'round levelcard winner upgrade' 'combo combo combo combo'`) to give combo its own full-width row.
+
+The post-mortem below stays as a record of the failure pattern; the open-issue lists below are now closed.
+
+---
+
 ## What went wrong with QC
 
 The agent kept:
