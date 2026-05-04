@@ -251,16 +251,19 @@ A theme picker UI lives in `src/themes/_shared/ThemePicker.js` — accessible fr
 
 ## 7. Phasing Plan (Don't Build All 5 At Once)
 
-| Phase | What | Why |
-|---|---|---|
-| **0** | Refactor existing app's `src/style.css` into `src/themes/_shared/tokenSpec.js` + `src/themes/broadcast/theme.css` (the new default) | Establishes the token contract before any other theme exists |
-| **1** | Build `themeManager.js` + `ThemePicker.js`. Mount Broadcast as the only theme. Verify state persistence + switching mechanics work (with a single theme = no-op switch). | Architecture proven without the 5x cost |
-| **2** | Add Linear as 2nd theme. **Most-different layout** (sidebar) — if the manager handles A→E switching cleanly, it'll handle anything. | Stress-test the abstraction with the most divergent case |
-| **3** | Add Trading as 3rd. Different in density + monospace-only typography. | Validates feature-manifest opt-outs (no hero, sparklines on, etc.) |
-| **4** | Add Atelier (warm-graphite, photographic moments) — different in palette family + asset needs. | Validates theme-specific assets (illustrations, photos) |
-| **5** | Add Tea-Table last — needs custom illustrations (ink portraits, brushstroke SVGs) which is the most expensive asset work. | Don't gate the rollout on an asset commission |
+| Phase | What | Why | Status |
+|---|---|---|---|
+| **0** | Refactor existing app's `src/style.css` into `src/themes/_shared/tokenSpec.js` + `src/themes/broadcast/theme.css` (the new default) | Establishes the token contract before any other theme exists | **SHIPPED 2026-05-03** |
+| **1** | Build `themeManager.js` + `ThemePicker.js`. Mount Broadcast as the only theme. Verify state persistence + switching mechanics work (with a single theme = no-op switch). | Architecture proven without the 5x cost | **SHIPPED 2026-05-03** |
+| **1.5** | Editorial closure of all Broadcast sections — populated state ≥95% match per section vs `demo-broadcast-v3.png`. | Establishes "compare to demo" discipline before further themes. | **SHIPPED 2026-05-03** (99fcf5b) |
+| **2** | Add Linear as 2nd theme. Density-first restyle of all shared components, Geist + Geist Mono, single Linear-purple accent. CSS-only. | Stress-test the abstraction with a divergent palette + scale. (Originally scoped to also include the sidebar layout — deferred to **Phase 2.5**.) | **SHIPPED 2026-05-03** (cf211a6) |
+| **2.5** | Linear sidebar layout via `layout.mount()` + state preservation across theme switches. | Validates the layout mount/unmount path of the manager beyond CSS-only restyles. | TODO |
+| **3** | Add Trading as 3rd theme. JetBrains Mono everywhere, near-black + amber HUD, 1px borders, ASCII bracket flair. CSS-only. | Validates monospace-only typography + accent-on-black contrast. | **SHIPPED 2026-05-03** (9883e1d) |
+| **3.5** | Sparkline renderer (so Trading can flip `featureManifest.sparklines: true`). | Trading manifest declared the capability; Phase 3 ship reused existing renderers and left the chart work for a focused follow-up. | TODO |
+| **4** | Add Atelier (warm-graphite, photographic moments) — different in palette family + asset needs. | Validates theme-specific assets (illustrations, photos) | TODO |
+| **5** | Add Tea-Table last — needs custom illustrations (ink portraits, brushstroke SVGs) which is the most expensive asset work. | Don't gate the rollout on an asset commission | TODO |
 
-Each phase ships independently. After phase 1, users get the new default. After phase 2, they get a theme picker with 2 options. Etc.
+Each phase ships independently. As of 2026-05-03 users have a 3-option theme picker (Broadcast default · Linear · Trading); Phase 4 and 5 add further options as they land.
 
 ---
 

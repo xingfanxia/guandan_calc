@@ -79,13 +79,14 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
-**Theme System**: Token-based multi-theme architecture (Phases 0+1+1.5 + 2 shipped 2026-05-03)
+**Theme System**: Token-based multi-theme architecture (Phases 0+1+1.5 + 2 + 3 all shipped 2026-05-03)
 - `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
 - `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
 - `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
 - `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
 - `themes/broadcast/` - A · Broadcast Editorial (default theme): Fraunces + Inter Tight + DM Mono, oklch palette with orange accent, editorial maximalism
 - `themes/linear/` - E · Linear / Vercel Console: Geist + Geist Mono, density-first oklch with single Linear purple accent, no decorative card suits
+- `themes/trading/` - D · Trading Terminal: JetBrains Mono everywhere (IBM Plex Sans for prose only), near-black `oklch(12% 0.005 240)` base, amber HUD accent, sharp 1px borders (radius collapsed to 0/2px), ASCII bracket flair (`// SECTION`, `[CATEGORY]`, `> SLOT 一`), fixed-attachment 80px grid background overlay
 - Live data wiring (Phase 1.5):
   - `ui/tickerSync.js` - 6 ticker fields (Room/Mode/Round/Level/Owner/Elapsed) + LIVE/SYNC indicator
   - `ui/calcPreviewSync.js` - LIVE CALC editorial segments (red/blue/差距 with thresholds)
@@ -95,8 +96,8 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
   - `player/playerRenderer.js` - `.roster-row` markup in scoreboard team zones
   - `game/history.js` - Flexbox `.history__row` with mini level cards + winner badges
   - `stats/honors.js` - Status-badge cards with team-colored avatar + handle + stat
-- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear)
-- Phase 2.5 (Linear sidebar layout + state-preservation across theme switches) is the first follow-up before Phase 3 (Trading Terminal). See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
+- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear) + `docs/reports/phase3-trading/` (Trading desktop + mobile)
+- Phase 4 (Atelier Console) is the next theme to ship. Phase 2.5 (Linear sidebar layout via `layout.mount()` + state-preservation across switches) is still the deferred infra item. Phase 3.5 (sparkline renderer, then flip Trading's `featureManifest.sparklines` to `true`) is also queued. See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
@@ -266,7 +267,7 @@ All algorithms scale properly for 4/6/8 player modes.
 - `gd_v7_5_1_state` - Current game state, team levels, A-fail counters, history
 - `gd_players` - Player info (names, emojis, team assignments)
 - `gd_player_stats` - Performance statistics for honor calculations
-- `gd_v9_theme` - Active theme name (currently `'broadcast'` is the only registered theme)
+- `gd_v9_theme` - Active theme name; one of `'broadcast'` (default) | `'linear'` | `'trading'`
 
 ### Drag and Drop System (lines 188-599 in src/app.js)
 

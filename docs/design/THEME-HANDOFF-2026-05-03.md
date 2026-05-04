@@ -1,7 +1,7 @@
 # Theme System Handoff — 2026-05-03
 
-> Session: theme system Phase 1.5 closure + Phase 2 (Linear) ship + UX polish pass.
-> All commits on `main`. See `git log` from `1de8a7e` through `10bb01b`.
+> Sessions: theme system Phase 1.5 closure + Phase 2 (Linear) ship + UX polish pass + Phase 3 (Trading) ship.
+> All commits on `main`. See `git log` from `1de8a7e` through `c90a6d9`.
 
 ## Where we are
 
@@ -10,11 +10,12 @@
 | 0 + 1 | Token contract + Broadcast palette + theme manager + ThemePicker | **MERGED** (94b648b, PR #1) |
 | 1.5 | Editorial closure of all Broadcast sections — ~92% match vs demo (per-section ≥95% individually except profile snippet which was deleted) | **SHIPPED** (99fcf5b) |
 | 2 | Linear / Vercel Console theme — second registered theme, density-first restyle | **SHIPPED** (cf211a6) |
-| 2.5 | UX polish, dev infrastructure, room banner theming | **SHIPPED THIS SESSION** (commits ed4b94e → 10bb01b) |
-| 3 | Trading Terminal theme | TODO |
+| 2.5 (polish) | UX polish, dev infrastructure, room banner theming | **SHIPPED** (commits ed4b94e → 10bb01b) |
+| 3 | Trading Terminal theme — third registered theme, JetBrains Mono + amber HUD on near-black, 1px borders, ASCII bracket flair, fixed grid background overlay. CSS-only re-paint of the same DOM. Desktop + 390px mobile pass both captured. | **SHIPPED** (9883e1d, c90a6d9) |
 | 4 | Atelier Console theme | TODO |
 | 5 | Tea-Table theme (needs commissioned ink illustrations) | TODO |
-| — | Sidebar layout for Linear via `layout.mount()` + state preservation across switches | TODO (was Phase 2.5; deferred) |
+| — | Sidebar layout for Linear via `layout.mount()` + state preservation across switches (was Phase 2.5; deferred — still the canonical infra TODO) | TODO |
+| — | Sparkline renderer + flip Trading's `featureManifest.sparklines` to `true` | TODO (Phase 3.5) |
 | — | Visual regression CI (Percy / Chromatic / pixelmatch) | TODO |
 | — | PNG export theme-awareness | TODO (Phase 5) |
 
