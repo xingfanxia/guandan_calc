@@ -147,13 +147,8 @@ export function disableViewerControls() {
 export function showHostBanner(roomCode, authToken) {
   const banner = document.createElement('div');
   banner.id = 'hostBanner';
-  banner.style.cssText = `
-    position: sticky; top: 0; z-index: 100;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-    color: white; padding: 12px 20px; text-align: center;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-    cursor: pointer;
-  `;
+  banner.className = 'room-banner room-banner--host';
+  // Inline styling kept minimal — actual look is in theme.css per-theme.
 
   const viewerURL = `${window.location.origin}${window.location.pathname}?room=${roomCode}`;
   const roomInfo = getRoomInfo();
@@ -206,7 +201,10 @@ export function showHostBanner(roomCode, authToken) {
   banner.onclick = async () => {
     try {
       await navigator.clipboard.writeText(viewerURL);
-      banner.innerHTML += ' <span style="color: #22c55e;">✅ 已复制</span>';
+      const note = document.createElement('span');
+      note.className = 'room-banner__copied';
+      note.textContent = ' ✅ 已复制';
+      banner.appendChild(note);
       setTimeout(() => {
         updateBannerContent();
       }, 2000);
@@ -224,12 +222,7 @@ export function showHostBanner(roomCode, authToken) {
 export function showViewerBanner(roomCode) {
   const banner = document.createElement('div');
   banner.id = 'viewerBanner';
-  banner.style.cssText = `
-    position: sticky; top: 0; z-index: 100;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white; padding: 12px 20px; text-align: center;
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  `;
+  banner.className = 'room-banner room-banner--viewer';
 
   const roomInfo = getRoomInfo();
 

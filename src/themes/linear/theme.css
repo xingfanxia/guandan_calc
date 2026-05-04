@@ -1450,3 +1450,44 @@
   max-width: 1280px;
   padding: 0 var(--s5);
 }
+
+/* ============== ROOM BANNER (host / viewer sticky strip) ============== */
+:root[data-theme="linear"] .room-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 8px var(--s5);
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  letter-spacing: 0;
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  color: var(--ink);
+}
+:root[data-theme="linear"] .room-banner--host {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-bottom-color: var(--accent-line);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+:root[data-theme="linear"] .room-banner--host:hover {
+  background: oklch(28% 0.06 280 / 0.5);
+}
+:root[data-theme="linear"] .room-banner--host strong {
+  color: var(--ink);
+}
+:root[data-theme="linear"] .room-banner--viewer {
+  background: oklch(20% 0.08 145 / 0.3);
+  color: var(--win);
+  border-bottom-color: oklch(45% 0.12 145 / 0.4);
+}
+:root[data-theme="linear"] .room-banner--viewer strong {
+  color: var(--ink);
+}
+:root[data-theme="linear"] .room-banner__copied {
+  font-family: var(--font-mono);
+  color: var(--win);
+  margin-left: var(--s2);
+}

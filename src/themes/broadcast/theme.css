@@ -3641,3 +3641,44 @@
   :root[data-theme="broadcast"] .career-stat-tile:nth-child(2n) { border-right: 0; }
   :root[data-theme="broadcast"] .rels-grid { grid-template-columns: 1fr; }
 }
+
+/* ============== ROOM BANNER (host / viewer sticky strip) ============== */
+:root[data-theme="broadcast"] .room-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 10px var(--s5);
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--rule);
+  background: var(--bg-deep);
+  color: var(--ink);
+}
+:root[data-theme="broadcast"] .room-banner--host {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-bottom-color: var(--accent-line);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+:root[data-theme="broadcast"] .room-banner--host:hover {
+  background: oklch(28% 0.06 45 / 0.6);
+}
+:root[data-theme="broadcast"] .room-banner--host strong {
+  color: var(--ink);
+}
+:root[data-theme="broadcast"] .room-banner--viewer {
+  background: oklch(20% 0.08 145 / 0.4);
+  color: var(--win);
+  border-bottom-color: oklch(45% 0.12 145 / 0.5);
+}
+:root[data-theme="broadcast"] .room-banner--viewer strong {
+  color: var(--ink);
+}
+:root[data-theme="broadcast"] .room-banner__copied {
+  font-family: var(--font-mono);
+  color: var(--win);
+  margin-left: var(--s2);
+}
