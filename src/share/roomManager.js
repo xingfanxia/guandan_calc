@@ -20,25 +20,21 @@ let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
 
-// Development-mode check derived from Vite's build env. `import.meta.env.DEV`
-// is true under `npm run dev` (pure Vite — no Edge Functions / KV) and false
-// for `npm run build` output served by `vercel dev` or production. This blocks
-// pure-Vite sessions from hitting prod KV via stale localStorage room codes.
+// Dev mode now proxies /api/* to production via vite.config.js, so room
+// features work in dev (hits real prod KV through deployed Edge Functions).
+// Keep the flag for diagnostic logging but no longer use it as a hard block.
 const isDevelopment = typeof import.meta !== 'undefined'
   && import.meta.env
   && import.meta.env.DEV === true;
+if (isDevelopment) {
+  console.info('[roomManager] Dev mode: /api/* proxied to gd.ax0x.ai. Room features hit prod KV.');
+}
 
 /**
  * Create a new room
  * @returns {Promise<{roomCode: string, authToken: string}|null>}
  */
 export async function createRoom() {
-  // Check if in development mode
-  if (isDevelopment) {
-    alert('房间功能需要部署到 Vercel 才能使用\n\n本地开发模式下无法连接 Vercel KV 数据库\n\n请运行 "npm run build" 并部署到 Vercel 后测试房间功能');
-    return null;
-  }
-
   try {
     // Gather current game state
     const roomData = {
@@ -114,12 +110,6 @@ export async function createRoom() {
  * @returns {Promise<boolean>} Success status
  */
 export async function joinRoom(roomCode, token = null) {
-  // Check if in development mode
-  if (isDevelopment) {
-    alert('房间功能需要部署到 Vercel 才能使用\n\n本地开发模式下无法连接 Vercel KV 数据库\n\n请运行 "npm run build" 并部署到 Vercel 后测试房间功能');
-    return false;
-  }
-
   try {
     // Fetch room data
     const response = await fetch(`/api/rooms/${roomCode}`);

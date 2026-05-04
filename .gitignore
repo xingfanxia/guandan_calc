@@ -31,3 +31,4 @@ _temp/
 
 # Claude files
 .vercel
+.env*.local
