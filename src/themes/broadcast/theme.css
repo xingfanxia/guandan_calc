@@ -208,6 +208,54 @@
   color: var(--ink);
 }
 
+/* ───── Theme picker — compact navbar variant (now its only home) ───── */
+:root[data-theme="broadcast"] .topnav__picker {
+  display: inline-flex;
+  align-items: center;
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--s2);
+}
+/* Hide the "主题 Theme" head label inside the navbar — saves real estate
+ * and the radio chips already speak for themselves. */
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__head { display: none; }
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__group {
+  display: inline-flex;
+  flex-direction: row;
+  gap: 4px;
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__opt {
+  flex-direction: row;
+  padding: 4px 10px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__opt input[type="radio"] {
+  display: none;
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__opt-name {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--ink-dim);
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__opt:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+:root[data-theme="broadcast"] .topnav__picker .theme-picker__opt:has(input:checked) .theme-picker__opt-name {
+  color: var(--accent);
+}
+
 /* =====================================================================
  * Phase 1.5 — Broadcast Editorial component palette.
  *
@@ -2707,8 +2755,36 @@
   :root[data-theme="broadcast"] .versus__round-next {
     writing-mode: horizontal-tb;
   }
+  /* Compact mobile scoreboard so the team-drop-zone (拖拽玩家到这里分配队伍)
+   * sits close to the player pool below, eliminating the scroll-to-drag
+   * problem on small screens. The 140px glyph stays as the headline on
+   * desktop. */
   :root[data-theme="broadcast"] .card-level__glyph {
-    font-size: 140px;
+    font-size: 60px;
+  }
+  :root[data-theme="broadcast"] .team {
+    padding: var(--s3) var(--s4);
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .team__head {
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .card-level {
+    gap: var(--s2);
+  }
+  :root[data-theme="broadcast"] .team__roster,
+  :root[data-theme="broadcast"] .team__roster.team-drop-zone {
+    min-height: 0;
+    padding: var(--s2);
+  }
+  :root[data-theme="broadcast"] .team__roster:has(> .label:only-child),
+  :root[data-theme="broadcast"] .team__roster.team-drop-zone:has(> .label:only-child) {
+    padding: var(--s3);
+    min-height: 44px;
+  }
+  :root[data-theme="broadcast"] .team__roster .label {
+    font-size: 11px;
+    padding: var(--s2) 0;
   }
 
   /* Single-column pool grid */

@@ -1678,6 +1678,16 @@
   :root[data-theme="linear"] .card-level__glyph {
     font-size: 32px;
   }
+  /* Compact team panel + drop-zone so player pool fits same screen */
+  :root[data-theme="linear"] .team {
+    padding: var(--s3) var(--s4);
+    gap: var(--s2);
+  }
+  :root[data-theme="linear"] .team__roster:has(> .label:only-child),
+  :root[data-theme="linear"] .team__roster.team-drop-zone:has(> .label:only-child) {
+    padding: var(--s2);
+    min-height: 40px;
+  }
 
   /* Pool + slots — fit pool AND placement grid in one mobile screen */
   :root[data-theme="linear"] .pool__grid {

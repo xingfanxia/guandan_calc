@@ -1999,9 +1999,19 @@
     padding: var(--s2) var(--s4);
   }
   :root[data-theme="trading"] .card-level__glyph {
-    font-size: 56px;
-    width: 80px;
-    height: 96px;
+    font-size: 48px;
+    width: 64px;
+    height: 76px;
+  }
+  /* Compact team panel + drop-zone so player pool fits same screen */
+  :root[data-theme="trading"] .team {
+    padding: var(--s3);
+    gap: var(--s2);
+  }
+  :root[data-theme="trading"] .team__roster:has(> .label:only-child),
+  :root[data-theme="trading"] .team__roster.team-drop-zone:has(> .label:only-child) {
+    padding: var(--s2);
+    min-height: 40px;
   }
   :root[data-theme="trading"] .ticker__items {
     gap: 4px;
