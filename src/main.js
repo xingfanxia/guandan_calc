@@ -67,6 +67,7 @@ import { initProfileSnippetSync, renderProfileSnippet } from './ui/profileSnippe
 // Theme system
 import * as themeManager from './themes/_shared/themeManager.js';
 import * as broadcastTheme from './themes/broadcast/index.js';
+import * as linearTheme from './themes/linear/index.js';
 import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
 
 /**
@@ -75,9 +76,9 @@ import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js
 async function init() {
 
   try {
-    // Register + mount theme before any other UI work — settles the data-theme
-    // attribute and palette so subsequent renderers paint correctly on first frame.
+    // Register all themes, then mount whichever the user picked last (or default).
     themeManager.register(broadcastTheme);
+    themeManager.register(linearTheme);
     await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
 
     // Check for room in URL first
