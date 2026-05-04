@@ -155,11 +155,9 @@ function initializeUI() {
     honorHeading.parentElement.style.display = 'block';
   }
 
-  // Show voting section (人民的声音) - now implemented!
-  const votingSection = $('votingSection');
-  if (votingSection) {
-    votingSection.style.display = 'block';
-  }
+  // Voting section (人民的声音) hidden 2026-05-04 per user request — keep
+  // the DOM around so the votingManager + viewer code paths still resolve,
+  // just don't reveal it visually.
 
   // Render initial honors
   renderHonors();
