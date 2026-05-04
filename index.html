@@ -63,8 +63,18 @@
   <div class="container ticker__inner">
     <div class="ticker__items">
       <div class="ticker__item">
+        <span class="ticker__item-label">Room</span>
+        <span class="ticker__item-value" id="tickerRoom">—</span>
+      </div>
+      <div class="ticker__sep"></div>
+      <div class="ticker__item">
         <span class="ticker__item-label">Mode</span>
         <span class="ticker__item-value" id="tickerMode">8人 · 4v4</span>
+      </div>
+      <div class="ticker__sep"></div>
+      <div class="ticker__item">
+        <span class="ticker__item-label">Round</span>
+        <span class="ticker__item-value ticker__item-value--accent" id="tickerRound">本局 01</span>
       </div>
       <div class="ticker__sep"></div>
       <div class="ticker__item">
@@ -78,13 +88,13 @@
       </div>
       <div class="ticker__sep"></div>
       <div class="ticker__item">
-        <span class="ticker__item-label">Round</span>
-        <span class="ticker__item-value ticker__item-value--accent" id="tickerRound">本局</span>
+        <span class="ticker__item-label">Elapsed</span>
+        <span class="ticker__item-value" id="tickerElapsed">00:00</span>
       </div>
     </div>
-    <div class="ticker__sync">
+    <div class="ticker__sync" id="tickerSyncIndicator">
       <div class="ticker__dot"></div>
-      <span class="ticker__item-label">BROADCAST</span>
+      <span class="ticker__item-label" id="tickerSyncLabel">LIVE</span>
     </div>
   </div>
 </div>
@@ -173,7 +183,8 @@
       </div>
       <div class="card-level__sub">
         <span>当前级牌</span>
-        <span class="card-level__sub-rank">A状态：<b id="t1AState">—</b></span>
+        <span class="card-level__sub-rank" id="t1Rank">RANK 01/13</span>
+        <span class="card-level__sub-state" id="t1AState" hidden>—</span>
       </div>
       <h4 class="team__roster-label" id="team1Label">蓝队</h4>
       <div class="team__roster team-drop-zone" id="team1Zone" data-team="1">
@@ -184,12 +195,9 @@
     <div class="versus">
       <div class="versus__rule"></div>
       <div class="versus__text">VS</div>
-      <div class="versus__round" id="curRoundLvlDisplay">
-        本局 <b id="curRoundLvl">2</b>
-      </div>
-      <div class="versus__round-next">
-        下局 <b id="nextRoundPreview">-</b>
-      </div>
+      <div class="versus__round" id="versusRound">本局 01</div>
+      <span hidden id="curRoundLvlDisplay"><b id="curRoundLvl">2</b></span>
+      <span hidden id="nextRoundPreview">-</span>
       <div class="versus__rule"></div>
     </div>
 
@@ -208,7 +216,8 @@
       </div>
       <div class="card-level__sub">
         <span>当前级牌</span>
-        <span class="card-level__sub-rank">A状态：<b id="t2AState">—</b></span>
+        <span class="card-level__sub-rank" id="t2Rank">RANK 01/13</span>
+        <span class="card-level__sub-state" id="t2AState" hidden>—</span>
       </div>
       <h4 class="team__roster-label" id="team2Label">红队</h4>
       <div class="team__roster team-drop-zone" id="team2Zone" data-team="2">
@@ -276,7 +285,7 @@
       <div class="activegame__live-dot"></div>
       <span class="activegame__head-label">ACTIVE GAME</span>
       <span class="activegame__head-divider"></span>
-      <span class="activegame__head-line">
+      <span class="activegame__head-line" id="activegameHeadLine">
         本局：<span class="glyph accent" id="curRoundLvlMirror">—</span>
       </span>
       <span class="activegame__head-meta">
@@ -327,21 +336,17 @@
         </div>
       </div>
 
-      <!-- LIVE CALC PREVIEW (results) -->
+      <!-- LIVE CALC PREVIEW (editorial segments) -->
       <div class="calcpreview">
         <span class="calcpreview__label">LIVE CALC</span>
-        <div class="calcpreview__seg">
-          <span class="key">结果</span>
-          <span class="val" id="headline">—</span>
+        <div id="calcpreviewContent" class="calcpreview__content">
+          <!-- Segments rendered by src/ui/calcPreviewSync.js — 红 / 蓝 / 差距 -->
         </div>
-        <span class="calcpreview__sep">·</span>
-        <div class="calcpreview__seg">
-          <span class="key">说明</span>
-          <span class="val" id="explain">等待输入…</span>
-        </div>
-        <span class="calcpreview__hint">
-          获胜队：<b id="winnerDisplay">—</b>
-        </span>
+        <span class="calcpreview__hint" id="calcpreviewHint">等待第一位排名</span>
+        <!-- Backwards-compat hidden mirrors for legacy main.js auto-apply path -->
+        <span hidden id="headline">—</span>
+        <span hidden id="explain">等待输入…</span>
+        <span hidden id="winnerDisplay">—</span>
       </div>
 
       <!-- TOGGLES + MANUAL ACTIONS -->
@@ -365,12 +370,14 @@
         </div>
         <div class="manualbtns">
           <button id="apply" class="btn">
+            <span class="btn--disabled-note" id="applyAutoNote" hidden>AUTO 已开</span>
             <span>应用结果到战绩</span>
-            <small>APPLY RESULT</small>
+            <small>APPLY RESULT · ⌘ENTER</small>
           </button>
           <button id="advance" class="btn" title="将本局级牌推进到预览的下一局">
+            <span class="btn--disabled-note" id="advanceAutoNote" hidden>AUTO 已开</span>
             <span>进入下一局</span>
-            <small>NEXT ROUND</small>
+            <small>NEXT ROUND · ⌘N</small>
           </button>
         </div>
       </div>
@@ -391,7 +398,10 @@
     <details>
       <summary class="rules-drawer__summary">
         <span class="rules-drawer__title">当前规则配置</span>
-        <span class="rules-drawer__expand">展开自定义规则 ▾</span>
+        <div class="rules-drawer__chips" id="rulesDrawerChips">
+          <!-- Populated by src/ui/rulesDrawerSync.js: c4, t6, p6, t8, flags -->
+        </div>
+        <span class="rules-drawer__expand">展开自定义规则</span>
       </summary>
 
       <div class="rules-drawer__body">
@@ -462,27 +472,17 @@
   </div>
 
   <section class="history">
-    <div class="table-wrap">
-      <table class="table" id="hist">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">时间</th>
-            <th scope="col">人数</th>
-            <th scope="col">胜方组合</th>
-            <th scope="col">玩家排名</th>
-            <th scope="col">升级情况</th>
-            <th scope="col">胜队</th>
-            <th scope="col"><span id="hT1"></span>级牌</th>
-            <th scope="col"><span id="hT2"></span>级牌</th>
-            <th scope="col">本局级牌</th>
-            <th scope="col">A说明</th>
-            <th scope="col">操作</th>
-          </tr>
-        </thead>
-        <tbody id="histBody"></tbody>
-      </table>
+    <div class="history__head">
+      <span>本局</span>
+      <span>级牌</span>
+      <span>胜方</span>
+      <span>组合</span>
+      <span>升级</span>
+      <span class="center"><span id="hT1">红</span></span>
+      <span class="center"><span id="hT2">蓝</span></span>
+      <span class="center">操作</span>
     </div>
+    <div id="histBody"></div>
     <div class="row btns-grid history__actions">
       <button id="undo" class="btn-tertiary">撤销上一局</button>
       <button id="exportTxt" class="btn-secondary">导出 TXT</button>
@@ -556,211 +556,243 @@
   </div>
 
   <section class="honors">
-    <article class="honor">
+    <article class="honor" data-honor-id="lyubu">
       <div class="honor__top">
         <span class="honor__index">01 / 16</span>
         <span class="honor__cat">最多第一名</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">吕布</div>
       <div class="honor__desc">三国第一武将 · King of First</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">👑</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="lyubu">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="adou">
       <div class="honor__top">
         <span class="honor__index">02 / 16</span>
         <span class="honor__cat">最多垫底</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">阿斗</div>
       <div class="honor__desc">扶不起的阿斗 · Bottom Dweller</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🪨</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="adou">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="shifo">
       <div class="honor__top">
         <span class="honor__index">03 / 16</span>
         <span class="honor__cat">优秀且稳定</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">石佛</div>
       <div class="honor__desc">如石如佛 · Stone Buddha</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🗿</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="shifo">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="bodongwang">
       <div class="honor__top">
         <span class="honor__index">04 / 16</span>
         <span class="honor__cat">排名波动最大</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">波动王</div>
       <div class="honor__desc">High Volatility · 大起大落</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">📈</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="bodongwang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="fendouwang">
       <div class="honor__top">
         <span class="honor__index">05 / 16</span>
         <span class="honor__cat">排名稳步提升</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">奋斗王</div>
       <div class="honor__desc">Steady Climber · 越战越勇</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">💪</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="fendouwang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="fanchewang">
       <div class="honor__top">
         <span class="honor__index">06 / 16</span>
         <span class="honor__cat">前3掉垫底</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">翻车王</div>
       <div class="honor__desc">Spectacular Crash · 戏剧性崩盘</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">💥</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="fanchewang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="dutu">
       <div class="honor__top">
         <span class="honor__index">07 / 16</span>
         <span class="honor__cat">高风险高回报</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">赌徒</div>
       <div class="honor__desc">High Stakes · 拿1多但垫底也多</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🎲</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="dutu">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="damanguan">
       <div class="honor__top">
         <span class="honor__index">08 / 16</span>
         <span class="honor__cat">体验所有排名</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">大满贯</div>
       <div class="honor__desc">Grand Slam · 各排名都拿过</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🏆</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="damanguan">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="lianshengewang">
       <div class="honor__top">
         <span class="honor__index">09 / 16</span>
         <span class="honor__cat">连续好排名</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">连胜王</div>
       <div class="honor__desc">Win Streak · 连续上半区</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🔥</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="lianshengewang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="foxiwanjia">
       <div class="honor__top">
         <span class="honor__index">10 / 16</span>
         <span class="honor__cat">总是中游</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">佛系玩家</div>
       <div class="honor__desc">Middle Path · 中庸之道</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">☯️</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="foxiwanjia">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="liyuwang">
       <div class="honor__top">
         <span class="honor__index">11 / 16</span>
         <span class="honor__cat">惊天逆转</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">鲤鱼王</div>
       <div class="honor__desc">Underdog Comeback · 后程发力</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🐟</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="liyuwang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="buzhanguo">
       <div class="honor__top">
         <span class="honor__index">12 / 16</span>
         <span class="honor__cat">从不垫底</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">不粘锅</div>
       <div class="honor__desc">Teflon · 永不末游</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🍳</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="buzhanguo">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="shandianxia">
       <div class="honor__top">
         <span class="honor__index">13 / 16</span>
         <span class="honor__cat">变化频繁</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">闪电侠</div>
       <div class="honor__desc">The Flash · 名次变化最多</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">⚡️</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="shandianxia">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="ranjinwang">
       <div class="honor__top">
         <span class="honor__index">14 / 16</span>
         <span class="honor__cat">持续低迷</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">燃尽王</div>
       <div class="honor__desc">Burnout · 状态持续下滑</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🕯️</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="ranjinwang">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="qichayizhao">
       <div class="honor__top">
         <span class="honor__index">15 / 16</span>
         <span class="honor__cat">差点登顶</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">棋差一着</div>
       <div class="honor__desc">So Close · 屡屡第二</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">♟️</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="qichayizhao">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
 
-    <article class="honor">
+    <article class="honor" data-honor-id="xiaochou">
       <div class="honor__top">
         <span class="honor__index">16 / 16</span>
         <span class="honor__cat">无冠最菜</span>
+        <span class="honor__status">—</span>
       </div>
       <div class="honor__name">🤡</div>
       <div class="honor__desc">The Clown · 0头游+末段</div>
       <div class="honor__recipient">
-        <div class="honor__avatar">🃏</div>
+        <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="xiaochou">—</span></div>
+        <div class="honor__stat honor__stat--placeholder">—</div>
       </div>
     </article>
   </section>
@@ -880,55 +912,55 @@
     <span class="section-rule__meta">CAREER STATS · PLACEHOLDER</span>
   </div>
 
-  <section class="profile">
-    <div class="profile__avatar">玩</div>
+  <section class="profile" id="profileSnippet">
+    <div class="profile__avatar" id="profileAvatar">玩</div>
     <div class="profile__main">
       <header class="profile__head">
-        <span class="profile__name">访客</span>
-        <span class="profile__handle">@guest</span>
-        <span class="profile__badge">SIGN IN VIA PROFILE</span>
+        <span class="profile__name" id="profileName">访客</span>
+        <span class="profile__handle" id="profileHandle">@guest</span>
+        <span class="profile__badge" id="profileBadge">SIGN IN VIA PROFILE</span>
       </header>
       <div class="profile__stats">
         <div class="profile__stat">
           <div class="profile__stat-label">Sessions</div>
-          <div class="profile__stat-val">—</div>
+          <div class="profile__stat-val" id="profileSessions">—</div>
         </div>
         <div class="profile__stat">
           <div class="profile__stat-label">Won</div>
-          <div class="profile__stat-val">—</div>
+          <div class="profile__stat-val" id="profileWon">—</div>
         </div>
         <div class="profile__stat">
           <div class="profile__stat-label">Rounds</div>
-          <div class="profile__stat-val">—</div>
+          <div class="profile__stat-val" id="profileRounds">—</div>
         </div>
         <div class="profile__stat">
           <div class="profile__stat-label">Avg Rank</div>
-          <div class="profile__stat-val">—</div>
+          <div class="profile__stat-val" id="profileAvgRank">—</div>
         </div>
         <div class="profile__stat">
           <div class="profile__stat-label">Play Time</div>
-          <div class="profile__stat-val">—</div>
+          <div class="profile__stat-val" id="profilePlayTime">—</div>
         </div>
         <div class="profile__stat">
           <div class="profile__stat-label">最C / 最闹</div>
-          <div class="profile__stat-val">— / —</div>
+          <div class="profile__stat-val" id="profileVotes">— / —</div>
         </div>
       </div>
       <div class="profile__rels">
-        <div class="profile__rel">
+        <div class="profile__rel" id="profileRelPartner">
           <div class="profile__rel-key">TOP PARTNER · 最佳搭档</div>
-          <div class="profile__rel-name">— <span class="handle">@—</span></div>
-          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--win" style="width: 0%;"></div></div>
-          <div class="profile__rel-meta"><span>0 局同队</span><span class="pct">—</span></div>
+          <div class="profile__rel-name" id="profilePartnerName">— <span class="handle">@—</span></div>
+          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--win" id="profilePartnerBar" style="width: 0%;"></div></div>
+          <div class="profile__rel-meta"><span id="profilePartnerGames">0 局同队</span><span class="pct" id="profilePartnerPct">—</span></div>
         </div>
-        <div class="profile__rel">
+        <div class="profile__rel" id="profileRelRival">
           <div class="profile__rel-key">TOP RIVAL · 苦主</div>
-          <div class="profile__rel-name">— <span class="handle">@—</span></div>
-          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--loss" style="width: 0%;"></div></div>
-          <div class="profile__rel-meta"><span>0 局对阵</span><span class="pct">—</span></div>
+          <div class="profile__rel-name" id="profileRivalName">— <span class="handle">@—</span></div>
+          <div class="profile__rel-bar"><div class="profile__rel-bar-fill profile__rel-bar-fill--loss" id="profileRivalBar" style="width: 0%;"></div></div>
+          <div class="profile__rel-meta"><span id="profileRivalGames">0 局对阵</span><span class="pct" id="profileRivalPct">—</span></div>
         </div>
       </div>
-      <p class="small muted" style="margin:0; padding-top:var(--s3); border-top:1px dashed var(--rule-soft);">
+      <p class="small muted" id="profileFootnote" style="margin:0; padding-top:var(--s3); border-top:1px dashed var(--rule-soft);">
         登录或选择玩家资料后，此处会展示真实的生涯数据。前往 <a href="/players.html" style="color:var(--accent);">玩家列表</a> 选择资料。
       </p>
     </div>

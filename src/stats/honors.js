@@ -353,91 +353,168 @@ export function calculateHonors(totalPlayers = 8) {
 }
 
 /**
- * Render honors
+ * Honor metadata — 16 honor key (matches data-honor-id attributes in index.html).
+ * For each honor: which calculateHonors() field maps to it, the display title,
+ * and a stat-formatter that returns { primary, label } for the recipient block.
  */
-export function renderHonors() {
-  const honors = calculateHonors(getPlayers().length);
+const HONOR_META = {
+  lyubu:        { honorKey: 'mvp',          title: '吕布',     fmtStat: (h, st) => ({ primary: `${st.firstPlaceCount} / ${st.games}`, label: '头游' }) },
+  adou:         { honorKey: 'burden',       title: '阿斗',     fmtStat: (h, st) => ({ primary: `${st.lastPlaceCount} / ${st.games}`, label: '垫底' }) },
+  shifo:        { honorKey: 'stable',       title: '石佛',     fmtStat: (h, st) => ({ primary: `σ ${h.score}`, label: `n=${st.games}` }) },
+  bodongwang:   { honorKey: 'rollercoaster',title: '波动王',   fmtStat: (h, st) => ({ primary: `σ ${h.score}`, label: `${Math.min(...st.rankings)}–${Math.max(...st.rankings)}` }) },
+  fendouwang:   { honorKey: 'comeback',     title: '奋斗王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '位提升' }) },
+  fanchewang:   { honorKey: 'fanche',       title: '翻车王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '崩盘次' }) },
+  dutu:         { honorKey: 'gambler',      title: '赌徒',     fmtStat: (h, st) => ({ primary: `${h.score}`, label: '高风险' }) },
+  damanguan:    { honorKey: 'complete',     title: '大满贯',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '体验过' }) },
+  lianshengewang:{honorKey: 'streak',       title: '连胜王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '连胜' }) },
+  foxiwanjia:   { honorKey: 'median',       title: '佛系玩家', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
+  liyuwang:     { honorKey: 'carp',         title: '鲤鱼王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '逆转次' }) },
+  buzhanguo:    { honorKey: 'nonstick',     title: '不粘锅',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
+  shandianxia:  { honorKey: 'frequent',     title: '闪电侠',   fmtStat: (h, st) => ({ primary: `${h.score} / ${st.games}`, label: '换名次' }) },
+  ranjinwang:   { honorKey: 'burnout',      title: '燃尽王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '连低迷' }) },
+  qichayizhao:  { honorKey: 'almost',       title: '棋差一着', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
+  xiaochou:     { honorKey: 'clown',        title: '🤡',       fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) }
+};
 
-  updateHonorDisplay('lyubu', honors.mvp, '吕布');
-  updateHonorDisplay('adou', honors.burden, '阿斗');
-  updateHonorDisplay('shifo', honors.stable, '石佛');
-  updateHonorDisplay('bodongwang', honors.rollercoaster, '波动王');
-  updateHonorDisplay('fendouwang', honors.comeback, '奋斗王');
-  updateHonorDisplay('fanchewang', honors.fanche, '翻车王');
-  updateHonorDisplay('damanguan', honors.complete, '大满贯');
-  updateHonorDisplay('lianshengewang', honors.streak, '连胜王');
-  updateHonorDisplay('foxiwanjia', honors.median, '佛系玩家');
-  updateHonorDisplay('shandianxia', honors.frequent, '闪电侠');
-  updateHonorDisplay('liyuwang', honors.carp, '鲤鱼王');
-  updateHonorDisplay('buzhanguo', honors.nonstick, '不粘锅');
-  updateHonorDisplay('ranjinwang', honors.burnout, '燃尽王');
-  updateHonorDisplay('qichayizhao', honors.almost, '棋差一着');
-  updateHonorDisplay('dutu', honors.gambler, '赌徒');
-  updateHonorDisplay('xiaochou', honors.clown, '🤡');
+function avatarChar(player) {
+  if (!player) return '?';
+  const name = (player.name || '').trim();
+  if (!name) return player.emoji || '?';
+  const digitMatch = name.match(/^玩家(\d+)$/);
+  if (digitMatch) return digitMatch[1];
+  return Array.from(name)[0];
+}
+
+function teamColorClass(player) {
+  if (!player) return '';
+  return Number(player.team) === 1 ? 'honor__avatar--blue' : (Number(player.team) === 2 ? 'honor__avatar--red' : 'honor__avatar--empty');
 }
 
 /**
- * Update display with click explanation
+ * Update one honor article with awarded data or empty placeholder.
  */
-function updateHonorDisplay(elementId, honorData, honorName) {
-  const el = document.getElementById(elementId);
-  if (!el) return;
+function updateHonorArticle(article, honorData, meta) {
+  // Status badge
+  const statusEl = article.querySelector('.honor__status');
+  if (statusEl) {
+    statusEl.classList.remove('honor__status--leading', 'honor__status--inprog', 'honor__status--locked');
+    if (honorData?.player) {
+      statusEl.textContent = 'leader';
+      statusEl.classList.add('honor__status--leading');
+    } else {
+      statusEl.textContent = '进行中';
+      statusEl.classList.add('honor__status--inprog');
+    }
+  }
+
+  // Article modifier
+  article.classList.remove('honor--leading', 'honor--inprog');
+  article.classList.add(honorData?.player ? 'honor--leading' : 'honor--inprog');
+
+  // Recipient block
+  const recipient = article.querySelector('.honor__recipient');
+  if (!recipient) return;
+
+  const avatar = recipient.querySelector('.honor__avatar');
+  const playerBlock = recipient.querySelector('.honor__player');
+  const playerName = recipient.querySelector('.honor__playername');
+  let stat = recipient.querySelector('.honor__stat');
 
   if (honorData?.player) {
     const p = honorData.player;
-    const stats = state.getPlayerStats()[p.id];
+    const allStats = state.getPlayerStats() || {};
+    const st = allStats[p.id] || { games: 0, totalRank: 0, firstPlaceCount: 0, lastPlaceCount: 0, rankings: [] };
 
-    el.innerHTML = `${p.emoji}${p.name}`;
-    el.style.color = '#fff';
-    el.style.fontWeight = 'bold';
-    el.style.cursor = 'pointer';
-
-    // Build explanation
-    let msg = `${honorName}\n\n${p.emoji} ${p.name}\n\n`;
-
-    const avgRank = (stats.totalRank / stats.games).toFixed(2);
-
-    if (elementId === 'lyubu') {
-      msg += `🥇 ${stats.firstPlaceCount}次第一 (${stats.games}场)\n胜率: ${(stats.firstPlaceCount / stats.games * 100).toFixed(1)}%\n\n最强战力！`;
-    } else if (elementId === 'adou') {
-      msg += `😅 ${stats.lastPlaceCount}次垫底 (${stats.games}场)\n垫底率: ${(stats.lastPlaceCount / stats.games * 100).toFixed(1)}%\n\n需要保护！`;
-    } else if (elementId === 'shifo') {
-      msg += `平均${avgRank}名\n方差: ${honorData.score}\n\n稳如泰山！`;
-    } else if (elementId === 'bodongwang') {
-      msg += `方差: ${honorData.score}\n${Math.min(...stats.rankings)}名→${Math.max(...stats.rankings)}名\n\n波动最大！`;
-    } else if (elementId === 'fendouwang') {
-      msg += `进步: ${honorData.score}个位次\n\n越战越勇！`;
-    } else if (elementId === 'fanchewang') {
-      msg += `翻车: ${honorData.score}次\n\n大起大落！`;
-    } else if (elementId === 'damanguan') {
-      msg += `${honorData.score}个排名\n\n见多识广！`;
-    } else if (elementId === 'lianshengewang') {
-      msg += `连胜: ${honorData.score}局\n\n状态火热！`;
-    } else if (elementId === 'foxiwanjia') {
-      msg += `平均${honorData.score}名\n\n佛系心态！`;
-    } else if (elementId === 'shandianxia') {
-      msg += `变化: ${honorData.score}次\n\n捉摸不定！`;
-    } else if (elementId === 'liyuwang') {
-      msg += `🐟 鲤鱼跃龙门: ${honorData.score}次\n从倒数3跳到第1名\n\n惊天逆转！`;
-    } else if (elementId === 'buzhanguo') {
-      msg += `🍳 从未垫底！\n平均${honorData.score}名\n\n不沾坏运气！`;
-    } else if (elementId === 'ranjinwang') {
-      msg += `🔥 连续${honorData.score}局后半段\n持续低迷\n\n需要充电！`;
-    } else if (elementId === 'qichayizhao') {
-      msg += `🎯 从未拿过第一\n但平均${honorData.score}名\n\n差一点就登顶！`;
-    } else if (elementId === 'dutu') {
-      msg += `🎲 ${honorData.score}\n大起大落的高风险玩家\n\n要么第一，要么垫底！`;
-    } else if (elementId === 'xiaochou') {
-      msg += `🤡 从未拿过第一\n平均${honorData.score}名（最差）\n\n继续努力！`;
+    // Avatar
+    if (avatar) {
+      avatar.className = `honor__avatar ${teamColorClass(p)}`;
+      avatar.replaceChildren();
+      if (p.photo) {
+        const img = document.createElement('img');
+        img.src = p.photo;
+        img.alt = '';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = avatarChar(p);
+      }
     }
 
-    el.onclick = () => alert(msg);
-    el.title = '点击查看详情';
+    // Player block — name + handle (or emoji fallback)
+    if (playerBlock) {
+      playerBlock.replaceChildren();
+      const nm = document.createElement('span');
+      nm.className = 'honor__playername';
+      nm.id = playerName?.id || meta.idForName;
+      nm.textContent = p.name || '玩家';
+      playerBlock.appendChild(nm);
 
+      const handle = document.createElement('span');
+      handle.className = 'honor__handle';
+      handle.textContent = p.handle ? `@${p.handle}` : (p.emoji || '');
+      playerBlock.appendChild(handle);
+    }
+
+    // Stat block
+    const fmt = meta.fmtStat(honorData, st);
+    if (!stat) {
+      stat = document.createElement('div');
+      recipient.appendChild(stat);
+    }
+    stat.className = 'honor__stat';
+    stat.replaceChildren();
+    const big = document.createElement('span');
+    big.className = 'honor__stat--big';
+    big.textContent = fmt.primary;
+    stat.appendChild(big);
+    if (fmt.label) {
+      const label = document.createElement('span');
+      label.className = 'honor__stat-label';
+      label.textContent = fmt.label;
+      stat.appendChild(label);
+    }
   } else {
-    el.textContent = '—';
-    el.style.color = '#999';
-    el.style.cursor = 'default';
-    el.onclick = null;
+    // Empty state — placeholder avatar + "—" + placeholder stat
+    if (avatar) {
+      avatar.className = 'honor__avatar honor__avatar--empty';
+      avatar.replaceChildren();
+      avatar.textContent = '?';
+    }
+    if (playerBlock) {
+      playerBlock.replaceChildren();
+      const nm = document.createElement('span');
+      nm.className = 'honor__playername honor__playername--placeholder';
+      nm.id = playerName?.id || meta.idForName;
+      nm.textContent = '数据采集中';
+      playerBlock.appendChild(nm);
+      const handle = document.createElement('span');
+      handle.className = 'honor__handle';
+      handle.textContent = '需更多数据';
+      playerBlock.appendChild(handle);
+    }
+    if (stat) {
+      stat.className = 'honor__stat honor__stat--placeholder';
+      stat.replaceChildren();
+      stat.textContent = '—';
+    }
   }
+}
+
+/**
+ * Render all 16 honors with editorial recipient blocks.
+ */
+export function renderHonors() {
+  const honors = calculateHonors(getPlayers().length);
+  const articles = document.querySelectorAll('.honor[data-honor-id]');
+
+  articles.forEach(article => {
+    const honorId = article.dataset.honorId;
+    const meta = HONOR_META[honorId];
+    if (!meta) return;
+    meta.idForName = honorId;
+    const data = honors[meta.honorKey];
+    updateHonorArticle(article, data, meta);
+  });
 }

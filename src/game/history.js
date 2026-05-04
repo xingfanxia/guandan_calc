@@ -1,7 +1,11 @@
 /**
- * Game History Management
- * Extracted from app.js lines 1478-1523, 1664-1713
- * Handles history rendering, rollback, and reset functionality
+ * Game History — editorial flexbox renderer.
+ *
+ * Replaces the old <table> rendering. Each completed round renders as a
+ * `.history__row` with: round number, level-card glyph (Fraunces), winner
+ * badge (red/blue colored), combo summary, upgrade label, per-team level cards.
+ *
+ * Markup matches docs/design/demos/demo-broadcast-v3.html lines 708-758.
  */
 
 import { $ } from '../core/utils.js';
@@ -9,8 +13,72 @@ import state from '../core/state.js';
 import config from '../core/config.js';
 import { emit } from '../core/events.js';
 
+const RANK_NAMES = {
+  4: ['头游', '二游', '三游', '末游'],
+  6: ['头游', '二游', '三游', '四游', '五游', '末游'],
+  8: ['头游', '二游', '三游', '四游', '五游', '六游', '七游', '末游']
+};
+
+function pad2(n) {
+  const x = Number(n);
+  if (Number.isFinite(x)) return String(x).padStart(2, '0');
+  return String(n);
+}
+
+function makeSpan(className, text) {
+  const span = document.createElement('span');
+  if (className) span.className = className;
+  if (text != null) span.textContent = text;
+  return span;
+}
+
+function comboTextFor(entry) {
+  // Prefer rich playerRankings data when available.
+  if (entry.playerRankings) {
+    const mode = parseInt(entry.mode);
+    const names = RANK_NAMES[mode] || RANK_NAMES[8];
+    const winnerSide = entry.winKey === 't1' ? 1 : 2;
+    const labels = [];
+    for (let r = 1; r <= mode; r++) {
+      const p = entry.playerRankings[r];
+      if (!p) continue;
+      if (Number(p.team) === winnerSide) {
+        labels.push(`${names[r - 1]} #${r}`);
+      }
+    }
+    if (labels.length) return labels.join(' · ');
+  }
+  // Fallback: use combo string from entry
+  return entry.combo || '—';
+}
+
+function upgradeCellFor(entry) {
+  const aNote = entry.aNote || '';
+  if (aNote.includes('A级通关')) {
+    return { text: `${entry.win}通关`, modifier: 'history__upgrade--win' };
+  }
+  if (entry.up) {
+    return { text: `升 ${entry.up} 级`, modifier: '' };
+  }
+  // Zero-upgrade rounds — surface the reason if known
+  let suffix = '';
+  if (aNote.includes('must1')) suffix = ' · must1 未达';
+  else if (aNote.includes('差距')) suffix = ' · 差距 < 阈值';
+  return { text: `升 0 级${suffix}`, modifier: 'history__upgrade--zero' };
+}
+
+function makeRollbackButton(index) {
+  const btn = document.createElement('button');
+  btn.className = 'history__rollback';
+  btn.type = 'button';
+  btn.textContent = '回滚';
+  btn.title = `回滚到第 ${index + 1} 局之前`;
+  btn.onclick = () => rollbackTo(index);
+  return btn;
+}
+
 /**
- * Render game history table
+ * Render history rows in editorial flexbox layout.
  */
 export function renderHistory() {
   const histBody = $('histBody');
@@ -19,89 +87,66 @@ export function renderHistory() {
     return;
   }
 
-  histBody.innerHTML = '';
+  histBody.replaceChildren();
 
   const history = state.getHistory();
-  const t1Color = config.getTeamColor('t1');
-  const t2Color = config.getTeamColor('t2');
-
-  history.forEach((entry, index) => {
-    const tr = document.createElement('tr');
-    tr.className = 'tinted';
-
-    // Add color coding based on winning team
-    const winColor = entry.winKey === 't1' ? t1Color : t2Color;
-    tr.style.background = `linear-gradient(90deg, ${winColor}10, transparent)`;
-
-    // Upgrade display - show "X队获胜" for A-level wins (通关)
-    let upgradeText;
-    if (entry.aNote && entry.aNote.includes('A级通关')) {
-      upgradeText = `${entry.win}通关`;
-    } else if (entry.up) {
-      upgradeText = `${entry.win} 升${entry.up}级`;
-    } else {
-      upgradeText = '不升级';
-    }
-
-    // Build player ranking display if available
-    let rankingDisplay = '';
-    if (entry.playerRankings) {
-      const rankingParts = [];
-      for (let rank = 1; rank <= parseInt(entry.mode); rank++) {
-        if (entry.playerRankings[rank]) {
-          const p = entry.playerRankings[rank];
-          const teamColor = p.team === 1 ? t1Color : t2Color;
-          rankingParts.push(`<span style="color:${teamColor}">${p.emoji}${p.name}</span>`);
-        }
-      }
-      if (rankingParts.length > 0) {
-        rankingDisplay = rankingParts.join(' ');
-      }
-    }
-
-    // Combo display
-    const comboDisplay = entry.combo || '';
-
-    // Build row HTML
-    tr.innerHTML = `
-      <td>${index + 1}</td>
-      <td>${entry.ts}</td>
-      <td>${entry.mode}</td>
-      <td>${comboDisplay}</td>
-      <td>${rankingDisplay}</td>
-      <td>${upgradeText}</td>
-      <td style="color:${winColor};font-weight:bold">${entry.win}</td>
-      <td>${entry.t1}</td>
-      <td>${entry.t2}</td>
-      <td>${entry.round}</td>
-      <td>${entry.aNote || ''}</td>
-    `;
-
-    // Add rollback button
-    const td = document.createElement('td');
-    const btn = document.createElement('button');
-    btn.textContent = '回滚至此前';
-    btn.onclick = () => rollbackTo(index);
-    td.appendChild(btn);
-    tr.appendChild(td);
-
-    histBody.appendChild(tr);
-  });
 
   if (history.length === 0) {
-    histBody.innerHTML = '<tr><td colspan="12" class="muted small">暂无历史记录</td></tr>';
+    const empty = document.createElement('div');
+    empty.className = 'history__empty';
+    empty.textContent = '暂无历史记录';
+    histBody.appendChild(empty);
+    return;
   }
+
+  history.forEach((entry, index) => {
+    const row = document.createElement('div');
+    row.className = 'history__row';
+
+    // 本局 (round number)
+    row.appendChild(makeSpan('history__round', `R${pad2(index + 1)}`));
+
+    // 级牌 (round level when this round was played)
+    row.appendChild(makeSpan('history__levelcard', entry.round || '—'));
+
+    // 胜方 (winner badge)
+    const winnerCell = makeSpan('history__winner-cell');
+    const winnerBadge = makeSpan(
+      `history__winner history__winner--${entry.winKey === 't1' ? 'blue' : 'red'}`,
+      entry.win || '—'
+    );
+    winnerCell.appendChild(winnerBadge);
+    row.appendChild(winnerCell);
+
+    // 组合 (combo / ranking summary)
+    row.appendChild(makeSpan('history__combo', comboTextFor(entry)));
+
+    // 升级
+    const up = upgradeCellFor(entry);
+    row.appendChild(makeSpan(`history__upgrade ${up.modifier}`.trim(), up.text));
+
+    // 红/蓝 levels (after this round)
+    // entry.t1 / entry.t2 are POST-round levels; entry uses team labels per config.
+    // t1 = blue (蓝), t2 = red (红) — match scoreboard ordering by showing red first.
+    row.appendChild(makeSpan('history__lvl history__lvl--red', entry.t2 || '—'));
+    row.appendChild(makeSpan('history__lvl history__lvl--blue', entry.t1 || '—'));
+
+    // Action cell
+    const actionCell = document.createElement('span');
+    actionCell.className = 'history__rollback-cell';
+    actionCell.appendChild(makeRollbackButton(index));
+    row.appendChild(actionCell);
+
+    histBody.appendChild(row);
+  });
 }
 
 /**
- * Rollback to a specific history index
- * @param {number} index - History index to rollback to (will rollback TO BEFORE this entry)
+ * Rollback to a specific history index.
  */
 export function rollbackTo(index) {
   const history = state.getHistory();
 
-
-  // Validate index - should be within history bounds
   if (index < 0 || index >= history.length) {
     console.error('Invalid rollback index:', index, 'history.length:', history.length);
     alert(`无效的回滚索引：${index}`);
@@ -114,15 +159,12 @@ export function rollbackTo(index) {
 
   const entry = history[index];
 
-
-  // Restore state from snapshot
   state.setTeamLevel('t1', entry.prevT1Lvl);
   state.setTeamAFail('t1', entry.prevT1A || 0);
   state.setTeamLevel('t2', entry.prevT2Lvl);
   state.setTeamAFail('t2', entry.prevT2A || 0);
   state.setRoundLevel(entry.prevRound || '2');
 
-  // Restore round owner — prefer snapshotted value, fall back to deriving from prior winner
   if (entry.prevRoundOwner !== undefined) {
     state.setRoundOwner(entry.prevRoundOwner);
   } else if (index > 0) {
@@ -131,51 +173,32 @@ export function rollbackTo(index) {
     state.setRoundOwner(null);
   }
 
-  // Restore manual-mode pending base (null if entry predates this snapshot field)
   state.setNextRoundBase(entry.prevNextRoundBase ?? null);
-
-  // Trim history to before this entry
   state.rollbackToIndex(index);
 
   emit('game:rollback', { index, entry });
 
-
-  return {
-    success: true,
-    message: '已回滚。'
-  };
+  return { success: true, message: '已回滚。' };
 }
 
-/**
- * Undo last game entry
- */
 export function undoLast() {
   const history = state.getHistory();
-
   if (history.length === 0) {
     alert('没有可撤销的记录');
     return { success: false };
   }
-
   return rollbackTo(history.length - 1);
 }
 
-/**
- * Reset entire game (preserving player assignments per user request)
- * @param {boolean} preservePlayers - Whether to keep player data (default: true)
- */
 export function resetAll(preservePlayers = true) {
   if (!confirm('重置整场比赛？' + (preservePlayers ? '（保留玩家姓名和队伍分配）' : ''))) {
     return { success: false };
   }
 
   if (preservePlayers) {
-    // Reset game state and stats, but keep player names/teams
     state.resetGame();
-    // Also clear player stats
     state.setPlayerStats({});
   } else {
-    // Reset everything including players
     state.resetAll();
   }
 

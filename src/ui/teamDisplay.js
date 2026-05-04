@@ -1,21 +1,30 @@
 /**
  * Team Display - Team UI Utilities
- * Extracted from app.js lines 1342-1408, 1467-1475
- * Handles team styling and display
+ * Handles team styling, level cards, and the editorial active-game header.
  */
 
 import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 
-/**
- * Convert hex color to RGB object
- */
+// Card-rank order. Index of the level → "RANK NN/13" position.
+const LEVELS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+function pad2(n) {
+  const x = Number(n);
+  if (Number.isFinite(x)) return String(x).padStart(2, '0');
+  return String(n);
+}
+
+function rankPositionFor(level) {
+  const idx = LEVELS.indexOf(String(level));
+  if (idx < 0) return '—';
+  return `${pad2(idx + 1)}/${LEVELS.length}`;
+}
+
 function hexToRgb(hex) {
   let h = hex.replace('#', '');
-  if (h.length === 3) {
-    h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-  }
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   return {
     r: parseInt(h.substr(0, 2), 16),
     g: parseInt(h.substr(2, 2), 16),
@@ -23,16 +32,14 @@ function hexToRgb(hex) {
   };
 }
 
-/**
- * Convert hex to rgba
- */
 export function rgba(hex, alpha) {
   const c = hexToRgb(hex);
   return `rgba(${c.r},${c.g},${c.b},${alpha})`;
 }
 
 /**
- * Apply team styles to UI elements
+ * Apply team styles to chips, history headers, and the winner display.
+ * Team-name chips are rendered safely with textContent.
  */
 export function applyTeamStyles() {
   const t1Chip = $('t1NameChip');
@@ -46,19 +53,24 @@ export function applyTeamStyles() {
   if (t1Chip) {
     t1Chip.style.background = t1Config.color;
     t1Chip.style.color = '#fff';
-    t1Chip.innerHTML = `<b>${t1Config.name}</b>`;
+    t1Chip.replaceChildren();
+    const b = document.createElement('b');
+    b.textContent = t1Config.name;
+    t1Chip.appendChild(b);
   }
 
   if (t2Chip) {
     t2Chip.style.background = t2Config.color;
     t2Chip.style.color = '#fff';
-    t2Chip.innerHTML = `<b>${t2Config.name}</b>`;
+    t2Chip.replaceChildren();
+    const b = document.createElement('b');
+    b.textContent = t2Config.name;
+    t2Chip.appendChild(b);
   }
 
   if (hT1) hT1.textContent = t1Config.name;
   if (hT2) hT2.textContent = t2Config.name;
 
-  // Update winner display if set
   const winnerDisplay = $('winnerDisplay');
   if (winnerDisplay) {
     const winner = state.getWinner();
@@ -70,7 +82,8 @@ export function applyTeamStyles() {
 }
 
 /**
- * Render team status (levels, A-failures, rounds)
+ * Render team status — level cards, RANK NN/13 subtitle, A-state chip,
+ * VS column round number, editorial active-game header line.
  */
 export function renderTeams() {
   const t1Lvl = $('t1Lvl');
@@ -81,8 +94,11 @@ export function renderTeams() {
   const t2AState = $('t2AState');
   const t1AChip = $('t1AChip');
   const t2AChip = $('t2AChip');
+  const t1Rank = $('t1Rank');
+  const t2Rank = $('t2Rank');
   const curRoundLvl = $('curRoundLvl');
   const nextRoundPreview = $('nextRoundPreview');
+  const versusRound = $('versusRound');
 
   const t1Level = state.getTeamLevel('t1');
   const t2Level = state.getTeamLevel('t2');
@@ -91,8 +107,9 @@ export function renderTeams() {
   const roundLevel = state.getRoundLevel();
   const roundOwner = state.getRoundOwner();
   const nextRoundBase = state.getNextRoundBase();
+  const history = state.getHistory();
+  const roundCount = history.length + 1; // current round = past rounds + 1
 
-  // 6/8 modes have no A-fail counter — hide the "A失败" chips and show "通关中" status
   const modeEl = $('mode');
   const currentMode = modeEl ? modeEl.value : '4';
   const aFailEnabled = currentMode === '4';
@@ -102,7 +119,11 @@ export function renderTeams() {
   if (t1A) t1A.textContent = t1AFail || 0;
   if (t2A) t2A.textContent = t2AFail || 0;
 
-  // Hide A失败 chips entirely in 6/8 mode where they have no meaning
+  // RANK NN/13 subtitle below each level glyph (replaces "A状态：—")
+  if (t1Rank) t1Rank.textContent = `RANK ${rankPositionFor(t1Level)}`;
+  if (t2Rank) t2Rank.textContent = `RANK ${rankPositionFor(t2Level)}`;
+
+  // Team-status pill — only shown for 4-player A-state. Hidden in 6/8 modes.
   if (t1AChip) t1AChip.style.display = aFailEnabled ? '' : 'none';
   if (t2AChip) t2AChip.style.display = aFailEnabled ? '' : 'none';
 
@@ -121,37 +142,73 @@ export function renderTeams() {
     }
   }
 
-  // Show round with team name
+  // Versus column — round number, zero-padded ("本局 05" matches demo).
+  if (versusRound) versusRound.textContent = `本局 ${pad2(roundCount)}`;
+
+  // Round level mirror (active-game header glyph) + label
   let roundTeamName = '';
+  let roundTeamSide = ''; // 'red' or 'blue' for accent color
   if (String(roundLevel) === String(t1Level) && String(roundLevel) !== String(t2Level)) {
-    roundTeamName = ` (${config.getTeamName('t1')})`;
+    roundTeamName = config.getTeamName('t1');
+    roundTeamSide = 'blue';
   } else if (String(roundLevel) === String(t2Level) && String(roundLevel) !== String(t1Level)) {
-    roundTeamName = ` (${config.getTeamName('t2')})`;
+    roundTeamName = config.getTeamName('t2');
+    roundTeamSide = 'red';
   }
 
   if (curRoundLvl) {
-    curRoundLvl.textContent = roundLevel + roundTeamName;
+    curRoundLvl.textContent = roundLevel || '-';
   }
 
-  // Show next round preview
   const nextRound = nextRoundBase || roundLevel || '-';
-  let nextTeamName = '';
-  if (nextRoundBase) {
-    if (nextRoundBase === t1Level && nextRoundBase !== t2Level) {
-      nextTeamName = ` (${config.getTeamName('t1')})`;
-    } else if (nextRoundBase === t2Level && nextRoundBase !== t1Level) {
-      nextTeamName = ` (${config.getTeamName('t2')})`;
-    }
+  if (nextRoundPreview) {
+    nextRoundPreview.textContent = nextRound;
   }
 
-  if (nextRoundPreview) {
-    nextRoundPreview.textContent = nextRound + nextTeamName;
+  // Editorial active-game header: "本局：4 · 红队的级"
+  renderActiveGameHeaderLine(roundLevel, roundTeamName, roundTeamSide);
+
+  // Next-round mirror in active-game header meta
+  const nextRoundMirror = $('nextRoundMirror');
+  if (nextRoundMirror) {
+    nextRoundMirror.textContent = nextRoundBase ? String(nextRoundBase) : '待结算';
   }
 }
 
 /**
- * Update rule hint text
- * @param {string} mode - Game mode
+ * Build the .activegame__head-line content with accent glyph + colored team name.
+ *
+ * Demo markup:
+ *   本局：<span class="glyph accent">4</span> · <span class="accent">红队的级</span>
+ */
+function renderActiveGameHeaderLine(roundLevel, ownerTeamName, ownerSide) {
+  const headLine = $('activegameHeadLine');
+  if (!headLine) return;
+
+  headLine.replaceChildren();
+
+  // Plain "本局：" prefix
+  headLine.appendChild(document.createTextNode('本局：'));
+
+  // Accent glyph (orange Fraunces 28px)
+  const glyph = document.createElement('span');
+  glyph.className = 'glyph accent';
+  glyph.id = 'curRoundLvlMirror';
+  glyph.textContent = roundLevel || '—';
+  headLine.appendChild(glyph);
+
+  // Optional " · 红队的级" suffix when round level matches one team's level
+  if (ownerTeamName) {
+    headLine.appendChild(document.createTextNode(' · '));
+    const ownerSpan = document.createElement('span');
+    ownerSpan.className = `accent accent--${ownerSide}`;
+    ownerSpan.textContent = `${ownerTeamName}的级`;
+    headLine.appendChild(ownerSpan);
+  }
+}
+
+/**
+ * Update rule hint text in the rules drawer or settings.
  */
 export function updateRuleHint(mode) {
   const ruleHint = $('ruleHint');
@@ -169,8 +226,7 @@ export function updateRuleHint(mode) {
 }
 
 /**
- * Refresh preview display without full recalculation
- * Extracted from app.js lines 1467-1475
+ * Refresh next-round preview without full recalculation.
  */
 export function refreshPreviewOnly() {
   const nextRoundPreview = $('nextRoundPreview');

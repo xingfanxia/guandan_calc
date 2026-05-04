@@ -23,7 +23,7 @@ import { applyGameResult } from './game/rules.js';
 
 // Player system
 import { generatePlayers, getPlayers, removePlayer } from './player/playerManager.js';
-import { renderPlayers, updateTeamLabels } from './player/playerRenderer.js';
+import { renderPlayers, renderTeamRosters, updateTeamLabels } from './player/playerRenderer.js';
 import { setupDropZones } from './player/dragDrop.js';
 
 // Ranking system
@@ -60,6 +60,9 @@ import { syncProfileStats } from './api/playerApi.js';
 // UI management
 import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRoster } from './ui/panelManager.js';
 import { initTickerSync } from './ui/tickerSync.js';
+import { initCalcPreviewSync, renderCalcPreview } from './ui/calcPreviewSync.js';
+import { initRulesDrawerSync, renderRulesDrawerChips } from './ui/rulesDrawerSync.js';
+import { initProfileSnippetSync, renderProfileSnippet } from './ui/profileSnippetSync.js';
 
 // Theme system
 import * as themeManager from './themes/_shared/themeManager.js';
@@ -164,6 +167,28 @@ function initializeUI() {
 
   // Wire ticker to live game state (M2 fix)
   initTickerSync();
+
+  // Wire editorial calc preview (red/blue/差距 segments)
+  initCalcPreviewSync();
+
+  // Wire compact rules drawer chip strip
+  initRulesDrawerSync();
+
+  // Wire profile snippet (bottom-of-page personal data card)
+  initProfileSnippetSync();
+
+  // Wire AUTO badge on apply/advance buttons (toggles when autoApply changes)
+  function updateAutoBadges() {
+    const autoOn = config.getPreference('autoApply');
+    const applyNote = $('applyAutoNote');
+    const advanceNote = $('advanceAutoNote');
+    if (applyNote) applyNote.hidden = !autoOn;
+    if (advanceNote) advanceNote.hidden = !autoOn;
+  }
+  updateAutoBadges();
+  onEvent('config:preferenceChanged', ({ key }) => {
+    if (key === 'autoApply') updateAutoBadges();
+  });
 }
 
 /**
@@ -186,6 +211,7 @@ function setupModuleEventHandlers() {
   onEvent('ranking:updated', async () => {
     renderPlayerPool();
     renderRankingSlots();
+    renderTeamRosters();
     attachTouchHandlersToAllTiles();
 
     const mode = parseInt($('mode').value);
@@ -325,6 +351,7 @@ function setupModuleEventHandlers() {
   onEvent('ranking:cleared', () => {
     renderPlayerPool();
     renderRankingSlots();
+    renderTeamRosters();
     attachTouchHandlersToAllTiles();
 
     const headline = $('headline');
