@@ -125,6 +125,28 @@ internal layout of EACH team panel may still cram on small widths.
 **Investigation pointer:** look at `.team__head` + `.card-level` flex
 direction on mobile. They may need to be stacked column not row.
 
+### Image 49 — RENDERER ISSUE (not theme CSS)
+**History 组合 column: verbose `头游 #1 · 二游 #2 · ...` format eats column width AND only shows top 4 positions for 8-player mode.**
+
+User wants:
+- Just numbers `(1, 2, 4, 7)` instead of `头游 #1 · 二游 #2 · 四游 #4 · 七游 #7`
+- ALL 8 positions for 8-player mode (currently only top-half / top-4 shown in combo)
+
+This is a `src/game/history.js` change (or wherever the history row is
+rendered), NOT a theme CSS issue. Three themes all show the same data
+because they all consume the same `historyEntry.combo` field.
+
+**Investigation pointer:**
+- `src/game/history.js` — find the cell renderer for the `组合` column.
+  Currently outputs Chinese position names (`头游`, `二游`, ..., `末游`)
+  + `#N` for each player ID. Shorten to just digit list.
+- `src/game/rules.js` — `applyGameResult` builds the combo from the
+  ranking. Confirm whether it stores all 8 positions or only top 4 in
+  8-player mode. If only top 4, extend to capture all positions.
+- After the renderer change, theme CSS for `.history__combo` may need
+  updating to match the new short content (probably just monospace
+  + smaller padding).
+
 ### Image 47
 **Honors gallery on mobile: 1-col with tiny text + lots of wasted whitespace.**
 
