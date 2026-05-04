@@ -125,6 +125,39 @@ internal layout of EACH team panel may still cram on small widths.
 **Investigation pointer:** look at `.team__head` + `.card-level` flex
 direction on mobile. They may need to be stacked column not row.
 
+### Image 47
+**Honors gallery on mobile: 1-col with tiny text + lots of wasted whitespace.**
+
+Currently the mobile @media for all 3 themes sets
+`.honors { grid-template-columns: 1fr; }` — each honor card stretches
+full viewport width but shows tiny serif text for the name (~16-18px
+on Trading), small subtitle, small description, small recipient row.
+On a 390px viewport at 1-col, each card is ~370px wide — way more
+horizontal space than the ~150 chars of content can fill. Result:
+massive padding, tiny text, hard to read.
+
+User wants: 2-col grid + bigger clearer text per cell.
+
+**Investigation pointer:** for each theme's mobile @media, change
+`.honors { grid-template-columns: 1fr 1fr; }`. Each cell becomes
+~180px wide. Bump `.honor__name` font-size to ~20-22px. Drop
+`.honor__index` and the English subtitle on mobile (keep Chinese cat
++ name + recipient). Recipient row: avatar 28px + name 14px + stat
+tag 13px. Audit the visual at 390px before declaring done.
+
+### Image 48
+**Team Awards section: small text, sparse layout, poor readability on mobile.**
+
+`PER-TEAM MVP / BURDEN` pills under each team show tiny
+`很C: 🐻夫` / `很闹: 🐰帆` chips. On mobile the section header
+"队伍荣誉 · Team Awards" is large but the actual award pills are
+unreadable.
+
+**Investigation pointer:** find `.team-honors` or equivalent in each
+theme. Likely a 2-col flex/grid with chip-style spans. Bump font-size
+to 14-15px, make avatar 24-28px, increase padding so the pill reads
+as a tappable target rather than micro-decoration.
+
 ### Image 44 / 45 / 46
 **Pool / slot column heights don't align on desktop and tablet widths.**
 
