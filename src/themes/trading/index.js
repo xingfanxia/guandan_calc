@@ -6,9 +6,11 @@
  * console — JetBrains Mono everywhere, amber HUD on near-black, sharp
  * 1px borders, ASCII bracketing, grid background overlay.
  *
- * Sparklines are declared in the manifest as a future capability but the
- * Phase 3 ship intentionally renders the existing components only — adding
- * a chart renderer is a follow-up (Phase 3.5).
+ * Phase 3.5 (2026-05-04) shipped the sparkline renderer at
+ * src/themes/_shared/sparkline.js and flipped featureManifest.sparklines
+ * to true — the stats-table now renders a 近况 (recent rank trajectory)
+ * column under Trading. Other themes inherit the renderer behind the
+ * feature flag (currently false elsewhere).
  */
 
 import featureManifest from './featureManifest.js';

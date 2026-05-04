@@ -2556,3 +2556,72 @@
     margin: 0 1px;
   }
 }
+
+/* ==========================================================================
+   PHASE 3.5 — SPARKLINES (2026-05-04)
+
+   Wired into the stats-table when featureManifest.sparklines === true.
+   Adds a 7th column (近况) per player showing rank trajectory across rounds.
+
+   Demo reference: docs/design/demos/demo-trading-v2.html lines 1774-1902.
+   ========================================================================== */
+
+:root[data-theme="trading"] .stats-table__th--spark {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--rule);
+  padding: 8px 8px 8px 12px;
+  white-space: nowrap;
+  width: 140px;
+}
+
+:root[data-theme="trading"] .stats-table__spark {
+  vertical-align: middle;
+  padding: 6px 8px 6px 12px;
+  border-bottom: 1px solid var(--rule);
+  width: 140px;
+}
+
+:root[data-theme="trading"] .stats-table__spark .sparkline {
+  display: block;
+  width: 120px;
+  height: 24px;
+  background: oklch(14% 0.005 240);
+  border: 1px solid var(--rule);
+}
+
+:root[data-theme="trading"] .sparkline__grid {
+  stroke: var(--rule);
+  stroke-width: 0.5;
+  opacity: 0.7;
+}
+
+:root[data-theme="trading"] .sparkline__dot--last {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 0.6;
+}
+
+:root[data-theme="trading"] .stats-table__spark--empty {
+  color: var(--ink-dimmer);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+
+@media (max-width: 720px) {
+  :root[data-theme="trading"] .stats-table__th--spark,
+  :root[data-theme="trading"] .stats-table__spark {
+    width: 96px;
+    padding: 4px 6px;
+  }
+  :root[data-theme="trading"] .stats-table__spark .sparkline {
+    width: 84px;
+    height: 22px;
+  }
+}

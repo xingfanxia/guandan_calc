@@ -96,8 +96,8 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
   - `player/playerRenderer.js` - `.roster-row` markup in scoreboard team zones
   - `game/history.js` - Flexbox `.history__row` with mini level cards + winner badges
   - `stats/honors.js` - Status-badge cards with team-colored avatar + handle + stat
-- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear) + `docs/reports/phase3-trading/` (Trading desktop + mobile)
-- Phase 4 (Atelier Console) is the next theme to ship. Phase 2.5 (Linear sidebar layout via `layout.mount()` + state-preservation across switches) is still the deferred infra item. Phase 3.5 (sparkline renderer, then flip Trading's `featureManifest.sparklines` to `true`) is also queued. See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
+- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear) + `docs/reports/phase3-trading/` (Trading desktop + mobile) + `docs/reports/phase3-5-sparklines/` (Phase 3.5 stats-card cross-theme verification)
+- Phase 3.5 (sparkline renderer) shipped 2026-05-04 — `src/themes/_shared/sparkline.js` is wired into `src/stats/statistics.js` via `getManifest().sparklines`, and Trading's manifest flipped to `true`. Stats-table grows a 近况 column in Trading with per-team-colored rank-trajectory SVGs; Broadcast / Linear stay `false` and render unchanged. Phase 4 (Atelier Console) is the next theme to ship; Phase 2.5 (Linear sidebar layout via `layout.mount()` + state-preservation across switches) is still the deferred infra item. See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
