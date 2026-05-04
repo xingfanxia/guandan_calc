@@ -79,16 +79,24 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
-**Theme System (8 modules)**: Token-based 5-theme architecture (Phases 0+1 merged; Phase 1.5 IN PROGRESS — structural shells shipped, ~40-45% visual fidelity vs demo, NOT done)
+**Theme System**: Token-based multi-theme architecture (Phases 0+1+1.5 + 2 shipped 2026-05-03)
 - `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
 - `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
 - `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
 - `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
-- `themes/broadcast/theme.css` - Broadcast oklch palette + Fraunces/Inter Tight/DM Mono + Phase 1.5 component styles (topnav, ticker, scoreboard, activegame, pool/slots, honors, sample, profile, footer, page-specific player/room/profile sections) — 2978 lines, every rule scoped under `:root[data-theme="broadcast"]`
-- `themes/broadcast/featureManifest.js` - Broadcast's feature flags
-- `themes/broadcast/index.js` - Theme barrel (name, displayName, layout placeholder)
-- `ui/tickerSync.js` - Live ticker state sync (4 of 6 fields wired — Mode/Level/Owner/Round; Room and Elapsed still TODO) — subscribes to state events; bootstrapped from `main.js`
-- See `docs/design/HANDOFF.md` "Phase 1.5 remaining gap" table for the section-by-section punch list (scoreboard rosters, calc preview, toggles, manual buttons, rules drawer, history, honors, profile snippet, ticker fields, header line). **Do NOT start Phase 2 (Linear) until Phase 1.5 reaches ≥95% per section.** See `docs/design/THEME-ARCHITECTURE.md` for the 5-phase plan.
+- `themes/broadcast/` - A · Broadcast Editorial (default theme): Fraunces + Inter Tight + DM Mono, oklch palette with orange accent, editorial maximalism
+- `themes/linear/` - E · Linear / Vercel Console: Geist + Geist Mono, density-first oklch with single Linear purple accent, no decorative card suits
+- Live data wiring (Phase 1.5):
+  - `ui/tickerSync.js` - 6 ticker fields (Room/Mode/Round/Level/Owner/Elapsed) + LIVE/SYNC indicator
+  - `ui/calcPreviewSync.js` - LIVE CALC editorial segments (red/blue/差距 with thresholds)
+  - `ui/rulesDrawerSync.js` - Compact rules chip strip (c4/t6/p6/t8/flags)
+  - `ui/profileSnippetSync.js` - Bottom-of-page personal data card with 6-stat grid + partner/rival
+  - `ui/teamDisplay.js` - RANK NN/13 + accent-colored active-game header line
+  - `player/playerRenderer.js` - `.roster-row` markup in scoreboard team zones
+  - `game/history.js` - Flexbox `.history__row` with mini level cards + winner badges
+  - `stats/honors.js` - Status-badge cards with team-colored avatar + handle + stat
+- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear)
+- Phase 2.5 (Linear sidebar layout + state-preservation across theme switches) is the first follow-up before Phase 3 (Trading Terminal). See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
