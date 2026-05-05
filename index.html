@@ -881,17 +881,20 @@
 
 <canvas id="longCnv" width="1200" height="1600" style="display:none"></canvas>
 
-<!-- Victory Modal -->
-<div id="victoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; overflow-y: auto; padding: 20px 0;">
-  <div style="background:var(--surface); border-radius:0; padding:32px; max-width:560px; text-align:center; border:2px solid var(--accent); transition: all 0.3s ease; max-height: 90vh; overflow-y: auto; margin: auto; font-family: var(--font-body);">
-    <div style="font-size: 11px; letter-spacing: 0.30em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px;">— THIS IS WHAT WINNING LOOKS LIKE —</div>
-    <h1 style="font-family: var(--font-display); font-weight: 900; font-size: 64px; line-height: 0.95; color: var(--ink); margin: 0 0 16px 0; letter-spacing: -0.02em;">A级通关</h1>
-    <h2 id="victoryTeamName" style="font-family: var(--font-display); font-size: 28px; margin:0 0 24px 0; font-weight:900;"></h2>
-    <p style="color:var(--ink-dim); font-size:14px; margin-bottom:24px; letter-spacing: 0.04em;">恭喜完成所有级别的挑战</p>
+<!-- Victory Modal — class-based for cross-theme styling.
+     Position/overlay inline styles are theme-agnostic and stay; typography
+     and chrome moved to per-theme CSS so each theme renders its own sample
+     state (Atelier cream-parchment, Broadcast bold magazine, etc.). -->
+<div id="victoryModal" class="victory-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:9999; overflow-y: auto;">
+  <div class="victory-modal__inner">
+    <div class="victory-modal__eyebrow">— THIS IS WHAT WINNING LOOKS LIKE —</div>
+    <h1 class="victory-modal__title">A级通关</h1>
+    <h2 id="victoryTeamName" class="victory-modal__teamname"></h2>
+    <p class="victory-modal__lede">恭喜完成所有级别的挑战</p>
 
-    <div id="victoryVoting" style="margin-bottom:24px;"></div>
+    <div id="victoryVoting" class="victory-modal__voting"></div>
 
-    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+    <div class="victory-modal__actions">
       <button onclick="exportTXT()" class="btn-secondary">📄 导出 TXT</button>
       <button onclick="exportCSV()" class="btn-secondary">📊 导出 CSV</button>
       <button onclick="exportLongPNG()" class="btn-secondary">🖼️ 导出长图</button>

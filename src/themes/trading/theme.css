@@ -2625,3 +2625,88 @@
     height: 22px;
   }
 }
+
+/* ============== VICTORY MODAL — class-based, refactored 2026-05-05 ==============
+ * Trading renders the championship state in Bloomberg HUD mode — sharp 1px
+ * amber border, monospace headlines, ASCII bracket flair.
+ */
+:root[data-theme="trading"] .victory-modal {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s5) var(--s4);
+  background: rgba(0, 0, 0, 0.92);
+}
+:root[data-theme="trading"] .victory-modal__inner {
+  margin: auto;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--s6) var(--s5) var(--s5);
+  background: var(--bg-deep);
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  text-align: center;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.85),
+              0 0 0 5px var(--accent-line);
+}
+:root[data-theme="trading"] .victory-modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--s4);
+}
+:root[data-theme="trading"] .victory-modal__title {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 0 0 var(--s4) 0;
+}
+:root[data-theme="trading"] .victory-modal__teamname {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  margin: 0 0 var(--s4) 0;
+  /* color set inline by showVictoryModal() */
+}
+:root[data-theme="trading"] .victory-modal__lede {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  margin: 0 auto var(--s5);
+  max-width: 420px;
+}
+:root[data-theme="trading"] .victory-modal__voting {
+  margin: var(--s5) 0;
+}
+:root[data-theme="trading"] .victory-modal__actions {
+  display: flex;
+  gap: var(--s2);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s5);
+}
+@media (max-width: 768px) {
+  :root[data-theme="trading"] .victory-modal__inner {
+    padding: var(--s5) var(--s4);
+  }
+  :root[data-theme="trading"] .victory-modal__title {
+    font-size: 22px;
+  }
+  :root[data-theme="trading"] .victory-modal__teamname {
+    font-size: 18px;
+  }
+}

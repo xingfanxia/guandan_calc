@@ -4303,3 +4303,90 @@
     margin: 0 1px;
   }
 }
+
+/* ============== VICTORY MODAL — class-based, refactored 2026-05-05 ==============
+ * Markup in index.html now exposes class names; broadcast renders the
+ * championship state in editorial-magazine mode (Fraunces 900 hero, accent
+ * gold border-top, generous editorial padding).
+ */
+:root[data-theme="broadcast"] .victory-modal {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s5) var(--s4);
+  background: rgba(0, 0, 0, 0.86);
+}
+:root[data-theme="broadcast"] .victory-modal__inner {
+  margin: auto;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--s7) var(--s6) var(--s6);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--accent);
+  text-align: center;
+  font-family: var(--font-body);
+  color: var(--ink);
+  box-shadow: 0 32px 64px -24px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme="broadcast"] .victory-modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--s4);
+}
+:root[data-theme="broadcast"] .victory-modal__title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 72px;
+  line-height: 0.95;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  margin: 0 0 var(--s4) 0;
+}
+:root[data-theme="broadcast"] .victory-modal__teamname {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 32px;
+  line-height: 1.1;
+  margin: 0 0 var(--s4) 0;
+  letter-spacing: -0.015em;
+  /* color set inline by showVictoryModal() */
+}
+:root[data-theme="broadcast"] .victory-modal__lede {
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--ink-dim);
+  letter-spacing: 0.02em;
+  margin: 0 auto var(--s5);
+  max-width: 480px;
+}
+:root[data-theme="broadcast"] .victory-modal__voting {
+  margin: var(--s5) 0;
+}
+:root[data-theme="broadcast"] .victory-modal__actions {
+  display: flex;
+  gap: var(--s2);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: var(--s5);
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s5);
+}
+@media (max-width: 768px) {
+  :root[data-theme="broadcast"] .victory-modal__inner {
+    padding: var(--s6) var(--s4) var(--s5);
+  }
+  :root[data-theme="broadcast"] .victory-modal__title {
+    font-size: 48px;
+  }
+  :root[data-theme="broadcast"] .victory-modal__teamname {
+    font-size: 24px;
+  }
+  :root[data-theme="broadcast"] .victory-modal__lede {
+    font-size: 13px;
+  }
+}

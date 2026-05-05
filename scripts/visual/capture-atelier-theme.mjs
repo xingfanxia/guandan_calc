@@ -175,6 +175,37 @@ await page.screenshot({
   if (honors) await honors.screenshot({ path: path.join(REPORT_DIR, 'honors-mobile.png') });
 }
 
+// Restore desktop viewport for the victory modal capture — modal sizing is
+// designed for 1280px width, so capture there for the canonical baseline.
+await page.setViewportSize({ width: 1280, height: 900 });
+await page.waitForTimeout(200);
+
+// Trigger victory modal to capture the cream-parchment championship state.
+// 2026-05-05: hero markup now class-based, theme.css can finally reach it.
+await page.evaluate(async () => {
+  const modal = await import('/src/ui/victoryModal.js');
+  await modal.showVictoryModal('红队');
+});
+await page.waitForTimeout(700);  // let voting interface DOM settle
+
+const victoryEl = await page.$('#victoryModal');
+if (victoryEl) {
+  await victoryEl.screenshot({
+    path: path.join(REPORT_DIR, 'victory-modal.png'),
+    omitBackground: false,
+  });
+}
+
+// Mobile victory modal too — championship states on phone matter.
+await page.setViewportSize({ width: 390, height: 844 });
+await page.waitForTimeout(200);
+const victoryMobileEl = await page.$('#victoryModal');
+if (victoryMobileEl) {
+  await victoryMobileEl.screenshot({
+    path: path.join(REPORT_DIR, 'victory-modal-mobile.png'),
+  });
+}
+
 if (consoleErrors.length) {
   console.log('CONSOLE/PAGE ERRORS:', consoleErrors);
 }

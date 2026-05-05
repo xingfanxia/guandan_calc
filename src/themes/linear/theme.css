@@ -2240,3 +2240,83 @@
     margin: 0 1px;
   }
 }
+
+/* ============== VICTORY MODAL — class-based, refactored 2026-05-05 ==============
+ * Linear renders the championship state in density-first mode — compact
+ * panel, sharp 1px border, single Linear purple accent, Geist throughout.
+ */
+:root[data-theme="linear"] .victory-modal {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s5) var(--s4);
+  background: rgba(0, 0, 0, 0.82);
+}
+:root[data-theme="linear"] .victory-modal__inner {
+  margin: auto;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: var(--s5) var(--s5) var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  text-align: center;
+  font-family: var(--font-body);
+  color: var(--ink);
+  box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.50);
+}
+:root[data-theme="linear"] .victory-modal__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: var(--s3);
+}
+:root[data-theme="linear"] .victory-modal__title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0 0 var(--s3) 0;
+}
+:root[data-theme="linear"] .victory-modal__teamname {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.2;
+  margin: 0 0 var(--s3) 0;
+  /* color set inline by showVictoryModal() */
+}
+:root[data-theme="linear"] .victory-modal__lede {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin: 0 0 var(--s4) 0;
+}
+:root[data-theme="linear"] .victory-modal__voting {
+  margin: var(--s4) 0;
+}
+:root[data-theme="linear"] .victory-modal__actions {
+  display: flex;
+  gap: var(--s2);
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: var(--s4);
+  border-top: 1px solid var(--rule);
+  margin-top: var(--s4);
+}
+@media (max-width: 768px) {
+  :root[data-theme="linear"] .victory-modal__inner {
+    padding: var(--s4) var(--s3);
+  }
+  :root[data-theme="linear"] .victory-modal__title {
+    font-size: 22px;
+  }
+  :root[data-theme="linear"] .victory-modal__teamname {
+    font-size: 16px;
+  }
+}

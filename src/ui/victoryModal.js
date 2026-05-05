@@ -54,7 +54,7 @@ export async function showVictoryModal(teamName) {
   const modal = $('victoryModal');
   if (!modal) return;
 
-  const modalContent = modal.querySelector('div');
+  const modalContent = modal.querySelector('.victory-modal__inner');
   const teamNameEl = $('victoryTeamName');
 
   // Determine winning team color
@@ -68,9 +68,12 @@ export async function showVictoryModal(teamName) {
     teamNameEl.style.color = winningTeamColor;
   }
 
+  // Expose the winning team color as a CSS custom property so per-theme
+  // styles can use it without inline rule overrides. Pre-2026-05-05 we set
+  // borderColor + boxShadow inline here, which clobbered each theme's
+  // border treatment (Atelier gold-top, Trading amber-frame, etc.).
   if (modalContent) {
-    modalContent.style.borderColor = winningTeamColor;
-    modalContent.style.boxShadow = `0 0 30px ${winningTeamColor}40`;
+    modal.style.setProperty('--winning-team-color', winningTeamColor);
   }
 
   // Find MVP from winning team and show tagline
