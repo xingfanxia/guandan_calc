@@ -38,7 +38,7 @@ Phase 2 (Linear) work that exercises the same shared infrastructure.
 | 2.5 | Linear sidebar layout via `layout.mount()` + state preservation across theme switches | TODO | (still the deferred infra item) |
 | 3 | Add Trading Terminal theme (monospace, amber HUD on near-black, 1px borders, ASCII bracket flair) | **SHIPPED** | main 9883e1d |
 | 3.5 | Sparkline renderer + flip Trading's `featureManifest.sparklines` to `true` | **SHIPPED** | main 72f18e0 (2026-05-04) |
-| 4 | Add Atelier theme (warm graphite + Fraunces serif + clay accent + vintage card-stock pcards) | **SHIPPED** | main (2026-05-04) |
+| 4 | Add Atelier theme (warm graphite + Fraunces serif + clay accent + vintage card-stock pcards) | **SHIPPED** + polish iter 1+2+3+4 (~70%→~96%) | main (2026-05-04) + main `a392e15`, `c852766`, `06c1137`, `52c9504` (2026-05-05). See `HANDOFF-2026-05-05-atelier-polish-iter-1.md`. |
 | 5 | Add Tea-Table theme (ink portraits + brushstroke SVGs — needs asset commission) | TODO | |
 | — | Visual regression CI (Percy/Chromatic/pixelmatch) | TODO | (Phase 5+) |
 | — | PNG export theme-awareness | TODO | (Phase 5) |
