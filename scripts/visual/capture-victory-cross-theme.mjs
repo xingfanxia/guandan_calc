@@ -9,10 +9,12 @@ import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
+import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const REPORT_DIR = path.join(ROOT, 'docs/reports/victory-cross-theme');
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const REPORT_DIR = path.join(REPORT_BASE, 'victory-cross-theme');
 
 await mkdir(REPORT_DIR, { recursive: true });
 
@@ -22,6 +24,9 @@ const page = await ctx.newPage();
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
 const THEMES = ['broadcast', 'linear', 'trading', 'atelier'];
+
+// Freeze Date.now BEFORE page load — see _fixtures.mjs.
+await freezeTime(page);
 
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
 
@@ -38,6 +43,9 @@ for (const theme of THEMES) {
   const shuffleBtn = await page.$('#shuffleTeams');
   if (shuffleBtn) await shuffleBtn.click();
   await page.waitForTimeout(200);
+
+  // Override emojis + team assignment to deterministic state.
+  await setDeterministicPlayers(page, 6);
 
   // Trigger victory modal
   await page.evaluate(async () => {

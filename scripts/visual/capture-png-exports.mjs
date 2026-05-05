@@ -16,10 +16,12 @@ import { chromium } from 'playwright';
 import path from 'path';
 import { writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
+import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const REPORT_DIR = path.join(ROOT, 'docs/reports/png-export-themes');
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const REPORT_DIR = path.join(REPORT_BASE, 'png-export-themes');
 mkdirSync(REPORT_DIR, { recursive: true });
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
@@ -35,6 +37,9 @@ page.on('console', (msg) => {
   if (msg.type() === 'error') consoleErrors.push(`CONSOLE: ${msg.text()}`);
 });
 page.on('dialog', async (d) => { await d.accept(); });
+
+// Freeze Date.now BEFORE page load — see _fixtures.mjs.
+await freezeTime(page);
 
 for (const theme of THEMES) {
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
@@ -52,6 +57,9 @@ for (const theme of THEMES) {
   await page.waitForTimeout(150);
   await page.click('#generatePlayers');
   await page.waitForTimeout(300);
+
+  // Override emojis + team assignment to deterministic state.
+  await setDeterministicPlayers(page, 6);
 
   // Seed minimal fixture — needs at least 1 history entry plus team levels
   // for the export to render meaningful content (header, MVP block, honors).

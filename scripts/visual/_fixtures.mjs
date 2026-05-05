@@ -53,6 +53,7 @@ export async function setDeterministicPlayers(page, count) {
   await page.evaluate(async (fixedEmojis) => {
     const stateMod = await import('/src/core/state.js');
     const playerMgrMod = await import('/src/player/playerManager.js');
+    const evtMod = await import('/src/core/events.js');
     const players = playerMgrMod.getPlayers();
     const halfSize = players.length / 2;
     players.forEach((p) => {
@@ -62,7 +63,15 @@ export async function setDeterministicPlayers(page, count) {
     });
     players.sort((a, b) => a.id - b.id);
     stateMod.default.setPlayers(players);
+    // Emit the same event `shuffleTeams` emits so any renderer subscribed
+    // to roster changes (player pool tiles, scoreboard team rows) repaints
+    // with the deterministic state. Without this, captures that screenshot
+    // before the next animation frame catch a stale render — visible as
+    // background-tile-ordering noise in e.g. cross-theme victory captures.
+    evtMod.emit('player:teamsShuffled', { players });
   }, emojis);
+  // Settle wait — give renderers a frame to repaint after the event.
+  await page.waitForTimeout(150);
 }
 
 /**

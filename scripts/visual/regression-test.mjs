@@ -8,12 +8,14 @@
 // Env:
 //   BASELINE_DIR   default = docs/reports
 //   SNAPSHOT_DIR   default = /tmp/visual-snapshot-<pid>
-//   THRESHOLD      default = 50    (pixel count threshold; absorbs sub-pixel
+//   THRESHOLD      default = 100   (pixel count threshold; absorbs sub-pixel
 //                                    AA jitter — Playwright shows 1-6 px noise
-//                                    on emoji glyphs at desktop scale even with
-//                                    fully deterministic state. Real UI changes
-//                                    measure in 100s-1000s of pixels, so 50 px
-//                                    is functionally zero for regression.)
+//                                    on emoji glyphs at desktop, and Canvas-
+//                                    based PNG export shows 27-71 px noise on
+//                                    1MP+ images from font subpixel rendering.
+//                                    Real UI changes measure 100s-1000s+ px,
+//                                    so 100 px is functionally zero for
+//                                    regression. Bump per-image if needed.)
 //   KEEP_SNAPSHOT  default = 0     (set 1 to leave snapshot dir on disk)
 //   DIFF_OUT       default = 0     (set 1 to always write diff PNGs, even on pass)
 //
@@ -40,19 +42,22 @@ const ROOT = path.resolve(path.dirname(__filename), '..', '..');
 // update it to (1) honor VISUAL_REPORT_BASE and (2) import freezeTime +
 // setDeterministicPlayers from _fixtures.mjs.
 const CAPTURES = [
-  'capture-phase1-5-final.mjs',  // Broadcast theme — phase1-5-final/
-  'capture-linear-theme.mjs',    // Linear theme    — phase2-linear/
-  'capture-trading-theme.mjs',   // Trading theme   — phase3-trading/
-  'capture-atelier-theme.mjs',   // Atelier theme   — phase4-atelier/
-  // Cross-theme + feature captures (victory-cross-theme, png-exports,
-  // sparklines) will be added once each is updated to use _fixtures.mjs
-  // helpers + VISUAL_REPORT_BASE. Rolling out incrementally so a single
-  // broken capture doesn't block the whole regression test.
+  'capture-phase1-5-final.mjs',      // Broadcast theme — phase1-5-final/
+  'capture-linear-theme.mjs',        // Linear theme    — phase2-linear/
+  'capture-trading-theme.mjs',       // Trading theme   — phase3-trading/
+  'capture-atelier-theme.mjs',       // Atelier theme   — phase4-atelier/
+  'capture-victory-cross-theme.mjs', // VictoryModal contract across 4 themes
+  'capture-png-exports.mjs',         // PNG export theme-awareness across 4 themes
+  // capture-phase3-5-sparklines.mjs is intentionally excluded — its fixture
+  // uses 5 rounds of `#randomRanking` + `#manualCalc` + `#apply`, which has
+  // unseedable randomness in the gameplay-flow path. Adding this would
+  // require either replacing the random-ranking calls with explicit state
+  // mutations or extending freezeTime to also seed Math.random globally.
 ];
 
 const BASELINE_DIR = path.resolve(ROOT, process.env.BASELINE_DIR || 'docs/reports');
 const SNAPSHOT_DIR = path.resolve(process.env.SNAPSHOT_DIR || `/tmp/visual-snapshot-${process.pid}`);
-const THRESHOLD = process.env.THRESHOLD || '50';
+const THRESHOLD = process.env.THRESHOLD || '100';
 const KEEP_SNAPSHOT = process.env.KEEP_SNAPSHOT === '1' || process.env.KEEP_SNAPSHOT === 'true';
 const DIFF_OUT = process.env.DIFF_OUT === '1' || process.env.DIFF_OUT === 'true';
 
