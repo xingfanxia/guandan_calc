@@ -44,7 +44,7 @@ reflect the live renderer's output.
 | Team honors | ~85% (empty fixture) | ~92% | ~92% | ~92% | ~92% | iter 1: underline-only badges with accent on MVP |
 | Honors gallery | ~90% | ~93% | ~93% | ~93% | ~93% | unchanged — already strong |
 | **Sample / victory** | **not captured** | not captured | not captured | **~95%** | ~95% | iter 3: victoryModal class refactor + per-theme rules |
-| Mobile @ 390px | ~80% | ~90% | ~90% | ~92% | ~94% | iter 1: head-line + history; iter 3: victory; iter 4: 2-col slot grid + calcpreview wrap |
+| Mobile @ 390px | ~80% | ~90% | ~90% | ~92% | ~94% → **~96%** (`9fc4294`) | iter 1: head-line + history; iter 3: victory; iter 4: 2-col slot grid + calcpreview wrap; **post-iter-4 (`9fc4294`): calcpreview column stack at 390px — three discrete visual layers (eyebrow / italic-Fraunces paragraph / right-aligned hint) replace cramped wrapped row** |
 
 **Aggregate (worst-section): ~70% → ~96%.** No section below 92%; pool/slots and calcpreview both jumped from the prior floor. Phase 4 Atelier polish complete.
 
@@ -81,7 +81,7 @@ reflect the live renderer's output.
 
 ## How to pick up if more polish is wanted
 
-Phase 4 Atelier polish is **complete**. No section below 92%; pool/slots and calcpreview both at ~96%. Remaining work is on other phases:
+Phase 4 Atelier polish is **complete**. No section below 92%; pool/slots, calcpreview, and mobile all at ~96%. Remaining work is on other phases:
 
 1. Phase 2.5 (Linear sidebar layout + state preservation across theme switches) — infra TODO.
 2. Phase 5 (Tea-Table) — gated on commissioned ink illustrations.
@@ -110,6 +110,7 @@ If a future Atelier polish iter is wanted (paper-grain texture on slots, illustr
 | **Atelier polish iter 2** | ✅ shipped 2026-05-05 (`c852766`) |
 | **Atelier polish iter 3** | ✅ shipped 2026-05-05 (`06c1137`) |
 | **Atelier polish iter 4** | ✅ shipped 2026-05-05 (`52c9504`) — calcpreview + filled-slot inner classes |
+| **Atelier mobile calcpreview** | ✅ shipped 2026-05-05 (`9fc4294`) — column stack at 390px; closes the 94% → ~96% mobile gap |
 | 2.5 (Linear sidebar + state preservation) | TODO infra |
 | 5 (Tea-Table) | gated on commissioned ink illustrations |
 | Visual regression CI | TODO |
