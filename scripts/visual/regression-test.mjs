@@ -42,17 +42,16 @@ const ROOT = path.resolve(path.dirname(__filename), '..', '..');
 // update it to (1) honor VISUAL_REPORT_BASE and (2) import freezeTime +
 // setDeterministicPlayers from _fixtures.mjs.
 const CAPTURES = [
-  'capture-phase1-5-final.mjs',      // Broadcast theme — phase1-5-final/
-  'capture-linear-theme.mjs',        // Linear theme    — phase2-linear/
-  'capture-trading-theme.mjs',       // Trading theme   — phase3-trading/
-  'capture-atelier-theme.mjs',       // Atelier theme   — phase4-atelier/
-  'capture-victory-cross-theme.mjs', // VictoryModal contract across 4 themes
-  'capture-png-exports.mjs',         // PNG export theme-awareness across 4 themes
-  // capture-phase3-5-sparklines.mjs is intentionally excluded — its fixture
-  // uses 5 rounds of `#randomRanking` + `#manualCalc` + `#apply`, which has
-  // unseedable randomness in the gameplay-flow path. Adding this would
-  // require either replacing the random-ranking calls with explicit state
-  // mutations or extending freezeTime to also seed Math.random globally.
+  'capture-phase1-5-final.mjs',       // Broadcast theme — phase1-5-final/
+  'capture-linear-theme.mjs',         // Linear theme    — phase2-linear/
+  'capture-trading-theme.mjs',        // Trading theme   — phase3-trading/
+  'capture-atelier-theme.mjs',        // Atelier theme   — phase4-atelier/
+  'capture-victory-cross-theme.mjs',  // VictoryModal contract across 4 themes
+  'capture-png-exports.mjs',          // PNG export theme-awareness across 4 themes
+  'capture-phase3-5-sparklines.mjs',  // Sparkline rendering across 3 themes (uses
+                                      // FIXED_RANKINGS_8 fixture; was excluded
+                                      // through 2026-05-05 due to unseedable
+                                      // #randomRanking — now state-injected).
 ];
 
 const BASELINE_DIR = path.resolve(ROOT, process.env.BASELINE_DIR || 'docs/reports');

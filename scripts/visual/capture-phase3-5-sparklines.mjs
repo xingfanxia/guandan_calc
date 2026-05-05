@@ -5,44 +5,25 @@
 //  - broadcast/* + linear/*: 6-column stats table, NO 近况 column
 //  - trading/*: 7-column stats table WITH 近况 column showing per-player
 //    rank trajectory sparklines
+//
+// Determinism: uses freezeTime + setDeterministicPlayers + the new
+// setDeterministicPlayerStats fixture (FIXED_RANKINGS_8) — replaces the
+// 2025 vintage of this script which clicked #randomRanking 5 times in
+// the live UI (Math.random unseedable).
 
 import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
+import { freezeTime, setDeterministicPlayers, setDeterministicPlayerStats } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const OUT = path.join(ROOT, 'docs/reports/phase3-5-sparklines');
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const OUT = path.join(REPORT_BASE, 'phase3-5-sparklines');
 await mkdir(OUT, { recursive: true });
 
 const browser = await chromium.launch();
-
-async function setupGameWithHistory(page) {
-  await page.waitForSelector('.modeselect__opt[data-mode="8"]', { timeout: 5000 });
-  await page.click('.modeselect__opt[data-mode="8"]');
-  await page.waitForTimeout(150);
-  await page.click('#generatePlayers');
-  await page.waitForTimeout(300);
-  await page.click('#shuffleTeams');
-  await page.waitForTimeout(200);
-  for (let i = 0; i < 5; i++) {
-    await page.click('#randomRanking');
-    await page.waitForTimeout(150);
-    await page.click('#manualCalc');
-    await page.waitForTimeout(150);
-    const apply = await page.$('#apply');
-    if (apply) {
-      await apply.click();
-      await page.waitForTimeout(200);
-    }
-    const adv = await page.$('#advance');
-    if (adv) {
-      await adv.click();
-      await page.waitForTimeout(150);
-    }
-  }
-}
 
 async function captureSection(page, name, selector) {
   await page.evaluate(sel => {
@@ -69,6 +50,11 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
       if (msg.type() === 'error') console.log('  [page error]', msg.text());
     });
 
+    await freezeTime(page);
+
+    // Pre-seed theme + clear stale state BEFORE first navigation. The inline
+    // theme bootstrap reads localStorage on every page load, so seeding here
+    // means first paint already lands on the right theme.
     await page.goto('http://localhost:3000/', { waitUntil: 'domcontentloaded' });
     await page.evaluate(t => {
       localStorage.setItem('gd_v9_theme', t);
@@ -78,7 +64,28 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
     }, theme);
     await page.reload({ waitUntil: 'networkidle' });
 
-    await setupGameWithHistory(page);
+    // 8-player mode + deterministic player roster (fixed emojis + teams).
+    await page.waitForSelector('.modeselect__opt[data-mode="8"]', { timeout: 5000 });
+    await page.click('.modeselect__opt[data-mode="8"]');
+    await page.waitForTimeout(150);
+    await page.click('#generatePlayers');
+    await page.waitForTimeout(300);
+    await page.click('#shuffleTeams');
+    await page.waitForTimeout(200);
+    await setDeterministicPlayers(page, 8);
+
+    // Inject 5-round ranking history directly into state — replaces the old
+    // loop of #randomRanking + #manualCalc + #apply + #advance × 5.
+    await setDeterministicPlayerStats(page, 8);
+
+    // Force the stats card to repaint with the new state. The renderer
+    // listens to stats:updated, but explicitly invoking it post-injection
+    // guards against ordering races.
+    await page.evaluate(async () => {
+      const statsMod = await import('/src/stats/statistics.js');
+      statsMod.renderStatistics();
+    });
+    await page.waitForTimeout(200);
 
     await captureSection(page, `${vpName}-${theme}-stats`, '.stats-card');
 
@@ -87,4 +94,4 @@ for (const [vpName, vp] of Object.entries(VIEWPORTS)) {
 }
 
 await browser.close();
-console.log(`\nCaptures written to: ${OUT}`);
+console.log(`\nSAVED: ${OUT}`);

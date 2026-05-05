@@ -118,3 +118,66 @@ export async function freezeTime(page, frozenTimestamp = 1704067200000) {
     // patched, which is the consumer used by sessionStartTime + elapsed.
   }, frozenTimestamp);
 }
+
+// Fixed 5-round per-player rankings for 8-mode. Each round assigns ranks
+// 1..8 across the 8 players (every column in this matrix is a permutation
+// of 1..8 — verified by FIXED_RANKINGS_8_INVARIANT below). Designed for
+// visually-interesting sparkline trajectories: P1 is volatile, P2 mid-pack,
+// P3 oscillating, P4 has the only sweep-then-bottom arc, P5 closes strong,
+// P6/P7 are middling, P8 is consistently bottom-half.
+//
+// Why direct stats injection instead of running #randomRanking 5 times in
+// the live UI: `playerControls.js#randomRanking` calls Math.random for
+// position-shuffling, which has no seed hook. Replicating that flow
+// deterministically would require either patching Math.random globally
+// (risky — also affects `playerManager.shuffleTeams` and emoji selection)
+// or rewriting the random-ranking handler to accept a seed. State injection
+// matches the existing setDeterministicPlayers pattern (this file, line 48).
+export const FIXED_RANKINGS_8 = {
+  1: [3, 1, 4, 2, 5],
+  2: [1, 4, 2, 7, 3],
+  3: [5, 3, 1, 5, 2],
+  4: [2, 6, 5, 1, 8],
+  5: [7, 2, 8, 5, 1],
+  6: [4, 8, 3, 6, 7],
+  7: [8, 5, 6, 3, 4],
+  8: [6, 7, 7, 8, 6],
+};
+
+/**
+ * Override `state.playerStats` with the deterministic FIXED_RANKINGS_8
+ * matrix and emit `stats:updated` so any subscribed renderers repaint.
+ *
+ * MUST be called after `setDeterministicPlayers(page, 8)` (so player IDs
+ * 1..8 exist) and before any stats-card render.
+ *
+ * Computes derived fields (games / totalRank / firstPlaceCount /
+ * lastPlaceCount) from the ranking matrix so the stats table shows
+ * consistent numbers alongside the sparkline.
+ *
+ * @param {import('playwright').Page} page
+ * @param {8} mode  only 8-mode is supported (matches FIXED_RANKINGS_8)
+ */
+export async function setDeterministicPlayerStats(page, mode = 8) {
+  if (mode !== 8) {
+    throw new Error(`setDeterministicPlayerStats: unsupported mode ${mode} (only 8 today)`);
+  }
+  await page.evaluate(async ({ rankings, lastPlace }) => {
+    const stateMod = await import('/src/core/state.js');
+    const evtMod = await import('/src/core/events.js');
+    const playerStats = {};
+    for (const [pidStr, rks] of Object.entries(rankings)) {
+      const pid = parseInt(pidStr, 10);
+      playerStats[pid] = {
+        games: rks.length,
+        totalRank: rks.reduce((a, b) => a + b, 0),
+        firstPlaceCount: rks.filter(r => r === 1).length,
+        lastPlaceCount: rks.filter(r => r === lastPlace).length,
+        rankings: rks.slice(),
+      };
+    }
+    stateMod.default.setPlayerStats(playerStats);
+    evtMod.emit('stats:updated', { playerStats });
+  }, { rankings: FIXED_RANKINGS_8, lastPlace: mode });
+  await page.waitForTimeout(150);
+}
