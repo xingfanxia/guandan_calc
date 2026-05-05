@@ -96,7 +96,7 @@ Per `project_theme_system_handoff.md` memory + `THEME-ARCHITECTURE.md`:
 | 5     | Tea-Table theme (needs commissioned ink illustrations)       | gated |
 | —     | Visual regression CI (Percy / Chromatic / pixelmatch)        | TODO  |
 | —     | PNG export theme-awareness                                    | TODO  |
-| —     | Cascade-safe sparkline baseline (MEDIUM finding from code review) | follow-up |
+| —     | Cascade-safe sparkline baseline (MEDIUM finding from code review) | ✅ shipped 2026-05-05 (`ec25a34`) |
 
 **Recommended next session focus**: Phase 4 (Atelier Console).
 
@@ -129,7 +129,7 @@ Phase 2.5 (sidebar layout) is structural infra — exercises `layout.mount()` fo
 
 If a full theme is too much for the next session:
 
-- **Cascade-safe sparkline baseline (MEDIUM follow-up)**: add unscoped `.sparkline__grid { stroke: currentColor; opacity: 0.2 }` etc. to a shared CSS file (probably `index.html` `<style>` or a new `src/themes/_shared/sparkline.css`). Five-line lift; closes the MEDIUM finding from code review.
+- ~~**Cascade-safe sparkline baseline (MEDIUM follow-up)**~~ — **SHIPPED 2026-05-05** (`ec25a34`): `src/themes/_shared/sparkline.css` with `currentColor`-based baseline rules (line + dot + grid all inherit container text color); imported from `sparkline.js` so any code path using the renderer pulls in the baseline. Themes still override via higher-specificity scoped rules (`:root[data-theme="trading"] .sparkline__line { ... }`). Closes the MEDIUM finding.
 - **Phase 2.5 (sidebar)**: bigger lift, validates `layout.mount()`. Read THEME-ARCHITECTURE.md §3 for the API contract.
 - **PNG export theme-awareness**: `src/export/exportMobile.js` currently renders Broadcast styling regardless of active theme. Plumb `getCurrent().name` into the canvas render path.
 

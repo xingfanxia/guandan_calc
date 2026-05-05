@@ -114,7 +114,7 @@ If a future Atelier polish iter is wanted (paper-grain texture on slots, illustr
 | 5 (Tea-Table) | gated on commissioned ink illustrations |
 | Visual regression CI | TODO |
 | PNG export theme-awareness | ✅ shipped 2026-05-05 (`54c3552`) — separate from the polish iters; same session |
-| Cascade-safe sparkline baseline | TODO |
+| Cascade-safe sparkline baseline | ✅ shipped 2026-05-05 (`ec25a34`) — `src/themes/_shared/sparkline.css` with `currentColor`-based baseline rules; imported from `sparkline.js`. |
 
 ## VictoryModal contract (NEW as of 2026-05-05)
 
