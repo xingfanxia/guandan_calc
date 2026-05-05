@@ -7,7 +7,14 @@
  *
  * Phase 3.5 ship — wired into stats-table when featureManifest.sparklines === true.
  * Demo reference: docs/design/demos/demo-trading-v2.html lines 1774-1902 (rank time-series).
+ *
+ * Cascade-safe baseline added 2026-05-05: any theme that flips
+ * `featureManifest.sparklines: true` without writing bespoke per-theme CSS
+ * gets reasonable rendering through `currentColor`-based defaults in
+ * `sparkline.css`. Themes can still override with higher specificity.
  */
+
+import './sparkline.css';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 

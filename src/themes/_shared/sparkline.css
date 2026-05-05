@@ -1,0 +1,44 @@
+/* Cascade-safe baseline rules for the SVG sparkline renderer.
+ *
+ * Phase 3.5 (2026-05-04) shipped the renderer with theme-scoped CSS only —
+ * Trading wrote `:root[data-theme="trading"] .sparkline__line { stroke: ... }`.
+ * If a future theme (Tea-Table, or any new entry) flips
+ * `featureManifest.sparklines: true` without bespoke per-theme rules, the
+ * SVG had no styling and rendered as bare default-colored lines on a tiny
+ * empty viewbox.
+ *
+ * This baseline uses `currentColor` so the sparkline naturally inherits
+ * whatever text color sits in its container (a stats-table cell, an honor
+ * card, etc.) — themes get reasonable rendering for free. Themes that want
+ * something distinct can still override with higher specificity:
+ *
+ *   :root[data-theme="trading"] .sparkline__line { stroke: var(--accent); }
+ *
+ * Imported from `src/themes/_shared/sparkline.js` so any code path that
+ * uses the renderer pulls in the baseline automatically.
+ */
+
+.sparkline {
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+}
+.sparkline__grid {
+  stroke: currentColor;
+  stroke-width: 0.5;
+  fill: none;
+  opacity: 0.15;
+}
+.sparkline__line {
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.85;
+}
+.sparkline__dot {
+  fill: currentColor;
+  opacity: 0.55;
+}
+.sparkline__dot--last {
+  opacity: 1;
+}
