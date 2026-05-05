@@ -1,0 +1,1514 @@
+/* ============================================================
+ * Atelier Console — theme F (Phase 4, 2026-05-04)
+ *
+ * Source: docs/design/demos/demo-atelier-v2.html (desktop)
+ *         docs/design/demos/demo-atelier-mobile-v2.html (mobile)
+ *
+ * Aesthetic: warm graphite oklch (60° hue) with Anthropic-tan
+ * undertone, clay/caramel accent at hue 65°, Fraunces serif
+ * display + Inter body + JetBrains Mono numerics. Editorial-magazine
+ * framing with thin gold rules between sections, italic Fraunces
+ * captions, vintage card-stock pcards (cream paper bg over dark
+ * surfaces).
+ *
+ * Strategy: token override block first (every TOKEN_SPEC color/font
+ * remapped to Atelier values), then per-component restyles. DOM is
+ * shared with Broadcast / Linear / Trading.
+ * ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root[data-theme="atelier"] {
+  /* === SURFACES — warm graphite, Anthropic-tan undertone === */
+  --bg:        oklch(15% 0.015 60);
+  --bg-deep:   oklch(13% 0.012 60);
+  --surface:   oklch(19% 0.015 60);
+  --surface-2: oklch(23% 0.018 60);
+  --surface-3: oklch(27% 0.020 60);
+
+  /* === INK === */
+  --ink:        oklch(94% 0.02 80);
+  --ink-dim:    oklch(70% 0.02 80);
+  --ink-dimmer: oklch(50% 0.02 80);
+  --ink-faint:  oklch(38% 0.018 70);
+
+  /* === ACCENT — clay / caramel === */
+  --accent:        oklch(72% 0.14 65);
+  --accent-soft:   oklch(78% 0.10 65);
+  --accent-line:   oklch(48% 0.10 65);
+  --accent-glow:   oklch(72% 0.14 65 / 0.18);
+
+  /* === TEAMS === */
+  --team-red:       oklch(64% 0.20 25);
+  --team-red-soft:  oklch(22% 0.05 25);
+  --team-red-line:  oklch(45% 0.16 25);
+
+  --team-blue:      oklch(64% 0.16 240);
+  --team-blue-soft: oklch(22% 0.04 240);
+  --team-blue-line: oklch(45% 0.13 240);
+
+  /* === STATUS === */
+  --win:  oklch(70% 0.16 140);
+  --loss: oklch(58% 0.20 25);
+
+  /* === RULES === */
+  --rule:      oklch(28% 0.015 60);
+  --rule-soft: oklch(22% 0.013 60);
+
+  /* === CARD-STOCK (vintage paper for player cards) === */
+  --card-stock:      oklch(94% 0.025 80);
+  --card-stock-2:    oklch(89% 0.030 78);
+  --card-stock-edge: oklch(82% 0.025 78);
+  --card-ink:        oklch(20% 0.015 60);
+
+  /* === FONTS === */
+  --font-display: 'Fraunces', Georgia, 'Songti SC', serif;
+  --font-body:    'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* === SCALE — editorial-spacious === */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 18px;
+  --s5: 24px;
+  --s6: 36px;
+  --s7: 56px;
+  --s8: 80px;
+
+  /* === RADIUS — sharp, near-zero === */
+  --radius-none: 0;
+  --radius-sm:   2px;
+  --radius-md:   3px;
+  --radius-lg:   4px;
+  --radius-xl:   6px;
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Subtle paper-grain texture overlay on body */
+:root[data-theme="atelier"] body {
+  background: var(--bg);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.4  0 0 0 0 0.36  0 0 0 0 0.30  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.55'/></svg>");
+  background-attachment: fixed;
+  background-size: 220px 220px;
+}
+
+:root[data-theme="atelier"] h1,
+:root[data-theme="atelier"] h2,
+:root[data-theme="atelier"] h3,
+:root[data-theme="atelier"] h4,
+:root[data-theme="atelier"] h5 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+/* ============== TOPNAV — minimal serif tabs ============== */
+:root[data-theme="atelier"] .topnav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule);
+}
+:root[data-theme="atelier"] .topnav__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 22px var(--s5);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s5);
+}
+:root[data-theme="atelier"] .topnav__brand {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .topnav__sub {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+  margin-left: var(--s3);
+}
+:root[data-theme="atelier"] .topnav__tabs {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s6);
+}
+:root[data-theme="atelier"] .topnav__tab {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ink-dim);
+  padding: 6px 0;
+  position: relative;
+  transition: color 0.2s ease;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+}
+:root[data-theme="atelier"] .topnav__tab:hover { color: var(--ink); }
+:root[data-theme="atelier"] .topnav__tab--active,
+:root[data-theme="atelier"] .topnav__tab[aria-current="page"] {
+  color: var(--ink);
+  font-weight: 500;
+}
+:root[data-theme="atelier"] .topnav__tab--active::after,
+:root[data-theme="atelier"] .topnav__tab[aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -22px;
+  height: 1.5px;
+  background: var(--accent);
+}
+
+/* ============== TICKER — editorial strip-meta ============== */
+:root[data-theme="atelier"] .ticker {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 14px 0 18px;
+}
+:root[data-theme="atelier"] .ticker__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--s5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s5);
+}
+:root[data-theme="atelier"] .ticker__items {
+  display: flex;
+  align-items: center;
+  gap: var(--s6);
+  flex-wrap: wrap;
+}
+:root[data-theme="atelier"] .ticker__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  font-size: 12px;
+}
+:root[data-theme="atelier"] .ticker__item-label {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 10px;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .ticker__item-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="atelier"] .ticker__item-value--red  { color: var(--team-red); }
+:root[data-theme="atelier"] .ticker__item-value--blue { color: var(--team-blue); }
+:root[data-theme="atelier"] .ticker__item-value--accent { color: var(--accent); }
+:root[data-theme="atelier"] .ticker__indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+}
+:root[data-theme="atelier"] .ticker__indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--win);
+  box-shadow: 0 0 0 0 oklch(70% 0.16 140 / 0.55);
+  animation: atelier-pulse-win 2.4s ease-in-out infinite;
+}
+@keyframes atelier-pulse-win {
+  0%,100% { box-shadow: 0 0 0 0 oklch(70% 0.16 140 / 0.55); }
+  50%     { box-shadow: 0 0 0 6px oklch(70% 0.16 140 / 0); }
+}
+
+/* ============== HERO / HEADLINE ============== */
+:root[data-theme="atelier"] .scoreboard__hero,
+:root[data-theme="atelier"] .scorer__hero,
+:root[data-theme="atelier"] .activegame__title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/* ============== MODE SELECTOR — quiet editorial chips ============== */
+:root[data-theme="atelier"] .modeselect {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s5);
+  padding: var(--s5) 0 var(--s4);
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: none;
+  margin-bottom: var(--s5);
+}
+:root[data-theme="atelier"] .modeselect__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .modeselect__opts {
+  display: flex;
+  gap: var(--s5);
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+:root[data-theme="atelier"] .modeselect__opt {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--ink-dim);
+  padding: 4px 0;
+  position: relative;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  transition: color 0.2s ease;
+}
+:root[data-theme="atelier"] .modeselect__opt:hover { color: var(--ink); }
+:root[data-theme="atelier"] .modeselect__opt[aria-pressed="true"],
+:root[data-theme="atelier"] .modeselect__opt--active {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 500;
+  background: transparent;
+}
+:root[data-theme="atelier"] .modeselect__opt[aria-pressed="true"]::after,
+:root[data-theme="atelier"] .modeselect__opt--active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 1.5px;
+  background: var(--accent);
+}
+
+/* ============== SECTION RULE / EDITORIAL DIVIDER ============== */
+:root[data-theme="atelier"] .section-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin: var(--s7) 0 var(--s5);
+}
+:root[data-theme="atelier"] .section-rule__bar {
+  display: none;
+}
+:root[data-theme="atelier"] .section-rule__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--ink-dimmer);
+  white-space: nowrap;
+}
+:root[data-theme="atelier"] .section-rule__line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--accent-line), transparent 60%);
+}
+:root[data-theme="atelier"] .section-rule__meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ============== SCOREBOARD (two-team panel) ============== */
+:root[data-theme="atelier"] .scorer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--s6);
+  margin-top: var(--s5);
+}
+:root[data-theme="atelier"] .team {
+  padding: var(--s6) var(--s6) var(--s5);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+:root[data-theme="atelier"] .team--blue {
+  border-top: 2px solid var(--team-blue);
+  order: 1;
+}
+:root[data-theme="atelier"] .versus {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink-dim);
+  padding: var(--s4);
+}
+:root[data-theme="atelier"] .team--red {
+  border-top: 2px solid var(--team-red);
+  order: 3;
+}
+:root[data-theme="atelier"] .team__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s4);
+}
+:root[data-theme="atelier"] .team__name,
+:root[data-theme="atelier"] .team__title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .team__role,
+:root[data-theme="atelier"] .team__subtitle {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ink-dimmer);
+  font-family: var(--font-display);
+  font-weight: 400;
+}
+
+/* ============== CARD-LEVEL (the big rank glyph) ============== */
+/* Atelier uses a vintage card-stock treatment — cream paper bg over dark */
+:root[data-theme="atelier"] .card-level {
+  width: 110px;
+  height: 156px;
+  background: var(--card-stock);
+  background-image: linear-gradient(180deg, var(--card-stock) 0%, var(--card-stock-2) 100%);
+  border: 1px solid var(--card-stock-edge);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 0 oklch(80% 0.025 78) inset,
+    0 12px 24px -16px rgba(0,0,0,0.5),
+    0 2px 8px -4px rgba(0,0,0,0.35);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+:root[data-theme="atelier"] .card-level__glyph {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-size: 64px;
+  font-weight: 500;
+  color: var(--card-ink);
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+:root[data-theme="atelier"] .card-level__glyph b {
+  font-weight: 500;
+  color: inherit;
+  font-style: normal;
+}
+:root[data-theme="atelier"] .card-level__suit {
+  position: absolute;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--card-ink);
+  line-height: 1;
+  opacity: 0.65;
+}
+:root[data-theme="atelier"] .card-level__suit--tl {
+  top: 10px;
+  left: 12px;
+}
+:root[data-theme="atelier"] .card-level__suit--br {
+  bottom: 10px;
+  right: 12px;
+  transform: rotate(180deg);
+}
+/* Per-team card-stock tint (red/blue rank glyph color) */
+:root[data-theme="atelier"] .team--red .card-level__glyph,
+:root[data-theme="atelier"] .team--red .card-level__suit {
+  color: oklch(45% 0.18 25);
+}
+:root[data-theme="atelier"] .team--blue .card-level__glyph,
+:root[data-theme="atelier"] .team--blue .card-level__suit {
+  color: oklch(40% 0.16 240);
+}
+:root[data-theme="atelier"] .card-level__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+:root[data-theme="atelier"] .card-level__sub-rank {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="atelier"] .card-level__sub-state {
+  font-family: var(--font-display);
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+/* ============== ROSTER ROWS ============== */
+:root[data-theme="atelier"] .roster-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--rule);
+  gap: var(--s3);
+}
+:root[data-theme="atelier"] .roster-row:last-child {
+  border-bottom: none;
+}
+:root[data-theme="atelier"] .roster-row__avatar,
+:root[data-theme="atelier"] .roster-row__emoji {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+:root[data-theme="atelier"] .roster-row__name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .roster-row__handle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dimmer);
+  margin-left: var(--s2);
+}
+:root[data-theme="atelier"] .roster-row__avg,
+:root[data-theme="atelier"] .roster-row__stat {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* ============== ACTIVE GAME — THE HERO PANEL ============== */
+:root[data-theme="atelier"] .activegame {
+  margin-top: var(--s5);
+  padding: var(--s7) var(--s7) var(--s6);
+  background: linear-gradient(180deg, var(--surface) 0%, var(--bg-deep) 100%);
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  position: relative;
+  overflow: hidden;
+}
+:root[data-theme="atelier"] .activegame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 80% -10%, var(--accent-glow) 0%, transparent 50%);
+  pointer-events: none;
+}
+:root[data-theme="atelier"] .activegame > * {
+  position: relative;
+}
+/* Active game header bar — live-dot + label + line + meta */
+:root[data-theme="atelier"] .activegame__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  margin-bottom: var(--s5);
+  padding-bottom: var(--s4);
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+:root[data-theme="atelier"] .activegame__live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  align-self: center;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+  animation: atelier-pulse-clay 2.4s ease-in-out infinite;
+}
+@keyframes atelier-pulse-clay {
+  0%,100% { box-shadow: 0 0 0 0 oklch(72% 0.14 65 / 0.45); }
+  50%     { box-shadow: 0 0 0 8px oklch(72% 0.14 65 / 0); }
+}
+:root[data-theme="atelier"] .activegame__head-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--accent);
+}
+:root[data-theme="atelier"] .activegame__head-divider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: var(--rule);
+  align-self: center;
+}
+:root[data-theme="atelier"] .activegame__head-line {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  flex: 1;
+  min-width: 0;
+}
+:root[data-theme="atelier"] .activegame__head-line .glyph,
+:root[data-theme="atelier"] .activegame__head-line .accent {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+  font-size: 32px;
+}
+:root[data-theme="atelier"] .activegame__head-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  letter-spacing: 0.06em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+:root[data-theme="atelier"] .activegame__head-meta .key {
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+}
+:root[data-theme="atelier"] .activegame__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s5);
+}
+:root[data-theme="atelier"] .activegame__inline-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+:root[data-theme="atelier"] .annotation {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+}
+:root[data-theme="atelier"] .annotation__device {
+  display: block;
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+:root[data-theme="atelier"] .annotation__device kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink);
+  margin: 0 2px;
+}
+
+/* ============== POOL + SLOTS ============== */
+:root[data-theme="atelier"] .pool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  background: var(--bg-deep);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-md);
+  min-height: 96px;
+}
+:root[data-theme="atelier"] .pool__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+:root[data-theme="atelier"] .pool__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .pool__sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+:root[data-theme="atelier"] .pool__count {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-dim);
+  margin-left: auto;
+}
+:root[data-theme="atelier"] .pool__grid {
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+:root[data-theme="atelier"] .pool-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-lg);
+  cursor: grab;
+  transition: all 0.18s ease;
+  position: relative;
+  min-width: 120px;
+}
+:root[data-theme="atelier"] .pool-tile:hover {
+  border-color: var(--accent-line);
+  transform: translateY(-1px);
+}
+:root[data-theme="atelier"] .pool-tile--blue {
+  border-left: 3px solid var(--team-blue);
+}
+:root[data-theme="atelier"] .pool-tile--red {
+  border-left: 3px solid var(--team-red);
+}
+:root[data-theme="atelier"] .pool-tile__avatar {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+:root[data-theme="atelier"] .pool-tile__name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.1;
+}
+:root[data-theme="atelier"] .pool-tile__handle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dimmer);
+  margin-top: 4px;
+}
+
+:root[data-theme="atelier"] .slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  background: var(--bg-deep);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+}
+:root[data-theme="atelier"] .slots__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+:root[data-theme="atelier"] .slots__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .slots__sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+:root[data-theme="atelier"] .slots__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--s3);
+}
+:root[data-theme="atelier"] .slot {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s3) var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  min-height: 56px;
+}
+:root[data-theme="atelier"] .slot--filled {
+  border-color: var(--accent-line);
+}
+:root[data-theme="atelier"] .slot__rank {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+:root[data-theme="atelier"] .slot__target-icon,
+:root[data-theme="atelier"] .slot__target-label,
+:root[data-theme="atelier"] .slot__placeholder-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+}
+:root[data-theme="atelier"] .slot__placeholder {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .slot__filled {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+
+/* ============== CALC PREVIEW (live calc strip) ============== */
+:root[data-theme="atelier"] .calcpreview {
+  margin: var(--s4) 0;
+  padding: var(--s4) var(--s5);
+  background: var(--bg-deep);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+:root[data-theme="atelier"] .calcpreview__label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.32em;
+  color: var(--accent);
+  font-weight: 500;
+  font-style: normal;
+}
+:root[data-theme="atelier"] .calcpreview__content {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+:root[data-theme="atelier"] .calcpreview__hint {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+:root[data-theme="atelier"] .calcpreview__seg {
+  display: inline-block;
+  margin-right: var(--s4);
+}
+:root[data-theme="atelier"] .calcpreview__seg--blue {
+  color: var(--team-blue);
+}
+:root[data-theme="atelier"] .calcpreview__seg--red {
+  color: var(--team-red);
+}
+:root[data-theme="atelier"] .calcpreview__seg--gap {
+  color: var(--accent);
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+:root[data-theme="atelier"] .calcpreview__num {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============== RULES DRAWER ============== */
+:root[data-theme="atelier"] .rules-drawer {
+  margin: var(--s4) 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+:root[data-theme="atelier"] .rules-drawer summary {
+  padding: var(--s3) var(--s4);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+:root[data-theme="atelier"] .rules-drawer__chip {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: var(--s2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink);
+}
+
+/* ============== BUTTONS ============== */
+:root[data-theme="atelier"] .btn,
+:root[data-theme="atelier"] button.btn,
+:root[data-theme="atelier"] .manualbtns button {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 15px;
+  padding: 10px 22px;
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root[data-theme="atelier"] .btn:hover,
+:root[data-theme="atelier"] button.btn:hover,
+:root[data-theme="atelier"] .manualbtns button:hover {
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .btn--primary,
+:root[data-theme="atelier"] .btn-primary,
+:root[data-theme="atelier"] button[type="submit"] {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-style: normal;
+  font-weight: 500;
+}
+:root[data-theme="atelier"] .btn--primary:hover,
+:root[data-theme="atelier"] .btn-primary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+}
+
+/* ============== HISTORY ============== */
+:root[data-theme="atelier"] .history {
+  margin-top: var(--s5);
+}
+:root[data-theme="atelier"] .history__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--s4);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--rule);
+}
+:root[data-theme="atelier"] .history__title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .history__list {
+  display: flex;
+  flex-direction: column;
+}
+:root[data-theme="atelier"] .history__row {
+  display: grid;
+  grid-template-columns: 48px 60px 1fr auto auto;
+  gap: var(--s4);
+  padding: var(--s3) 0;
+  border-bottom: 1px solid var(--rule);
+  align-items: baseline;
+}
+:root[data-theme="atelier"] .history__row:last-child {
+  border-bottom: none;
+}
+:root[data-theme="atelier"] .history__round {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -0.01em;
+}
+:root[data-theme="atelier"] .history__levelcard {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .history__winner-cell,
+:root[data-theme="atelier"] .history__winner {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 14px;
+  color: var(--ink-dim);
+}
+:root[data-theme="atelier"] .history__upgrade {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+:root[data-theme="atelier"] .history__combo {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-dim);
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+:root[data-theme="atelier"] .history__combo-group--win  { color: var(--win); }
+:root[data-theme="atelier"] .history__combo-group--loss { color: var(--ink-dimmer); }
+:root[data-theme="atelier"] .history__combo-group--blue { color: var(--team-blue); }
+:root[data-theme="atelier"] .history__combo-group--red  { color: var(--team-red); }
+:root[data-theme="atelier"] .history__combo-sep {
+  color: var(--rule);
+}
+
+/* ============== STATS-CARD (player stats table) ============== */
+:root[data-theme="atelier"] .stats-card {
+  margin-top: var(--s5);
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+:root[data-theme="atelier"] .stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+:root[data-theme="atelier"] .stats-table thead th {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  text-align: left;
+  padding: var(--s3) var(--s4);
+  color: var(--ink-dim);
+  border-bottom: 1px solid var(--rule);
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root[data-theme="atelier"] .stats-table tbody td {
+  padding: var(--s3) var(--s4);
+  border-bottom: 1px solid var(--rule-soft);
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .stats-table tbody tr:last-child td {
+  border-bottom: none;
+}
+:root[data-theme="atelier"] .stats-table tbody td:first-child {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+}
+
+/* ============== TEAM HONORS (per-team MVP/burden) ============== */
+:root[data-theme="atelier"] .team-honors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s4);
+  margin-top: var(--s5);
+}
+:root[data-theme="atelier"] .team-honors__card {
+  padding: var(--s5);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+}
+:root[data-theme="atelier"] .team-honors__card--blue {
+  border-top: 2px solid var(--team-blue);
+}
+:root[data-theme="atelier"] .team-honors__card--red {
+  border-top: 2px solid var(--team-red);
+}
+:root[data-theme="atelier"] .team-honors__title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: var(--s3);
+}
+:root[data-theme="atelier"] .team-honors__card .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  margin-right: var(--s2);
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .team-honors__card .badge--mvp {
+  border-color: var(--accent-line);
+}
+
+/* ============== HONORS GALLERY (16 algorithmic awards) ============== */
+:root[data-theme="atelier"] .honors {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s4);
+  margin-top: var(--s5);
+}
+:root[data-theme="atelier"] .honor {
+  padding: var(--s5);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+:root[data-theme="atelier"] .honor[data-status="earned"] {
+  border-top: 2px solid var(--accent);
+}
+:root[data-theme="atelier"] .honor__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+  margin-bottom: var(--s3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+}
+:root[data-theme="atelier"] .honor__index {
+  font-family: var(--font-mono);
+}
+:root[data-theme="atelier"] .honor__cat {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--ink-dim);
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root[data-theme="atelier"] .honor__status {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  letter-spacing: 0.08em;
+}
+:root[data-theme="atelier"] .honor__name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+:root[data-theme="atelier"] .honor__desc,
+:root[data-theme="atelier"] .honor__sub {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-dim);
+  line-height: 1.5;
+  margin-bottom: var(--s3);
+}
+:root[data-theme="atelier"] .honor__recipient {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .honor__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+:root[data-theme="atelier"] .honor__avatar--empty {
+  color: var(--ink-dimmer);
+  font-family: var(--font-display);
+  font-size: 14px;
+}
+:root[data-theme="atelier"] .honor__player {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  flex: 1;
+  min-width: 0;
+}
+:root[data-theme="atelier"] .honor__playername {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .honor__stat {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+:root[data-theme="atelier"] .honor__stat--placeholder {
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .honor__recipient-stat {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============== SAMPLE / VICTORY (cream parchment hero) ============== */
+:root[data-theme="atelier"] .sample,
+:root[data-theme="atelier"] .victory-modal__inner {
+  margin-top: var(--s5);
+  padding: var(--s7) var(--s7) var(--s6);
+  background: var(--card-stock);
+  background-image: linear-gradient(180deg, var(--card-stock) 0%, var(--card-stock-2) 100%);
+  border: 1px solid var(--card-stock-edge);
+  border-top: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--card-ink);
+}
+:root[data-theme="atelier"] .sample__title,
+:root[data-theme="atelier"] .victory-modal__title {
+  font-family: var(--font-display);
+  font-size: 96px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  color: var(--card-ink);
+  margin-bottom: var(--s4);
+}
+:root[data-theme="atelier"] .sample__lede,
+:root[data-theme="atelier"] .victory-modal__lede {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.6;
+  color: var(--card-ink);
+  max-width: 720px;
+  opacity: 0.85;
+}
+
+/* ============== PROFILE SNIPPET ============== */
+:root[data-theme="atelier"] .profile {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--s7);
+  margin-top: var(--s7);
+  padding: var(--s6) 0;
+  border-top: 1px solid var(--rule);
+}
+:root[data-theme="atelier"] .profile__avatar {
+  width: 240px;
+  height: 240px;
+  background: linear-gradient(155deg, oklch(38% 0.045 62) 0%, oklch(26% 0.030 55) 100%);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 56px;
+  color: oklch(85% 0.03 78);
+  letter-spacing: -0.02em;
+}
+:root[data-theme="atelier"] .profile__name {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin-bottom: var(--s3);
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .profile__handle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-bottom: var(--s5);
+}
+:root[data-theme="atelier"] .profile__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s4);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--s4);
+}
+:root[data-theme="atelier"] .profile__stat-label {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+:root[data-theme="atelier"] .profile__stat-val {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============== ROOM BANNER (host + viewer) ============== */
+:root[data-theme="atelier"] .room-banner,
+:root[data-theme="atelier"] .room-banner--host {
+  background: linear-gradient(135deg, var(--accent), var(--accent-line));
+  color: var(--bg);
+  border-bottom: 1px solid var(--accent-line);
+  padding: var(--s2) var(--s5);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+}
+:root[data-theme="atelier"] .room-banner--viewer {
+  background: linear-gradient(135deg, var(--win), oklch(60% 0.16 140));
+  color: var(--bg);
+}
+
+/* ============== FOOTER ============== */
+:root[data-theme="atelier"] .footer,
+:root[data-theme="atelier"] footer {
+  margin-top: var(--s8);
+  padding: var(--s5) 0;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-dimmer);
+  text-align: center;
+}
+
+/* ============== THEME PICKER (in topnav settings drawer) ============== */
+:root[data-theme="atelier"] .theme-picker__btn,
+:root[data-theme="atelier"] .theme-picker__option {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* ============== MOBILE @ 768px ============== */
+@media (max-width: 768px) {
+  :root[data-theme="atelier"] .topnav__inner {
+    padding: var(--s3) var(--s4);
+    flex-wrap: wrap;
+  }
+  :root[data-theme="atelier"] .topnav__brand {
+    font-size: 18px;
+  }
+  :root[data-theme="atelier"] .topnav__sub {
+    display: none;
+  }
+  :root[data-theme="atelier"] .topnav__tabs {
+    gap: var(--s4);
+    width: 100%;
+    overflow-x: auto;
+  }
+  :root[data-theme="atelier"] .ticker__inner {
+    flex-wrap: wrap;
+    padding: 0 var(--s3);
+    gap: var(--s3);
+  }
+  :root[data-theme="atelier"] .ticker__items {
+    gap: var(--s4);
+  }
+  :root[data-theme="atelier"] .modeselect {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--s3);
+    padding: var(--s4) 0 var(--s3);
+  }
+  :root[data-theme="atelier"] .modeselect__opts {
+    gap: var(--s4);
+  }
+  :root[data-theme="atelier"] .scoreboard__hero,
+  :root[data-theme="atelier"] .scorer__hero,
+  :root[data-theme="atelier"] .activegame__title {
+    font-size: clamp(48px, 11vw, 72px);
+  }
+  :root[data-theme="atelier"] .scorer {
+    grid-template-columns: 1fr;
+    gap: var(--s3);
+  }
+  :root[data-theme="atelier"] .versus {
+    order: 2;
+    padding: var(--s2);
+    font-size: 12px;
+  }
+  :root[data-theme="atelier"] .team {
+    padding: var(--s4);
+  }
+  :root[data-theme="atelier"] .team--blue { order: 1; }
+  :root[data-theme="atelier"] .team--red  { order: 3; }
+  :root[data-theme="atelier"] .team__name,
+  :root[data-theme="atelier"] .team__title {
+    font-size: 22px;
+  }
+  :root[data-theme="atelier"] .card-level,
+  :root[data-theme="atelier"] .levelglyph {
+    width: 80px;
+    height: 116px;
+  }
+  :root[data-theme="atelier"] .card-level__center,
+  :root[data-theme="atelier"] .levelglyph .center {
+    font-size: 50px;
+  }
+  :root[data-theme="atelier"] .activegame {
+    padding: var(--s5) var(--s4);
+  }
+  :root[data-theme="atelier"] .activegame__title {
+    font-size: 22px;
+  }
+  :root[data-theme="atelier"] .activegame__lede {
+    font-size: 15px;
+  }
+  :root[data-theme="atelier"] .pool {
+    padding: var(--s3);
+    gap: var(--s2);
+  }
+  :root[data-theme="atelier"] .pool-tile {
+    min-width: 0;
+    flex: 1 1 calc(50% - var(--s2));
+    padding: var(--s2) var(--s3);
+  }
+  :root[data-theme="atelier"] .pool-tile__name {
+    font-size: 14px;
+  }
+  :root[data-theme="atelier"] .pool-tile__handle {
+    font-size: 9px;
+  }
+  :root[data-theme="atelier"] .calcpreview {
+    font-size: 14px;
+    padding: var(--s4);
+  }
+  :root[data-theme="atelier"] .history__row {
+    grid-template-columns: 36px 1fr auto;
+    gap: var(--s2);
+    font-size: 13px;
+  }
+  :root[data-theme="atelier"] .history__round {
+    font-size: 14px;
+  }
+  :root[data-theme="atelier"] .history__levelcard {
+    font-size: 14px;
+  }
+  :root[data-theme="atelier"] .stats-card {
+    overflow-x: auto;
+  }
+  :root[data-theme="atelier"] .stats-table {
+    font-size: 12px;
+    min-width: 380px;
+  }
+  :root[data-theme="atelier"] .stats-table tbody td:first-child {
+    font-size: 14px;
+  }
+  :root[data-theme="atelier"] .team-honors {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="atelier"] .team-honors__title {
+    font-size: 18px;
+  }
+  :root[data-theme="atelier"] .honors {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s3);
+  }
+  :root[data-theme="atelier"] .honor {
+    padding: var(--s4);
+  }
+  :root[data-theme="atelier"] .honor__name {
+    font-size: 17px;
+  }
+  :root[data-theme="atelier"] .honor__desc,
+  :root[data-theme="atelier"] .honor__sub {
+    font-size: 11px;
+  }
+  :root[data-theme="atelier"] .sample,
+  :root[data-theme="atelier"] .victory-modal__inner {
+    padding: var(--s5) var(--s4);
+  }
+  :root[data-theme="atelier"] .sample__title,
+  :root[data-theme="atelier"] .victory-modal__title {
+    font-size: 56px;
+  }
+  :root[data-theme="atelier"] .profile {
+    grid-template-columns: 1fr;
+    gap: var(--s4);
+  }
+  :root[data-theme="atelier"] .profile__avatar {
+    width: 160px;
+    height: 160px;
+    font-size: 40px;
+  }
+  :root[data-theme="atelier"] .profile__name {
+    font-size: 36px;
+  }
+}

@@ -8,7 +8,7 @@
  */
 
 const STORAGE_KEY = 'gd_v9_theme';
-const VALID = new Set(['broadcast', 'linear']);
+const VALID = new Set(['broadcast', 'linear', 'trading', 'atelier']);
 
 try {
   const saved = localStorage.getItem(STORAGE_KEY);

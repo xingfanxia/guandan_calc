@@ -69,6 +69,7 @@ import * as themeManager from './themes/_shared/themeManager.js';
 import * as broadcastTheme from './themes/broadcast/index.js';
 import * as linearTheme from './themes/linear/index.js';
 import * as tradingTheme from './themes/trading/index.js';
+import * as atelierTheme from './themes/atelier/index.js';
 import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
 
 /**
@@ -81,6 +82,7 @@ async function init() {
     themeManager.register(broadcastTheme);
     themeManager.register(linearTheme);
     themeManager.register(tradingTheme);
+    themeManager.register(atelierTheme);
     await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
 
     // Check for room in URL first
