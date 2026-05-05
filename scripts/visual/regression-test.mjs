@@ -40,11 +40,14 @@ const ROOT = path.resolve(path.dirname(__filename), '..', '..');
 // update it to (1) honor VISUAL_REPORT_BASE and (2) import freezeTime +
 // setDeterministicPlayers from _fixtures.mjs.
 const CAPTURES = [
-  'capture-atelier-theme.mjs',
-  // Other theme captures will be added once each is updated to use
-  // _fixtures.mjs deterministic helpers + VISUAL_REPORT_BASE. Rolling out
-  // incrementally so a single broken capture doesn't block the whole
-  // regression test.
+  'capture-phase1-5-final.mjs',  // Broadcast theme — phase1-5-final/
+  'capture-linear-theme.mjs',    // Linear theme    — phase2-linear/
+  'capture-trading-theme.mjs',   // Trading theme   — phase3-trading/
+  'capture-atelier-theme.mjs',   // Atelier theme   — phase4-atelier/
+  // Cross-theme + feature captures (victory-cross-theme, png-exports,
+  // sparklines) will be added once each is updated to use _fixtures.mjs
+  // helpers + VISUAL_REPORT_BASE. Rolling out incrementally so a single
+  // broken capture doesn't block the whole regression test.
 ];
 
 const BASELINE_DIR = path.resolve(ROOT, process.env.BASELINE_DIR || 'docs/reports');

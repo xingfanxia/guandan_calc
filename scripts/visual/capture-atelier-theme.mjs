@@ -164,7 +164,7 @@ const sections = [
   { sel: '.rules-drawer', name: 'rules-drawer' },
   { sel: '.history', name: 'history' },
   { sel: '.honors', name: 'honors' },
-  { sel: '.profile', name: 'profile-snippet' }
+  // .profile selector removed — see capture-phase1-5-final.mjs for context.
 ];
 
 for (const s of sections) {

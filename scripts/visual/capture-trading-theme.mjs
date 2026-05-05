@@ -9,10 +9,12 @@ import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
+import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const REPORT_DIR = path.join(ROOT, 'docs/reports/phase3-trading');
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const REPORT_DIR = path.join(REPORT_BASE, 'phase3-trading');
 
 await mkdir(REPORT_DIR, { recursive: true });
 
@@ -28,6 +30,9 @@ page.on('console', (msg) => {
 page.on('dialog', async (d) => { await d.accept(); });
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
+
+// Freeze Date.now BEFORE page load — see _fixtures.mjs.
+await freezeTime(page);
 
 // Pre-set theme via localStorage so it boots into Trading
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
@@ -45,6 +50,9 @@ await page.waitForTimeout(400);
 const shuffleBtn = await page.$('#shuffleTeams');
 if (shuffleBtn) await shuffleBtn.click();
 await page.waitForTimeout(300);
+
+// Override emojis + team assignment to deterministic state.
+await setDeterministicPlayers(page, 6);
 
 await page.evaluate(() => {
   const cb = document.getElementById('autoApply');
@@ -145,7 +153,7 @@ const sections = [
   { sel: '.rules-drawer', name: 'rules-drawer' },
   { sel: '.history', name: 'history' },
   { sel: '.honors', name: 'honors' },
-  { sel: '.profile', name: 'profile-snippet' }
+  // .profile selector removed — see capture-phase1-5-final.mjs for context.
 ];
 
 for (const s of sections) {

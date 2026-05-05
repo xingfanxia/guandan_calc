@@ -7,10 +7,12 @@ import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
+import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const REPORT_DIR = path.join(ROOT, 'docs/reports/phase1-5-final');
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const REPORT_DIR = path.join(REPORT_BASE, 'phase1-5-final');
 
 await mkdir(REPORT_DIR, { recursive: true });
 
@@ -27,6 +29,10 @@ page.on('console', (msg) => {
 page.on('dialog', async (d) => { await d.accept(); });
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
+
+// Freeze Date.now BEFORE page load — see _fixtures.mjs.
+await freezeTime(page);
+
 await page.goto(URL, { waitUntil: 'networkidle' });
 await page.waitForSelector('#mode', { timeout: 5000 });
 
@@ -40,6 +46,9 @@ await page.waitForTimeout(400);
 const shuffleBtn = await page.$('#shuffleTeams');
 if (shuffleBtn) await shuffleBtn.click();
 await page.waitForTimeout(300);
+
+// Override emojis + team assignment to deterministic state.
+await setDeterministicPlayers(page, 6);
 
 // Disable auto-apply so random-ranking sticks
 await page.evaluate(() => {
@@ -146,7 +155,9 @@ const sections = [
   { sel: '.rules-drawer', name: 'rules-drawer' },
   { sel: '.history', name: 'history' },
   { sel: '.honors', name: 'honors' },
-  { sel: '.profile', name: 'profile-snippet' }
+  // .profile selector removed — no longer present in DOM (the bottom-of-page
+  // personal data card was retired). Old baseline `profile-snippet.png` files
+  // were also deleted.
 ];
 
 for (const s of sections) {
