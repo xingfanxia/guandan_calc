@@ -320,6 +320,16 @@ All algorithms scale properly for 4/6/8 player modes.
    - UTF-8 Chinese character rendering
    - Team color visualization
 
+## Browser MCP Routing (project-specific, added 2026-05-05)
+
+Two browser MCPs are installed at user scope (`chrome-devtools` + `claude-in-chrome`). Full disambiguation table lives in `~/.claude/CLAUDE.md` → "Frontend Inspection & Testing Tooling Routing". Project-specific call-outs:
+
+- **Mobile QC before declaring done** (root cause of the 2026-05-04 multi-commit failure pattern): always run `chrome-devtools-mcp emulate_device` against the active theme + the championship state. Standard sweep: iPhone 14 Pro, Pixel 7, iPad. "Looks fine on desktop" is not mobile QC.
+- **Theme perf characterization**: when "feels slow on phone" surfaces (likely candidates: Atelier's Fraunces serif loading, Trading's fixed-attachment 80px grid background, Linear sidebar transitions), use `chrome-devtools-mcp performance_start_trace` for wall-clock paint/composite numbers — not vibes.
+- **Live Chrome interaction** (drag-drop player tile flow, voting submission UX, room-share QR scan, victory-modal championship dialog): `claude-in-chrome` MCP attaches to the running Chrome profile and can record GIFs for handoff docs.
+- **Theme visual baselines remain Playwright-based**: `scripts/visual/capture-*.mjs` (Phase 1.5/2/3/3.5/4 + Atelier polish iter 3 cross-theme victory baselines under `docs/reports/victory-cross-theme/`) are the source of truth. chrome-devtools-mcp is for ad-hoc inspection, NOT for regenerating baselines.
+- **VictoryModal cross-theme contract** (per memory): every theme must style `.victory-modal*` or championship state falls back unstyled. When adding a new theme, verify both desktop AND mobile-emulated rendering of the championship dialog before claiming theme parity.
+
 ## Deployment
 
 **Current Vercel Setup** (`vercel.json`):
