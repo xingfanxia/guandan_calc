@@ -1,15 +1,16 @@
-# Atelier Polish — Iterations 1 + 2 — 2026-05-05
+# Atelier Polish — Iterations 1 + 2 + 3 — 2026-05-05
 
 > Polish pass on Phase 4 Atelier theme to close gaps from the 2026-05-04 ship
-> (`docs/design/HANDOFF-2026-05-04-phase-4-atelier-shipped.md`). Two
-> iterations landed on `main` 2026-05-05: aggregate moved from ~70% → ~93%
-> (worst-section); sample/victory still uncaptured (needs victoryModal
-> HTML refactor — beyond pure CSS).
+> (`docs/design/HANDOFF-2026-05-04-phase-4-atelier-shipped.md`). Three
+> iterations landed on `main` 2026-05-05: aggregate moved from ~70% → ~95%
+> (worst-section: calcpreview at ~90%). Sample/victory cream-parchment hero
+> now captured via class-based victoryModal refactor (iter 3).
 
-## Status: ✅ SHIPPED (iter 1 + iter 2)
+## Status: ✅ SHIPPED (iter 1 + iter 2 + iter 3)
 
 - Iter 1 (`a392e15`): root-cause history grid fix + scaffolding polish — aggregate ~70% → ~88%.
 - Iter 2 (`c852766`): pool/slots `__sub` captions mono uppercase → italic Fraunces; `__title` 17px → 19px — aggregate ~88% → ~93%.
+- Iter 3 (`06c1137`): victoryModal class refactor (markup + JS) + per-theme victory-modal CSS for all 4 themes; cross-theme verification baseline added — aggregate ~93% → ~95%, sample/victory closed.
 
 Continues the autonomous theme work on `main`. Per
 `feedback_solo_project_autonomy.md` — no checkpoint between iterations.
