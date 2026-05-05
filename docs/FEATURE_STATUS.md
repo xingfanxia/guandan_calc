@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-02 (audit + 6/8 rule revision shipped)
-**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs
+**Last Updated**: 2026-05-05 (Visual regression CI + Atelier mobile calcpreview shipped)
+**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI
 **Version**: v10.0
 
 ---
@@ -91,6 +91,15 @@
 - [x] Desktop PNG (wide format)
 - [x] Mobile PNG (600px, optimized)
 - [x] All 14 honors in exports
+- [x] Theme-aware PNG palette (2026-05-05) — exports use the active theme's CSS custom properties
+
+### Visual Regression CI (100%) 🆕
+- [x] `npm run test:visual` runs pixelmatch against 59 baseline PNGs
+- [x] Coverage: 4 themes (broadcast / linear / trading / atelier) + victory-modal cross-theme + PNG-export
+- [x] Deterministic captures via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + event re-render)
+- [x] GitHub Actions workflow on PR (`.github/workflows/visual-regression.yml`)
+- [x] Diff PNGs (red overlay) auto-uploaded as PR artifacts on failure
+- [ ] Sparklines capture in regression scope — deferred (random-ranking fixture has unseedable randomness)
 
 ---
 

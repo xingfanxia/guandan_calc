@@ -203,9 +203,10 @@ finalCtx.drawImage(workingCanvas, 0, 0, W, actualContentHeight, 0, 0, W, actualC
 
 ### Testing Methodology
 - **Feature testing**: Manual verification of each new capability
-- **Integration testing**: Ensure new features don't break existing functionality  
+- **Integration testing**: Ensure new features don't break existing functionality
 - **Cross-device testing**: Desktop, mobile, tablet validation
 - **Real-world scenarios**: Test with actual game sessions and multiple users
+- **Visual regression**: `npm run test:visual` runs pixelmatch against 59 baseline PNGs across all four themes (broadcast / linear / trading / atelier) plus victory-modal cross-theme + PNG-export captures. Deterministic via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + event re-render). Default threshold 100 px (per-pixel tolerance 0.1) absorbs Canvas font subpixel jitter without missing real changes (which measure 100s-1000s+ px). CI runs on PR via `.github/workflows/visual-regression.yml`. Sparklines capture is intentionally excluded — its 5-round random-ranking fixture has unseedable randomness; deferred until either explicit state-mutation rewrite or `Math.random` seeding is added to the fixture helpers.
 
 ### Performance Monitoring
 - **Bundle analysis**: Track JavaScript bundle size growth
@@ -217,8 +218,10 @@ finalCtx.drawImage(workingCanvas, 0, 0, W, actualContentHeight, 0, 0, W, actualC
 
 ### Continuous Deployment Pipeline
 ```yaml
-Git Push → Vercel Build → Edge Functions Deploy → KV Database Access → Global CDN Distribution
+Git Push → GitHub Actions (visual-regression on PR) → Vercel Build → Edge Functions Deploy → KV Database Access → Global CDN Distribution
 ```
+
+GitHub Actions workflow (`.github/workflows/visual-regression.yml`) runs `npm run test:visual` against committed PNG baselines on every PR that touches `src/**`, `index.html`, `scripts/visual/**`, `docs/reports/**`, or `package.json`. Doc-only PRs skip it. Diff PNGs (red overlay where pixels differ) upload as PR artifacts on failure.
 
 ### Environment Management
 - **Development**: Local Vite server + production KV database
