@@ -1,0 +1,119 @@
+# Visual regression test — runs the same `npm run test:visual` that local
+# dev runs, against the committed PNG baselines under docs/reports/.
+#
+# Trigger conditions are scoped to changes that can plausibly affect
+# rendering (themes, capture scripts, source code, baseline PNGs). Avoid
+# running on doc-only PRs since they can't change visuals.
+#
+# Security note: no `${{ github.event.* }}` inputs are interpolated into
+# `run:` shell commands; the only ${{...}} used is `github.ref` for the
+# concurrency group key (which is not passed to a shell).
+
+name: visual-regression
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'scripts/visual/**'
+      - 'docs/reports/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/visual-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'index.html'
+      - 'scripts/visual/**'
+      - 'docs/reports/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/visual-regression.yml'
+  workflow_dispatch:
+
+# Cancel in-progress runs of this workflow for the same PR/branch.
+concurrency:
+  group: visual-regression-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visual-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Cache Playwright browsers across runs — they're large (~150MB) and
+      # don't change often. Cache key includes lockfile so an update auto-
+      # invalidates.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit branch)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      # Capture scripts use Vite's dev-server module-graph (`import('/src/...')`
+      # via page.evaluate), which only works against `npm run dev` — the
+      # bundled production output exposes only /assets/*.js, not raw /src
+      # paths. CI therefore runs the dev server, not preview.
+      - name: Start dev server
+        env:
+          GD_NO_API_PROXY: '1'
+        run: |
+          npm run dev > /tmp/dev.log 2>&1 &
+          echo $! > /tmp/dev.pid
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000/ > /dev/null; then
+              echo "dev server up after ${i}/60 polls"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "dev server did not come up in 30s"
+          cat /tmp/dev.log
+          exit 1
+
+      - name: Run visual regression
+        env:
+          KEEP_SNAPSHOT: '1'
+          DIFF_OUT: '1'
+          SNAPSHOT_DIR: '/tmp/visual-snapshot'
+        run: npm run test:visual
+
+      # Always upload artifacts (snapshot + diffs) so failed runs leave
+      # inspectable PNGs. `if: always()` runs even after a failed step.
+      - name: Upload snapshot + diff PNGs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-snapshot
+          path: /tmp/visual-snapshot/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Stop dev server
+        if: always()
+        run: |
+          if [ -f /tmp/dev.pid ]; then
+            kill "$(cat /tmp/dev.pid)" 2>/dev/null || true
+          fi
