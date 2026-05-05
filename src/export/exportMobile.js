@@ -8,6 +8,7 @@ import state from '../core/state.js';
 import config from '../core/config.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import { findMVPAndBurden } from '../stats/mvpBurden.js';
+import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
 
 /**
  * Load image from base64 data URL
@@ -50,7 +51,7 @@ async function drawPlayerAvatar(ctx, player, x, y, size = 40) {
       ctx.restore();
       ctx.beginPath();
       ctx.arc(x + size/2, y - size/2, size/2, 0, Math.PI * 2);
-      ctx.strokeStyle = '#444';
+      ctx.strokeStyle = palette.rule;
       ctx.lineWidth = 2;
       ctx.stroke();
       
@@ -69,6 +70,11 @@ export async function exportMobilePNG() {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
+  // Read active theme's palette so the export matches whatever theme the
+  // user is looking at — avoids the "Atelier on screen, Broadcast in the
+  // exported PNG" disconnect that shipped pre-2026-05-05.
+  const palette = getActiveThemePalette();
+
   const W = 600;
   const history = state.getHistory();
   const players = getPlayers();
@@ -82,13 +88,13 @@ export async function exportMobilePNG() {
   canvas.height = H;
 
   // Background
-  ctx.fillStyle = '#0b0b0c';
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, W, H);
 
   let currentY = 70;
 
   // === HEADER ===
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.font = 'bold 48px Arial';
   ctx.fillText('掼蛋战绩总览', 40, currentY);
   currentY += 45;
@@ -109,7 +115,7 @@ export async function exportMobilePNG() {
     const teamPlayers = players.filter(p => p.team === winnerTeam);
 
     ctx.font = '20px Arial';
-    ctx.fillStyle = '#b4b8bf';
+    ctx.fillStyle = palette.inkDim;
     const roster = teamPlayers.map(p => `${p.emoji}${p.name}`).join(' ');
     ctx.fillText(`冠军队伍: ${roster}`, 40, currentY);
     currentY += 40;
@@ -146,18 +152,18 @@ export async function exportMobilePNG() {
       
       // Draw MVP text
       ctx.font = 'bold 24px Arial';
-      ctx.fillStyle = '#fbbf24';
+      ctx.fillStyle = palette.accent;
       ctx.textAlign = 'center';
       ctx.fillText(`MVP ${mvpPlayer.photoBase64 ? '' : mvpPlayer.emoji + ' '}${mvpPlayer.name}`, W/2, currentY);
       currentY += 30;
-      
+
       ctx.font = 'italic 20px Arial';
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = palette.inkDimmer;
       ctx.fillText(`平均 ${bestAvg.toFixed(2)} 名`, W/2, currentY);
       currentY += 35;
-      
+
       ctx.font = 'italic 22px Arial';
-      ctx.fillStyle = '#fbbf24';
+      ctx.fillStyle = palette.accent;
       ctx.fillText(`"${mvpPlayer.tagline}"`, W/2, currentY);
       currentY += 45;
       
@@ -177,7 +183,7 @@ export async function exportMobilePNG() {
   }
 
   ctx.font = '18px Arial';
-  ctx.fillStyle = '#b4b8bf';
+  ctx.fillStyle = palette.inkDim;
   ctx.fillText(`级牌：${state.getRoundLevel()} | 下局：${state.getNextRoundBase() || '—'}`, 40, currentY);
   currentY += 26;
   ctx.fillText(`A级：${config.getPreference('strictA') ? '严格模式' : '宽松模式'}`, 40, currentY);
@@ -193,7 +199,7 @@ export async function exportMobilePNG() {
 
   // === HONORS SECTION ===
   ctx.font = 'bold 36px Arial';
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.fillText('🏆 荣誉提名', 40, currentY);
   currentY += 50;
 
@@ -211,7 +217,7 @@ export async function exportMobilePNG() {
   currentY += 35;
 
   ctx.font = '20px Arial';
-  ctx.fillStyle = '#b4b8bf';
+  ctx.fillStyle = palette.inkDim;
   ctx.fillText(`很C: ${team1Result.mvp ? team1Result.mvp.emoji + team1Result.mvp.name : '—'}`, 60, currentY);
   currentY += 30;
   ctx.fillText(`很闹: ${team1Result.burden ? team1Result.burden.emoji + team1Result.burden.name : '—'}`, 60, currentY);
@@ -223,7 +229,7 @@ export async function exportMobilePNG() {
   currentY += 35;
 
   ctx.font = '20px Arial';
-  ctx.fillStyle = '#b4b8bf';
+  ctx.fillStyle = palette.inkDim;
   ctx.fillText(`很C: ${team2Result.mvp ? team2Result.mvp.emoji + team2Result.mvp.name : '—'}`, 60, currentY);
   currentY += 30;
   ctx.fillText(`很闹: ${team2Result.burden ? team2Result.burden.emoji + team2Result.burden.name : '—'}`, 60, currentY);
@@ -231,7 +237,7 @@ export async function exportMobilePNG() {
 
   // Special honors
   ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
@@ -263,10 +269,10 @@ export async function exportMobilePNG() {
     ctx.fillStyle = honor.color;
     ctx.fillText(honor.name, 60, currentY);
 
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = palette.ink;
     ctx.fillText(winnerText, 200, currentY);
 
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = palette.inkDimmer;
     ctx.font = '16px Arial';
     ctx.fillText(`(${honor.desc})`, 330, currentY);
 
@@ -278,7 +284,7 @@ export async function exportMobilePNG() {
 
   // === PLAYER STATS ===
   ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.fillText('📊 玩家排名统计', 40, currentY);
   currentY += 40;
 
@@ -304,7 +310,7 @@ export async function exportMobilePNG() {
   });
 
   ctx.font = 'bold 18px Arial';
-  ctx.fillStyle = '#b4b8bf';
+  ctx.fillStyle = palette.inkDim;
   ctx.fillText('玩家', 50, currentY);
   ctx.fillText('场次', 220, currentY);
   ctx.fillText('平均', 300, currentY);
@@ -323,7 +329,7 @@ export async function exportMobilePNG() {
     ctx.fillStyle = teamColor;
     ctx.fillText(`${player.emoji}${player.name}`, 50, currentY);
 
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = palette.ink;
     ctx.fillText(stats.games, 230, currentY);
     ctx.fillText(avgRank.toFixed(2), 300, currentY);
     ctx.fillText(stats.firstPlaceCount || 0, 390, currentY);
@@ -368,19 +374,19 @@ export async function exportMobilePNG() {
 
         if (mvpVotes.length > 0 || burdenVotes.length > 0) {
           ctx.font = 'bold 28px Arial';
-          ctx.fillStyle = '#f5f6f8';
+          ctx.fillStyle = palette.ink;
           ctx.fillText('🗳️ 观众投票', 40, currentY);
           currentY += 40;
 
           // MVP votes
           if (mvpVotes.length > 0) {
             ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#22c55e';
+            ctx.fillStyle = palette.win;
             ctx.fillText('MVP:', 40, currentY);
             currentY += 35;
 
             ctx.font = '16px Arial';
-            ctx.fillStyle = '#b4b8bf';
+            ctx.fillStyle = palette.inkDim;
 
             mvpVotes.forEach(v => {
               ctx.fillText(`${v.emoji} ${v.name}: ${v.count}票`, 60, currentY);
@@ -393,12 +399,12 @@ export async function exportMobilePNG() {
           // Burden votes
           if (burdenVotes.length > 0) {
             ctx.font = 'bold 20px Arial';
-            ctx.fillStyle = '#ef4444';
+            ctx.fillStyle = palette.loss;
             ctx.fillText('最闹:', 40, currentY);
             currentY += 35;
 
             ctx.font = '16px Arial';
-            ctx.fillStyle = '#b4b8bf';
+            ctx.fillStyle = palette.inkDim;
 
             burdenVotes.forEach(v => {
               ctx.fillText(`${v.emoji} ${v.name}: ${v.count}票`, 60, currentY);
@@ -416,12 +422,12 @@ export async function exportMobilePNG() {
 
   // === GAME HISTORY ===
   ctx.font = 'bold 28px Arial';
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.fillText('📜 比赛历史', 40, currentY);
   currentY += 40;
 
   ctx.font = 'bold 20px Arial';
-  ctx.fillStyle = '#e6b800';
+  ctx.fillStyle = palette.accent;
   ctx.fillText('#', 50, currentY);
   ctx.fillText('组合', 100, currentY);
   ctx.fillText('升级', 240, currentY);
@@ -435,11 +441,11 @@ export async function exportMobilePNG() {
     ctx.fillStyle = winColor + '15';
     ctx.fillRect(30, currentY - 30, W - 60, 95);
 
-    ctx.fillStyle = '#e6b800';
+    ctx.fillStyle = palette.accent;
     ctx.font = 'bold 20px Arial';
     ctx.fillText(`${i + 1}`, 50, currentY);
 
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = palette.ink;
     ctx.font = '18px Arial';
     ctx.fillText(h.combo || '', 100, currentY);
 
@@ -450,14 +456,14 @@ export async function exportMobilePNG() {
     ctx.font = 'bold 18px Arial';
     ctx.fillText(h.win, 360, currentY);
 
-    ctx.fillStyle = '#aaa';
+    ctx.fillStyle = palette.inkDim;
     ctx.font = '17px Arial';
     ctx.fillText(`${h.t1}|${h.t2}`, 450, currentY);
     currentY += 30;
 
     // Player rankings
     if (h.playerRankings) {
-      ctx.fillStyle = '#b4b8bf';
+      ctx.fillStyle = palette.inkDim;
       ctx.font = '15px Arial';
 
       const rankingText = Object.keys(h.playerRankings)
@@ -501,7 +507,7 @@ export async function exportMobilePNG() {
   const finalContentY = currentY + 30;
 
   // Footer
-  ctx.fillStyle = '#666';
+  ctx.fillStyle = palette.inkDimmer;
   ctx.font = '12px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v10.0', W/2, finalContentY);

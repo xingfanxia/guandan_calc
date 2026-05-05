@@ -7,6 +7,7 @@
 import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
+import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
 
 /**
  * CSV escape helper
@@ -129,6 +130,7 @@ export function exportLongPNG() {
   const t2Name = config.getTeamName('t2');
   const t1Color = config.getTeamColor('t1');
   const t2Color = config.getTeamColor('t2');
+  const palette = getActiveThemePalette();
 
   // Canvas dimensions
   const W = 2200;
@@ -141,16 +143,16 @@ export function exportLongPNG() {
   longCnv.height = H;
 
   // Background
-  ctx.fillStyle = '#0b0b0c';
+  ctx.fillStyle = palette.bg;
   ctx.fillRect(0, 0, W, H);
 
   // Header
-  ctx.fillStyle = '#f5f6f8';
+  ctx.fillStyle = palette.ink;
   ctx.font = 'bold 48px Arial';
   ctx.fillText('掼蛋战绩总览 v9.0', 40, 70);
 
   ctx.font = '20px Arial';
-  ctx.fillStyle = '#b4b8bf';
+  ctx.fillStyle = palette.inkDim;
   ctx.fillText(`当前本局级牌：${state.getRoundLevel()}｜下局预览：${state.getNextRoundBase() || '—'}｜A级规则：${config.getPreference('strictA') ? '严格模式' : '宽松模式'}`, 40, 110);
   ctx.fillText(`队伍：${t1Name}（${state.getTeamLevel('t1')}，A${state.getTeamAFail('t1')}/3） | ${t2Name}（${state.getTeamLevel('t2')}，A${state.getTeamAFail('t2')}/3）`, 40, 140);
   ctx.fillText(`生成时间：${now()}`, 40, 170);
@@ -159,7 +161,7 @@ export function exportLongPNG() {
   const cols = ['#', '时间', '人数', '胜方组合', '玩家排名', '升级', '胜队', `${t1Name}级`, `${t2Name}级`, '本局级', 'A说明'];
   const xs = [40, 80, 240, 300, 440, 700, 800, 900, 1000, 1100, 1200];
   ctx.font = 'bold 20px Arial';
-  ctx.fillStyle = '#e6b800';
+  ctx.fillStyle = palette.accent;
   for (let c = 0; c < cols.length; c++) {
     ctx.fillText(cols[c], xs[c], headH);
   }
@@ -191,7 +193,7 @@ export function exportLongPNG() {
     const vals = [i + 1, h.ts.substring(0, 16), h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote || ''];
 
     // Draw text
-    ctx.fillStyle = '#f5f6f8';
+    ctx.fillStyle = palette.ink;
     for (let j = 0; j < vals.length; j++) {
       ctx.fillText(String(vals[j]), xs[j], y);
     }
