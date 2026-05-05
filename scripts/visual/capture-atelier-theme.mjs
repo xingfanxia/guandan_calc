@@ -58,7 +58,7 @@ await page.evaluate(async () => {
   const stateMod = await import('/src/core/state.js');
   const teamMod = await import('/src/ui/teamDisplay.js');
   const histMod = await import('/src/game/history.js');
-  const honorsMod = await import('/src/stats/honors.js');
+  const statsMod = await import('/src/stats/statistics.js');
   const playerMgrMod = await import('/src/player/playerManager.js');
   const playerRendMod = await import('/src/player/playerRenderer.js');
   const rendererMod = await import('/src/ranking/rankingRenderer.js');
@@ -117,7 +117,11 @@ await page.evaluate(async () => {
 
   teamMod.renderTeams();
   histMod.renderHistory();
-  honorsMod.renderHonors();
+  // renderStatistics() = renderPlayerStatsTable + renderTeamMVPBurden +
+  // renderHonors. Calling individually previously meant the stats card and
+  // per-team MVP/burden cards rendered empty under the fixture, causing the
+  // ~70% stats gap flagged in the Phase 4 ship handoff.
+  statsMod.renderStatistics();
   playerRendMod.renderPlayers();
   rendererMod.renderRankingArea(6);
 

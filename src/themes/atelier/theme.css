@@ -120,11 +120,11 @@
 :root[data-theme="atelier"] .topnav__inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 22px var(--s5);
+  padding: 28px var(--s5);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--s5);
+  gap: var(--s6);
 }
 :root[data-theme="atelier"] .topnav__brand {
   font-family: var(--font-display);
@@ -132,6 +132,22 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--ink);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+}
+/* Editorial brand-mark — small italic Fraunces "Ⓐ" cap before wordmark.
+   Pseudo-element so we can add it without touching shared HTML. */
+:root[data-theme="atelier"] .topnav__brand::before {
+  content: 'Ⓐ';
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--accent);
+  margin-right: 2px;
+  align-self: center;
+  letter-spacing: 0;
 }
 :root[data-theme="atelier"] .topnav__sub {
   font-size: 11px;
@@ -390,12 +406,13 @@
 }
 :root[data-theme="atelier"] .team__role,
 :root[data-theme="atelier"] .team__subtitle {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: var(--ink-dimmer);
   font-family: var(--font-display);
+  font-style: italic;
   font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-dim);
 }
 
 /* ============== CARD-LEVEL (the big rank glyph) ============== */
@@ -584,21 +601,32 @@
 }
 :root[data-theme="atelier"] .activegame__head-line {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: 40px;
   font-weight: 500;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.025em;
   color: var(--ink);
   flex: 1;
   min-width: 0;
+  line-height: 1.1;
 }
-:root[data-theme="atelier"] .activegame__head-line .glyph,
+:root[data-theme="atelier"] .activegame__head-line .glyph {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+  font-size: 52px;
+  letter-spacing: -0.03em;
+  margin: 0 4px;
+}
 :root[data-theme="atelier"] .activegame__head-line .accent {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   color: var(--accent);
-  font-size: 32px;
+  font-size: 40px;
 }
+:root[data-theme="atelier"] .activegame__head-line .accent--red  { color: var(--team-red); }
+:root[data-theme="atelier"] .activegame__head-line .accent--blue { color: var(--team-blue); }
 :root[data-theme="atelier"] .activegame__head-meta {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -941,7 +969,14 @@
   border-color: var(--accent-soft);
 }
 
-/* ============== HISTORY ============== */
+/* ============== HISTORY ==============
+ * Renderer (src/game/history.js) emits 8 cells per row in this order:
+ *   .history__round (R01) / .history__levelcard / .history__winner-cell /
+ *   .history__combo / .history__upgrade / .history__lvl--red /
+ *   .history__lvl--blue / .history__rollback-cell
+ * Grid must be 8 columns or rows wrap to a second visual line — pre-polish
+ * Atelier had 5 cols, which produced the broken 2-row history layout.
+ */
 :root[data-theme="atelier"] .history {
   margin-top: var(--s5);
 }
@@ -955,9 +990,9 @@
 }
 :root[data-theme="atelier"] .history__title {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 500;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--ink);
 }
 :root[data-theme="atelier"] .history__list {
@@ -966,11 +1001,11 @@
 }
 :root[data-theme="atelier"] .history__row {
   display: grid;
-  grid-template-columns: 48px 60px 1fr auto auto;
+  grid-template-columns: 56px 56px 86px minmax(180px, 1.4fr) minmax(120px, 1fr) 44px 44px auto;
   gap: var(--s4);
-  padding: var(--s3) 0;
+  padding: var(--s4) 0;
   border-bottom: 1px solid var(--rule);
-  align-items: baseline;
+  align-items: center;
 }
 :root[data-theme="atelier"] .history__row:last-child {
   border-bottom: none;
@@ -980,32 +1015,60 @@
   font-size: 17px;
   font-weight: 500;
   color: var(--accent);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
 }
 :root[data-theme="atelier"] .history__levelcard {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 22px;
   font-weight: 500;
   color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
-:root[data-theme="atelier"] .history__winner-cell,
+:root[data-theme="atelier"] .history__winner-cell {
+  display: inline-flex;
+  align-items: center;
+}
 :root[data-theme="atelier"] .history__winner {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  padding: 3px 10px;
+  display: inline-block;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0;
+}
+:root[data-theme="atelier"] .history__winner--red {
+  color: var(--team-red);
+  background: var(--team-red-soft);
+  border: 1px solid var(--team-red-line);
+}
+:root[data-theme="atelier"] .history__winner--blue {
+  color: var(--team-blue);
+  background: var(--team-blue-soft);
+  border: 1px solid var(--team-blue-line);
+}
+:root[data-theme="atelier"] .history__winner--inprog {
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent-line);
+}
+:root[data-theme="atelier"] .history__upgrade {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
   font-size: 14px;
-  color: var(--ink-dim);
-}
-:root[data-theme="atelier"] .history__upgrade {
-  font-family: var(--font-mono);
-  font-size: 12px;
   color: var(--accent);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+:root[data-theme="atelier"] .history__upgrade--zero {
+  color: var(--ink-dimmer);
+}
 :root[data-theme="atelier"] .history__combo {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-dim);
   display: flex;
   gap: 4px;
@@ -1019,6 +1082,38 @@
 :root[data-theme="atelier"] .history__combo-sep {
   color: var(--rule);
 }
+:root[data-theme="atelier"] .history__lvl {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+:root[data-theme="atelier"] .history__lvl--red  { color: var(--team-red); }
+:root[data-theme="atelier"] .history__lvl--blue { color: var(--team-blue); }
+:root[data-theme="atelier"] .history__lvl--pending { color: var(--ink-dimmer); }
+:root[data-theme="atelier"] .history__rollback-cell {
+  display: inline-flex;
+  justify-content: flex-end;
+}
+:root[data-theme="atelier"] .history__rollback {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  padding: 3px 12px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-dim);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.18s ease, color 0.18s ease;
+}
+:root[data-theme="atelier"] .history__rollback:hover {
+  border-color: var(--accent-line);
+  color: var(--ink);
+}
 
 /* ============== STATS-CARD (player stats table) ============== */
 :root[data-theme="atelier"] .stats-card {
@@ -1027,6 +1122,7 @@
   background: var(--surface);
   border: 1px solid var(--rule);
   border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 :root[data-theme="atelier"] .stats-table {
   width: 100%;
@@ -1037,27 +1133,65 @@
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
-  font-size: 12px;
+  font-size: 13px;
   text-align: left;
-  padding: var(--s3) var(--s4);
+  padding: var(--s4) var(--s5);
   color: var(--ink-dim);
   border-bottom: 1px solid var(--rule);
   letter-spacing: 0;
   text-transform: none;
+  background: var(--surface-2);
+}
+:root[data-theme="atelier"] .stats-table thead th:not(:first-child) {
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:root[data-theme="atelier"] .stats-table thead th:last-child {
+  text-align: right;
 }
 :root[data-theme="atelier"] .stats-table tbody td {
-  padding: var(--s3) var(--s4);
+  padding: var(--s3) var(--s5);
   border-bottom: 1px solid var(--rule-soft);
-  font-family: var(--font-body);
-  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 :root[data-theme="atelier"] .stats-table tbody tr:last-child td {
   border-bottom: none;
 }
 :root[data-theme="atelier"] .stats-table tbody td:first-child {
   font-family: var(--font-display);
+  font-style: normal;
   font-weight: 500;
   font-size: 16px;
+  color: var(--ink);
+  text-align: left;
+  letter-spacing: -0.005em;
+}
+:root[data-theme="atelier"] .stats-table tbody td:nth-child(2) {
+  text-align: left;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+:root[data-theme="atelier"] .stats-table tbody td:nth-child(4) {
+  /* avg rank gets accent treatment */
+  color: var(--accent);
+  font-weight: 500;
+}
+:root[data-theme="atelier"] .stats-table tbody td:nth-child(4) b {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+:root[data-theme="atelier"] .stats-table tbody td .emoji {
+  margin-right: 8px;
+}
+:root[data-theme="atelier"] .stats-table tbody tr:hover td {
+  background: var(--surface-2);
 }
 
 /* ============== TEAM HONORS (per-team MVP/burden) ============== */
@@ -1089,20 +1223,46 @@
 }
 :root[data-theme="atelier"] .team-honors__card .badge {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  margin-right: var(--s2);
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-sm);
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  margin-right: var(--s4);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 13px;
+  font-weight: 400;
+  font-size: 14px;
   color: var(--ink);
+  letter-spacing: 0;
+}
+:root[data-theme="atelier"] .team-honors__card .badge .emoji {
+  font-style: normal;
+  margin-right: 2px;
 }
 :root[data-theme="atelier"] .team-honors__card .badge--mvp {
-  border-color: var(--accent-line);
+  border-bottom-color: var(--accent);
+  color: var(--accent);
+}
+:root[data-theme="atelier"] .team-honors__card .badge--burden {
+  border-bottom-color: var(--ink-faint);
+  color: var(--ink-dim);
+}
+:root[data-theme="atelier"] .team-honors__card .badge-label {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .team-honors__card--blue .team-honors__title {
+  color: var(--team-blue);
+}
+:root[data-theme="atelier"] .team-honors__card--red .team-honors__title {
+  color: var(--team-red);
 }
 
 /* ============== HONORS GALLERY (16 algorithmic awards) ============== */
@@ -1431,6 +1591,16 @@
   :root[data-theme="atelier"] .activegame__lede {
     font-size: 15px;
   }
+  :root[data-theme="atelier"] .activegame__head-line {
+    font-size: 24px;
+    letter-spacing: -0.02em;
+  }
+  :root[data-theme="atelier"] .activegame__head-line .glyph {
+    font-size: 32px;
+  }
+  :root[data-theme="atelier"] .activegame__head-line .accent {
+    font-size: 24px;
+  }
   :root[data-theme="atelier"] .pool {
     padding: var(--s3);
     gap: var(--s2);
@@ -1450,17 +1620,33 @@
     font-size: 14px;
     padding: var(--s4);
   }
+  /* Mobile history: 8 cells reflow into a 3-row grid via named areas. Pure
+     `grid-template-columns` collapse can't fit 8 cells at 390px; areas keep
+     all cells visible without truncation. */
   :root[data-theme="atelier"] .history__row {
-    grid-template-columns: 36px 1fr auto;
-    gap: var(--s2);
+    grid-template-columns: 44px 1fr 64px 56px;
+    grid-template-areas:
+      'round levelcard winner upgrade'
+      'combo combo combo combo'
+      'lvl-red lvl-blue . actions';
+    column-gap: var(--s3);
+    row-gap: var(--s2);
+    padding: var(--s3) 0;
     font-size: 13px;
+    align-items: center;
   }
-  :root[data-theme="atelier"] .history__round {
-    font-size: 14px;
+  :root[data-theme="atelier"] .history__round { grid-area: round; font-size: 14px; }
+  :root[data-theme="atelier"] .history__levelcard { grid-area: levelcard; font-size: 16px; }
+  :root[data-theme="atelier"] .history__winner-cell { grid-area: winner; }
+  :root[data-theme="atelier"] .history__combo {
+    grid-area: combo;
+    flex-wrap: wrap;
+    font-size: 11px;
   }
-  :root[data-theme="atelier"] .history__levelcard {
-    font-size: 14px;
-  }
+  :root[data-theme="atelier"] .history__upgrade { grid-area: upgrade; font-size: 12px; }
+  :root[data-theme="atelier"] .history__lvl--red { grid-area: lvl-red; text-align: left; font-size: 14px; }
+  :root[data-theme="atelier"] .history__lvl--blue { grid-area: lvl-blue; text-align: left; font-size: 14px; }
+  :root[data-theme="atelier"] .history__rollback-cell { grid-area: actions; }
   :root[data-theme="atelier"] .stats-card {
     overflow-x: auto;
   }
