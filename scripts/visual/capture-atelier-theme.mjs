@@ -173,6 +173,10 @@ await page.screenshot({
   if (ag) await ag.screenshot({ path: path.join(REPORT_DIR, 'activegame-mobile.png') });
   const honors = await page.$('.honors');
   if (honors) await honors.screenshot({ path: path.join(REPORT_DIR, 'honors-mobile.png') });
+  // Per-section mobile for calcpreview — at 390px the editorial single-row
+  // aside is the highest-density component and benefits most from focused QC.
+  const calc = await page.$('.calcpreview');
+  if (calc) await calc.screenshot({ path: path.join(REPORT_DIR, 'calcpreview-mobile.png') });
 }
 
 // Restore desktop viewport for the victory modal capture — modal sizing is

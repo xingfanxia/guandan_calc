@@ -1816,9 +1816,20 @@
   :root[data-theme="atelier"] .pool-tile__handle {
     font-size: 9px;
   }
+  /* Mobile calcpreview: editorial single-row aside is too dense at 390px —
+     stack label / content / hint vertically so each gets full width and
+     italic Fraunces segments have room to breathe. Hint stays right-aligned
+     as a status caption. */
   :root[data-theme="atelier"] .calcpreview {
+    flex-direction: column;
+    align-items: stretch;
+    row-gap: var(--s3);
     font-size: 14px;
     padding: var(--s4);
+  }
+  :root[data-theme="atelier"] .calcpreview__hint {
+    margin-left: 0;
+    text-align: right;
   }
   /* Mobile history: 8 cells reflow into a 3-row grid via named areas. Pure
      `grid-template-columns` collapse can't fit 8 cells at 390px; areas keep
