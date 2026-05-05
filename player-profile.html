@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh-CN" data-theme="broadcast">
 <head>
+<script>
+  // Theme bootstrap — must be inline + synchronous + ABOVE stylesheets so
+  // the cascade resolves with the user's chosen theme on first paint, not
+  // with `data-theme="broadcast"` (the static fallback). Saved value list
+  // is the source of truth for valid theme names; sync with main.js.
+  try { var t = localStorage.getItem('gd_v9_theme');
+    if (t && ['broadcast','linear','trading','atelier'].indexOf(t) !== -1)
+      document.documentElement.setAttribute('data-theme', t);
+  } catch(e) {}
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>玩家资料 - 掼蛋计分器</title>
@@ -25,7 +35,6 @@
 <link rel="stylesheet" href="/src/themes/linear/theme.css">
 <link rel="stylesheet" href="/src/themes/trading/theme.css">
 <link rel="stylesheet" href="/src/themes/atelier/theme.css">
-<script type="module" src="/src/themes/_shared/themeBootstrap.js"></script>
 
 </head>
 <body>
