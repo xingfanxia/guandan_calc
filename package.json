@@ -7,10 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "capture:visual": "node scripts/visual/capture-broadcast.mjs"
+    "capture:visual": "node scripts/visual/capture-broadcast.mjs",
+    "test:visual": "node scripts/visual/regression-test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0",
     "vite": "^5.0.0"
   },
   "author": "Xingfan Xia",

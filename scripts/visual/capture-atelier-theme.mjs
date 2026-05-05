@@ -9,10 +9,16 @@ import { chromium } from 'playwright';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdir } from 'fs/promises';
+import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
-const REPORT_DIR = path.join(ROOT, 'docs/reports/phase4-atelier');
+// VISUAL_REPORT_BASE lets the regression-test wrapper redirect captures to
+// a snapshot dir without touching the committed baseline. Default writes
+// directly to docs/reports/<phase>/ for normal local capture-and-commit
+// workflow.
+const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
+const REPORT_DIR = path.join(REPORT_BASE, 'phase4-atelier');
 
 await mkdir(REPORT_DIR, { recursive: true });
 
@@ -28,6 +34,10 @@ page.on('console', (msg) => {
 page.on('dialog', async (d) => { await d.accept(); });
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
+
+// Freeze Date.now BEFORE page load so the ticker ELAPSED counter and
+// session-start time both read the same frozen value (renders as 00:00).
+await freezeTime(page);
 
 // Pre-set theme via localStorage so it boots into Trading
 await page.goto(URL, { waitUntil: 'domcontentloaded' });
@@ -45,6 +55,11 @@ await page.waitForTimeout(400);
 const shuffleBtn = await page.$('#shuffleTeams');
 if (shuffleBtn) await shuffleBtn.click();
 await page.waitForTimeout(300);
+
+// Override emojis + team assignment to deterministic state — both come
+// from Math.random in playerManager and would otherwise drift the baseline
+// PNG every capture run, defeating any pixel-diff regression test.
+await setDeterministicPlayers(page, 6);
 
 await page.evaluate(() => {
   const cb = document.getElementById('autoApply');
