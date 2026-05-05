@@ -4,7 +4,7 @@
  * Handles player statistics tracking and display
  */
 
-import { $} from '../core/utils.js';
+import { $, escapeHtml } from '../core/utils.js';
 import { getPlayers, getPlayerById, getPlayersByTeam } from '../player/playerManager.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
@@ -142,8 +142,8 @@ export function renderPlayerStatsTable() {
     }
 
     tr.innerHTML = `
-      <td><span class="emoji">${player.emoji}</span>${player.name}</td>
-      <td><span style="color:${teamColor};font-weight:bold">${teamName}</span></td>
+      <td><span class="emoji">${escapeHtml(player.emoji)}</span>${escapeHtml(player.name)}</td>
+      <td><span style="color:${teamColor};font-weight:bold">${escapeHtml(teamName)}</span></td>
       <td>${stats.games}</td>
       <td><b>${avgRank.toFixed(2)}</b></td>
       <td>${stats.firstPlaceCount || 0}</td>
@@ -232,18 +232,18 @@ export function renderTeamMVPBurden() {
 
   if (team1MVP) {
     team1MVP.innerHTML = team1Result.mvp ?
-      `<span class="emoji">${team1Result.mvp.emoji}</span>${team1Result.mvp.name}` : '—';
+      `<span class="emoji">${escapeHtml(team1Result.mvp.emoji)}</span>${escapeHtml(team1Result.mvp.name)}` : '—';
   }
   if (team1Burden) {
     team1Burden.innerHTML = team1Result.burden ?
-      `<span class="emoji">${team1Result.burden.emoji}</span>${team1Result.burden.name}` : '—';
+      `<span class="emoji">${escapeHtml(team1Result.burden.emoji)}</span>${escapeHtml(team1Result.burden.name)}` : '—';
   }
   if (team2MVP) {
     team2MVP.innerHTML = team2Result.mvp ?
-      `<span class="emoji">${team2Result.mvp.emoji}</span>${team2Result.mvp.name}` : '—';
+      `<span class="emoji">${escapeHtml(team2Result.mvp.emoji)}</span>${escapeHtml(team2Result.mvp.name)}` : '—';
   }
   if (team2Burden) {
     team2Burden.innerHTML = team2Result.burden ?
-      `<span class="emoji">${team2Result.burden.emoji}</span>${team2Result.burden.name}` : '—';
+      `<span class="emoji">${escapeHtml(team2Result.burden.emoji)}</span>${escapeHtml(team2Result.burden.name)}` : '—';
   }
 }

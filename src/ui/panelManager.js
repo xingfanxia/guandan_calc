@@ -3,7 +3,7 @@
  * Handles collapsible panels and UI state management
  */
 
-import { $ } from '../core/utils.js';
+import { $, escapeHtml } from '../core/utils.js';
 import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
@@ -238,20 +238,20 @@ export function showCompactTeamRoster() {
   // Team 1 roster
   const team1Div = document.createElement('div');
   team1Div.innerHTML = `
-    <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 6px;">${t1Name}</div>
+    <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 6px;">${escapeHtml(t1Name)}</div>
     ${team1Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
-      <span style="font-size: 16px;">${p.emoji}</span>
-      <span>${p.name}</span>
+      <span style="font-size: 16px;">${escapeHtml(p.emoji)}</span>
+      <span>${escapeHtml(p.name)}</span>
     </div>`).join('')}
   `;
 
   // Team 2 roster
   const team2Div = document.createElement('div');
   team2Div.innerHTML = `
-    <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 6px;">${t2Name}</div>
+    <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 6px;">${escapeHtml(t2Name)}</div>
     ${team2Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
-      <span style="font-size: 16px;">${p.emoji}</span>
-      <span>${p.name}</span>
+      <span style="font-size: 16px;">${escapeHtml(p.emoji)}</span>
+      <span>${escapeHtml(p.name)}</span>
     </div>`).join('')}
   `;
 

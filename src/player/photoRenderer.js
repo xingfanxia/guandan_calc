@@ -3,6 +3,8 @@
  * Handles rendering player avatars (photo or emoji) for profile pages only
  */
 
+import { escapeHtml } from '../core/utils.js';
+
 /**
  * Render player avatar (photo or emoji) with proper sizing and fallback
  * @param {Object} player - Player object with emoji and optional photoBase64
@@ -49,13 +51,13 @@ export function renderProfileAvatar(player, size = 64, options = {}) {
     return `
       <div class="${className}" style="${containerStyle}">
         <img
-          src="${player.photoBase64}"
-          alt="${player.displayName || player.name}"
+          src="${escapeHtml(player.photoBase64)}"
+          alt="${escapeHtml(player.displayName || player.name)}"
           style="${photoStyle}"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
         />
         <div style="display: none; width: ${size}px; height: ${size}px; border-radius: 50%; background: #1a1a1a; border: ${borderWidth}px solid #444; align-items: center; justify-content: center; font-size: ${size * 0.6}px;">
-          ${player.emoji}
+          ${escapeHtml(player.emoji)}
         </div>
       </div>
     `;
@@ -64,7 +66,7 @@ export function renderProfileAvatar(player, size = 64, options = {}) {
   // Show emoji (default)
   return `
     <div class="${className}" style="${containerStyle}">
-      <span style="${emojiStyle}">${player.emoji}</span>
+      <span style="${emojiStyle}">${escapeHtml(player.emoji)}</span>
     </div>
   `;
 }
