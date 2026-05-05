@@ -113,7 +113,7 @@ If a future Atelier polish iter is wanted (paper-grain texture on slots, illustr
 | **Atelier mobile calcpreview** | ✅ shipped 2026-05-05 (`9fc4294`) — column stack at 390px; closes the 94% → ~96% mobile gap |
 | 2.5 (Linear sidebar + state preservation) | TODO infra |
 | 5 (Tea-Table) | gated on commissioned ink illustrations |
-| Visual regression CI | TODO |
+| Visual regression CI | ✅ shipped 2026-05-05 (`402bb87` + `2fa1b84` + `c9ddf62` + `1d2cf8b`) — pixelmatch-based; deterministic captures via `scripts/visual/_fixtures.mjs` (freezeTime + setDeterministicPlayers + event re-render); diff orchestrator at `scripts/visual/regression-test.mjs` (`npm run test:visual`); GitHub Actions workflow at `.github/workflows/visual-regression.yml`. **59 PNGs** under regression coverage across 6 capture scripts (4 themes + victory-cross + png-exports). Sparklines capture excluded — has unseedable randomness in 5-round random-ranking fixture. |
 | PNG export theme-awareness | ✅ shipped 2026-05-05 (`54c3552`) — separate from the polish iters; same session |
 | Cascade-safe sparkline baseline | ✅ shipped 2026-05-05 (`ec25a34`) — `src/themes/_shared/sparkline.css` with `currentColor`-based baseline rules; imported from `sparkline.js`. |
 
