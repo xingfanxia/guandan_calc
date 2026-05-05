@@ -702,16 +702,19 @@
 }
 :root[data-theme="atelier"] .pool__title {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 500;
   color: var(--ink);
+  letter-spacing: -0.01em;
 }
 :root[data-theme="atelier"] .pool__sub {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--ink-dimmer);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0;
+  text-transform: none;
 }
 :root[data-theme="atelier"] .pool__count {
   font-family: var(--font-display);
@@ -783,16 +786,19 @@
 }
 :root[data-theme="atelier"] .slots__title {
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 500;
   color: var(--ink);
+  letter-spacing: -0.01em;
 }
 :root[data-theme="atelier"] .slots__sub {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--ink-dimmer);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-dim);
+  letter-spacing: 0;
+  text-transform: none;
 }
 :root[data-theme="atelier"] .slots__grid {
   display: grid;
