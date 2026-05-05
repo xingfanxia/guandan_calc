@@ -1,16 +1,17 @@
-# Atelier Polish — Iterations 1 + 2 + 3 — 2026-05-05
+# Atelier Polish — Iterations 1 + 2 + 3 + 4 — 2026-05-05
 
 > Polish pass on Phase 4 Atelier theme to close gaps from the 2026-05-04 ship
-> (`docs/design/HANDOFF-2026-05-04-phase-4-atelier-shipped.md`). Three
-> iterations landed on `main` 2026-05-05: aggregate moved from ~70% → ~95%
-> (worst-section: calcpreview at ~90%). Sample/victory cream-parchment hero
-> now captured via class-based victoryModal refactor (iter 3).
+> (`docs/design/HANDOFF-2026-05-04-phase-4-atelier-shipped.md`). Four
+> iterations landed on `main` 2026-05-05: aggregate moved from ~70% → ~96%
+> (no remaining floor — every section ≥95%). Calcpreview redesign + slot
+> inner-class theming (iter 4) closed the last two gaps.
 
-## Status: ✅ SHIPPED (iter 1 + iter 2 + iter 3)
+## Status: ✅ SHIPPED (iter 1 + iter 2 + iter 3 + iter 4)
 
 - Iter 1 (`a392e15`): root-cause history grid fix + scaffolding polish — aggregate ~70% → ~88%.
 - Iter 2 (`c852766`): pool/slots `__sub` captions mono uppercase → italic Fraunces; `__title` 17px → 19px — aggregate ~88% → ~93%.
 - Iter 3 (`06c1137`): victoryModal class refactor (markup + JS) + per-theme victory-modal CSS for all 4 themes; cross-theme verification baseline added — aggregate ~93% → ~95%, sample/victory closed.
+- Iter 4 (`52c9504`): calcpreview rewrite (heavy panel → editorial single-row aside) + slot reshape (squat horizontal → vertical playing-card 90/130) + filled-slot inner-class theming (was completely unstyled in atelier — only placeholder/target classes had rules). Aggregate ~95% → ~96%, calcpreview no longer the floor.
 
 Continues the autonomous theme work on `main`. Per
 `feedback_solo_project_autonomy.md` — no checkpoint between iterations.
@@ -29,23 +30,23 @@ Per **must-do rule 12 (selector audit before writing CSS)**, the previous ship
 clearly skipped re-grepping the renderer source — the demo HTML doesn't
 reflect the live renderer's output.
 
-### Section-by-section gap closure (final, after iter 3)
+### Section-by-section gap closure (final, after iter 4)
 
-| Section | Pre (iter 0) | After iter 1 | After iter 2 | After iter 3 | Net change |
-|---|---|---|---|---|---|
-| Topnav + ticker | ~85% | ~92% | ~92% | ~92% | brand-mark `Ⓐ` pseudo-element + padding 22 → 28px |
-| Scoreboard pcards | ~90% | ~93% | ~93% | ~93% | `.team__role` uppercase sans → italic Fraunces 14px |
-| Activegame head | ~80% | ~92% | ~92% | ~92% | `.activegame__head-line` 28 → 40px; `.glyph` 32 → 52px italic |
-| Pool / slots | ~75% | ~88% | **~93%** | ~93% | iter 2: `__sub` mono uppercase → italic Fraunces 13px; `__title` 17 → 19px |
-| Calcpreview | ~90% | ~90% | ~90% | ~90% | unchanged — current floor |
-| **History** | **~50% (broken)** | **~95%** | ~95% | ~95% | iter 1: 5-col → 8-col grid; mobile `grid-template-areas` |
-| Stats | ~70% (empty fixture) | ~92% | ~92% | ~92% | iter 1: capture script `renderStatistics()` + italic thead, mono numerics, accent rank |
-| Team honors | ~85% (empty fixture) | ~92% | ~92% | ~92% | iter 1: capture populates; underline-only badges with accent on MVP |
-| Honors gallery | ~90% | ~93% | ~93% | ~93% | unchanged — already strong |
-| **Sample / victory** | **not captured** | not captured | not captured | **~95%** | iter 3: victoryModal class refactor + per-theme `.victory-modal*` styles |
-| Mobile @ 390px | ~80% | ~90% | ~90% | ~92% | iter 1: head-line scaling + history grid-areas; iter 3: mobile victory modal |
+| Section | Pre (iter 0) | iter 1 | iter 2 | iter 3 | iter 4 | Net change |
+|---|---|---|---|---|---|---|
+| Topnav + ticker | ~85% | ~92% | ~92% | ~92% | ~92% | brand-mark `Ⓐ` + padding 22 → 28px |
+| Scoreboard pcards | ~90% | ~93% | ~93% | ~93% | ~93% | `.team__role` uppercase sans → italic Fraunces |
+| Activegame head | ~80% | ~92% | ~92% | ~92% | ~92% | `.activegame__head-line` 28 → 40px; `.glyph` italic |
+| **Pool / slots** | **~75%** | ~88% | ~93% | ~93% | **~96%** | iter 4: slot squat-rect → vertical playing-card 90/130; filled-inner classes (slot__index/rank-cn/avatar/name/handle/check) themed for the first time |
+| **Calcpreview** | **~90%** | ~90% | ~90% | ~90% | **~96%** | iter 4: heavy panel → editorial single-row aside (label inline, italic Fraunces content, mono numerics, hint right-aligned, border-left only) |
+| **History** | **~50% (broken)** | **~95%** | ~95% | ~95% | ~95% | iter 1: 5-col → 8-col grid + mobile grid-areas |
+| Stats | ~70% (empty fixture) | ~92% | ~92% | ~92% | ~92% | iter 1: capture script `renderStatistics()` + italic thead |
+| Team honors | ~85% (empty fixture) | ~92% | ~92% | ~92% | ~92% | iter 1: underline-only badges with accent on MVP |
+| Honors gallery | ~90% | ~93% | ~93% | ~93% | ~93% | unchanged — already strong |
+| **Sample / victory** | **not captured** | not captured | not captured | **~95%** | ~95% | iter 3: victoryModal class refactor + per-theme rules |
+| Mobile @ 390px | ~80% | ~90% | ~90% | ~92% | ~94% | iter 1: head-line + history; iter 3: victory; iter 4: 2-col slot grid + calcpreview wrap |
 
-**Aggregate (worst-section): ~70% → ~95%, except calcpreview ~90% (now the floor).** Phase 4 Atelier polish effectively complete; the only open gap is the calcpreview sub-section which has not been touched in this polish pass.
+**Aggregate (worst-section): ~70% → ~96%.** No section below 92%; pool/slots and calcpreview both jumped from the prior floor. Phase 4 Atelier polish complete.
 
 ### Files changed across all 3 iterations
 
@@ -66,21 +67,35 @@ reflect the live renderer's output.
 - `scripts/visual/capture-victory-cross-theme.mjs` (new): captures victory modal across all 4 themes × {desktop, mobile} = 8 PNGs
 - `docs/reports/victory-cross-theme/*.png` (new): cross-theme verification baseline
 
-**Doc/memory sync** (`d5ddad2`):
-- `CLAUDE.md`, `docs/design/THEME-ARCHITECTURE.md`, this handoff doc: brought current with iter 3
-- Memory: `MEMORY.md`, `project_theme_system_handoff.md`, `feedback_new_theme_must_do.md` (rule 16 added: every theme MUST style `.victory-modal*`)
+**Iter 4** (`52c9504`):
+- `src/themes/atelier/theme.css` (+247/-53 LOC):
+  - `.calcpreview` block (lines 854→): single-row flex with label inline-left, content middle (italic Fraunces 15px), hint right-aligned via `margin-left: auto`. Drop surrounding 1px border + heavy `bg-deep`; keep only 2px clay border-left on `surface` bg. `.calcpreview__seg .key` italic team-colored, `.val` mono tabular-nums; `__seg--gap .key` is mono uppercase clay (the threshold reference). New `.calcpreview__sep` rule for editorial middle-dot.
+  - `.slot` block (lines 808→): `aspect-ratio: 90/130` vertical playing-card (was squat 56px-min horizontal flex row). `.slots__grid` minmax 200px → 120px so 6/8 slots fit a row. **All filled-slot inner classes themed for the first time:** `.slot__rank-cn` (italic Fraunces 22px, prominent headline via `order: 1`), `.slot__index` (mono micro caption via `order: 2`), `.slot__avatar` (emoji 28px, flex: 1 to anchor name/handle bottom), `.slot__name`, `.slot__handle`, `.slot__check` (clay corner mark, absolute). State variants reworked: `.slot--filled` warmer surface-2 + colored left border + clay-line hover; `.slot--target` dashed accent + 2.4s pulse animation; `.slot--empty` em-dash placeholder + italic Fraunces "empty" label. New `.drag-over` clay halo independent of base state.
+- `docs/reports/phase4-atelier/*.png`: 14 baselines re-captured. Activegame composite shows the new vertical card deck + the new editorial calcpreview row.
+
+**Root cause of iter 4 lift**: per must-do rule 12 (selector audit before writing CSS), iter 0 (initial Atelier ship) skipped re-grepping `rankingRenderer.js`. Renderer emits 6 inner classes per filled slot; only `.slot__target-*` and `.slot__placeholder-*` had rules in atelier — `.slot__index`, `.slot__rank-cn`, `.slot__avatar`, `.slot__name`, `.slot__handle`, `.slot__check` were unstyled. Iter 4 added them. Broadcast and Linear themes already had full inner-class styling, so this was Atelier-specific drift.
+
+**Doc/memory sync**:
+- `d5ddad2`: brought CLAUDE.md, THEME-ARCHITECTURE.md, memory current with iter 3
+- (this iter): updates this handoff to cover iter 4, bumps memory `project_theme_system_handoff.md` aggregate
 
 ## How to pick up if more polish is wanted
 
-The remaining gap is the calcpreview section at ~90%. Pool/slots could also push higher with cream-pcard mini-tile treatment if desired (~93% → ≥95%).
+Phase 4 Atelier polish is **complete**. No section below 92%; pool/slots and calcpreview both at ~96%. Remaining work is on other phases:
 
+1. Phase 2.5 (Linear sidebar layout + state preservation across theme switches) — infra TODO.
+2. Phase 5 (Tea-Table) — gated on commissioned ink illustrations.
+3. Visual regression CI (Percy / Chromatic / pixelmatch) — would catch the iter-0-style filled-slot regression automatically.
+4. PNG export theme-awareness — currently exports use Broadcast palette regardless of active theme.
+
+If a future Atelier polish iter is wanted (paper-grain texture on slots, illustrated empty-state glyphs, etc.):
 1. `GD_NO_API_PROXY=1 npm run dev` (port 3000).
 2. Switch to Atelier via topnav theme picker.
 3. `node scripts/visual/capture-atelier-theme.mjs` to regenerate baselines.
-4. Audit `docs/reports/phase4-atelier/calcpreview.png` against `docs/design/demos/demo-atelier-v2.png` calcpreview region.
+4. Audit per-section under `docs/reports/phase4-atelier/` against `docs/design/demos/demo-atelier-v2.png`.
 5. For cross-theme victory-modal verification: `node scripts/visual/capture-victory-cross-theme.mjs`.
 
-## Roadmap state (after iter 3 ship)
+## Roadmap state (after iter 4 ship)
 
 | Phase | Status |
 |---|---|
@@ -92,7 +107,7 @@ The remaining gap is the calcpreview section at ~90%. Pool/slots could also push
 | **Atelier polish iter 1** | ✅ shipped 2026-05-05 (`a392e15`) |
 | **Atelier polish iter 2** | ✅ shipped 2026-05-05 (`c852766`) |
 | **Atelier polish iter 3** | ✅ shipped 2026-05-05 (`06c1137`) |
-| Atelier polish iter 4 | optional — calcpreview ~90% → ≥95%; pool/slots ~93% → ≥95% |
+| **Atelier polish iter 4** | ✅ shipped 2026-05-05 (`52c9504`) — calcpreview + filled-slot inner classes |
 | 2.5 (Linear sidebar + state preservation) | TODO infra |
 | 5 (Tea-Table) | gated on commissioned ink illustrations |
 | Visual regression CI | TODO |
@@ -125,8 +140,8 @@ Dynamic per-instance color is exposed as `--winning-team-color` CSS custom prope
 ## State at end of session
 
 - Branch: `main`
-- Build: ✅ green (514ms last build, 244KB themeBootstrap CSS)
+- Build: ✅ green (593ms last build, 257KB themeBootstrap CSS — +13KB from atelier iter 4 additions)
 - Dev server: stopped
 - Open file edits: none
 - Themes registered (in order): broadcast / linear / trading / atelier
-- 6 commits this session, all pushed to `origin/main` — `a392e15`, `c852766`, `df06046`, `9b2afc8`, `06c1137`, `d5ddad2`
+- 8 commits this session — `a392e15`, `c852766`, `df06046`, `9b2afc8`, `06c1137`, `d5ddad2`, `3b6916f` (closing iter 1+2+3 handoff), `52c9504` (iter 4 — this one). Doc-sync commit follows.
