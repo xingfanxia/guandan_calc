@@ -802,107 +802,301 @@
 }
 :root[data-theme="atelier"] .slots__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--s3);
-}
-:root[data-theme="atelier"] .slot {
-  display: flex;
-  align-items: center;
-  gap: var(--s4);
-  padding: var(--s3) var(--s4);
-  background: var(--surface);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-sm);
-  min-height: 56px;
-}
-:root[data-theme="atelier"] .slot--filled {
-  border-color: var(--accent-line);
-}
-:root[data-theme="atelier"] .slot__rank {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--accent);
-  letter-spacing: -0.02em;
-  width: 32px;
-  text-align: center;
-  flex-shrink: 0;
-}
-:root[data-theme="atelier"] .slot__target-icon,
-:root[data-theme="atelier"] .slot__target-label,
-:root[data-theme="atelier"] .slot__placeholder-label {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 400;
-  font-size: 14px;
-  color: var(--ink-dim);
-  white-space: nowrap;
-}
-:root[data-theme="atelier"] .slot__placeholder {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  color: var(--ink-dimmer);
-}
-:root[data-theme="atelier"] .slot__filled {
-  display: flex;
-  align-items: center;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: var(--s3);
 }
 
-/* ============== CALC PREVIEW (live calc strip) ============== */
-:root[data-theme="atelier"] .calcpreview {
-  margin: var(--s4) 0;
-  padding: var(--s4) var(--s5);
-  background: var(--bg-deep);
-  border: 1px solid var(--rule);
-  border-left: 3px solid var(--accent);
-  border-radius: var(--radius-sm);
+/* ── slot — vertical playing-card aspect, editorial typography stack ── */
+:root[data-theme="atelier"] .rank-slot.slot,
+:root[data-theme="atelier"] .slot {
   display: flex;
   flex-direction: column;
-  gap: var(--s2);
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 14px 12px 12px;
+  margin: 0;
+  position: relative;
+  min-height: unset;
+  aspect-ratio: 90 / 130;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
-:root[data-theme="atelier"] .calcpreview__label {
+
+/* TOP: Chinese rank glyph (头游/二游/末游/...) — prominent serif, italic
+   like a hand-set caption. Forced first via `order` (DOM emits .slot__index
+   first, but editorially the rank glyph reads as the headline). */
+:root[data-theme="atelier"] .slot__rank-cn {
+  order: 1;
   font-family: var(--font-display);
   font-style: italic;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.32em;
-  color: var(--accent);
   font-weight: 500;
+  font-size: 22px;
+  color: var(--ink-dim);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  margin: 0;
+}
+:root[data-theme="atelier"] .slot__index {
+  order: 2;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--ink-faint);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 3px;
+}
+
+/* MIDDLE: avatar emoji — quiet, takes flex space so name/handle anchor
+   to the bottom of the card. */
+:root[data-theme="atelier"] .slot__avatar {
+  order: 3;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  opacity: 0.85;
+  margin: var(--s2) 0;
+  line-height: 1;
+}
+
+/* BOTTOM: player name (Fraunces) + handle (mono micro). */
+:root[data-theme="atelier"] .slot__name {
+  order: 4;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+:root[data-theme="atelier"] .slot__handle {
+  order: 5;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--ink-dimmer);
+  margin-top: 2px;
+  letter-spacing: 0;
+}
+
+/* CHECK: subtle clay corner mark on filled slots. */
+:root[data-theme="atelier"] .slot__check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+  opacity: 0.75;
+}
+
+/* FILLED state — warmer surface + clay-or-team left border. */
+:root[data-theme="atelier"] .slot--filled {
+  background: var(--surface-2);
+  border-color: var(--rule);
+  cursor: grab;
+}
+:root[data-theme="atelier"] .slot--filled:hover {
+  border-color: var(--accent-line);
+  background: var(--surface-3);
+}
+:root[data-theme="atelier"] .slot--filled-red {
+  border-left: 3px solid var(--team-red);
+}
+:root[data-theme="atelier"] .slot--filled-blue {
+  border-left: 3px solid var(--team-blue);
+}
+
+/* TARGET state — clay halo + dashed border + pulsing glow. */
+:root[data-theme="atelier"] .slot--target {
+  background: oklch(72% 0.14 65 / 0.06);
+  border: 1.5px dashed var(--accent);
+  box-shadow: inset 0 0 30px -8px oklch(72% 0.14 65 / 0.18);
+  animation: atelier-target-pulse 2.4s ease-in-out infinite;
+}
+:root[data-theme="atelier"] .slot--target .slot__rank-cn {
+  color: var(--accent);
+}
+:root[data-theme="atelier"] .slot--target .slot__index {
+  color: var(--accent-soft);
+}
+:root[data-theme="atelier"] .slot__target-icon {
+  order: 3;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 28px;
+  color: var(--accent-soft);
+  margin: var(--s2) 0;
+  white-space: normal;
+}
+:root[data-theme="atelier"] .slot__target-label {
+  order: 4;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--accent);
+  text-align: center;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+@keyframes atelier-target-pulse {
+  0%, 100% { box-shadow: inset 0 0 30px -8px oklch(72% 0.14 65 / 0.18); }
+  50%      { box-shadow: inset 0 0 30px -8px oklch(72% 0.14 65 / 0.32); }
+}
+
+/* EMPTY state — dashed quiet rule, em-dash placeholder. */
+:root[data-theme="atelier"] .slot--empty {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--rule);
+}
+:root[data-theme="atelier"] .slot--empty .slot__rank-cn {
+  color: var(--ink-dimmer);
+}
+:root[data-theme="atelier"] .slot__placeholder {
+  order: 3;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--s2) 0;
+}
+:root[data-theme="atelier"] .slot__placeholder::before {
+  content: '—';
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--ink-faint);
+}
+:root[data-theme="atelier"] .slot__placeholder-label {
+  order: 4;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--ink-faint);
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+/* DRAG-OVER (drop hover feedback) — clay halo on any slot regardless of
+   filled/target/empty state. */
+:root[data-theme="atelier"] .rank-slot.drag-over,
+:root[data-theme="atelier"] .slot.drag-over {
+  background: oklch(72% 0.14 65 / 0.10);
+  border: 1.5px dashed var(--accent);
+}
+:root[data-theme="atelier"] .rank-slot.drag-over .slot__rank-cn,
+:root[data-theme="atelier"] .slot.drag-over .slot__rank-cn {
+  color: var(--accent);
+}
+
+/* ============== CALC PREVIEW (live calc strip) ==============
+   Demo (.live-calc, demo-atelier-v2.html L353-366): single-row inline
+   editorial aside — small Inter sans label inline-left, italic Fraunces
+   content middle, mono progress hint right. No surrounding border —
+   only a 2px clay accent rule on the left. */
+:root[data-theme="atelier"] .calcpreview {
+  margin: var(--s5) 0;
+  padding: var(--s4) var(--s5);
+  background: var(--surface);
+  border: none;
+  border-left: 2px solid var(--accent-line);
+  border-radius: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--s5);
+  row-gap: var(--s2);
+}
+:root[data-theme="atelier"] .calcpreview__label {
+  /* Demo: Inter sans, 10px uppercase, ink-dimmer — quiet caption. */
+  font-family: var(--font-body);
   font-style: normal;
+  font-weight: 500;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--ink-dimmer);
+  flex-shrink: 0;
 }
 :root[data-theme="atelier"] .calcpreview__content {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 400;
-  font-size: 17px;
-  color: var(--ink);
-  line-height: 1.5;
+  font-size: 15px;
+  color: var(--ink-dim);
+  line-height: 1.55;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 :root[data-theme="atelier"] .calcpreview__hint {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 13px;
   color: var(--ink-dim);
+  flex-shrink: 0;
+  margin-left: auto;
 }
+
+/* Inline segments: 红[…] · 蓝[…] · 差距 … · 阈值 … */
 :root[data-theme="atelier"] .calcpreview__seg {
-  display: inline-block;
-  margin-right: var(--s4);
+  display: inline;
+  margin: 0;
 }
-:root[data-theme="atelier"] .calcpreview__seg--blue {
-  color: var(--team-blue);
+:root[data-theme="atelier"] .calcpreview__seg .key {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  margin-right: 4px;
 }
-:root[data-theme="atelier"] .calcpreview__seg--red {
-  color: var(--team-red);
-}
-:root[data-theme="atelier"] .calcpreview__seg--gap {
+:root[data-theme="atelier"] .calcpreview__seg--red  .key { color: var(--team-red); }
+:root[data-theme="atelier"] .calcpreview__seg--blue .key { color: var(--team-blue); }
+:root[data-theme="atelier"] .calcpreview__seg--gap  .key {
   color: var(--accent);
   font-style: normal;
   font-family: var(--font-mono);
-  font-size: 14px;
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
 }
+:root[data-theme="atelier"] .calcpreview__seg .val {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--ink);
+}
+:root[data-theme="atelier"] .calcpreview__seg .val .red     { color: var(--team-red); }
+:root[data-theme="atelier"] .calcpreview__seg .val .blue    { color: var(--team-blue); }
+:root[data-theme="atelier"] .calcpreview__seg .val .pending {
+  color: var(--ink-dim);
+  font-style: italic;
+  font-family: var(--font-display);
+}
+
+/* Editorial separator between segments — quiet middle-dot, generous gap. */
+:root[data-theme="atelier"] .calcpreview__sep {
+  display: inline;
+  color: var(--ink-faint);
+  margin: 0 var(--s3);
+  font-family: var(--font-display);
+  font-style: normal;
+}
+
+/* Legacy num span (still emitted in some paths) — keep tabular numerics. */
 :root[data-theme="atelier"] .calcpreview__num {
   font-family: var(--font-mono);
   font-style: normal;
