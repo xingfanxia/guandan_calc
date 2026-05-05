@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-05 (Visual regression CI + Atelier mobile calcpreview shipped)
-**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI
+**Last Updated**: 2026-05-05 (XSS hardening + cross-page FOUC fix + sparkline VR coverage shipped)
+**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI (65 baselines)
 **Version**: v10.0
 
 ---
@@ -94,12 +94,27 @@
 - [x] Theme-aware PNG palette (2026-05-05) — exports use the active theme's CSS custom properties
 
 ### Visual Regression CI (100%) 🆕
-- [x] `npm run test:visual` runs pixelmatch against 59 baseline PNGs
-- [x] Coverage: 4 themes (broadcast / linear / trading / atelier) + victory-modal cross-theme + PNG-export
-- [x] Deterministic captures via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + event re-render)
+- [x] `npm run test:visual` runs pixelmatch against 65 baseline PNGs across 7 capture scripts
+- [x] Coverage: 4 themes (broadcast / linear / trading / atelier) + victory-modal cross-theme + PNG-export + sparklines
+- [x] Deterministic captures via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + `setDeterministicPlayerStats` + event re-render)
+- [x] Sparkline determinism via `FIXED_RANKINGS_8` matrix state-injection (replaces unseedable `#randomRanking` flow; 2026-05-05 `c6da03a`)
+- [x] Per-directory threshold overrides in `diff-baselines.mjs` for canvas-rendered PNG exports (font subpixel-rendering noise; 2026-05-05 `f768ba7`)
 - [x] GitHub Actions workflow on PR (`.github/workflows/visual-regression.yml`)
 - [x] Diff PNGs (red overlay) auto-uploaded as PR artifacts on failure
-- [ ] Sparklines capture in regression scope — deferred (random-ranking fixture has unseedable randomness)
+
+### Cross-Page Theme Bootstrap (100%) 🆕
+- [x] Inline synchronous `<script>` block in <head> of all 4 entry HTMLs (index/players/player-profile/rooms) reads `gd_v9_theme` from localStorage and sets `data-theme` BEFORE stylesheet cascade resolves
+- [x] Eliminates the FOUC where saved non-default themes flashed Broadcast on every page navigation
+- [x] `themeBootstrap.js` module deleted — was loaded as `<script type="module">` (deferred), ran AFTER stylesheets, caused the FOUC
+- [x] Test script `scripts/visual/test-cross-page-theme.mjs` verifies 17 cases (3 themes × 4 pages + default fallback + invalid-payload rejection)
+- [x] Adding a new theme requires ONE line edit per HTML in the validation array (`['broadcast','linear','trading','atelier']`) + one stylesheet `<link>` per HTML — same maintenance shape as existing per-page theme link list
+
+### XSS Hardening (100%) 🆕
+- [x] `escapeHtml()` from `core/utils.js` now applied uniformly to all player-data render sites (2026-05-05 `0bf1b90`)
+- [x] Coverage extended to: `player/photoRenderer.js`, `stats/statistics.js`, `ui/panelManager.js`, `share/votingManager.js` (~36 sites)
+- [x] Defense covers both content interpolation AND attribute-context (e.g., `alt="${player.displayName}"` breakout via injected `">`)
+- [x] Verified by visual regression — 65/65 baselines pass with zero pixel diff (escaping CJK + emoji is byte-identical)
+- See `docs/SECURITY.md` for the complete escape convention + threat model
 
 ---
 

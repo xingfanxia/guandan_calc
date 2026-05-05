@@ -1,6 +1,7 @@
 # Security Model
 
-Last reviewed: 2026-05-02 (audit fa18718)
+Last reviewed: 2026-05-05 (XSS coverage extended via 0bf1b90 — see XSS protections below)
+Prior audit: 2026-05-02 (fa18718)
 
 This document describes how authentication, authorization, and input handling work in
 the Guandan scorer. It exists because a 2026-05 audit found multiple CRITICAL
@@ -221,22 +222,40 @@ This means every dynamic string interpolation MUST be escaped before it lands in
 `innerHTML`.
 
 **Helper:** `escapeHtml(value)` in `src/core/utils.js`. Escapes `& < > " '`.
+Both content interpolation (innerHTML body) and attribute interpolation
+(`alt="${...}"`, `value="${...}"`) need it — `&quot;` and `&#39;` neutralize
+attribute-breakout, which is the most overlooked XSS vector.
 
-**Escaped surfaces (audit fa18718):**
+**Escaped surfaces (audit fa18718 + 2026-05-05 extension `0bf1b90`):**
 - `playerSearch.js` — display name, handle, play-style label, search query
 - `playerEditModal.js` — display name, handle, emoji, photo URL, tagline
 - `victoryModal.js` — MVP name + tagline; vote button names + emojis + IDs;
   leaderboard MVP/burden entries; results-block names + emojis + counts
+- `photoRenderer.js` *(2026-05-05)* — `alt`-attribute, photoBase64 src, emoji
+  fallback. `alt=""` breakout was the real XSS: a malicious `displayName`
+  containing `"><img src=x onerror=...>` would close the alt and inject markup.
+- `stats/statistics.js` *(2026-05-05)* — stats-table rows (`emoji` + `name` +
+  team-name from user-editable config), team MVP / Burden cards
+- `ui/panelManager.js` *(2026-05-05)* — collapsed team-roster panel rendered
+  after `lockTeamAssignmentPanel`
+- `share/votingManager.js` *(2026-05-05)* — ~24 sites: locked voting card,
+  unlocked vote buttons, in-progress status, vote-results-to-viewer,
+  leaderboard, host voting interface
 
-**Unescaped surfaces that need attention later:**
+**Verification:** the 2026-05-05 extension was verified by re-running the
+visual regression suite — 65/65 baselines pass with zero pixel diff because
+escaping pure CJK + emoji content is byte-identical (no `&<>"'` characters
+in the deterministic test fixtures).
+
+**Unescaped surfaces that may want defense-in-depth later:**
 - `playerCreateModal.js` — values come from form input, not API, so injection
-  surface is the user's own input. Lower risk but could be added.
-- `historyRender` in `history.js` — embeds `playerRankings[r].name` and
-  `playerRankings[r].emoji` from session data. Worth escaping for defense in
-  depth.
+  surface is the user's own input. Lower risk but could be added for parity.
 - `exportHandlers.js` — TXT/CSV exports concatenate names; CSV escape is done
   but TXT and PNG aren't HTML, so the risk is different (CSV injection,
   Excel formula injection).
+- `exportMobile.js` — Canvas `ctx.fillText` doesn't parse HTML, so XSS via
+  injected markup isn't possible, but a long enough name could overflow the
+  canvas. Length validation at the create endpoint already caps this.
 
 ---
 
@@ -274,6 +293,10 @@ This means every dynamic string interpolation MUST be escaped before it lands in
 | `src/player/playerSearch.js` | Apply escapeHtml |
 | `src/player/playerEditModal.js` | Apply escapeHtml |
 | `src/ui/victoryModal.js` | Apply escapeHtml |
+| `src/player/photoRenderer.js` | Apply escapeHtml *(2026-05-05 extension)* |
+| `src/stats/statistics.js` | Apply escapeHtml *(2026-05-05 extension)* |
+| `src/ui/panelManager.js` | Apply escapeHtml *(2026-05-05 extension)* |
+| `src/share/votingManager.js` | Apply escapeHtml *(2026-05-05 extension)* |
 | `src/share/roomManager.js` | Use server-issued token |
 | `players.html` | Remove client-side admin password leak |
 | `CLAUDE.md` | Remove leaked password reference |

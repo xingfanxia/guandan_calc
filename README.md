@@ -345,7 +345,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
-**Visual regression testing:** PRs that touch UI code (`src/**`, `index.html`, themes, capture scripts, baseline PNGs, or `package.json`) automatically run `npm run test:visual` via GitHub Actions. The test pixel-diffs 59 baseline PNGs across all four themes. Run locally with the same command before pushing — see [docs/guides/DEVELOPMENT_METHODOLOGY.md](docs/guides/DEVELOPMENT_METHODOLOGY.md#testing-methodology) for details.
+**Visual regression testing:** PRs that touch UI code (`src/**`, `index.html`, themes, capture scripts, baseline PNGs, or `package.json`) automatically run `npm run test:visual` via GitHub Actions. The test pixel-diffs 65 baseline PNGs across all four themes (incl. sparkline + PNG-export + cross-theme victory-modal coverage). Run locally with the same command before pushing — see [docs/guides/DEVELOPMENT_METHODOLOGY.md](docs/guides/DEVELOPMENT_METHODOLOGY.md#testing-methodology) for details.
 
 ## Author
 
