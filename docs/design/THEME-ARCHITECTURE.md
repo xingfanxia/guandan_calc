@@ -298,7 +298,7 @@ Each phase ships independently. As of 2026-05-03 users have a 3-option theme pic
 ## 10. What This Does NOT Solve
 
 - **Mobile-specific layouts** still need explicit handling per theme (each `layout.js` handles `@media` breakpoints OR has separate mobile / desktop component variants)
-- **Print styles / PNG export** (the canvas-based long-PNG export in `src/export/`) needs theme-aware rendering — a separate task per theme
+- ~~**Print styles / PNG export**~~ — **SHIPPED 2026-05-05** (`54c3552`). `src/themes/_shared/themePalette.js` reads CSS custom properties at export time; `src/export/{exportMobile,exportHandlers}.js` use `palette.{bg,ink,accent,...}` instead of hardcoded hex. Cross-theme baseline: `docs/reports/png-export-themes/`. Honor brand colors (16 per-honor identity colors at `exportMobile.js:240-256`) stay hardcoded since they're brand markers, not theme tokens.
 - **Email / share-card rendering** (if you add OG images later) — same: theme-aware
 - **Deep linking** — when someone shares a room URL, does the recipient see the host's theme or their own? (Recommend: their own. The data is shared; the presentation is personal.)
 

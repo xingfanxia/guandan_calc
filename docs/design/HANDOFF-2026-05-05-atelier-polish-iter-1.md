@@ -95,6 +95,8 @@ If a future Atelier polish iter is wanted (paper-grain texture on slots, illustr
 4. Audit per-section under `docs/reports/phase4-atelier/` against `docs/design/demos/demo-atelier-v2.png`.
 5. For cross-theme victory-modal verification: `node scripts/visual/capture-victory-cross-theme.mjs`.
 
+**PNG export theme-awareness — SHIPPED 2026-05-05 (`54c3552`)**: was a deferred TODO; closed in this same session. See commit body for the helper + refactor scope. Cross-theme baseline at `docs/reports/png-export-themes/`. Probe `scripts/visual/test-palette-extraction.mjs` is the fast health check.
+
 ## Roadmap state (after iter 4 ship)
 
 | Phase | Status |
@@ -111,7 +113,7 @@ If a future Atelier polish iter is wanted (paper-grain texture on slots, illustr
 | 2.5 (Linear sidebar + state preservation) | TODO infra |
 | 5 (Tea-Table) | gated on commissioned ink illustrations |
 | Visual regression CI | TODO |
-| PNG export theme-awareness | TODO |
+| PNG export theme-awareness | ✅ shipped 2026-05-05 (`54c3552`) — separate from the polish iters; same session |
 | Cascade-safe sparkline baseline | TODO |
 
 ## VictoryModal contract (NEW as of 2026-05-05)

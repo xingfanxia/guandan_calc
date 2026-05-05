@@ -41,7 +41,7 @@ Phase 2 (Linear) work that exercises the same shared infrastructure.
 | 4 | Add Atelier theme (warm graphite + Fraunces serif + clay accent + vintage card-stock pcards) | **SHIPPED** + polish iter 1+2+3+4 (~70%→~96%) | main (2026-05-04) + main `a392e15`, `c852766`, `06c1137`, `52c9504` (2026-05-05). See `HANDOFF-2026-05-05-atelier-polish-iter-1.md`. |
 | 5 | Add Tea-Table theme (ink portraits + brushstroke SVGs — needs asset commission) | TODO | |
 | — | Visual regression CI (Percy/Chromatic/pixelmatch) | TODO | (Phase 5+) |
-| — | PNG export theme-awareness | TODO | (Phase 5) |
+| — | PNG export theme-awareness | **SHIPPED** | main `54c3552` (2026-05-05) — `src/themes/_shared/themePalette.js` + `src/export/{exportMobile,exportHandlers}.js` refactor. Cross-theme baseline `docs/reports/png-export-themes/`. |
 
 ### Phase 1.5 closing audit (commit 99fcf5b)
 
@@ -187,7 +187,7 @@ LAST because ink portraits + brushstroke SVGs are expensive asset work — don't
 ### 7. Cross-cutting work
 
 - **Visual regression CI** (Percy / Chromatic / Playwright snapshot) — protect against theme drift over time
-- **PNG export theme-awareness** — `src/export/exportHandlers.js` and `src/export/exportMobile.js` need theme-aware canvas rendering
+- ~~**PNG export theme-awareness**~~ — **SHIPPED 2026-05-05** (`54c3552`). Helper at `src/themes/_shared/themePalette.js`; both `exportHandlers.js` and `exportMobile.js` use `getActiveThemePalette()`. Cross-theme baseline `docs/reports/png-export-themes/`.
 - **`docs/CODEMAPS/`** generation per CLAUDE.md (not yet done)
 - **Tests** — currently zero automated tests (per `.planning/codebase/TESTING.md`); the theme system is a good forcing function to add coverage
 
@@ -214,7 +214,7 @@ If the switcher feels right, the production architecture should feel similar —
 
 1. **Theme drift over time** is the #1 ongoing risk. Mitigation: visual regression CI + the feature manifest pattern (so themes only override what they need to).
 2. **Maintenance multiplier:** every new feature multiplies by 5 themes. Mitigation: feature manifest opt-out, default rendering for themes that don't need to customize.
-3. **PNG export complexity:** 5 themes × 2 export modes (long PNG, mobile PNG) = 10 export pathways. Phase 5 should include this work explicitly.
+3. ~~**PNG export complexity**~~ — addressed 2026-05-05 by reading the live theme's tokens at export time (single code path × 4 themes ≠ 10 pathways). Phase 5 (Tea-Table) only needs to set its own color tokens; the export adapts automatically.
 4. **Asset commission for Tea-Table:** ink portraits + brushstroke SVGs cost real money/time if commissioned. Prototype uses CSS-gradient placeholders. Decide before Phase 5 whether to use CSS placeholders in production OR commission a Chinese illustrator (a single illustrator round = $500-2000 typically; 16 honor portraits + 1 brushstroke = ~1-2 weeks of work).
 5. **Mobile parity discipline:** desktop and mobile are designed in tandem in the prototypes. In production, ensure the theme manager renders responsive layouts correctly per theme (`@media` discipline OR per-viewport components per theme).
 
