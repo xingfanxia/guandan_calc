@@ -28,6 +28,25 @@ import path from 'path';
 
 const PIXELMATCH_THRESHOLD = 0.1;  // per-pixel color tolerance (0..1)
 
+// Per-directory threshold overrides for known-noisy baselines. Keyed by
+// path prefix; the longest matching prefix wins. Canvas-rendered PNG exports
+// (`png-export-themes/`) show 100-160 px of font subpixel-rendering noise on
+// 1.2 MP images even on identical-input back-to-back captures, which pushes
+// past the global 100 px floor. Real visual changes there measure 1000s+ px.
+const THRESHOLD_OVERRIDES = {
+  'png-export-themes/': 250,
+};
+
+function thresholdFor(rel, defaultThreshold) {
+  let best = null;
+  for (const prefix of Object.keys(THRESHOLD_OVERRIDES)) {
+    if (rel.startsWith(prefix) && (best === null || prefix.length > best.length)) {
+      best = prefix;
+    }
+  }
+  return best === null ? defaultThreshold : THRESHOLD_OVERRIDES[best];
+}
+
 const [, , baselineDirArg, currentDirArg, thresholdArg] = process.argv;
 
 if (!baselineDirArg || !currentDirArg) {
@@ -127,7 +146,8 @@ for (const rel of intersection) {
   );
   const total = aPng.width * aPng.height;
   const pct = (numDiff / total) * 100;
-  const failed = numDiff > threshold;
+  const effectiveThreshold = thresholdFor(rel, threshold);
+  const failed = numDiff > effectiveThreshold;
   if (failed) failCount += 1;
   results.push({
     rel,
@@ -137,6 +157,7 @@ for (const rel of intersection) {
     pct,
     width: aPng.width,
     height: aPng.height,
+    threshold: effectiveThreshold,
   });
   if (failed || writeDiffPngs) {
     const outPath = path.join(diffOutDir, rel);
