@@ -70,6 +70,7 @@ import * as broadcastTheme from './themes/broadcast/index.js';
 import * as linearTheme from './themes/linear/index.js';
 import * as tradingTheme from './themes/trading/index.js';
 import * as atelierTheme from './themes/atelier/index.js';
+import * as teatableTheme from './themes/teatable/index.js';
 import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
 
 /**
@@ -83,6 +84,7 @@ async function init() {
     themeManager.register(linearTheme);
     themeManager.register(tradingTheme);
     themeManager.register(atelierTheme);
+    themeManager.register(teatableTheme);
     await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
 
     // Check for room in URL first

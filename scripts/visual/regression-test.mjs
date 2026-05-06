@@ -46,7 +46,8 @@ const CAPTURES = [
   'capture-linear-theme.mjs',         // Linear theme    — phase2-linear/
   'capture-trading-theme.mjs',        // Trading theme   — phase3-trading/
   'capture-atelier-theme.mjs',        // Atelier theme   — phase4-atelier/
-  'capture-victory-cross-theme.mjs',  // VictoryModal contract across 4 themes
+  'capture-teatable-theme.mjs',       // Tea-Table theme — phase5-teatable/
+  'capture-victory-cross-theme.mjs',  // VictoryModal contract across 5 themes
   'capture-png-exports.mjs',          // PNG export theme-awareness across 4 themes
   'capture-phase3-5-sparklines.mjs',  // Sparkline rendering across 3 themes (uses
                                       // FIXED_RANKINGS_8 fixture; was excluded

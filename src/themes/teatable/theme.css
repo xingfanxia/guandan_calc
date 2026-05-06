@@ -1,0 +1,997 @@
+/* ============================================================
+ * Tea-Table Console — theme G (Phase 5, 2026-05-06)
+ *
+ * Source: docs/design/demos/demo-teatable-v3.html (desktop)
+ *         docs/design/demos/demo-teatable-mobile-v2.html (mobile)
+ *
+ * Aesthetic: contemplative scholar's-table at dusk. Deep warm-graphite
+ * oklch surfaces (60° hue), vermillion seal accent at hue 25°, Noto
+ * Serif SC for display + Noto Sans SC for body. Generous letter-spacing
+ * (0.32–0.4em) to evoke editorial Chinese typography. The unique
+ * affordance is real ink-brush portraits on the honors gallery —
+ * gpt-image-2 generated assets stored at public/themes/teatable/honors/.
+ *
+ * Strategy: token override block first (every TOKEN_SPEC color/font
+ * remapped to Tea-Table values), then per-component restyles. DOM is
+ * shared with Broadcast / Linear / Trading / Atelier.
+ * ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;700;900&family=Noto+Sans+SC:wght@300;400;500&display=swap');
+
+:root[data-theme="teatable"] {
+  /* === SURFACES — deep warm graphite, oklch hue 60° === */
+  --bg:        oklch(15% 0.02 60);
+  --bg-deep:   oklch(12% 0.018 60);
+  --surface:   oklch(20% 0.02 60);
+  --surface-2: oklch(24% 0.02 60);
+  --surface-3: oklch(28% 0.025 60);
+
+  /* === INK — warm rice-paper-paper text === */
+  --ink:        oklch(92% 0.04 80);
+  --ink-dim:    oklch(72% 0.03 80);
+  --ink-dimmer: oklch(50% 0.03 80);
+  --ink-faint:  oklch(38% 0.025 70);
+
+  /* === ACCENT — vermillion seal red, hue 25° === */
+  --accent:        oklch(58% 0.22 25);
+  --accent-soft:   oklch(28% 0.10 25);
+  --accent-line:   oklch(45% 0.18 25);
+  --accent-glow:   oklch(60% 0.20 25 / 0.18);
+
+  /* === TEAMS — ochre + indigo, low-key painterly === */
+  --team-red:       oklch(60% 0.12 75);
+  --team-red-soft:  oklch(22% 0.04 60);
+  --team-red-line:  oklch(45% 0.10 75);
+
+  --team-blue:      oklch(45% 0.10 250);
+  --team-blue-soft: oklch(22% 0.04 250);
+  --team-blue-line: oklch(38% 0.09 250);
+
+  /* === STATUS === */
+  --win:  oklch(62% 0.13 140);
+  --loss: oklch(58% 0.20 25);
+
+  /* === RULES === */
+  --rule:      oklch(30% 0.02 60);
+  --rule-soft: oklch(24% 0.018 60);
+
+  /* === FONTS === */
+  --font-display: 'Noto Serif SC', serif;
+  --font-body:    'Noto Sans SC', system-ui, sans-serif;
+  --font-mono:    'Noto Sans SC', system-ui, sans-serif;
+
+  /* === SCALE — generous editorial whitespace === */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 18px;
+  --s5: 24px;
+  --s6: 36px;
+  --s7: 56px;
+  --s8: 80px;
+
+  /* === RADIUS — minimal, almost no rounding (woodblock prints) === */
+  --radius-none: 0;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+
+  /* === Tea-Table specific tokens (not in TOKEN_SPEC, used internally) === */
+  --paper:       oklch(94% 0.04 80);
+  --paper-ink:   oklch(15% 0.02 60);
+  --paper-ink-dim: oklch(35% 0.03 60);
+
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ============== TOPNAV — serif tabs with seal accent ============== */
+:root[data-theme="teatable"] .topnav {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+}
+:root[data-theme="teatable"] .topnav__inner {
+  padding: var(--s4) var(--s6);
+}
+:root[data-theme="teatable"] .topnav__brand {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+}
+:root[data-theme="teatable"] .topnav__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+:root[data-theme="teatable"] .topnav__brand-text {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .topnav__brand-version {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-left: var(--s3);
+}
+:root[data-theme="teatable"] .topnav__tab {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dimmer);
+  padding: var(--s2) var(--s4);
+  border: none;
+  background: transparent;
+  position: relative;
+}
+:root[data-theme="teatable"] .topnav__tab--active {
+  color: var(--ink);
+  font-weight: 500;
+  background: transparent;
+}
+:root[data-theme="teatable"] .topnav__tab--active::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+:root[data-theme="teatable"] .topnav__tab-cn {
+  display: inline;
+  font-size: 16px;
+  letter-spacing: 0.32em;
+}
+:root[data-theme="teatable"] .topnav__tab-meta {
+  display: inline;
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-left: var(--s2);
+}
+:root[data-theme="teatable"] .topnav__user {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+:root[data-theme="teatable"] .topnav__user-avatar {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  font-family: var(--font-display);
+  font-size: 12px;
+}
+:root[data-theme="teatable"] .topnav__user-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .topnav__user-handle {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+
+/* ============== TICKER — editorial header strip ============== */
+:root[data-theme="teatable"] .ticker {
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+  padding: var(--s4) 0;
+}
+:root[data-theme="teatable"] .ticker__inner {
+  padding: 0 var(--s6);
+  gap: var(--s6);
+}
+:root[data-theme="teatable"] .ticker__items {
+  gap: var(--s5);
+}
+:root[data-theme="teatable"] .ticker__item-label {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+:root[data-theme="teatable"] .ticker__item-value {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+  font-feature-settings: 'tnum' 1;
+}
+:root[data-theme="teatable"] .ticker__indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="teatable"] .ticker__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-dim);
+  animation: tt-breathe 3.6s ease-in-out infinite;
+}
+@keyframes tt-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ============== HERO / HEADLINE ============== */
+:root[data-theme="teatable"] .hero {
+  padding: var(--s7) var(--s6) var(--s6);
+}
+:root[data-theme="teatable"] .hero__head-line,
+:root[data-theme="teatable"] .hero__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 40px;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .hero__sub,
+:root[data-theme="teatable"] .hero__lede {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dim);
+  margin-top: var(--s3);
+}
+
+/* ============== SECTION HEADINGS ============== */
+:root[data-theme="teatable"] .section,
+:root[data-theme="teatable"] .module {
+  margin-top: var(--s8);
+}
+:root[data-theme="teatable"] .module__title,
+:root[data-theme="teatable"] .section__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .module__sub,
+:root[data-theme="teatable"] .module__caption,
+:root[data-theme="teatable"] .section__sub {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-dimmer);
+}
+
+/* ============== MODE SELECTOR ============== */
+:root[data-theme="teatable"] .mode-selector,
+:root[data-theme="teatable"] .toolbar__select {
+  display: flex;
+  justify-content: center;
+  gap: var(--s7);
+  padding: var(--s5) 0;
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+}
+:root[data-theme="teatable"] .mode-button {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: var(--ink-dimmer);
+  padding: var(--s2) var(--s4);
+  background: transparent;
+  border: 1px solid transparent;
+  position: relative;
+  transition: color 0.2s ease;
+}
+:root[data-theme="teatable"] .mode-button:hover {
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .mode-button[data-active="true"],
+:root[data-theme="teatable"] .mode-button.active {
+  color: var(--ink);
+  font-weight: 500;
+}
+:root[data-theme="teatable"] .mode-button[data-active="true"]::after,
+:root[data-theme="teatable"] .mode-button.active::after {
+  content: "·";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--accent);
+  font-size: 24px;
+  line-height: 0;
+}
+
+/* ============== SCOREBOARD (two-team panel) ============== */
+:root[data-theme="teatable"] .scoreboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s7);
+}
+:root[data-theme="teatable"] .team {
+  padding: var(--s6) var(--s5) var(--s6);
+  background: var(--surface);
+  border-top: 1px solid var(--rule-soft);
+  position: relative;
+}
+:root[data-theme="teatable"] .team__label,
+:root[data-theme="teatable"] .team__name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.36em;
+  color: var(--ink-dim);
+  margin-bottom: var(--s3);
+}
+:root[data-theme="teatable"] .team__role {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-style: italic;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+  margin-top: var(--s2);
+}
+:root[data-theme="teatable"] .team[data-team="red"] .team__name,
+:root[data-theme="teatable"] .scoreboard__team--red .team__name {
+  color: var(--team-red);
+}
+:root[data-theme="teatable"] .team[data-team="blue"] .team__name,
+:root[data-theme="teatable"] .scoreboard__team--blue .team__name {
+  color: var(--team-blue);
+}
+
+/* Team level — the big rank glyph (J/Q/K/A) */
+:root[data-theme="teatable"] .team__level,
+:root[data-theme="teatable"] .team-card__level,
+:root[data-theme="teatable"] .pcard,
+:root[data-theme="teatable"] .pcard__rank {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 144px;
+  line-height: 0.85;
+  color: var(--ink);
+  letter-spacing: 0;
+}
+:root[data-theme="teatable"] .scoreboard__team--red .pcard__rank,
+:root[data-theme="teatable"] .scoreboard__team--red .team__level {
+  color: var(--accent);
+}
+
+/* Roster rows under each team */
+:root[data-theme="teatable"] .roster-row,
+:root[data-theme="teatable"] .team__roster li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--s3) 0;
+  border-bottom: 1px dotted var(--rule-soft);
+  gap: var(--s3);
+}
+:root[data-theme="teatable"] .roster-row__name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s3);
+}
+:root[data-theme="teatable"] .roster-row__name::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-dimmer);
+  flex-shrink: 0;
+}
+:root[data-theme="teatable"] [data-team="red"] .roster-row__name::before,
+:root[data-theme="teatable"] .scoreboard__team--red .roster-row__name::before {
+  background: var(--team-red);
+}
+:root[data-theme="teatable"] [data-team="blue"] .roster-row__name::before,
+:root[data-theme="teatable"] .scoreboard__team--blue .roster-row__name::before {
+  background: var(--team-blue);
+}
+:root[data-theme="teatable"] .roster-row__handle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-dimmer);
+}
+
+/* ============== POOL + RANKING SLOTS ============== */
+:root[data-theme="teatable"] .pool,
+:root[data-theme="teatable"] .player-pool {
+  padding: var(--s5) var(--s5) var(--s5);
+  background: var(--bg-deep);
+  border: 1px solid var(--rule-soft);
+}
+:root[data-theme="teatable"] .pool__head,
+:root[data-theme="teatable"] .pool__title,
+:root[data-theme="teatable"] .player-pool__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.34em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .pool__sub,
+:root[data-theme="teatable"] .pool__caption,
+:root[data-theme="teatable"] .player-pool__caption {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+:root[data-theme="teatable"] .player-tile,
+:root[data-theme="teatable"] .pool .tile {
+  position: relative;
+  padding: var(--s4) var(--s4) var(--s4);
+  background: var(--surface-2);
+  border: 1px solid var(--rule-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+:root[data-theme="teatable"] .player-tile[data-team="red"],
+:root[data-theme="teatable"] .pool .tile[data-team="red"] {
+  border-left: 2px solid var(--team-red);
+}
+:root[data-theme="teatable"] .player-tile[data-team="blue"],
+:root[data-theme="teatable"] .pool .tile[data-team="blue"] {
+  border-left: 2px solid var(--team-blue);
+}
+:root[data-theme="teatable"] .player-tile__name,
+:root[data-theme="teatable"] .tile__name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+:root[data-theme="teatable"] .player-tile__handle,
+:root[data-theme="teatable"] .tile__handle {
+  margin-top: var(--s2);
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="teatable"] .player-tile:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px oklch(0% 0 0 / 0.4);
+}
+
+/* Ranking slots (drop targets) */
+:root[data-theme="teatable"] .slot,
+:root[data-theme="teatable"] .rank-slot {
+  position: relative;
+  min-height: 130px;
+  padding: var(--s4);
+  background: var(--surface);
+  border: 1px solid var(--rule-soft);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+:root[data-theme="teatable"] .slot__index,
+:root[data-theme="teatable"] .slot__rank-cn {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+:root[data-theme="teatable"] .slot--filled {
+  background: var(--surface-2);
+}
+:root[data-theme="teatable"] .slot--filled[data-team="red"] {
+  border-left: 2px solid var(--team-red);
+}
+:root[data-theme="teatable"] .slot--filled[data-team="blue"] {
+  border-left: 2px solid var(--team-blue);
+}
+:root[data-theme="teatable"] .slot--filled .slot__index { color: var(--ink); }
+:root[data-theme="teatable"] .slot--filled[data-pos="1"] .slot__index {
+  color: var(--accent);
+}
+:root[data-theme="teatable"] .slot__name,
+:root[data-theme="teatable"] .slot__player-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .slot__handle {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink-dimmer);
+  margin-top: var(--s2);
+}
+:root[data-theme="teatable"] .slot--target,
+:root[data-theme="teatable"] .slot--drop-target {
+  background: oklch(22% 0.04 25);
+  border: 1px dashed var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-glow), inset 0 0 36px oklch(50% 0.18 25 / 0.10);
+}
+:root[data-theme="teatable"] .slot--target .slot__index,
+:root[data-theme="teatable"] .slot--drop-target .slot__index { color: var(--accent); }
+:root[data-theme="teatable"] .slot--empty,
+:root[data-theme="teatable"] .slot--placeholder {
+  background: var(--bg-deep);
+  border-style: dashed;
+}
+:root[data-theme="teatable"] .slot--empty .slot__placeholder-text,
+:root[data-theme="teatable"] .slot__placeholder-text {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-style: italic;
+  letter-spacing: 0.34em;
+  color: var(--ink-faint);
+}
+
+/* ============== CALC PREVIEW (live calc strip) ============== */
+:root[data-theme="teatable"] .calcpreview {
+  padding: var(--s5) var(--s5);
+  margin-top: var(--s5);
+  background: transparent;
+  border-top: 1px solid var(--rule-soft);
+  display: flex;
+  align-items: baseline;
+  gap: var(--s5);
+}
+:root[data-theme="teatable"] .calcpreview__label {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+:root[data-theme="teatable"] .calcpreview__content {
+  flex: 1;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  line-height: 1.8;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .calcpreview__content .stress {
+  color: var(--ink);
+  font-weight: 500;
+  font-style: normal;
+}
+:root[data-theme="teatable"] .calcpreview__hint {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dimmer);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ============== RULES DRAWER ============== */
+:root[data-theme="teatable"] .rules-drawer,
+:root[data-theme="teatable"] .rules {
+  background: var(--surface);
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  padding: var(--s5) var(--s6);
+}
+:root[data-theme="teatable"] .rules__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.34em;
+  color: var(--ink);
+  margin-bottom: var(--s3);
+}
+:root[data-theme="teatable"] .rules__chip,
+:root[data-theme="teatable"] .rules-chip {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: var(--ink-dim);
+  padding: var(--s1) var(--s3);
+  border: 1px solid var(--rule);
+  background: var(--bg);
+  margin-right: var(--s2);
+}
+
+/* ============== BUTTONS ============== */
+:root[data-theme="teatable"] button,
+:root[data-theme="teatable"] .btn {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  padding: var(--s3) var(--s5);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+:root[data-theme="teatable"] button:hover,
+:root[data-theme="teatable"] .btn:hover {
+  background: var(--surface-2);
+  border-color: var(--ink-dimmer);
+}
+:root[data-theme="teatable"] button.primary,
+:root[data-theme="teatable"] .btn.primary,
+:root[data-theme="teatable"] .btn--primary {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+:root[data-theme="teatable"] button.primary:hover,
+:root[data-theme="teatable"] .btn.primary:hover,
+:root[data-theme="teatable"] .btn--primary:hover {
+  background: var(--accent-line);
+}
+
+/* ============== HISTORY ============== */
+:root[data-theme="teatable"] .history__row {
+  display: grid;
+  grid-template-columns: 80px repeat(6, 1fr) auto;
+  gap: var(--s3);
+  align-items: center;
+  padding: var(--s3) 0;
+  border-bottom: 1px dotted var(--rule-soft);
+}
+:root[data-theme="teatable"] .history__round {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .history__cell {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .history__winner {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+/* ============== STATS CARD ============== */
+:root[data-theme="teatable"] .statcard,
+:root[data-theme="teatable"] .stats-card {
+  padding: var(--s5);
+  background: var(--surface);
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+}
+:root[data-theme="teatable"] .stats-card thead th {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: var(--s2);
+  text-align: left;
+}
+:root[data-theme="teatable"] .stats-card tbody td {
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--ink-dim);
+  padding: var(--s2);
+}
+
+/* ============== TEAM HONORS ============== */
+:root[data-theme="teatable"] .team-honors,
+:root[data-theme="teatable"] .team-honor-card {
+  background: transparent;
+  padding: var(--s4);
+  border-bottom: 1px solid var(--rule-soft);
+}
+:root[data-theme="teatable"] .team-honor__title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .team-honor__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  margin-top: var(--s2);
+}
+
+/* ============== HONORS GALLERY (16 algorithmic awards) ==============
+ * The unique-to-Tea-Table feature: real ink-brush portrait JPGs
+ * (gpt-image-2 generated, stored at public/themes/teatable/honors/) are
+ * injected by src/stats/honors.js when manifest.honorPortraits === 'photo'.
+ * Honor articles get an .honor__portrait child <img>; CSS sizes the image
+ * and clips it to a vertical scroll-style frame. */
+:root[data-theme="teatable"] .honors,
+:root[data-theme="teatable"] .honors-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--s5);
+}
+:root[data-theme="teatable"] .honor {
+  position: relative;
+  background: var(--surface);
+  padding: var(--s5) var(--s5) var(--s6) calc(var(--s5) + 88px + var(--s5));
+  border: 1px solid var(--rule-soft);
+  /* slight individual rotation for tea-house wall feel */
+  transform: rotate(-0.6deg);
+  min-height: 130px;
+}
+:root[data-theme="teatable"] .honor:nth-child(2n) { transform: rotate(0.8deg); }
+:root[data-theme="teatable"] .honor:nth-child(3n) { transform: rotate(-0.3deg); }
+/* Portrait floats absolutely on the left so the flow children below (title,
+   desc, recipient) keep their natural block layout — using flex on .honor
+   would force each block child into a column, vertically stacking CJK
+   characters. */
+:root[data-theme="teatable"] .honor__portrait {
+  position: absolute;
+  top: var(--s5);
+  left: var(--s5);
+  width: 88px;
+  height: 110px;
+  object-fit: cover;
+  object-position: 50% 25%;
+  background: var(--bg-deep);
+  border: 1px solid var(--rule-soft);
+  filter: contrast(1.05) saturate(0.85);
+}
+:root[data-theme="teatable"] .honor__portrait[data-pending="true"] {
+  background: var(--bg-deep);
+  border: 1px dashed var(--ink-faint);
+}
+:root[data-theme="teatable"] .honor__index {
+  font-family: var(--font-body);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+:root[data-theme="teatable"] .honor__cat,
+:root[data-theme="teatable"] .honor__category {
+  font-family: var(--font-body);
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  color: var(--ink-dimmer);
+  margin-top: var(--s2);
+}
+:root[data-theme="teatable"] .honor__title,
+:root[data-theme="teatable"] .honor__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+  margin-top: var(--s2);
+  line-height: 1;
+}
+:root[data-theme="teatable"] .honor__tagline,
+:root[data-theme="teatable"] .honor__desc {
+  margin-top: var(--s3);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: var(--ink-dim);
+}
+:root[data-theme="teatable"] .honor__recipient {
+  margin-top: var(--s3);
+  font-family: var(--font-display);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+}
+:root[data-theme="teatable"] .honor__handle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dimmer);
+}
+:root[data-theme="teatable"] .honor__stat {
+  margin-top: var(--s3);
+  font-family: var(--font-display);
+  font-feature-settings: 'tnum' 1;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+/* ============== PROFILE SNIPPET ============== */
+:root[data-theme="teatable"] .profile-snippet {
+  padding: var(--s5);
+  border-top: 1px solid var(--rule-soft);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s5);
+  align-items: start;
+}
+:root[data-theme="teatable"] .profile-snippet__avatar,
+:root[data-theme="teatable"] .profile-snippet__portrait {
+  width: 90px;
+  height: 110px;
+  background: var(--bg-deep);
+  border: 1px solid var(--rule-soft);
+  filter: contrast(1.05) saturate(0.85);
+  object-fit: cover;
+  object-position: 50% 25%;
+}
+:root[data-theme="teatable"] .profile-snippet__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+:root[data-theme="teatable"] .profile-snippet__handle {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--ink-dimmer);
+  margin-top: var(--s2);
+}
+
+/* ============== ROOM BANNER ============== */
+:root[data-theme="teatable"] .room-banner {
+  background: var(--surface);
+  border-top: 1px solid var(--rule-soft);
+  border-bottom: 1px solid var(--rule-soft);
+  padding: var(--s4) var(--s5);
+  display: flex;
+  align-items: center;
+  gap: var(--s5);
+}
+:root[data-theme="teatable"] .room-banner__code {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-feature-settings: 'tnum' 1;
+  font-size: 24px;
+  letter-spacing: 0.16em;
+  color: var(--ink);
+}
+
+/* ============== VICTORY MODAL — class-based per 2026-05-05 contract ============== */
+:root[data-theme="teatable"] .victory-modal__inner {
+  background: var(--paper);
+  color: var(--paper-ink);
+  padding: var(--s7) var(--s7);
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 24px 60px oklch(0% 0 0 / 0.5);
+  text-align: center;
+}
+:root[data-theme="teatable"] .victory-modal__eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--paper-ink-dim);
+}
+:root[data-theme="teatable"] .victory-modal__title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 56px;
+  letter-spacing: 0.06em;
+  color: var(--paper-ink);
+  margin-top: var(--s4);
+  line-height: 0.95;
+}
+:root[data-theme="teatable"] .victory-modal__teamname {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 0.32em;
+  color: var(--accent);
+  margin-top: var(--s4);
+}
+:root[data-theme="teatable"] .victory-modal__lede {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.22em;
+  color: var(--paper-ink-dim);
+  margin-top: var(--s3);
+}
+:root[data-theme="teatable"] .victory-modal__voting {
+  margin-top: var(--s5);
+  padding-top: var(--s4);
+  border-top: 1px dotted var(--paper-ink-dim);
+}
+:root[data-theme="teatable"] .victory-modal__actions {
+  margin-top: var(--s5);
+  display: flex;
+  justify-content: center;
+  gap: var(--s4);
+}
+:root[data-theme="teatable"] .victory-modal__actions button {
+  background: transparent;
+  color: var(--paper-ink);
+  border: 1px solid var(--paper-ink-dim);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+:root[data-theme="teatable"] .victory-modal__actions button.primary {
+  background: var(--accent);
+  color: var(--paper);
+  border-color: var(--accent);
+}
+
+/* ============== MOBILE @ 768px ============== */
+@media (max-width: 768px) {
+  :root[data-theme="teatable"] {
+    --s7: 36px;
+    --s8: 48px;
+  }
+  :root[data-theme="teatable"] .scoreboard {
+    grid-template-columns: 1fr;
+    gap: var(--s5);
+  }
+  :root[data-theme="teatable"] .pcard__rank,
+  :root[data-theme="teatable"] .team__level {
+    font-size: 96px;
+  }
+  :root[data-theme="teatable"] .honors,
+  :root[data-theme="teatable"] .honors-grid {
+    grid-template-columns: 1fr;
+  }
+  :root[data-theme="teatable"] .honor {
+    transform: none;
+  }
+  :root[data-theme="teatable"] .honor__title {
+    font-size: 22px;
+  }
+  :root[data-theme="teatable"] .calcpreview {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s2);
+  }
+  :root[data-theme="teatable"] .calcpreview__hint {
+    text-align: left;
+  }
+  :root[data-theme="teatable"] .victory-modal__inner {
+    padding: var(--s5) var(--s5);
+  }
+  :root[data-theme="teatable"] .victory-modal__title {
+    font-size: 36px;
+  }
+}

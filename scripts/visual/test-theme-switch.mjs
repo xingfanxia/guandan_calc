@@ -112,7 +112,7 @@ await page.evaluate(async () => {
 });
 const expected = { t1: '7', t2: '3', round: 'A' };
 
-for (const t of ['broadcast', 'trading', 'atelier', 'linear']) {
+for (const t of ['broadcast', 'trading', 'atelier', 'teatable', 'linear']) {
   await page.evaluate(async (theme) => {
     const tm = await import('/src/themes/_shared/themeManager.js');
     await tm.switchTo(theme);

@@ -23,7 +23,7 @@ const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } })
 const page = await ctx.newPage();
 
 const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
-const THEMES = ['broadcast', 'linear', 'trading', 'atelier'];
+const THEMES = ['broadcast', 'linear', 'trading', 'atelier', 'teatable'];
 
 // Freeze Date.now BEFORE page load — see _fixtures.mjs.
 await freezeTime(page);

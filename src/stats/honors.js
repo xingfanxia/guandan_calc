@@ -5,6 +5,7 @@
 
 import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
+import { getManifest } from '../themes/_shared/themeManager.js';
 
 /**
  * Calculate POPULATION variance (divides by N, not N-1).
@@ -514,6 +515,7 @@ function updateHonorArticle(article, honorData, meta) {
 export function renderHonors() {
   const honors = calculateHonors(getPlayers().length);
   const articles = document.querySelectorAll('.honor[data-honor-id]');
+  const portraitsMode = getManifest().honorPortraits;
 
   articles.forEach(article => {
     const honorId = article.dataset.honorId;
@@ -521,6 +523,39 @@ export function renderHonors() {
     if (!meta) return;
     meta.idForName = honorId;
     const data = honors[meta.honorKey];
+    syncHonorPortrait(article, honorId, portraitsMode);
     updateHonorArticle(article, data, meta);
   });
+}
+
+/**
+ * Inject or remove the ink-brush honor portrait based on the active theme's
+ * feature manifest. When manifest.honorPortraits === 'photo', the article
+ * gets a leading <img> referencing public/themes/teatable/honors/<id>.jpg.
+ * Other manifest values strip the portrait so theme switches are clean.
+ *
+ * Idempotent — safe to call on every render. The image element is reused
+ * across renders (only its src is updated if needed) so the browser doesn't
+ * re-fetch every time honors recalculate.
+ */
+function syncHonorPortrait(article, honorId, portraitsMode) {
+  const existing = article.querySelector(':scope > .honor__portrait');
+  if (portraitsMode !== 'photo') {
+    if (existing) existing.remove();
+    return;
+  }
+  const src = `/themes/teatable/honors/${honorId}.jpg`;
+  if (existing) {
+    if (existing.getAttribute('src') !== src) existing.setAttribute('src', src);
+    return;
+  }
+  const img = document.createElement('img');
+  img.className = 'honor__portrait';
+  img.alt = '';
+  img.setAttribute('aria-hidden', 'true');
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.setAttribute('src', src);
+  // Insert as the first child so the .honor flex layout puts it at the left.
+  article.insertBefore(img, article.firstChild);
 }

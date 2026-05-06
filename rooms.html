@@ -7,7 +7,7 @@
   // with `data-theme="broadcast"` (the static fallback). Saved value list
   // is the source of truth for valid theme names; sync with main.js.
   try { var t = localStorage.getItem('gd_v9_theme');
-    if (t && ['broadcast','linear','trading','atelier'].indexOf(t) !== -1)
+    if (t && ['broadcast','linear','trading','atelier','teatable'].indexOf(t) !== -1)
       document.documentElement.setAttribute('data-theme', t);
   } catch(e) {}
 </script>
@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="/src/themes/linear/theme.css">
 <link rel="stylesheet" href="/src/themes/trading/theme.css">
 <link rel="stylesheet" href="/src/themes/atelier/theme.css">
+<link rel="stylesheet" href="/src/themes/teatable/theme.css">
 
 </head>
 <body>
