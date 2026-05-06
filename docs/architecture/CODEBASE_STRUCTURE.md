@@ -377,6 +377,21 @@
 
 **MVP Calculation** (lines 48-68): Lowest average = best
 
+#### `toast.js` - Generic Toast Notifications (NEW 2026-05-06)
+**Purpose**: Stack-based toast manager — used by `playerApi.syncProfileStats` to surface server-returned `newAchievements` after victory
+
+**Functions**:
+- `showToast(opts)` - Render or queue a toast. Opts: `{variant, badge, title, name, desc, duration}`
+- `clearToasts()` - Drop all visible + queued toasts (used by tests; production rarely calls)
+
+**Behavior**:
+- Stack lives top-right on desktop (max 3 visible), top-center full-width strip on mobile
+- Auto-dismiss after 5s; click anywhere on the toast (or close button) dismisses immediately
+- Queue overflow when more than 3 trigger at once
+- Theme-agnostic: CSS uses TOKEN_SPEC vars (`--surface`, `--accent`, `--rule`, `--ink*`)
+
+**XSS-safe by construction**: createElement + textContent only — no innerHTML, no template strings interpolating user data into HTML
+
 ---
 
 ### Export System (`src/export/`)

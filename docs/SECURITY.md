@@ -293,6 +293,7 @@ glyphs). No additional escaping needed there.
 `api/players/_utils.js` `validatePlayerData` validates:
 - handle: 3-20 chars, `[a-zA-Z0-9_]`
 - playStyle: enum of 9 values
+- displayName: max 40 chars (added 2026-05-06 alongside the toast notification system — unbounded names would break toast layout and enable griefing in shared rooms)
 - tagline: max 50 chars
 - photoBase64: must start with `data:image/`, max ~150KB
 

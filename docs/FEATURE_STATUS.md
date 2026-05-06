@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-05 (XSS hardening + cross-page FOUC fix + sparkline VR coverage shipped)
-**Architecture**: 38 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI (65 baselines)
+**Last Updated**: 2026-05-06 (Phase 2.6 sidebar polish + achievement toast notifications shipped)
+**Architecture**: 40 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI (65 baselines)
 **Version**: v10.0
 
 ---
@@ -125,7 +125,25 @@
 - [x] 20-assertion smoke test `scripts/visual/test-theme-switch.mjs` verifies mount + unmount + remount + state-survival across 4-theme cycle (broadcast → trading → atelier → linear)
 - [x] VR baselines regenerated for Linear desktop (sidebar visible in `phase2-linear/*.png`)
 - See `docs/design/THEME-ARCHITECTURE.md` Section 7 row "2.5" for full implementation notes
-- **Deferred (Phase 2.6, open-ended)**: demo-grade multi-section sidebar with status indicators per `demos/demo-linear-v2.png` — current implementation is minimal-but-real (mirrors topnav into vertical rail)
+
+### Phase 2.6 — Linear Sidebar Polish (100%) 🆕
+- [x] Section label "导航 NAVIGATION" injected before tabs at mount, stripped at unmount (uppercase mono, ink-dimmer, letter-spaced — matches `demos/demo-linear-v2.png` section-label treatment)
+- [x] Active-tab accent bar — 2px purple vertical line on the left edge of the active sidebar item via `::before` pseudo (no DOM mutation needed)
+- [x] User-card status dot — small green online indicator anchored to bottom-right of the avatar; injected at mount, stripped at unmount
+- [x] Mobile (<769px) hides both injected nodes via `display: none`; sidebar reverts to Phase 2.5 mobile fallback (`display: contents`, default topnav row)
+- [x] `layout.unmount()` strips injections BEFORE restoring topnav so the original DOM is byte-identical to pre-mount state
+- [x] Decorative ⌘1/⌘2/⌘3 shortcut chips were considered and rejected — Cmd+1/2/3 are browser-reserved, so non-functional chips would be aspirational lying
+- [x] 20-assertion smoke test still passes (mount + unmount + remount + 4-theme cycle)
+- [x] Phase 5 (Tea-Table) is now the only outstanding theme item
+
+### Achievement Toast Notifications (100%) 🆕
+- [x] `src/ui/toast.js` (new module) — generic stack-based toast manager: max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss
+- [x] Theme-agnostic via TOKEN_SPEC vars (`--surface`, `--accent`, `--rule`, `--ink*`) — every theme inherits without per-theme rules
+- [x] XSS-safe by construction — createElement + textContent only, no innerHTML (project security hook caught and forced rewrite of the original draft)
+- [x] `syncProfileStats` consumes server-returned `result.newAchievements` per player and stages a toast per unlock with 600ms stagger
+- [x] Mobile fallback: top-center full-width strip, smaller badge + text size
+- [x] Verified end-to-end: build clean, 65/65 VR baselines passing, smoke-tested in Broadcast and Linear themes, mobile rendering verified at 390x844
+- [x] Server-side `displayName` length cap (40 chars) added in `api/players/_utils.js` to prevent toast layout abuse via long names
 
 ### CSV Formula-Injection Protection (100%) 🆕
 - [x] `csvEscape` in `src/export/exportHandlers.js` prefixes formula-trigger cells (`=`, `+`, `-`, `@`, `\t`, `\r`) with single quote — OWASP-recommended approach (2026-05-05 `86d2813`)
