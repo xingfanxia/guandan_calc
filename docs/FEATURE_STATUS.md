@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-06 (Phase 2.6 sidebar polish + achievement toast notifications shipped)
-**Architecture**: 40 ES6 modules + 10 player APIs + 7 room APIs + 4 themes + visual regression CI (65 baselines)
+**Last Updated**: 2026-05-06 (Phase 5 Tea-Table theme with ink-brush honor portraits shipped)
+**Architecture**: 40 ES6 modules + 10 player APIs + 7 room APIs + 5 themes + visual regression CI (83 baselines)
 **Version**: v10.0
 
 ---
@@ -135,6 +135,21 @@
 - [x] Decorative ⌘1/⌘2/⌘3 shortcut chips were considered and rejected — Cmd+1/2/3 are browser-reserved, so non-functional chips would be aspirational lying
 - [x] 20-assertion smoke test still passes (mount + unmount + remount + 4-theme cycle)
 - [x] Phase 5 (Tea-Table) is now the only outstanding theme item
+
+### Phase 5 — Tea-Table Console Theme (100%) 🆕
+- [x] Fifth registered theme — contemplative scholar's-table aesthetic
+- [x] Deep warm-graphite oklch (60° hue) surfaces, vermillion seal accent at hue 25°, Noto Serif SC + Noto Sans SC
+- [x] Real ink-brush honor portraits — 17 JPGs (16 honor archetypes + 1 profile fallback) generated via gpt-image-2 (Azure)
+- [x] `featureManifest.honorPortraits === 'photo'` first real usage (was previously declarative-only across other themes)
+- [x] `src/stats/honors.js renderHonors()` injects/removes `<img class="honor__portrait">` per article based on active manifest; idempotent across re-renders, theme-switch-safe
+- [x] Layout uses absolute-positioned portrait + flow body so CJK characters wrap normally (flex-on-article would vertically stack characters)
+- [x] Portraits sized 1024×1536 raw, resized via `sips -Z 600` to ~100KB each (1.7MB total, 96% smaller than raw)
+- [x] Generation script `scripts/teatable/generate-portraits.py` — gpt-image-2 batch generator with `--skip-existing/--only/--concurrency` flags
+- [x] Inline FOUC bootstrap whitelist extended to allow 'teatable' across all 4 entry HTMLs
+- [x] VR coverage: `phase5-teatable/` (16 baselines) + 2 new `victory-cross-theme/victory-teatable*` baselines
+- [x] Smoke test grew from 20 → 21 assertions (5-theme state-survival cycle)
+- See `docs/design/THEME-ARCHITECTURE.md` Section 7 row "5" for full implementation notes
+- **All planned theme phases shipped — Phase 5 was the final remaining item**
 
 ### Achievement Toast Notifications (100%) 🆕
 - [x] `src/ui/toast.js` (new module) — generic stack-based toast manager: max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss

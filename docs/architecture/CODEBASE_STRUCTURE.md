@@ -417,11 +417,9 @@
 
 ---
 
-### Theme System (`src/themes/` + `src/ui/*Sync.js` modules) - Phases 0+1+1.5 + 2 (2026-05-03)
+### Theme System (`src/themes/` + `src/ui/*Sync.js` modules) - All 5 phases shipped (last: Phase 5 Tea-Table 2026-05-06)
 
-5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. Two themes
-shipped: **Broadcast** (A · default) and **Linear** (E). Phases 3-5
-(Trading, Atelier, Tea-Table) are subsequent PRs.
+5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. **All five themes registered and shipped**: Broadcast (A · default), Linear (E), Trading (D), Atelier (F), Tea-Table (G). Tea-Table is the only theme with real image assets — 17 ink-brush portrait JPGs at `public/themes/teatable/honors/<honor-id>.jpg` generated via gpt-image-2 (Azure). Other themes are CSS-only restyles of the shared DOM.
 
 **Phase 1.5 (Broadcast editorial closure)** — drove from ~40% to ~92% match vs `docs/design/demos/demo-broadcast-v3.png`:
 - DOM rewrite of all 4 HTML pages (`index.html`, `players.html`, `rooms.html`, `player-profile.html`) — top nav + ticker + scoreboard + active-game + history + honors + sample + profile + footer.

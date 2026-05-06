@@ -1,7 +1,7 @@
 # Guandan Calculator — Development TODO
 
 **Last Updated**: 2026-05-06
-**Current Phase**: v10 + Theme System + Visual Regression CI + Phase 2.6 polish
+**Current Phase**: v10 + Theme System (5 phases all shipped) + Visual Regression CI
 
 ---
 
@@ -14,6 +14,7 @@ This file fell behind by ~5 months. Major work shipped between then and now:
 - Phase 2 — Linear / Vercel Console (density-first, single Linear-purple accent)
 - Phase 2.5 — Linear sidebar via `layout.mount/unmount` (move-not-clone of topnav)
 - **Phase 2.6 (2026-05-06)** — Linear sidebar polish: section label, active-tab accent bar, user-card status dot
+- **Phase 5 (2026-05-06)** — Tea-Table Console theme: deep warm graphite + vermillion accent + Noto Serif SC; 17 ink-brush honor portraits generated via gpt-image-2 (Azure). All five planned theme phases now shipped.
 - Phase 3 — Trading Terminal (JetBrains Mono, near-black, ASCII bracket flair)
 - Phase 3.5 — Sparkline renderer (manifest-gated, on for Trading)
 - Phase 4 — Atelier Console (Fraunces serif, clay accent, vintage card stock); + 4 polish iterations
@@ -64,8 +65,11 @@ This file fell behind by ~5 months. Major work shipped between then and now:
 ## 🎯 Active Workstreams
 
 ### High Priority
-- [ ] **Phase 5 — Tea-Table theme** — gated on commissioned ink illustrations (external dependency, not actionable)
-- [ ] **Phase 2.6.x — Linear sidebar polish iter 2** — open-ended visual; demo-linear-v2 has additional aspirational details (workspace section, multi-section nav) that weren't shipped in 2.6 to avoid fabricating IA. Consider only after the app actually grows more navigable surface area.
+- (none — all five planned theme phases shipped 2026-05-06)
+
+### Polish-on-demand
+- **Phase 2.6.x — Linear sidebar polish iter 2** — open-ended visual; demo-linear-v2 has additional aspirational details (workspace section, multi-section nav) that weren't shipped in 2.6 to avoid fabricating IA. Consider only after the app actually grows more navigable surface area.
+- **Tea-Table polish iter 2** — current Phase 5 is "minimal-but-real" parity with `demo-teatable-v3.png`. Specific surfaces that could push aggregate match higher: brush-rule dividers between sections (currently rule-soft borders), section-num + section-en pairs in headings (demo has `01 / SECTION` mono labels), pool-block pcard rotation per individual tile (demo has each tile slightly rotated).
 
 ### Medium Priority
 - [ ] **Season system** — monthly/quarterly leaderboards, season achievements, historical data. Large effort
