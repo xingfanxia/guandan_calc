@@ -1,307 +1,112 @@
-# Guandan Calculator - Development TODO
+# Guandan Calculator — Development TODO
 
-**Last Updated**: 2025-12-11
-**Current Phase**: v10.0 Feature Complete ✅
-
----
-
-## ✅ Recently Completed (2025-12-11)
-
-### v10.0 Major Update - 57 Commits
-- [x] Room Browser with player filtering
-- [x] Enhanced Partner/Rival bar charts (Chart.js)
-- [x] Modern navigation tabs (pill style)
-- [x] Profile photo upload system
-- [x] Admin mode (delete/reset with password)
-- [x] Server-side timer tracking (finishedAt)
-- [x] MVP photos (victory modal + PNG export)
-- [x] Voting system enhancements (idempotent, all-player sync)
-- [x] Major refactoring (main.js -69%)
-- [x] Security (admin token protection)
-- [x] Chart visualizations (3 charts)
-- [x] All UX improvements
-- [x] PNG export vote accuracy fix
-
-**Code**: +7 modules | **Bundle**: 97KB | **Status**: Production Ready
+**Last Updated**: 2026-05-06
+**Current Phase**: v10 + Theme System + Visual Regression CI + Phase 2.6 polish
 
 ---
 
-## ✅ Previously Completed (2025-12-10)
+## What Shipped Since This File Was Last Reconciled (2025-12-11)
 
-### Player Profile System MVP - 33 Commits
-- [x] Complete backend (10 APIs)
-- [x] Game integration (search, create, remove)
-- [x] Dual stat tracking (sessions + rounds)
-- [x] Time tracking (duration, longest, average)
-- [x] Honor sync (all 14)
-- [x] Achievement system (20 badges)
-- [x] Voting integration (auto + manual sync)
-- [x] Partner/rival tracking (teammates + opponents)
-- [x] Player browser + profile pages
-- [x] MVP tagline (modal + PNG)
-- [x] Live session timer (stops on victory)
-- [x] Recent rankings (relative position)
-- [x] Comprehensive documentation
+This file fell behind by ~5 months. Major work shipped between then and now:
 
-**Code**: ~5,500 lines | **Bundle**: 90KB | **Status**: Production Ready
+### Theme System (5 phases shipped)
+- Phase 0+1+1.5 — Broadcast Editorial baseline (default), token-spec contract, live data wiring
+- Phase 2 — Linear / Vercel Console (density-first, single Linear-purple accent)
+- Phase 2.5 — Linear sidebar via `layout.mount/unmount` (move-not-clone of topnav)
+- **Phase 2.6 (2026-05-06)** — Linear sidebar polish: section label, active-tab accent bar, user-card status dot
+- Phase 3 — Trading Terminal (JetBrains Mono, near-black, ASCII bracket flair)
+- Phase 3.5 — Sparkline renderer (manifest-gated, on for Trading)
+- Phase 4 — Atelier Console (Fraunces serif, clay accent, vintage card stock); + 4 polish iterations
+- Phase 4.5 — Mobile calcpreview column-layout fix
+- VictoryModal class-based contract — every theme MUST style `.victory-modal*` (4 themes verified)
 
----
+### Security & Audit (May 2026)
+- 2026-05-02 audit — 10 findings closed across 3 commits (P0+P1+P2+P3)
+- Per-user ownership tokens for `PROFILE_UPDATE` (CSPRNG, SHA-256 hash, sanitize on response)
+- Stats-update 3-tier auth (admin / owner Bearer / room-host Bearer with membership check)
+- Vote forgery prevention (server-authoritative endGameVotes)
+- Vote fingerprint cap (1000 max)
+- Modal a11y helper (`src/core/modal.js`)
+- ADMIN_TOKEN env-var protection (constant-time, fail-closed)
+- 6/8-mode rule simplification (no A-fail counter)
+- XSS escape coverage extension across player-data renderers (~36 sites)
+- CSV formula-injection guard (`csvEscape` prefixes `=+-@\t\r` cells per OWASP)
+- Inline FOUC bootstrap (synchronous theme read in every entry HTML)
 
-## 🎯 Next Tasks (Priority Order)
+### Achievement Notifications (2026-05-06) ⭐ NEW
+- Toast notification system — `src/ui/toast.js` (theme-agnostic via TOKEN_SPEC vars)
+- `syncProfileStats` consumes server-returned `newAchievements` and surfaces toast per unlock
+- XSS-safe by construction (createElement + textContent only)
+- Per-player stagger (600ms) for multi-unlock display
 
-### High Priority - User Experience
-
-#### 1. Achievement Unlock Notifications
-- [ ] Toast notifications when achievements unlock
-- [ ] Show badge animation on profile sync
-- [ ] Display in victory modal
-- [ ] Add sound effect (optional)
-
-**Effort**: Small | **Impact**: High
-
-#### 2. Season System
-- [ ] Define season periods (monthly/quarterly)
-- [ ] Season leaderboards
-- [ ] Season achievements
-- [ ] Historical season data
-
-**Effort**: Large | **Impact**: Medium
-
-#### 3. Mobile Optimizations
-- [ ] Touch-optimized profile cards
-- [ ] Swipe navigation between pages
-- [ ] Mobile-specific layouts
-- [ ] Better emoji selector on mobile
-
-**Effort**: Medium | **Impact**: Medium
+### Visual Regression CI
+- 65 baseline PNGs across 7 capture scripts
+- Pixelmatch-based with deterministic fixtures (`freezeTime` + `setDeterministicPlayers`)
+- Per-directory threshold overrides for known canvas-rendering noise
+- GitHub Actions workflow on every PR
 
 ---
 
-### Medium Priority - Polish
+## 🐛 Known Issues (Minor, Triaged)
 
-#### 4. Profile Page Enhancements
-- [ ] Share profile button (copy link)
-- [ ] QR code for profile URL
-- [ ] Export profile stats (PDF/image)
-- [ ] Dark/light mode toggle
+### Behaviorally Correct But Could Improve
+- [ ] Local voting results don't sync to profiles (only room voting). Workaround: use room mode for voting
+- [ ] Partner/rival only tracks profile players (session-only players skipped) — by design, no persistent identity
+- [ ] Recent rankings not retrospective (forward-only) — by design, schema migration would be needed
 
-**Effort**: Small | **Impact**: Low
-
-#### 5. Voting UX Improvements
-- [ ] Show voting countdown timer (5 min remaining)
-- [ ] Notification when voting sync completes
-- [ ] Vote history per player
-- [ ] Voting leaderboard (all-time)
-
-**Effort**: Small | **Impact**: Medium
+### Quality / Tech Debt
+- [ ] Add unit tests for honor-calculation algorithms (only VR coverage today)
+- [ ] Performance audit on long histories (100+ rounds)
+- [ ] A11y sweep — keyboard nav across pages, ARIA on more components
 
 ---
 
-### Low Priority - Future Features
-
-#### 6. Authentication
-- [ ] OAuth integration (optional)
-- [ ] Profile claiming system
-- [ ] Password protection
-- [ ] Admin panel
-
-**Effort**: Large | **Impact**: Low (works well without it)
-
-#### 7. Advanced Analytics
-- [ ] Performance trends over time
-- [ ] Honor frequency analysis
-- [ ] Optimal team composition suggester
-- [ ] Predictive win rate calculator
-
-**Effort**: Large | **Impact**: Low
-
----
-
-## 🐛 Known Issues (Minor)
-
-### Non-Critical
-- [ ] Local voting results don't sync to profiles (only room voting)
-  - Workaround: Use room mode for voting
-
-- [ ] Partner/rival only tracks profile players (session players skipped)
-  - By design: Can't track without persistent identity
-
-- [ ] Recent rankings not retrospective (only going forward)
-  - By design: Old data calculated differently
-
-### Future Improvements
-- [ ] Add TypeScript for better type safety
-- [ ] Add unit tests for critical algorithms
-- [ ] Performance optimization for large histories
-- [ ] Accessibility improvements (ARIA labels, keyboard nav)
-
----
-
-## 📋 Testing Checklist
-
-### Pre-Production
-- [x] All APIs working
-- [x] Profile creation/deletion
-- [x] Stats sync on completion
-- [x] MVP tagline displays
-- [x] Recent rankings correct
-- [x] Partner/rival tracking
-- [x] Achievements unlock
-- [x] Voting sync works
-- [x] Timer stops on victory
-
-### User Acceptance
-- [ ] Play complete game end-to-end
-- [ ] Verify all stats accurate
-- [ ] Test on mobile device
-- [ ] Test room mode with viewers
-- [ ] Check multiple sessions build history
-- [ ] Verify partner/rival evolves
-
-### Production Readiness
-- [ ] Remove test_ players (or keep for demo)
-- [ ] Monitor KV storage usage
-- [ ] Set up error tracking
-- [ ] Performance monitoring
-
----
-
-## 🚀 Deployment Process
-
-### Current Setup
-- **Platform**: Vercel Edge + KV
-- **Auto-Deploy**: Push to main → auto-build → deploy
-- **URL**: https://gd.ax0x.ai
-- **Build**: `npm run build` → `dist/`
-
-### Manual Deploy (if needed)
-```bash
-# Build locally
-npm run build
-
-# Deploy to Vercel
-vercel --prod
-
-# Or push to GitHub (auto-deploys)
-git push origin main
-```
-
-### Rollback (if needed)
-```bash
-# Revert to previous commit
-git revert HEAD
-git push
-
-# Or use Vercel dashboard to redeploy previous version
-```
-
----
-
-## 📚 Documentation TODO
+## 🎯 Active Workstreams
 
 ### High Priority
-- [x] CODEBASE_STRUCTURE.md - Complete file reference
-- [x] PLAYER_PROFILE_ARCHITECTURE.md - Technical deep-dive
-- [x] Update FEATURE_STATUS.md
-- [ ] Create USER_GUIDE update for profiles
-- [ ] API documentation (OpenAPI/Swagger)
+- [ ] **Phase 5 — Tea-Table theme** — gated on commissioned ink illustrations (external dependency, not actionable)
+- [ ] **Phase 2.6.x — Linear sidebar polish iter 2** — open-ended visual; demo-linear-v2 has additional aspirational details (workspace section, multi-section nav) that weren't shipped in 2.6 to avoid fabricating IA. Consider only after the app actually grows more navigable surface area.
 
 ### Medium Priority
-- [ ] Video tutorial (profile creation walkthrough)
-- [ ] FAQ for common questions
-- [ ] Troubleshooting guide
+- [ ] **Season system** — monthly/quarterly leaderboards, season achievements, historical data. Large effort
+- [ ] **Mobile UX polish** — swipe nav, touch-optimized profile cards, larger emoji selector
+- [ ] **Profile share button** — copy link, QR code for profile URL
+- [ ] **Voting countdown timer** — show "5 min remaining" indicator during voting window
+
+### Low Priority / Future
+- [ ] OAuth profile claiming (works fine without it today via ownership tokens)
+- [ ] Performance trends visualization
+- [ ] Optimal team composition suggester
+- [ ] Replay system
 
 ---
 
-## 🎓 Code Quality Improvements
+## 📋 Maintenance Hooks
 
-### Technical Debt
-- [ ] Extract magic numbers to constants
-- [ ] Reduce function complexity (some 100+ line functions)
-- [ ] Add JSDoc comments to all public functions
-- [ ] Consolidate duplicate code patterns
-
-### Refactoring Opportunities
-- [ ] Split large files (main.js is 1,500 lines)
-- [ ] Create shared UI component library
-- [ ] Standardize error handling patterns
-- [ ] Improve test coverage
+- KV storage quota monitoring (256MB free tier)
+- Test player cleanup (`test_*` handles) before any public launch
+- Dependency update sweep
+- Security patch monitoring
 
 ---
 
-## 💡 Feature Ideas (Backlog)
+## 📚 Reference Docs
 
-### Community Suggested
-- [ ] Team chat in rooms
-- [ ] Replay system (watch past games)
-- [ ] Tournament bracket support
-- [ ] Custom honor creation
-- [ ] Player notes/tags
-
-### Experimental
-- [ ] AI opponent (practice mode)
-- [ ] Strategy tips based on stats
-- [ ] Social features (friend list, messages)
-- [ ] Clan/guild system
+- [docs/architecture/CODEBASE_STRUCTURE.md](docs/architecture/CODEBASE_STRUCTURE.md) — file-by-file map
+- [docs/architecture/PLAYER_PROFILE_ARCHITECTURE.md](docs/architecture/PLAYER_PROFILE_ARCHITECTURE.md) — player profile system
+- [docs/architecture/KV_SCHEMA.md](docs/architecture/KV_SCHEMA.md) — database patterns
+- [docs/SECURITY.md](docs/SECURITY.md) — auth model + threat surface
+- [docs/design/THEME-ARCHITECTURE.md](docs/design/THEME-ARCHITECTURE.md) — 5-phase theme plan
+- [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md) — feature completion tracker
 
 ---
 
-## 📊 Metrics to Track
+## 🚀 Deployment
 
-### Usage Analytics
-- [ ] Daily active users
-- [ ] Games played per day
-- [ ] Profile creation rate
-- [ ] Feature adoption (search vs quick start)
-
-### Performance Metrics
-- [ ] API response times
-- [ ] Page load times
-- [ ] Bundle size over time
-- [ ] KV storage growth
-
-### User Engagement
-- [ ] Average session duration
-- [ ] Return user rate
-- [ ] Profile page views
-- [ ] Achievement unlock rate
-
----
-
-## 🔧 Maintenance Tasks
-
-### Regular
-- [ ] Monitor KV storage quota (256MB free tier)
-- [ ] Clean up test_ players before real launch
-- [ ] Review and update dependencies
-- [ ] Check for security updates
-
-### As Needed
-- [ ] Database backups (export player data)
-- [ ] Performance profiling
-- [ ] Bug triage and prioritization
-- [ ] Feature request review
-
----
-
-## 🎯 Immediate Next Steps
-
-1. **Test complete game flow** with profile players
-2. **Verify all stats sync** correctly
-3. **Check partner/rival** appears after 2+ games
-4. **Test voting sync** (manual button)
-5. **Review documentation** for accuracy
-6. **Plan Phase 2.5** features (room browser, etc.)
-
----
-
-## 📖 Reference
-
-- [FEATURE_STATUS.md](docs/FEATURE_STATUS.md) - Overall project status
-- [PLAYER_PROFILE_SPEC.md](docs/features/PLAYER_PROFILE_SPEC.md) - Original spec
-- [PLAYER_PROFILE_ARCHITECTURE.md](docs/architecture/PLAYER_PROFILE_ARCHITECTURE.md) - Tech details
-- [CODEBASE_STRUCTURE.md](docs/architecture/CODEBASE_STRUCTURE.md) - File reference
-
----
-
-**Player Profile System MVP: SHIPPED!** 🚀
+- Platform: Vercel Edge + KV (Upstash Redis)
+- Auto-deploy: push to `main` → build → deploy
+- Production: https://gd.ax0x.ai
+- Build: `npm run build` → `dist/`
+- Local dev: `npm run dev` (port 3000, proxies `/api/*` to production)
+- Visual regression: `npm run test:visual` (65 baselines, pixelmatch)
+- Theme switch smoke test: `node scripts/visual/test-theme-switch.mjs` (20 assertions)
