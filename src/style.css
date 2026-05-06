@@ -582,6 +582,13 @@ details + details {
  * customize without battling these defaults).
  * ============================================================ */
 @media (max-width: 768px) {
+  /* Outer activegame section: keep horizontal breathing room from
+     viewport edges so the frame doesn't bleed to the screen edge. */
+  .activegame {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+
   .activegame__body {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -593,11 +600,41 @@ details + details {
       "actions actions";
     gap: 8px;
     padding: 8px;
+    /* `stretch` makes both columns of the "pool slots" row share a
+       single row height — slot has a tiny extra bit of height (slot
+       padding) that would otherwise force the slots column ~14px
+       taller than the pool column. With stretch + align-self: stretch
+       on each side, the row resolves to MAX(pool, slots) and both
+       boxes fill it, keeping bottoms aligned. */
+    align-items: stretch;
   }
   .activegame__body > .annotation { grid-area: ann; }
   .activegame__body > .activegame__inline-controls { grid-area: ctl; }
-  .activegame__body > .pool { grid-area: pool; min-width: 0; }
-  .activegame__body > .slots { grid-area: slots; min-width: 0; }
+  .activegame__body > .pool {
+    grid-area: pool;
+    min-width: 0;
+    align-self: stretch;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .activegame__body > .slots {
+    grid-area: slots;
+    min-width: 0;
+    align-self: stretch;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Inner grids fill remaining vertical space so empty bottom of pool
+     gets no awkward gap; the parent flex column gives them flex: 1. */
+  .activegame__body > .pool > .pool__grid,
+  .activegame__body > .pool > .player-pool,
+  .activegame__body > .slots > .slots__grid,
+  .activegame__body > .slots > .ranking-area {
+    flex: 1 1 auto;
+    align-content: start;
+  }
   .activegame__body > .calcpreview { grid-area: calc; }
   .activegame__body > .controls { grid-area: actions; }
 
