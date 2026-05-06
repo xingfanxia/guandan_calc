@@ -554,6 +554,164 @@ details + details {
 }
 
 /* ============================================================
+ * MOBILE GAMEPLAY LAYOUT — base rules for all themes
+ *
+ * The active-game body has 5 children at desktop:
+ *   .annotation, .activegame__inline-controls, .pool, .slots,
+ *   .calcpreview, .controls
+ *
+ * On mobile (<769px) these need to lay out as:
+ *   ┌─────────────────────┐
+ *   │ annotation (full)   │
+ *   │ controls (full)     │
+ *   │ pool      | slots   │
+ *   │ calc      (full)    │
+ *   │ actions   (full)    │
+ *   └─────────────────────┘
+ *
+ * Pool tiles compact to 36px-tall horizontal rows; slots to matching
+ * 36px-tall labeled rows. Both sides scroll vertically inside their half.
+ *
+ * Pre-2026-05-06 history: this was scoped under
+ * `:root[data-theme="broadcast"]` only. After Tea-Table shipped (Phase 5),
+ * mobile review showed Linear/Trading/Atelier/Tea-Table all overflowed
+ * because they inherited NO mobile layout. Lifting these rules out of
+ * Broadcast scope makes all themes share the same baseline mobile UX.
+ * Per-theme overrides still win where they exist (specificity wise these
+ * use `:root[data-theme=X]` which beats `:root` here, so themes can
+ * customize without battling these defaults).
+ * ============================================================ */
+@media (max-width: 768px) {
+  .activegame__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ann ann"
+      "ctl ctl"
+      "pool slots"
+      "calc calc"
+      "actions actions";
+    gap: 8px;
+    padding: 8px;
+  }
+  .activegame__body > .annotation { grid-area: ann; }
+  .activegame__body > .activegame__inline-controls { grid-area: ctl; }
+  .activegame__body > .pool { grid-area: pool; min-width: 0; }
+  .activegame__body > .slots { grid-area: slots; min-width: 0; }
+  .activegame__body > .calcpreview { grid-area: calc; }
+  .activegame__body > .controls { grid-area: actions; }
+
+  .pool__head,
+  .slots__head {
+    font-size: 10px;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+  .pool__sub,
+  .slots__sub,
+  .pool__count {
+    display: none;
+  }
+
+  /* Pool LEFT, slots RIGHT — each is 1-col (full half width) with
+     compact horizontal rows. */
+  .pool__grid,
+  .player-pool,
+  .slots__grid,
+  .ranking-area {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3px;
+    padding: 4px;
+  }
+
+  /* Compact pool tiles: 36px-tall rows, avatar + handle, no extra meta */
+  .pool-tile {
+    height: 36px !important;
+    aspect-ratio: auto !important;
+    min-height: 0 !important;
+    padding: 4px 6px !important;
+    display: grid !important;
+    grid-template-columns: 22px 1fr auto !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-direction: row !important;
+  }
+  .pool-tile__avatar {
+    width: 22px !important;
+    height: 22px !important;
+    font-size: 11px !important;
+  }
+  .pool-tile__top { display: none !important; }
+  .pool-tile__dot { display: none !important; }
+  .pool-tile__handle {
+    display: inline !important;
+    font-size: 11px !important;
+    color: var(--ink-dim) !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pool-tile__name {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+    text-align: left !important;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Slots: same 36px height as pool tiles, same left-aligned compact row */
+  .rank-slot.slot,
+  .rank-slot,
+  .slot {
+    height: 36px !important;
+    aspect-ratio: auto !important;
+    min-height: 0 !important;
+    padding: 4px 6px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    text-align: left !important;
+  }
+  .slot--empty,
+  .slot--target {
+    justify-content: flex-start !important;
+  }
+  /* Hide the giant serif rank-cn + redundant labels on mobile */
+  .slot__rank-cn,
+  .slot__check,
+  .slot__handle,
+  .slot__target-icon,
+  .slot__target-label,
+  .slot__placeholder,
+  .slot__placeholder-label {
+    display: none !important;
+  }
+  .slot__index {
+    font-size: 10px !important;
+    min-width: 50px !important;
+    flex-shrink: 0;
+  }
+  .slot__avatar {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
+  }
+  .slot__name,
+  .slot__placeholder-text {
+    font-size: 12px !important;
+    text-align: left !important;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+/* ============================================================
  * Toast notifications (achievement unlocks, future system messages)
  *
  * Theme-agnostic: every rule references TOKEN_SPEC variables that all themes

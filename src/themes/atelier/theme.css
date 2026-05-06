@@ -1718,6 +1718,23 @@
 
 /* ============== MOBILE @ 768px ============== */
 @media (max-width: 768px) {
+  /* Restore the base mobile gameplay grid layout from src/style.css. The
+     desktop rule above sets `.activegame__body { display: flex; flex-direction: column; }`
+     with selector specificity that beats the base rule, so we need to
+     explicitly opt back into the grid here on mobile. */
+  :root[data-theme="atelier"] .activegame__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "ann ann"
+      "ctl ctl"
+      "pool slots"
+      "calc calc"
+      "actions actions";
+    gap: 8px;
+    padding: 8px;
+  }
+
   :root[data-theme="atelier"] .topnav__inner {
     padding: var(--s3) var(--s4);
     flex-wrap: wrap;
