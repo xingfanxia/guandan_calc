@@ -183,25 +183,36 @@ the few microseconds it takes to read localStorage.
 |---|---|---|
 | Phase 2.5 Linear sidebar via `layout.mount()` + state preservation | infra TODO | tier 4 → /big-task |
 | Phase 5 Tea-Table | gated on commissioned ink illustrations | external dep |
-| Defense-in-depth escapeHtml on `playerCreateModal.js` | low priority | tier 1 (~30 min) |
-| Defense-in-depth on `exportHandlers.js` CSV/TXT escape | low priority | tier 1 (~30 min) |
 
-None of the above are blocking. Next session can pick up any of them or
-start something new.
+### Defense-in-depth carry-overs — both closed 2026-05-05
+
+- **`exportHandlers.js` CSV escape** — closed in `86d2813` (added OWASP single-quote
+  prefix to `csvEscape` for cells starting with `=+-@\t\r`; verified by 14-case
+  standalone test). The vector was real: `displayName` has no charset restriction
+  in `validatePlayerData`, so `=HYPERLINK(...)` payloads could ship through
+  `playerRankStr` into CSV cells and execute when teammates opened the file.
+- **`playerCreateModal.js` escapeHtml parity** — closed as **not actually exposed**.
+  Audit revealed all interpolations come from hardcoded constants
+  (`ANIMAL_EMOJIS`, `getPlayStyles()` return). User input from form `<input>`
+  fields never reaches `innerHTML`. SECURITY.md updated to reflect this — no
+  code change needed.
+
+Phase 2.5 + Phase 5 above remain the only outstanding items. Neither is
+blocking. Next session can pick up either or start something new.
 
 ---
 
 ## How to pick up
 
-1. `git log --oneline 32bbe02..HEAD` shows the 5 commits from this session
+1. `git log --oneline 32bbe02..HEAD` shows the 6 commits from this session
    (everything after the prior session's "VR CI shipped" docs commit)
 2. Read this file + `docs/design/HANDOFF-2026-05-05-atelier-polish-iter-1.md`
    for full context of 2026-05-05's two parallel pushes (Atelier polish +
    security/infra)
 3. CLAUDE.md theme-system block is now the canonical state-of-the-system
    summary; FEATURE_STATUS.md has the per-feature 100% breakdown
-4. SECURITY.md `XSS protections` section is the source-of-truth for which
-   files have which guarantees
+4. SECURITY.md `XSS protections` + `CSV protections` sections are the
+   source-of-truth for which files have which guarantees
 5. For VR work: run `npm run test:visual` locally (needs `npm run dev` on
    port 3000 first); the suite takes ~2-3 minutes, all 65 must pass
 
