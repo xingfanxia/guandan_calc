@@ -63,16 +63,19 @@ export function resolveBootTheme(defaultName = 'broadcast') {
 }
 
 /**
- * Mount a theme. The theme's stylesheet is already loaded via a static <link>
- * in the HTML for the single-theme phase; this function sets the data-theme
- * attribute and emits `theme:changed`. Future Phase 2+ adds dynamic CSS
- * loading and layout mount/unmount.
+ * Mount a theme. The theme's stylesheet is loaded via a static <link> in the
+ * HTML for the single-theme phase; this function sets the data-theme attribute,
+ * unmounts the prior theme's layout (if any), mounts the new layout, and emits
+ * `theme:changed`.
  *
- * Async by contract: a theme's `layout.mount()` may need to await
- * stylesheet readiness (e.g. `link.onload` for dynamically injected CSS) so
- * that downstream `getComputedStyle` / `verifyTokensPresent` reads from a
- * fully-resolved cascade. Today's Broadcast layout is a no-op so the await
- * resolves immediately.
+ * Async by contract: a theme's `layout.mount()` may need to await stylesheet
+ * readiness (e.g. `link.onload` for dynamically injected CSS) so downstream
+ * `getComputedStyle` / `verifyTokensPresent` reads from a fully-resolved
+ * cascade. Themes whose layouts are no-ops await immediately.
+ *
+ * **Unmount-before-mount invariant**: any DOM injected by the previous theme's
+ * `layout.mount()` (e.g. Linear's sidebar) MUST be removed before swapping —
+ * otherwise theme switches leak ghost elements from prior themes.
  */
 export async function mount(themeName) {
   const theme = themes.get(themeName);
@@ -80,12 +83,20 @@ export async function mount(themeName) {
     throw new Error(`themeManager.mount: unknown theme "${themeName}"`);
   }
 
+  const rootEl = document.getElementById('app') || document.body;
+
+  // Unmount the previous theme's layout (if any) before swapping. Without
+  // this, themes that inject DOM in mount() leave orphans on switch.
+  if (current?.layout?.unmount) {
+    await current.layout.unmount(rootEl);
+  }
+
   // Activate the theme's CSS scope.
   document.documentElement.dataset.theme = theme.name;
 
   // Allow the theme to do any extra mounting work (currently a no-op for Broadcast).
   if (theme.layout?.mount) {
-    await theme.layout.mount(document.getElementById('app') || document.body, {
+    await theme.layout.mount(rootEl, {
       featureManifest: resolveManifest(theme.featureManifest),
     });
   }

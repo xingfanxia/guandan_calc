@@ -2320,3 +2320,158 @@
     font-size: 16px;
   }
 }
+
+/* =========================================================================
+ * Phase 2.5 — Sidebar layout
+ *
+ * Activated by `<html class="linear-sidebar-active">`, set by
+ * `src/themes/linear/index.js` `layout.mount()` after moving `<nav.topnav>`
+ * into a new `<aside class="linear-sidebar">` wrapper.
+ *
+ * Desktop (≥769px): 240px fixed left rail, topnav re-laid as vertical column,
+ * body content offset by padding-left.
+ * Mobile (<769px): wrapper is `display: contents` so children render in
+ * normal flow — topnav reverts to its default sticky-top row.
+ * ========================================================================= */
+
+@media (min-width: 769px) {
+  /* Sidebar wrapper — fixed left rail, full viewport height */
+  :root[data-theme="linear"] .linear-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--rule);
+    overflow-y: auto;
+    z-index: 50;
+    box-sizing: border-box;
+  }
+
+  /* Body offset — shift all non-sidebar content right by sidebar width */
+  :root[data-theme="linear"].linear-sidebar-active body {
+    padding-left: 240px;
+  }
+
+  /* Topnav inside sidebar — flip to vertical column layout */
+  :root[data-theme="linear"].linear-sidebar-active .topnav {
+    position: static;
+    height: 100%;
+    border-bottom: none;
+    backdrop-filter: none;
+    background: transparent;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__inner {
+    flex-direction: column;
+    align-items: stretch;
+    height: 100%;
+    padding: var(--s4) var(--s3);
+    gap: var(--s4);
+    max-width: none;
+    overflow: visible;
+  }
+
+  /* Brand: row-aligned at top, divider below */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__brand {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__brand-text,
+  :root[data-theme="linear"].linear-sidebar-active .topnav__brand-version {
+    display: inline;
+    font-size: 12px;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__brand-version {
+    display: block;
+    color: var(--ink-dim);
+    margin-top: 2px;
+  }
+
+  /* Tabs: stacked vertically, full-width hit targets */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tabs {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab,
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab a {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab--active {
+    background: var(--surface-2);
+  }
+
+  /* Show both CN + EN labels in sidebar (override mobile-row hide) */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab-cn,
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab-meta,
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab a > span {
+    display: inline;
+    white-space: nowrap;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab-meta {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    letter-spacing: 0.04em;
+  }
+
+  /* Theme picker — full width, sits above user widget */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__picker {
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  /* User widget — bottom of sidebar, divider above */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__user {
+    width: 100%;
+    padding-top: var(--s3);
+    border-top: 1px solid var(--rule);
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s2);
+    flex-shrink: 0;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__user-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__user-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+  :root[data-theme="linear"].linear-sidebar-active .topnav__user-name,
+  :root[data-theme="linear"].linear-sidebar-active .topnav__user-handle {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile fallback: sidebar wrapper transparent so the moved topnav renders
+     in the normal sticky-top row layout (its default). `display: contents`
+     removes the wrapper from the box tree without affecting children. */
+  :root[data-theme="linear"] .linear-sidebar {
+    display: contents;
+  }
+  /* Body offset NOT applied on mobile — topnav row is full-width like before. */
+}

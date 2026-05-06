@@ -181,8 +181,9 @@ the few microseconds it takes to read localStorage.
 
 | Item | Status | Effort |
 |---|---|---|
-| Phase 2.5 Linear sidebar via `layout.mount()` + state preservation | infra TODO | tier 4 → /big-task |
+| Phase 2.5 Linear sidebar via `layout.mount()` + state preservation | **CLOSED 2026-05-05** — see Phase 2.5 Closure section below | — |
 | Phase 5 Tea-Table | gated on commissioned ink illustrations | external dep |
+| Pre-existing VR drift on Broadcast + Trading scoreboards (4 baselines) | needs separate investigation — NOT caused by Phase 2.5 (verified via stash test); existed before the session started | tier 2 |
 
 ### Defense-in-depth carry-overs — both closed 2026-05-05
 
@@ -218,5 +219,89 @@ blocking. Next session can pick up either or start something new.
 
 ---
 
-**End of handoff.** Tree clean. Branch up to date with origin/main. No
-unfinished work.
+---
+
+## Phase 2.5 closure (added later same day)
+
+**Closed**: tier 4 sidebar layout work that had been the canonical "infra
+TODO" since Phase 2 shipped (2026-05-03).
+
+### What landed
+
+- `src/themes/_shared/themeManager.js` — `mount()` now calls
+  `current.layout?.unmount(rootEl)` BEFORE swapping. Without this, themes
+  that inject DOM in `mount()` would leak orphans on switch. This was a
+  latent bug Phase 2 hid (all themes had no-op layout); Phase 2.5 surfaced
+  it the moment Linear got a real `mount()`.
+- `src/themes/linear/index.js` — real `layout.mount/unmount/update` impl.
+  `mount()` extracts the live `<nav class="topnav">` from its parent, wraps
+  it in `<aside class="linear-sidebar">`, prepends the wrapper to body, and
+  flips on `linear-sidebar-active` class on `<html>`. **Move-not-clone**
+  preserves event listeners + the `#themePickerMount` slot. `unmount()`
+  restores topnav to its captured original parent at the captured next-
+  sibling position; idempotent.
+- `src/themes/linear/featureManifest.js` — `navigation: 'top-tabs'` →
+  `navigation: 'sidebar'`.
+- `src/themes/linear/theme.css` — sidebar styling at `@media (min-width:
+  769px)`: 240px fixed left rail, body padding-left 240px to offset content,
+  topnav re-laid as vertical column with both CN + EN labels visible.
+  Mobile fallback at `@media (max-width: 768px)` uses
+  `display: contents` on the wrapper so the moved topnav reverts to its
+  default sticky-top row layout — no JS resize listener needed.
+- `scripts/visual/test-theme-switch.mjs` — NEW 20-assertion smoke test
+  verifying mount + unmount (no orphan DOM, topnav restored to BODY) +
+  remount + state survival across full broadcast → trading → atelier →
+  linear cycle.
+- `docs/reports/phase2-linear/*.png` (9 baselines) — regenerated for
+  desktop sidebar visible. `phase3-5-sparklines/` and `victory-cross-theme/`
+  baselines also regenerated as side-effect of running their capture scripts
+  (which cover all themes, not just Linear).
+
+### Architecture insight worth keeping
+
+The architecture-doc Section 3 pseudocode showed `state.getSnapshot()` /
+`state.restore()` around theme swaps. Phase 2.5 implementation revealed
+this is unnecessary: `state.js` is a JS module-scope singleton (`let
+instance = null` at module top), so its identity persists across DOM
+mutations regardless of theme. Theme.layout only mutates DOM, never
+touches state. localStorage persistence runs on every state mutation as
+backup. The singleton + persist combo provides preservation for free —
+the pseudocode was illustrative, not literal. **Don't add validation for
+scenarios that can't happen.**
+
+### Pre-existing VR drift surfaced (NOT caused by Phase 2.5)
+
+Running `npm run test:visual` after the Linear regen revealed 4 baselines
+failing on Broadcast and Trading scoreboard captures:
+
+- `phase1-5-final/index-final.png` (0.37%)
+- `phase1-5-final/scoreboard.png` (5.22%)
+- `phase3-trading/index-trading.png` (0.22%)
+- `phase3-trading/scoreboard.png` (1.14%)
+
+**Verified pre-existing** via `git stash` test on the same commit — these
+failures reproduce without any Phase 2.5 changes applied. The diff PNGs
+show the ticker bar fully diffed (likely an elapsed-time computation that
+isn't fully frozen by `freezeTime` in `_fixtures.mjs`) plus team-position
+shifts. The prior session's "65/65 passing" claim was inaccurate — at
+minimum 4 baselines were already drifting.
+
+Per CLAUDE.md "Extreme Ownership", these are now tracked as a follow-up
+task in the Phase 2.5 closure docs (a tier 2 investigation). They do NOT
+block the Phase 2.5 ship — Phase 2.5 itself adds zero new failures.
+
+### Deferred to Phase 2.6 polish (open-ended)
+
+The current sidebar is **minimal-but-real** — mirrors the existing topnav
+into a vertical rail. The demo at `docs/design/demos/demo-linear-v2.png`
+shows a fancier multi-section sidebar (separate "GAME" and "PROFILE"
+sections, status indicators, dedicated Settings entry). That visual polish
+is deferred to a future "Phase 2.6" — it's design-grade work, not
+architecture-validation work, so doesn't gate the Phase 2.5 close.
+
+---
+
+**End of handoff.** Tree clean. Branch up to date with origin/main. Two
+outstanding items: (1) Phase 5 Tea-Table (gated on commissioned assets),
+(2) pre-existing VR drift on Broadcast + Trading scoreboards (tier 2
+investigation, ticket-worthy).
