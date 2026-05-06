@@ -13,7 +13,13 @@ import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
  * CSV escape helper
  */
 function csvEscape(value) {
-  let s = String(value).replace(/"/g, '""');
+  let s = String(value);
+  // CSV formula-injection prevention (OWASP): prefix with single quote so
+  // spreadsheet apps treat formula-trigger cells as text, not live formulas.
+  if (/^[=+\-@\t\r]/.test(s)) {
+    s = `'${s}`;
+  }
+  s = s.replace(/"/g, '""');
   if (s.search(/[",\n]/) >= 0) {
     s = `"${s}"`;
   }
