@@ -78,6 +78,15 @@ export function validatePlayerData(data) {
     };
   }
 
+  // Validate displayName length (max 40 characters). Closes a defense-in-depth
+  // gap surfaced by the toast notification system (2026-05-06): displayName
+  // flows into UI surfaces — toast title, victory modal, profile page — and
+  // an unbounded value would break layout on small toasts and griefing-friendly
+  // long names would render in shared rooms.
+  if (data.displayName.length > 40) {
+    return { valid: false, error: 'Display name must be 40 characters or less' };
+  }
+
   // Validate tagline length (max 50 characters)
   if (data.tagline.length > 50) {
     return { valid: false, error: 'Tagline must be 50 characters or less' };
