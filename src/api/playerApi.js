@@ -1,6 +1,9 @@
 // Player Profile API Client
 // Handles all communication with player profile backend APIs
 
+import { ACHIEVEMENTS } from '../stats/achievements.js';
+import { showToast } from '../ui/toast.js';
+
 const API_BASE = window.location.origin;
 
 // ===== Ownership token storage =====
@@ -380,6 +383,24 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     updatePlayerStats(player.handle, gameResult, roomAuthToken).then(result => {
       if (result.success) {
         console.log(`✅ Session stats synced for @${player.handle}`);
+        const unlocked = Array.isArray(result.newAchievements) ? result.newAchievements : [];
+        if (unlocked.length > 0) {
+          const displayLabel = player.displayName ? `${player.displayName} @${player.handle}` : `@${player.handle}`;
+          // Stagger so multiple unlocks for the same player aren't all queued at the same instant
+          unlocked.forEach((id, idx) => {
+            const def = ACHIEVEMENTS[id];
+            if (!def) return;
+            setTimeout(() => {
+              showToast({
+                variant: 'achievement',
+                badge: def.badge,
+                title: `${displayLabel} 解锁成就`,
+                name: def.name,
+                desc: def.desc
+              });
+            }, idx * 600);
+          });
+        }
       } else {
         console.warn(`❌ Failed to sync session for @${player.handle}`);
       }
