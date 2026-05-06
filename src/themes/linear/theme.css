@@ -2414,6 +2414,31 @@
   }
   :root[data-theme="linear"].linear-sidebar-active .topnav__tab--active {
     background: var(--surface-2);
+    position: relative;
+  }
+  /* Phase 2.6: 2px accent bar on left edge of active tab — Linear's
+     signature visual for the active sidebar item. */
+  :root[data-theme="linear"].linear-sidebar-active .topnav__tab--active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  /* Phase 2.6: section label injected before tabs at mount time */
+  :root[data-theme="linear"].linear-sidebar-active .linear-sidebar__section-label {
+    padding: var(--s2) 12px var(--s1);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--ink-dimmer);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    flex-shrink: 0;
   }
 
   /* Show both CN + EN labels in sidebar (override mobile-row hide) */
@@ -2451,6 +2476,20 @@
     height: 28px;
     font-size: 12px;
     flex-shrink: 0;
+    position: relative;
+  }
+
+  /* Phase 2.6: small online status dot at lower-right of avatar */
+  :root[data-theme="linear"].linear-sidebar-active .linear-sidebar__status-dot {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--win);
+    border: 2px solid var(--surface);
+    box-sizing: content-box;
   }
   :root[data-theme="linear"].linear-sidebar-active .topnav__user-meta {
     display: flex;
@@ -2474,4 +2513,12 @@
     display: contents;
   }
   /* Body offset NOT applied on mobile — topnav row is full-width like before. */
+
+  /* Phase 2.6: hide sidebar-only injections on mobile. The mount/unmount
+     lifecycle inserts these into the topnav DOM regardless of viewport;
+     CSS handles visibility so resize doesn't require remount. */
+  :root[data-theme="linear"] .linear-sidebar__section-label,
+  :root[data-theme="linear"] .linear-sidebar__status-dot {
+    display: none;
+  }
 }

@@ -24,11 +24,18 @@ export { featureManifest };
  * Module-scope state for restoring the topnav to its original DOM position on
  * unmount. We move the live topnav node (not a clone) so existing event
  * listeners + the `#themePickerMount` slot stay wired across the swap.
+ *
+ * Phase 2.6 (2026-05-06) adds two transient nodes that the theme injects on
+ * mount and strips on unmount: a section label preceding the tab list, and a
+ * status dot on the user-chip avatar. Tracked here so unmount can restore the
+ * original topnav DOM exactly.
  */
 let mountedSidebar = null;
 let topnavRef = null;
 let topnavOriginalParent = null;
 let topnavOriginalNextSibling = null;
+let injectedSectionLabel = null;
+let injectedStatusDot = null;
 
 const SIDEBAR_ACTIVE_CLASS = 'linear-sidebar-active';
 
@@ -71,13 +78,47 @@ export const layout = {
     document.documentElement.classList.add(SIDEBAR_ACTIVE_CLASS);
 
     mountedSidebar = sidebar;
+
+    // === Phase 2.6 polish injections ===
+    // 1. Section label above tabs — gives the nav list a hierarchy cue.
+    const tabs = topnav.querySelector('.topnav__tabs');
+    if (tabs && tabs.parentNode) {
+      const label = document.createElement('div');
+      label.className = 'linear-sidebar__section-label';
+      label.textContent = '导航 NAVIGATION';
+      tabs.parentNode.insertBefore(label, tabs);
+      injectedSectionLabel = label;
+    }
+
+    // 2. Status dot on user chip avatar — small online indicator.
+    const avatar = topnav.querySelector('.topnav__user-avatar');
+    if (avatar) {
+      const dot = document.createElement('span');
+      dot.className = 'linear-sidebar__status-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      avatar.appendChild(dot);
+      injectedStatusDot = dot;
+    }
   },
 
   /**
-   * Unmount: deactivate the CSS hook, return the topnav to its original
-   * parent at its original position, and remove the wrapper. Idempotent.
+   * Unmount: strip phase-2.6 injections, deactivate the CSS hook, return the
+   * topnav to its original parent at its original position, and remove the
+   * wrapper. Idempotent.
    */
   async unmount(_rootEl) {
+    // Strip Phase 2.6 injections BEFORE moving topnav back — keeps the
+    // restored DOM byte-identical to its pre-mount state.
+    if (injectedSectionLabel && injectedSectionLabel.parentNode) {
+      injectedSectionLabel.parentNode.removeChild(injectedSectionLabel);
+    }
+    injectedSectionLabel = null;
+
+    if (injectedStatusDot && injectedStatusDot.parentNode) {
+      injectedStatusDot.parentNode.removeChild(injectedStatusDot);
+    }
+    injectedStatusDot = null;
+
     document.documentElement.classList.remove(SIDEBAR_ACTIVE_CLASS);
 
     if (topnavRef && topnavOriginalParent) {
