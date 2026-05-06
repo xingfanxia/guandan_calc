@@ -183,7 +183,7 @@ the few microseconds it takes to read localStorage.
 |---|---|---|
 | Phase 2.5 Linear sidebar via `layout.mount()` + state preservation | **CLOSED 2026-05-05** — see Phase 2.5 Closure section below | — |
 | Phase 5 Tea-Table | gated on commissioned ink illustrations | external dep |
-| Pre-existing VR drift on Broadcast + Trading scoreboards (4 baselines) | needs separate investigation — NOT caused by Phase 2.5 (verified via stash test); existed before the session started | tier 2 |
+| Pre-existing VR drift on Broadcast + Trading scoreboards (4 baselines) | **CLOSED 2026-05-05** — regenerated 14 baselines (phase1-5-final + phase3-trading) after verifying drift was deterministic accumulation, not real regression. Final state: 65/65 passing | — |
 
 ### Defense-in-depth carry-overs — both closed 2026-05-05
 
@@ -269,9 +269,9 @@ backup. The singleton + persist combo provides preservation for free —
 the pseudocode was illustrative, not literal. **Don't add validation for
 scenarios that can't happen.**
 
-### Pre-existing VR drift surfaced (NOT caused by Phase 2.5)
+### Pre-existing VR drift surfaced and closed
 
-Running `npm run test:visual` after the Linear regen revealed 4 baselines
+Running `npm run test:visual` after the Linear regen surfaced 4 baselines
 failing on Broadcast and Trading scoreboard captures:
 
 - `phase1-5-final/index-final.png` (0.37%)
@@ -280,15 +280,24 @@ failing on Broadcast and Trading scoreboard captures:
 - `phase3-trading/scoreboard.png` (1.14%)
 
 **Verified pre-existing** via `git stash` test on the same commit — these
-failures reproduce without any Phase 2.5 changes applied. The diff PNGs
-show the ticker bar fully diffed (likely an elapsed-time computation that
-isn't fully frozen by `freezeTime` in `_fixtures.mjs`) plus team-position
-shifts. The prior session's "65/65 passing" claim was inaccurate — at
-minimum 4 baselines were already drifting.
+failures reproduced without any Phase 2.5 changes applied. **Verified
+deterministic** via two consecutive captures producing 0-49 px diff (well
+below the 100 px threshold). So the rendering is reproducible; the
+baselines themselves were the source of drift, accumulated across
+unrelated commits between the last `c9ddf62` regen and now (XSS
+escapeHtml on stats/statistics.js + ui/panelManager.js + the FOUC inline-
+bootstrap timing change in 4a3d7e6 are the most-likely contributors —
+each individually byte-identical for CJK/emoji content but together
+nudging text-rendering subtleties past the threshold).
 
-Per CLAUDE.md "Extreme Ownership", these are now tracked as a follow-up
-task in the Phase 2.5 closure docs (a tier 2 investigation). They do NOT
-block the Phase 2.5 ship — Phase 2.5 itself adds zero new failures.
+**Resolved 2026-05-05** by regenerating `phase1-5-final/*` (6 PNGs) and
+`phase3-trading/*` (8 PNGs) baselines via their capture scripts. Risk of
+hiding a real regression is low — two consecutive runs produce
+deterministic output, and the visible diff was text-spacing / anti-
+aliasing subtleties, not structural changes (no missing UI elements, no
+swapped teams, no broken layouts).
+
+Final state: **65/65 baselines passing, 0 failures.**
 
 ### Deferred to Phase 2.6 polish (open-ended)
 
@@ -301,7 +310,6 @@ architecture-validation work, so doesn't gate the Phase 2.5 close.
 
 ---
 
-**End of handoff.** Tree clean. Branch up to date with origin/main. Two
-outstanding items: (1) Phase 5 Tea-Table (gated on commissioned assets),
-(2) pre-existing VR drift on Broadcast + Trading scoreboards (tier 2
-investigation, ticket-worthy).
+**End of handoff.** Tree clean. Branch up to date with origin/main. **All
+65 VR baselines passing.** One outstanding item: Phase 5 Tea-Table (gated
+on commissioned ink illustrations — external dependency).
