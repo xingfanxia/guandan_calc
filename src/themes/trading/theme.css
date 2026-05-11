@@ -409,14 +409,16 @@
   text-transform: uppercase;
 }
 
-/* Card-level: ASCII tile with corner glyphs */
+/* Card-level: ASCII tile with corner glyphs.
+ * Centered flex column — glyph stacks above sub info, both centered
+ * horizontally within the team panel (was left-aligned 2-col grid). */
 :root[data-theme="trading"] .card-level {
-  display: grid;
-  grid-template-columns: 110px 1fr;
-  gap: var(--s4);
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: var(--s3);
   padding: 0;
-  text-align: left;
+  text-align: center;
   position: static;
 }
 :root[data-theme="trading"] .card-level__glyph {
@@ -825,7 +827,12 @@
   min-height: 60px;
 }
 
-/* Pool tile — drag source */
+/* Pool tile — drag source.
+ * `min-height: 111px` matches the slot tile's empirical rendered height
+ * (slot has min-height 90px + s3 padding + flex-column content of pos
+ * label + rank/placeholder, totaling ~111px). Without matching, pool
+ * tiles render ~50px and slot tiles render ~110px, breaking the
+ * row-by-row alignment between pool item N and slot item N. */
 :root[data-theme="trading"] .pool-tile,
 :root[data-theme="trading"] .ranking-player-tile.pool-tile {
   background: var(--surface-2);
@@ -838,6 +845,7 @@
   align-items: center;
   cursor: grab;
   font-family: var(--font-mono);
+  min-height: 111px;
 }
 :root[data-theme="trading"] .pool-tile:hover {
   border-color: var(--accent);
@@ -2336,11 +2344,12 @@
 }
 
 /* Image 46 — desktop pool/slot column alignment.
- * Slot is min-height 90px; bump pool tile to match for column rhythm. */
+ * Slot's min-height 90px + s3 padding + flex-column content renders ~111px;
+ * pool tile is bumped to match so pool row N and slot row N share Y. */
 @media (min-width: 769px) {
   :root[data-theme="trading"] .pool-tile,
   :root[data-theme="trading"] .ranking-player-tile.pool-tile {
-    min-height: 90px;
+    min-height: 111px;
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
     padding: var(--s3);

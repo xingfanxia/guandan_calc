@@ -699,13 +699,17 @@ details + details {
     text-overflow: ellipsis;
   }
 
-  /* Slots: same 36px height as pool tiles, same left-aligned compact row */
+  /* Slots: same 36px height as pool tiles, same left-aligned compact row.
+   * `margin: 0` zeroes the desktop `.rank-slot { margin: 8px }` which would
+   * otherwise add 16px to every grid row contribution and break row-by-row
+   * alignment with pool tiles (which carry no such margin). */
   .rank-slot.slot,
   .rank-slot,
   .slot {
     height: 36px !important;
     aspect-ratio: auto !important;
     min-height: 0 !important;
+    margin: 0 !important;
     padding: 4px 6px !important;
     display: flex !important;
     flex-direction: row !important;
@@ -778,26 +782,36 @@ details + details {
  * History combo chip — per-rank "<n>.<emoji><nameChar>" rendering
  *
  * Replaces the v10-era number-only "1·2·4·8" cells with named chips so
- * round summaries read narratively (matches the legacy single-file
- * version). Theme-agnostic: chips inherit color from the parent
- * `.history__combo-group--win/--loss` (already styled per theme).
+ * round summaries read narratively. Chips render in SEQUENTIAL rank
+ * order (1..N) — each chip carries its own team-color modifier, so
+ * winners and losers interleave naturally rather than being grouped.
  *
- * Layout: `.history__combo-group` becomes inline-flex of chips with a
- * small gap. Each chip is inline-flex with rank, optional emoji, and
- * first-name char, baseline-aligned so emoji + char sit on the same
- * line as the rank prefix.
+ * Per-chip color via `.history__combo-chip--win.--blue` / `.--red` /
+ * `.--loss`. Theme-agnostic: blue/red use --team-blue / --team-red
+ * tokens that every theme guarantees; loss uses --ink-dim.
  * ============================================================ */
 .history__combo-group {
   display: inline-flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 4px 8px;
+  gap: 4px 10px;
 }
 .history__combo-chip {
   display: inline-flex;
   align-items: baseline;
   gap: 1px;
   white-space: nowrap;
+  color: var(--ink-dim, currentColor);
+}
+.history__combo-chip--win.history__combo-chip--blue {
+  color: var(--team-blue);
+}
+.history__combo-chip--win.history__combo-chip--red {
+  color: var(--team-red);
+}
+.history__combo-chip--loss {
+  color: var(--ink-dim);
+  opacity: 0.7;
 }
 .history__combo-rank {
   font-variant-numeric: tabular-nums;

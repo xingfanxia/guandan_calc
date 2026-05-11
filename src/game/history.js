@@ -47,10 +47,13 @@ function firstNameChar(p) {
   return Array.from(n)[0];
 }
 
-/** Build a "<rank>.<emoji><nameChar>" chip for one ranked player. */
-function makePlayerChip(rank, p) {
+/** Build a "<rank>.<emoji><nameChar>" chip for one ranked player.
+ *  variants: array of modifier suffixes — e.g. ['win','blue'] or ['loss']. */
+function makePlayerChip(rank, p, variants) {
   const chip = document.createElement('span');
-  chip.className = 'history__combo-chip';
+  const cls = ['history__combo-chip'];
+  (variants || []).forEach((v) => cls.push(`history__combo-chip--${v}`));
+  chip.className = cls.join(' ');
 
   const rankSpan = document.createElement('span');
   rankSpan.className = 'history__combo-rank';
@@ -73,12 +76,11 @@ function makePlayerChip(rank, p) {
 }
 
 /**
- * Build the 组合 cell — winners-then-losers, with each ranked player shown
- * as "<rank>.<emoji?><nameChar>" so the round reads narratively (e.g.
- * "1.🐸超 2.🐯豪 4.🐝夫 7.🍎塔 │ 3.🐬帆 5.🐰小 6.🐠鱼 8.🐢大") instead of
- * just position digits. Restores parity with the legacy single-file version
- * that the v10 refactor lost (numbers-only). Falls back to digit-only when
- * playerRankings is absent (older history rows pre-v10).
+ * Build the 组合 cell — sequential rank 1..N, with each chip carrying its
+ * own team-color modifier (winners get accent, losers get dim). Reads
+ * naturally: "1.🐸超 2.🍎塔 3.🐰小 4.🐢大 …" rather than reorganizing the
+ * round into winners-then-losers. Falls back to digit-only when
+ * playerRankings is absent (older pre-v10 history rows).
  */
 function makeComboCell(entry) {
   const cell = document.createElement('span');
@@ -90,27 +92,17 @@ function makeComboCell(entry) {
 
   // Prefer rich playerRankings (carries team membership + name + emoji per rank).
   if (entry.playerRankings && mode) {
-    const winners = [];
-    const losers = [];
+    const group = makeSpan('history__combo-group history__combo-group--seq');
+    let any = false;
     for (let r = 1; r <= mode; r++) {
       const p = entry.playerRankings[r];
       if (!p) continue;
-      (Number(p.team) === winnerSide ? winners : losers).push({ rank: r, player: p });
+      const variants = Number(p.team) === winnerSide ? ['win', winnerColor] : ['loss'];
+      group.appendChild(makePlayerChip(r, p, variants));
+      any = true;
     }
-    if (winners.length || losers.length) {
-      if (winners.length) {
-        const winGroup = makeSpan(
-          `history__combo-group history__combo-group--win history__combo-group--${winnerColor}`
-        );
-        winners.forEach(({ rank, player }) => winGroup.appendChild(makePlayerChip(rank, player)));
-        cell.appendChild(winGroup);
-      }
-      if (losers.length) {
-        cell.appendChild(makeSpan('history__combo-sep', '│'));
-        const lossGroup = makeSpan('history__combo-group history__combo-group--loss');
-        losers.forEach(({ rank, player }) => lossGroup.appendChild(makePlayerChip(rank, player)));
-        cell.appendChild(lossGroup);
-      }
+    if (any) {
+      cell.appendChild(group);
       return cell;
     }
   }
