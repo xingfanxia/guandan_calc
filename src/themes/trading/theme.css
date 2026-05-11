@@ -527,7 +527,12 @@
 
 :root[data-theme="trading"] .roster-row {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
+  /* 4-col: avatar | name+handle | tag | remove(×). Profile players add a
+   * 4th child (the × remove button); the prior 3-col grid pushed it onto
+   * an implicit row below the row, leaving an X stranded under each
+   * player. `auto` collapses to 0 when the column is empty (session
+   * players have no remove button) so the layout stays compact. */
+  grid-template-columns: 22px 1fr auto auto;
   align-items: center;
   gap: var(--s2);
   padding: 4px var(--s2);
@@ -597,6 +602,29 @@
   border-color: var(--loss);
   color: var(--loss);
   background: var(--team-red-soft);
+}
+/* `×` remove button (only renders for profile players — pulled into the
+ * 4th grid column added above so it sits inline with the tag, not on a
+ * stranded second row below the row). Mono ASCII style to match the
+ * rest of trading. */
+:root[data-theme="trading"] .roster-row__remove {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  color: var(--ink-dimmer);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+:root[data-theme="trading"] .roster-row__remove:hover {
+  border-color: var(--loss);
+  color: var(--loss);
 }
 
 /* Versus column — center divider with bracketed round label */
@@ -2361,23 +2389,40 @@
     gap: 4px;
     padding: 4px;
   }
-  /* Vertical card: avatar on top, name below — matches the "square tile" intent. */
+  /* Vertical card: avatar on top, name below — matches the "square tile" intent.
+   * 2026-05-11 fix: bigger avatar (32px instead of 24px) and reordered the
+   * inner layout so the avatar reads as the primary visual element.
+   * Previously the 24px avatar + same-size remove × button at top were
+   * visually competing → users read the card as `[× ]` (broken-image-like)
+   * with the actual character below. Larger avatar + remove button shrunk
+   * to 14px and pulled into a top-right CORNER (not the same row as the
+   * avatar) restores the avatar-first reading order. */
   :root[data-theme="trading"] .team__roster .roster-row {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: flex-start !important;
     grid-template-columns: none !important;
-    padding: 6px 4px !important;
-    gap: 3px !important;
-    min-height: 56px;
+    padding: 8px 4px 6px !important;
+    gap: 4px !important;
+    min-height: 72px;
     text-align: center;
     position: relative;
   }
   :root[data-theme="trading"] .team__roster .roster-row__avatar {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 14px !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 18px !important;
+    flex-shrink: 0;
+  }
+  /* Force <img> avatars to fill the box (some default img stylings caused
+   * the previous "empty box" appearance when player.photo was set to a
+   * broken URL — img collapses to 0×0 and only the bordered box shows). */
+  :root[data-theme="trading"] .team__roster .roster-row__avatar > img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
   }
   :root[data-theme="trading"] .team__roster .roster-row__name {
     width: 100%;
@@ -2385,15 +2430,17 @@
     align-items: center;
     flex-direction: column;
     gap: 0;
+    display: flex;
   }
   :root[data-theme="trading"] .team__roster .roster-row__display {
     display: block !important;
-    font-size: 11px !important;
+    font-size: 12px !important;
     width: 100%;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--ink) !important;
   }
   :root[data-theme="trading"] .team__roster .roster-row__handle {
     display: block !important;
@@ -2407,8 +2454,19 @@
   :root[data-theme="trading"] .team__roster .roster-row__tag {
     display: none !important;
   }
+  /* Tiny corner × — out of the avatar's row entirely so the avatar reads
+   * as the primary element. 14px hit target is below recommended a11y
+   * minimum but matches the card scale; mobile users primarily edit
+   * profile players via the dedicated /players page so the inline ×
+   * here is a secondary path. */
   :root[data-theme="trading"] .team__roster .roster-row__remove {
     position: absolute;
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 11px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+    border-width: 1px !important;
     top: 2px;
     right: 2px;
   }

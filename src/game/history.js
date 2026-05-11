@@ -33,11 +33,52 @@ function makeSpan(className, text) {
 }
 
 /**
- * Build the 组合 cell — all N positions for the round, winner positions in
- * the team-winner accent, loser positions dimmed. Reads as "1·2·4·7 │ 3·5·6·8"
- * for an 8-player game where blue won 1/2/4/7. The verbose
- * "头游 #1 · 二游 #2 · …" format ate column width and only listed half the
- * field — this version is compact AND complete.
+ * First displayable character of a player.name — strips whitespace, then
+ * returns Array.from(name)[0] so emoji-name first chars and CJK both work.
+ * Falls back to '?' on empty/missing name.
+ */
+function firstNameChar(p) {
+  if (!p) return '?';
+  const n = (p.name || '').trim();
+  if (!n) return '?';
+  // Skip "玩家1"/"玩家2" prefix → keep the digit (matches playerRenderer).
+  const digit = n.match(/^玩家(\d+)$/);
+  if (digit) return digit[1];
+  return Array.from(n)[0];
+}
+
+/** Build a "<rank>.<emoji><nameChar>" chip for one ranked player. */
+function makePlayerChip(rank, p) {
+  const chip = document.createElement('span');
+  chip.className = 'history__combo-chip';
+
+  const rankSpan = document.createElement('span');
+  rankSpan.className = 'history__combo-rank';
+  rankSpan.textContent = `${rank}.`;
+  chip.appendChild(rankSpan);
+
+  if (p?.emoji) {
+    const emoji = document.createElement('span');
+    emoji.className = 'history__combo-emoji';
+    emoji.textContent = p.emoji;
+    chip.appendChild(emoji);
+  }
+
+  const name = document.createElement('span');
+  name.className = 'history__combo-name';
+  name.textContent = firstNameChar(p);
+  chip.appendChild(name);
+
+  return chip;
+}
+
+/**
+ * Build the 组合 cell — winners-then-losers, with each ranked player shown
+ * as "<rank>.<emoji?><nameChar>" so the round reads narratively (e.g.
+ * "1.🐸超 2.🐯豪 4.🐝夫 7.🍎塔 │ 3.🐬帆 5.🐰小 6.🐠鱼 8.🐢大") instead of
+ * just position digits. Restores parity with the legacy single-file version
+ * that the v10 refactor lost (numbers-only). Falls back to digit-only when
+ * playerRankings is absent (older history rows pre-v10).
  */
 function makeComboCell(entry) {
   const cell = document.createElement('span');
@@ -47,33 +88,34 @@ function makeComboCell(entry) {
   const winnerSide = entry.winKey === 't1' ? 1 : 2;
   const winnerColor = entry.winKey === 't1' ? 'blue' : 'red';
 
-  // Prefer rich playerRankings (carries team membership per rank).
+  // Prefer rich playerRankings (carries team membership + name + emoji per rank).
   if (entry.playerRankings && mode) {
     const winners = [];
     const losers = [];
     for (let r = 1; r <= mode; r++) {
       const p = entry.playerRankings[r];
       if (!p) continue;
-      (Number(p.team) === winnerSide ? winners : losers).push(r);
+      (Number(p.team) === winnerSide ? winners : losers).push({ rank: r, player: p });
     }
     if (winners.length || losers.length) {
       if (winners.length) {
-        cell.appendChild(
-          makeSpan(`history__combo-group history__combo-group--win history__combo-group--${winnerColor}`,
-            winners.join('·'))
+        const winGroup = makeSpan(
+          `history__combo-group history__combo-group--win history__combo-group--${winnerColor}`
         );
+        winners.forEach(({ rank, player }) => winGroup.appendChild(makePlayerChip(rank, player)));
+        cell.appendChild(winGroup);
       }
       if (losers.length) {
         cell.appendChild(makeSpan('history__combo-sep', '│'));
-        cell.appendChild(
-          makeSpan('history__combo-group history__combo-group--loss', losers.join('·'))
-        );
+        const lossGroup = makeSpan('history__combo-group history__combo-group--loss');
+        losers.forEach(({ rank, player }) => lossGroup.appendChild(makePlayerChip(rank, player)));
+        cell.appendChild(lossGroup);
       }
       return cell;
     }
   }
 
-  // Fallback: only the winner positions are known (combo string or ranks array).
+  // Fallback: only winner position digits are known (combo string or ranks array).
   let winnerDigits = [];
   if (entry.combo) {
     winnerDigits = entry.combo.replace(/[^\d,]/g, '').split(',').filter(Boolean);

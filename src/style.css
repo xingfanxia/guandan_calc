@@ -746,6 +746,70 @@ details + details {
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
+  /* Pool/slots height alignment — last-resort cross-theme safety net.
+   * The themed `.activegame__body > .pool` rules at theme specificity
+   * declare `grid-area` + `min-width` only; CSS cascade resolves the
+   * remaining flex-column/stretch properties from the global rule above.
+   * BUT a few tablet/mid widths and a few real-user setups (per the
+   * 2026-05-11 bug report image #2) end up with mismatched panel
+   * heights anyway. Forcing align-self stretch + height 100% at higher
+   * specificity (matching theme rules) guarantees the bottoms align in
+   * every theme, every viewport that puts pool + slots side-by-side. */
+  :root[data-theme] .activegame__body > .pool,
+  :root[data-theme] .activegame__body > .slots {
+    align-self: stretch;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  /* Inner grid grows to fill remaining vertical space inside the panel
+     so empty bottoms in the shorter side don't show as a visual gap. */
+  :root[data-theme] .activegame__body > .pool > .pool__grid,
+  :root[data-theme] .activegame__body > .pool > .player-pool,
+  :root[data-theme] .activegame__body > .slots > .slots__grid,
+  :root[data-theme] .activegame__body > .slots > .ranking-area {
+    flex: 1 1 auto;
+    align-content: start;
+  }
+}
+
+/* ============================================================
+ * History combo chip — per-rank "<n>.<emoji><nameChar>" rendering
+ *
+ * Replaces the v10-era number-only "1·2·4·8" cells with named chips so
+ * round summaries read narratively (matches the legacy single-file
+ * version). Theme-agnostic: chips inherit color from the parent
+ * `.history__combo-group--win/--loss` (already styled per theme).
+ *
+ * Layout: `.history__combo-group` becomes inline-flex of chips with a
+ * small gap. Each chip is inline-flex with rank, optional emoji, and
+ * first-name char, baseline-aligned so emoji + char sit on the same
+ * line as the rank prefix.
+ * ============================================================ */
+.history__combo-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.history__combo-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 1px;
+  white-space: nowrap;
+}
+.history__combo-rank {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  margin-right: 1px;
+}
+.history__combo-emoji {
+  font-size: 0.95em;
+  line-height: 1;
+}
+.history__combo-name {
+  font-weight: inherit;
 }
 
 /* ============================================================
