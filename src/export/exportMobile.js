@@ -6,9 +6,36 @@
 import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getPlayers, getPlayersByTeam } from '../player/playerManager.js';
+import { getPlayers, getPlayersByTeam, normalizeTeamNumber } from '../player/playerManager.js';
+import { resolveAvatarPhoto } from '../player/photoRenderer.js';
+import { readOptionalJsonResponse } from '../api/httpResponse.js';
 import { findMVPAndBurden } from '../stats/mvpBurden.js';
 import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
+import { getRoomInfo } from '../share/roomManager.js';
+import { findPlayerByVoteId, normalizeVoteApiResults } from '../share/voteResults.js';
+import { EXPORT_FILE_SUFFIX, EXPORT_VERSION_LABEL } from './exportVersion.js';
+import {
+  getHistoryWinnerKey,
+  getHistoryWinnerName,
+  isVictoryEntry
+} from './historyEntryDisplay.js';
+import {
+  buildHonorExportRows,
+  calculateHonorsFromData,
+  resolveHonorPlayerCount
+} from '../stats/honors.js';
+
+function resolveExportHonorPlayerCount(players, history) {
+  const currentMode = typeof document !== 'undefined'
+    ? document.getElementById('mode')?.value
+    : undefined;
+  const latestMode = history.length > 0 ? history[history.length - 1]?.mode : undefined;
+  return resolveHonorPlayerCount(currentMode || latestMode, players.length);
+}
+
+function rankCountForHistory(entry) {
+  return resolveHonorPlayerCount(entry?.mode, 8);
+}
 
 /**
  * Load image from base64 data URL
@@ -32,10 +59,11 @@ function loadImage(dataUrl) {
  * @param {number} y - Y position (baseline for text, or center for image)
  * @param {number} size - Size for photo (ignored for emoji)
  */
-async function drawPlayerAvatar(ctx, player, x, y, size = 40) {
-  if (player.photoBase64) {
+async function drawPlayerAvatar(ctx, player, x, y, size = 40, borderColor = '#444444') {
+  const avatarPhoto = resolveAvatarPhoto(player);
+  if (avatarPhoto) {
     try {
-      const img = await loadImage(player.photoBase64);
+      const img = await loadImage(avatarPhoto);
       
       // Save context
       ctx.save();
@@ -51,7 +79,7 @@ async function drawPlayerAvatar(ctx, player, x, y, size = 40) {
       ctx.restore();
       ctx.beginPath();
       ctx.arc(x + size/2, y - size/2, size/2, 0, Math.PI * 2);
-      ctx.strokeStyle = palette.rule;
+      ctx.strokeStyle = borderColor;
       ctx.lineWidth = 2;
       ctx.stroke();
       
@@ -101,18 +129,21 @@ export async function exportMobilePNG() {
 
   // Check if there's an A-level victory
   const latestGame = history.length > 0 ? history[history.length - 1] : null;
-  const hasVictory = latestGame && latestGame.aNote && latestGame.aNote.includes('通关');
+  const hasVictory = isVictoryEntry(latestGame);
 
   if (hasVictory) {
+    const winnerKey = getHistoryWinnerKey(latestGame);
+    const winnerName = getHistoryWinnerName(latestGame);
+
     // Show victory team
-    ctx.fillStyle = latestGame.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    ctx.fillStyle = winnerKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
     ctx.font = 'bold 32px Arial';
-    ctx.fillText(`🏆 ${latestGame.win} A级通关！`, 40, currentY);
+    ctx.fillText(`🏆 ${winnerName} A级通关！`, 40, currentY);
     currentY += 50;
 
     // Show team roster
-    const winnerTeam = latestGame.winKey === 't1' ? 1 : 2;
-    const teamPlayers = players.filter(p => p.team === winnerTeam);
+    const winnerTeam = winnerKey === 't1' ? 1 : 2;
+    const teamPlayers = players.filter(p => normalizeTeamNumber(p.team) === winnerTeam);
 
     ctx.font = '20px Arial';
     ctx.fillStyle = palette.inkDim;
@@ -143,10 +174,11 @@ export async function exportMobilePNG() {
 
     if (mvpPlayer && mvpPlayer.tagline) {
       // Draw MVP photo centered on its own row (larger)
-      if (mvpPlayer.photoBase64) {
+      const mvpAvatarPhoto = resolveAvatarPhoto(mvpPlayer);
+      if (mvpAvatarPhoto) {
         const photoSize = 320;  // 4x larger for prominence
         const photoX = (W - photoSize) / 2;  // Center horizontally
-        await drawPlayerAvatar(ctx, mvpPlayer, photoX, currentY + photoSize, photoSize);
+        await drawPlayerAvatar(ctx, mvpPlayer, photoX, currentY + photoSize, photoSize, palette.rule);
         currentY += photoSize + 30;
       }
       
@@ -154,7 +186,7 @@ export async function exportMobilePNG() {
       ctx.font = 'bold 24px Arial';
       ctx.fillStyle = palette.accent;
       ctx.textAlign = 'center';
-      ctx.fillText(`MVP ${mvpPlayer.photoBase64 ? '' : mvpPlayer.emoji + ' '}${mvpPlayer.name}`, W/2, currentY);
+      ctx.fillText(`MVP ${mvpAvatarPhoto ? '' : mvpPlayer.emoji + ' '}${mvpPlayer.name}`, W/2, currentY);
       currentY += 30;
 
       ctx.font = 'italic 20px Arial';
@@ -241,40 +273,26 @@ export async function exportMobilePNG() {
   ctx.fillText('🎖️ 特殊荣誉', 40, currentY);
   currentY += 45;
 
-  // Get ALL 16 honors by reading from DOM
-  const honorElements = [
-    { id: 'lyubu', name: '🥇吕布', desc: '最多第一', color: '#d4af37' },
-    { id: 'adou', name: '😅阿斗', desc: '最多垫底', color: '#8b4513' },
-    { id: 'shifo', name: '🗿石佛', desc: '最稳定', color: '#708090' },
-    { id: 'bodongwang', name: '🌊波动王', desc: '波动最大', color: '#ff4500' },
-    { id: 'fendouwang', name: '📈奋斗王', desc: '稳步提升', color: '#32cd32' },
-    { id: 'fanchewang', name: '🎪翻车王', desc: '前3掉底', color: '#dc143c' },
-    { id: 'damanguan', name: '👑大满贯', desc: '所有排名', color: '#ffd700' },
-    { id: 'lianshengewang', name: '🔥连胜王', desc: '连续好排', color: '#ff6347' },
-    { id: 'foxiwanjia', name: '🧘佛系', desc: '总是中游', color: '#9370db' },
-    { id: 'shandianxia', name: '⚡闪电侠', desc: '变化频繁', color: '#ffa500' },
-    { id: 'liyuwang', name: '🐟鲤鱼王', desc: '惊天逆转', color: '#f97316' },
-    { id: 'buzhanguo', name: '🍳不粘锅', desc: '不沾底', color: '#10b981' },
-    { id: 'ranjinwang', name: '🔥燃尽王', desc: '持续低迷', color: '#b91c1c' },
-    { id: 'qichayizhao', name: '🎯棋差一着', desc: '无冠最强', color: '#3b82f6' },
-    { id: 'dutu', name: '🎲赌徒', desc: '大起大落', color: '#8b5cf6' },
-    { id: 'xiaochou', name: '🤡小丑', desc: '无冠最弱', color: '#ec4899' }
-  ];
+  const honorRows = buildHonorExportRows(
+    calculateHonorsFromData(
+      players,
+      playerStats,
+      resolveExportHonorPlayerCount(players, history)
+    ),
+    playerStats
+  );
 
   ctx.font = 'bold 22px Arial';
-  honorElements.forEach(honor => {
-    const el = document.getElementById(honor.id);
-    const winnerText = el && el.textContent !== '—' ? el.textContent : '—';
-
+  honorRows.forEach(honor => {
     ctx.fillStyle = honor.color;
-    ctx.fillText(honor.name, 60, currentY);
+    ctx.fillText(`${honor.glyph}${honor.title}`, 60, currentY);
 
     ctx.fillStyle = palette.ink;
-    ctx.fillText(winnerText, 200, currentY);
+    ctx.fillText(honor.playerText, 200, currentY);
 
     ctx.fillStyle = palette.inkDimmer;
     ctx.font = '16px Arial';
-    ctx.fillText(`(${honor.desc})`, 330, currentY);
+    ctx.fillText(`(${honor.metricText})`, 330, currentY);
 
     ctx.font = 'bold 22px Arial';
     currentY += 40;
@@ -303,8 +321,10 @@ export async function exportMobilePNG() {
   });
 
   playerData.sort((a, b) => {
-    if (a.player.team !== b.player.team) {
-      return (a.player.team || 999) - (b.player.team || 999);
+    const teamA = normalizeTeamNumber(a.player.team) || 999;
+    const teamB = normalizeTeamNumber(b.player.team) || 999;
+    if (teamA !== teamB) {
+      return teamA - teamB;
     }
     return a.avgRank - b.avgRank;
   });
@@ -321,7 +341,12 @@ export async function exportMobilePNG() {
   ctx.font = '18px Arial';
   playerData.forEach(data => {
     const { player, stats, avgRank } = data;
-    const teamColor = player.team === 1 ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    const team = normalizeTeamNumber(player.team);
+    const teamColor = team === 1
+      ? config.getTeamColor('t1')
+      : team === 2
+        ? config.getTeamColor('t2')
+        : palette.inkDim;
 
     ctx.fillStyle = teamColor + '15';
     ctx.fillRect(30, currentY - 25, W - 60, 35);
@@ -341,32 +366,26 @@ export async function exportMobilePNG() {
   currentY += 40;
 
   // === VIEWER VOTES (fetch from API for accuracy) ===
-  const roomInfo = await (async () => {
-    try {
-      const { getRoomInfo } = await import('../share/roomManager.js');
-      return getRoomInfo();
-    } catch (e) {
-      return { roomCode: null };
-    }
-  })();
+  const roomInfo = getRoomInfo();
 
   if (roomInfo.roomCode) {
     try {
-      const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
-      const voteData = await response.json();
+      const response = await fetch(`/api/rooms/vote/${encodeURIComponent(roomInfo.roomCode)}`);
+      const voteData = await readOptionalJsonResponse(response);
 
       if (voteData.success && voteData.votes) {
-        const mvpVotes = Object.entries(voteData.votes.mvp || {})
+        const voteResults = normalizeVoteApiResults(voteData);
+        const mvpVotes = Object.entries(voteResults.mvp.votes || {})
           .map(([id, count]) => {
-            const player = getPlayers().find(p => p.id === parseInt(id));
+            const player = findPlayerByVoteId(getPlayers(), id);
             return player ? { name: player.name, emoji: player.emoji, count } : null;
           })
           .filter(v => v)
           .sort((a, b) => b.count - a.count);
 
-        const burdenVotes = Object.entries(voteData.votes.burden || {})
+        const burdenVotes = Object.entries(voteResults.burden.votes || {})
           .map(([id, count]) => {
-            const player = getPlayers().find(p => p.id === parseInt(id));
+            const player = findPlayerByVoteId(getPlayers(), id);
             return player ? { name: player.name, emoji: player.emoji, count } : null;
           })
           .filter(v => v)
@@ -436,7 +455,9 @@ export async function exportMobilePNG() {
   currentY += 40;
 
   history.forEach((h, i) => {
-    const winColor = h.winKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
+    const winnerKey = getHistoryWinnerKey(h);
+    const winnerName = getHistoryWinnerName(h);
+    const winColor = winnerKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
 
     ctx.fillStyle = winColor + '15';
     ctx.fillRect(30, currentY - 30, W - 60, 95);
@@ -449,12 +470,12 @@ export async function exportMobilePNG() {
     ctx.font = '18px Arial';
     ctx.fillText(h.combo || '', 100, currentY);
 
-    const upgradeText = h.up ? `${h.win}升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
+    const upgradeText = h.up ? `${winnerName}升${h.up}级` : (isVictoryEntry(h) ? `${winnerName}获胜` : '不升级');
     ctx.fillText(upgradeText, 240, currentY);
 
     ctx.fillStyle = winColor;
     ctx.font = 'bold 18px Arial';
-    ctx.fillText(h.win, 360, currentY);
+    ctx.fillText(winnerName, 360, currentY);
 
     ctx.fillStyle = palette.inkDim;
     ctx.font = '17px Arial';
@@ -466,11 +487,12 @@ export async function exportMobilePNG() {
       ctx.fillStyle = palette.inkDim;
       ctx.font = '15px Arial';
 
-      const rankingText = Object.keys(h.playerRankings)
-        .sort((a, b) => parseInt(a) - parseInt(b))
+      const rankCount = rankCountForHistory(h);
+      const rankingText = Array.from({ length: rankCount }, (_, index) => index + 1)
+        .filter(rank => h.playerRankings[rank])
         .map(rank => {
           const p = h.playerRankings[rank];
-          return `${rank}.${p.emoji}${p.name}`;
+          return `${rank}.${p.emoji || ''}${p.name || ''}`;
         })
         .join(' ');
 
@@ -510,7 +532,7 @@ export async function exportMobilePNG() {
   ctx.fillStyle = palette.inkDimmer;
   ctx.font = '12px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('闹麻家族掼蛋计分器 - 手机版 v10.0', W/2, finalContentY);
+  ctx.fillText(`闹麻家族掼蛋计分器 - 手机版 ${EXPORT_VERSION_LABEL}`, W/2, finalContentY);
   ctx.fillText('Made with ❤️ by Xingfan Xia', W/2, finalContentY + 16);
   ctx.fillText('Claude Sonnet 4.5 1M Context & Claude Opus 4.5', W/2, finalContentY + 32);
   ctx.textAlign = 'left';
@@ -528,7 +550,7 @@ export async function exportMobilePNG() {
   // Download
   const a = document.createElement('a');
   a.href = finalCanvas.toDataURL('image/png');
-  a.download = '掼蛋战绩_手机版_v9.png';
+  a.download = `掼蛋战绩_手机版_${EXPORT_FILE_SUFFIX}.png`;
   a.click();
 
   // Show message

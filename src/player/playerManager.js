@@ -7,6 +7,7 @@
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
 import { touchPlayer } from '../api/playerApi.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 // 77+ animal and food emoji avatars (no insects)
 const ANIMAL_EMOJIS = [
@@ -30,9 +31,9 @@ export { ANIMAL_EMOJIS };
  * @returns {Object[]} Array of player objects
  */
 export function generatePlayers(count, forceNew = false) {
-  const num = parseInt(count);
+  const num = normalizePlayerCountMode(count);
 
-  if (!num || isNaN(num) || num < 4 || num > 8) {
+  if (!num) {
     console.error('Invalid player count:', count);
     return state.getPlayers();
   }
@@ -224,13 +225,15 @@ export function updatePlayer(playerId, updates) {
  * @param {number|null} team - Team number (1, 2, or null for unassigned)
  */
 export function assignPlayerToTeam(playerId, team) {
-  if (team !== null && team !== 1 && team !== 2) {
+  const normalizedTeam = team === null ? null : normalizeTeamNumber(team);
+
+  if (team !== null && normalizedTeam === null) {
     console.error('Invalid team:', team);
     return;
   }
 
-  updatePlayer(playerId, { team });
-  emit('player:teamAssigned', { playerId, team });
+  updatePlayer(playerId, { team: normalizedTeam });
+  emit('player:teamAssigned', { playerId, team: normalizedTeam });
 }
 
 /**
@@ -238,7 +241,12 @@ export function assignPlayerToTeam(playerId, team) {
  * @param {number} mode - Game mode (4, 6, or 8)
  */
 export function shuffleTeams(mode) {
-  const num = parseInt(mode);
+  const num = normalizePlayerCountMode(mode);
+  if (!num) {
+    console.error('Invalid player count:', mode);
+    return false;
+  }
+
   const halfSize = num / 2;
 
   const players = state.getPlayers();
@@ -254,6 +262,7 @@ export function shuffleTeams(mode) {
   state.setPlayers(shuffled);
 
   emit('player:teamsShuffled', { players: shuffled });
+  return true;
 }
 
 /**
@@ -293,7 +302,24 @@ export function applyBulkNames(namesString) {
  * @returns {number} Max players per team
  */
 export function getTeamSizeLimit(mode) {
-  return parseInt(mode) / 2;
+  const num = normalizePlayerCountMode(mode);
+  return num ? num / 2 : null;
+}
+
+/**
+ * Normalize persisted/synced team identifiers to numeric team values.
+ * @param {unknown} team - Team identifier from UI state, storage, or room snapshots
+ * @returns {1|2|null} Normalized team number, or null when unassigned/invalid
+ */
+export function normalizeTeamNumber(team) {
+  if (team === 1 || team === '1') return 1;
+  if (team === 2 || team === '2') return 2;
+  if (typeof team === 'string') {
+    const trimmed = team.trim();
+    if (trimmed === '1') return 1;
+    if (trimmed === '2') return 2;
+  }
+  return null;
 }
 
 /**
@@ -303,9 +329,13 @@ export function getTeamSizeLimit(mode) {
  * @returns {boolean} True if team is full
  */
 export function isTeamFull(teamNum, mode) {
+  const normalizedTeam = normalizeTeamNumber(teamNum);
+  if (!normalizedTeam) return false;
+
   const players = state.getPlayers();
-  const teamPlayers = players.filter(p => p.team === teamNum);
+  const teamPlayers = players.filter(p => normalizeTeamNumber(p.team) === normalizedTeam);
   const maxPerTeam = getTeamSizeLimit(mode);
+  if (!maxPerTeam) return false;
 
   return teamPlayers.length >= maxPerTeam;
 }
@@ -317,7 +347,14 @@ export function isTeamFull(teamNum, mode) {
  */
 export function getPlayersByTeam(teamNum) {
   const players = state.getPlayers();
-  return players.filter(p => p.team === teamNum);
+  if (teamNum === null) {
+    return players.filter(p => normalizeTeamNumber(p.team) === null);
+  }
+
+  const normalizedTeam = normalizeTeamNumber(teamNum);
+  if (!normalizedTeam) return [];
+
+  return players.filter(p => normalizeTeamNumber(p.team) === normalizedTeam);
 }
 
 /**
@@ -326,5 +363,6 @@ export function getPlayersByTeam(teamNum) {
  */
 export function areAllPlayersAssigned() {
   const players = state.getPlayers();
-  return players.every(p => p.team !== null);
+  if (players.length === 0) return false;
+  return players.every(p => normalizeTeamNumber(p.team) !== null);
 }

@@ -1,3 +1,5 @@
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
+
 /**
  * Game Calculator - Pure Calculation Logic
  * Extracted from app.js lines 1418-1465
@@ -130,7 +132,7 @@ export function nextLevel(currentLevel, increment) {
 
 /**
  * Calculate upgrade from ranking positions
- * @param {string} mode - Game mode ('4', '6', or '8')
+ * @param {string|number} mode - Game mode ('4', '6', or '8')
  * @param {number[]} ranks - Sorted array of winning team's ranks
  * @param {Object} config - Game configuration object
  * @param {boolean} must1 - Whether position 1 is required for upgrade
@@ -139,16 +141,21 @@ export function nextLevel(currentLevel, increment) {
 export function calculateUpgrade(mode, ranks, config, must1 = true) {
   let upgrade = 0;
   let details = {};
+  const normalizedMode = normalizePlayerCountMode(mode);
+  if (!normalizedMode) {
+    console.error(`calculateUpgrade: invalid mode ${mode}`);
+    return { upgrade: 0, details: { error: 'invalid_mode', received: mode } };
+  }
 
   // Validate ranks length matches mode — silently producing upgrade=0 for short
   // arrays masks bugs in upstream collection.
-  const expectedLength = mode === '4' ? 2 : (mode === '6' ? 3 : 4);
+  const expectedLength = normalizedMode / 2;
   if (!Array.isArray(ranks) || ranks.length !== expectedLength) {
     console.error(`calculateUpgrade: mode ${mode} requires ${expectedLength} ranks, got`, ranks);
     return { upgrade: 0, details: { error: 'invalid_ranks_length', expected: expectedLength, received: ranks?.length } };
   }
 
-  if (mode === '4') {
+  if (normalizedMode === 4) {
     // 4-player mode: Use fixed upgrade table
     const key = `${ranks[0]},${ranks[1]}`;
     upgrade = config.c4[key] || 0;
@@ -157,7 +164,7 @@ export function calculateUpgrade(mode, ranks, config, must1 = true) {
       combination: key,
       upgradeTable: config.c4
     };
-  } else if (mode === '6') {
+  } else if (normalizedMode === 6) {
     // 6-player mode: Calculate score difference
     const ourScore = scoreSum(ranks, config.p6);
     const allPoints = [1, 2, 3, 4, 5, 6].map(r => config.p6[r] || 0);
@@ -180,7 +187,7 @@ export function calculateUpgrade(mode, ranks, config, must1 = true) {
       hasFirstPlace: ranks.indexOf(1) !== -1,
       thresholds: config.t6
     };
-  } else if (mode === '8') {
+  } else if (normalizedMode === 8) {
     // Special case: Complete sweep (1,2,3,4) grants 4-level upgrade
     if (
       ranks.length === 4 &&

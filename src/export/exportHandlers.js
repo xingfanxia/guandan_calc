@@ -8,6 +8,31 @@ import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
+import { EXPORT_FILE_SUFFIX, EXPORT_VERSION_LABEL } from './exportVersion.js';
+import {
+  getHistoryWinnerKey,
+  getHistoryWinnerName,
+  isVictoryEntry
+} from './historyEntryDisplay.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
+
+function rankCountForHistory(entry) {
+  return normalizePlayerCountMode(entry?.mode) || 0;
+}
+
+function playerRankingTextForHistory(entry) {
+  if (!entry?.playerRankings) return '';
+
+  const rankParts = [];
+  const rankCount = rankCountForHistory(entry);
+  for (let r = 1; r <= rankCount; r++) {
+    if (entry.playerRankings[r]) {
+      const p = entry.playerRankings[r];
+      rankParts.push(`${p.emoji || ''}${p.name || ''}`);
+    }
+  }
+  return rankParts.join(' ');
+}
 
 /**
  * CSV escape helper
@@ -42,7 +67,7 @@ export function exportTXT() {
   const strictA = config.getPreference('strictA');
 
   const lines = [
-    '掼蛋战绩导出（v9.0）',
+    `掼蛋战绩导出（${EXPORT_VERSION_LABEL}）`,
     '================',
     `当前本局级牌：${roundLevel}`,
     `下局预览：${nextRoundBase || '—'}`,
@@ -54,27 +79,17 @@ export function exportTXT() {
   ];
 
   history.forEach((h, i) => {
-    // Build player ranking string
-    let playerRankStr = '';
-    if (h.playerRankings) {
-      const rankParts = [];
-      for (let r = 1; r <= parseInt(h.mode); r++) {
-        if (h.playerRankings[r]) {
-          const p = h.playerRankings[r];
-          rankParts.push(p.emoji + p.name);
-        }
-      }
-      playerRankStr = rankParts.join(' ');
-    }
+    const winnerName = getHistoryWinnerName(h);
+    const playerRankStr = playerRankingTextForHistory(h);
 
-    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
-    lines.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote].join(' | '));
+    const upgradeStr = h.up ? `${winnerName} 升${h.up}级` : (isVictoryEntry(h) ? `${winnerName}获胜` : '不升级');
+    lines.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, winnerName, h.t1, h.t2, h.round, h.aNote].join(' | '));
   });
 
   const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = '掼蛋战绩_v9.txt';
+  a.download = `掼蛋战绩_${EXPORT_FILE_SUFFIX}.txt`;
   a.click();
 
   showExportMessage('已导出 TXT');
@@ -94,27 +109,18 @@ export function exportCSV() {
   ];
 
   history.forEach((h, i) => {
-    let playerRankStr = '';
-    if (h.playerRankings) {
-      const rankParts = [];
-      for (let r = 1; r <= parseInt(h.mode); r++) {
-        if (h.playerRankings[r]) {
-          const p = h.playerRankings[r];
-          rankParts.push(p.emoji + p.name);
-        }
-      }
-      playerRankStr = rankParts.join(' ');
-    }
+    const winnerName = getHistoryWinnerName(h);
+    const playerRankStr = playerRankingTextForHistory(h);
 
-    const upgradeStr = h.up ? `${h.win} 升${h.up}级` : (h.aNote && h.aNote.includes('通关') ? `${h.win}获胜` : '不升级');
-    rows.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote, strictA ? '严格' : '宽松']);
+    const upgradeStr = h.up ? `${winnerName} 升${h.up}级` : (isVictoryEntry(h) ? `${winnerName}获胜` : '不升级');
+    rows.push([i + 1, h.ts, h.mode, h.combo, playerRankStr, upgradeStr, winnerName, h.t1, h.t2, h.round, h.aNote, strictA ? '严格' : '宽松']);
   });
 
   const lines = rows.map(r => r.map(csvEscape).join(',')).join('\n');
   const blob = new Blob([lines], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = '掼蛋战绩_v9.csv';
+  a.download = `掼蛋战绩_${EXPORT_FILE_SUFFIX}.csv`;
   a.click();
 
   showExportMessage('已导出 CSV');
@@ -155,7 +161,7 @@ export function exportLongPNG() {
   // Header
   ctx.fillStyle = palette.ink;
   ctx.font = 'bold 48px Arial';
-  ctx.fillText('掼蛋战绩总览 v9.0', 40, 70);
+  ctx.fillText(`掼蛋战绩总览 ${EXPORT_VERSION_LABEL}`, 40, 70);
 
   ctx.font = '20px Arial';
   ctx.fillStyle = palette.inkDim;
@@ -176,27 +182,18 @@ export function exportLongPNG() {
   ctx.font = '14px Arial';
   history.forEach((h, i) => {
     const y = headH + (i + 1) * rowH;
+    const winnerKey = getHistoryWinnerKey(h);
+    const winnerName = getHistoryWinnerName(h);
 
     // Row background
-    const winColor = h.winKey === 't1' ? t1Color : t2Color;
+    const winColor = winnerKey === 't1' ? t1Color : t2Color;
     ctx.fillStyle = winColor + '10';
     ctx.fillRect(0, y - rowH + 10, W, rowH);
 
-    // Player ranking string
-    let playerRankStr = '';
-    if (h.playerRankings) {
-      const rankParts = [];
-      for (let r = 1; r <= 8; r++) {
-        if (h.playerRankings[r]) {
-          const p = h.playerRankings[r];
-          rankParts.push(p.emoji + p.name);
-        }
-      }
-      playerRankStr = rankParts.join(' ');
-    }
+    const playerRankStr = playerRankingTextForHistory(h);
 
-    const upgradeStr = h.up ? `${h.win} 升${h.up}` : '不升';
-    const vals = [i + 1, h.ts.substring(0, 16), h.mode, h.combo, playerRankStr, upgradeStr, h.win, h.t1, h.t2, h.round, h.aNote || ''];
+    const upgradeStr = h.up ? `${winnerName} 升${h.up}` : (isVictoryEntry(h) ? `${winnerName}获胜` : '不升');
+    const vals = [i + 1, h.ts.substring(0, 16), h.mode, h.combo, playerRankStr, upgradeStr, winnerName, h.t1, h.t2, h.round, h.aNote || ''];
 
     // Draw text
     ctx.fillStyle = palette.ink;
@@ -208,7 +205,7 @@ export function exportLongPNG() {
   // Download
   const a = document.createElement('a');
   a.href = longCnv.toDataURL('image/png');
-  a.download = '掼蛋战绩_v9.png';
+  a.download = `掼蛋战绩_${EXPORT_FILE_SUFFIX}.png`;
   a.click();
 
   showExportMessage('已导出 PNG');

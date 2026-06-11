@@ -2,47 +2,77 @@
 // POST /api/players/migrate-single with { handle: "fufu" }
 
 import { kv } from '@vercel/kv';
-import { initializePlayerStats } from './_utils.js';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { initializePlayerStats, normalizeRecordMap, parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
+import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
+import { normalizeHonorCounter } from '../../shared/honorCatalog.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
-    const { handle } = await request.json();
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+
+    const { handle, adminToken } = parsedBody.data;
+
+    if (!validateAdminToken(adminToken)) {
+      return jsonResponse({
+        error: 'Unauthorized - Invalid admin token'
+      }, { ...RESPONSE_OPTIONS, status: 403 });
+    }
 
     if (!handle) {
-      return new Response(JSON.stringify({ error: 'Missing handle' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Missing handle' }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+
+    if (!validateHandle(handle)) {
+      return jsonResponse({ error: 'Invalid handle format' }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     // Get player
     const playerData = await kv.get(`player:${handle.toLowerCase()}`);
     if (!playerData) {
-      return new Response(JSON.stringify({ error: 'Player not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
 
-    const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+    const player = parsePlayerRecord(playerData);
+    if (!player) {
+      return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
+    }
+    const honorsBefore = JSON.stringify(player.stats?.honors || null);
+    let statsInitialized = false;
+    if (!player.stats || typeof player.stats !== 'object') {
+      player.stats = initializePlayerStats();
+      statsInitialized = true;
+    }
+    player.stats.honors = normalizeHonorCounter(player.stats.honors);
+    const normalizedSessionHistory = normalizeRecordMap(player.stats.sessionHistory);
+    const sessionHistoryChanged = normalizedSessionHistory !== player.stats.sessionHistory;
+    player.stats.sessionHistory = normalizedSessionHistory;
+    const honorsChanged = honorsBefore !== JSON.stringify(player.stats.honors);
 
     // Check if already migrated
     if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-      return new Response(JSON.stringify({
+      if (statsInitialized || honorsChanged || sessionHistoryChanged) {
+        await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
+      }
+      return jsonResponse({
         success: true,
         message: 'Already migrated',
+        normalizedHonors: statsInitialized || honorsChanged,
+        normalizedSessionHistory: statsInitialized || sessionHistoryChanged,
         breakdown: player.stats.modeBreakdown
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-      });
+      }, RESPONSE_OPTIONS);
     }
 
     // Initialize mode stats
@@ -56,69 +86,22 @@ export default async function handler(request) {
 
     // Process recent games
     if (player.recentGames && Array.isArray(player.recentGames)) {
-      player.recentGames.forEach(game => {
-        const mode = game.mode;
-        if (!mode) return;
-
-        const modeStats = player.stats[`stats${mode}`];
-        if (!modeStats) return;
-
-        migratedGames++;
-        modeStats.sessionsPlayed++;
-        if (game.teamWon) modeStats.sessionsWon++;
-
-        modeStats.sessionWinRate = modeStats.sessionsWon / modeStats.sessionsPlayed;
-
-        const prevTotal = modeStats.avgRankingPerSession * (modeStats.sessionsPlayed - 1);
-        modeStats.avgRankingPerSession = (prevTotal + game.ranking) / modeStats.sessionsPlayed;
-
-        if (game.rounds) {
-          modeStats.roundsPlayed += game.rounds;
-          const prevRoundsTotal = modeStats.avgRoundsPerSession * (modeStats.sessionsPlayed - 1);
-          modeStats.avgRoundsPerSession = (prevRoundsTotal + game.rounds) / modeStats.sessionsPlayed;
-
-          if (game.rounds > modeStats.longestSessionRounds) {
-            modeStats.longestSessionRounds = game.rounds;
-          }
-        }
-
-        if (game.duration) {
-          modeStats.totalPlayTimeSeconds += game.duration;
-          if (game.duration > modeStats.longestSessionSeconds) {
-            modeStats.longestSessionSeconds = game.duration;
-          }
-          modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
-        }
-
-        modeStats.recentRankings = modeStats.recentRankings || [];
-        modeStats.recentRankings.push(game.relativeRank || Math.round(game.ranking));
-        if (modeStats.recentRankings.length > 10) {
-          modeStats.recentRankings = modeStats.recentRankings.slice(-10);
-        }
-
-        player.stats.modeBreakdown[mode]++;
-      });
+      migratedGames = applyLegacyRecentGamesToModeStats(player);
     }
 
     // Save
     await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       handle,
       migratedGames,
       breakdown: player.stats.modeBreakdown
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Migration error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: error.message }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

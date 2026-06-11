@@ -6,6 +6,7 @@
 import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 // Card-rank order. Index of the level → "RANK NN/13" position.
 const LEVELS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -110,9 +111,7 @@ export function renderTeams() {
   const history = state.getHistory();
   const roundCount = history.length + 1; // current round = past rounds + 1
 
-  const modeEl = $('mode');
-  const currentMode = modeEl ? modeEl.value : '4';
-  const aFailEnabled = currentMode === '4';
+  const aFailEnabled = config.getPreference('strictA');
 
   if (t1Lvl) t1Lvl.textContent = t1Level;
   if (t2Lvl) t2Lvl.textContent = t2Level;
@@ -149,7 +148,10 @@ export function renderTeams() {
   // Round level mirror (active-game header glyph) + label
   let roundTeamName = '';
   let roundTeamSide = ''; // 'red' or 'blue' for accent color
-  if (String(roundLevel) === String(t1Level) && String(roundLevel) !== String(t2Level)) {
+  if (roundOwner === 't1' || roundOwner === 't2') {
+    roundTeamName = config.getTeamName(roundOwner);
+    roundTeamSide = roundOwner === 't1' ? 'blue' : 'red';
+  } else if (String(roundLevel) === String(t1Level) && String(roundLevel) !== String(t2Level)) {
     roundTeamName = config.getTeamName('t1');
     roundTeamSide = 'blue';
   } else if (String(roundLevel) === String(t2Level) && String(roundLevel) !== String(t1Level)) {
@@ -216,13 +218,16 @@ export function updateRuleHint(mode) {
   if (!ruleHint) return;
 
   const cfg = config.getAll();
+  const modeKey = normalizePlayerCountMode(mode);
 
-  if (mode === '4') {
+  if (modeKey === 4) {
     ruleHint.textContent = `4人：固定表 (${cfg.c4['1,2']},${cfg.c4['1,3']},${cfg.c4['1,4']})`;
-  } else if (mode === '6') {
+  } else if (modeKey === 6) {
     ruleHint.textContent = `6人：分差≥${cfg.t6.g3} 升3；≥${cfg.t6.g2} 升2；≥${cfg.t6.g1} 升1`;
-  } else {
+  } else if (modeKey === 8) {
     ruleHint.textContent = `8人：分差≥${cfg.t8.g3} 升3；≥${cfg.t8.g2} 升2；≥${cfg.t8.g1} 升1`;
+  } else {
+    ruleHint.textContent = '模式无效，请重新选择游戏人数';
   }
 }
 

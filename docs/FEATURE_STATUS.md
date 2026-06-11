@@ -37,7 +37,7 @@
 - [x] 8-player mode with sweep bonus
 - [x] Level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
 - [x] A-level rules (strict/lenient modes)
-- [x] **A-fail counter / demotion** — 4-player only since 2026-05; 6/8 modes simplified to "keep playing until win at own A"
+- [x] **A-fail counter / demotion** — strict mode across 4/6/8; third own-A failure demotes only that team to 2
 - [x] Configurable scoring rules
 
 ### Player System (100%)
@@ -49,21 +49,16 @@
 - [x] Smart reset (preserve players, clear game)
 
 ### Honor System (100%)
-14 data-driven honors with clickable explanations:
-- [x] 吕布 - First place ratio with reliability threshold
-- [x] 阿斗 - Last place ratio with consecutive penalty
-- [x] 石佛 - Excellence + stability (top 25%, low variance)
-- [x] 波动王 - High variance + extreme range bonus
-- [x] 奋斗王 - Progressive improvement (3-segment trend)
-- [x] 辅助王 - Team support in bottom-half during wins
-- [x] 翻车王 - Dramatic drops (top 3 to last)
-- [x] 赌徒 - High risk/reward (high first + high last)
-- [x] 大满贯 - Experience all ranking positions
-- [x] 连胜王 - Longest consecutive top-half streak
-- [x] 佛系玩家 - Closest to median ranking
-- [x] 守门员 - Prevent last place during team losses
-- [x] 慢热王 - Poor start but strong finish
-- [x] 闪电侠 - Most frequent position changes
+16 full-session honors with clickable explanations. Honors stay in progress
+until at least 5 rounds of ranking evidence exist, preventing small-sample
+labels from being treated as full-session awards:
+- [x] 吕布 / 阿斗 - full-session dominance and burden scores
+- [x] 石佛 / 团队中轴 - high-position stability and teammate-relative anchor impact
+- [x] 波动王 / 节奏核心 - volatility/rank range, and team-leading tempo pressure
+- [x] 奋斗王 / 逆转核心 / 燃尽王 - early-to-late climb, comeback, and burnout arcs
+- [x] 翻车王 / 赌徒 - crash and extreme-risk patterns
+- [x] 大满贯 / 连段王 / 保底核心 - rank coverage, top-half streaks, and no-last team safety net
+- [x] 棋差一着 / 抗压王 - repeated second-place without firsts, and rebounds after pressure rounds
 
 ### Real-Time Rooms (100%)
 - [x] 6-digit room codes (A1B2C3 format)
@@ -72,6 +67,7 @@
 - [x] Viewer polling every 5 seconds
 - [x] State recovery on page refresh
 - [x] Host/viewer mode distinction
+- [x] Custom scoring rule tables sync through room/share snapshots and reject malformed rule settings at API/client boundaries
 
 ### Favorites System (100%)
 - [x] Room favoriting with 1-year TTL
@@ -90,7 +86,7 @@
 - [x] CSV export for spreadsheets
 - [x] Desktop PNG (wide format)
 - [x] Mobile PNG (600px, optimized)
-- [x] All 14 honors in exports
+- [x] All 16 honors in exports
 - [x] Theme-aware PNG palette (2026-05-05) — exports use the active theme's CSS custom properties
 
 ### Visual Regression CI (100%) 🆕
@@ -183,8 +179,8 @@ See [PLAYER_PROFILE_ARCHITECTURE.md](./architecture/PLAYER_PROFILE_ARCHITECTURE.
 - [x] Dual stat tracking (sessions + rounds)
 - [x] Time tracking (total, longest, average)
 - [x] Career stats with session history
-- [x] Honor collection (all 14 honors synced)
-- [x] Achievement system (20 badges auto-unlock)
+- [x] Honor collection (all 16 honors synced)
+- [x] Achievement system (17 active badges auto-unlock)
 - [x] Game history with room links
 - [x] Player browser (`/players.html`)
 - [x] Individual profile pages (`/player-profile.html`)

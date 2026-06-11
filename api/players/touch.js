@@ -2,69 +2,72 @@
 // Called when a player is added to a game
 
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { parsePlayerRecord, validateHandle } from './_utils.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   // Only allow POST requests
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
     // Parse request body
-    const { handle } = await request.json();
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+    const { handle } = parsedBody.data;
 
     if (!handle) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Missing handle'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+
+    if (!validateHandle(handle)) {
+      return jsonResponse({
+        error: 'Invalid handle format'
+      }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     // Get player data
     const playerData = await kv.get(`player:${handle.toLowerCase()}`);
 
     if (!playerData) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Player not found'
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 404 });
     }
 
-    // Parse and update lastActiveAt
-    const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+    const player = parsePlayerRecord(playerData);
+    if (!player) {
+      return jsonResponse({
+        error: 'Player not found'
+      }, { ...RESPONSE_OPTIONS, status: 404 });
+    }
+
+    // Update lastActiveAt
     player.lastActiveAt = new Date().toISOString();
 
     // Save back to KV
     await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       lastActiveAt: player.lastActiveAt
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Failed to update lastActiveAt:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

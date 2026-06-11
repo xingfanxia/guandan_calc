@@ -7,6 +7,16 @@ import { $, on, escapeHtml } from '../core/utils.js';
 let searchTimeout = null;
 let onPlayerSelectedCallback = null;
 let onCreatePlayerCallback = null;
+let latestSearchRequestId = 0;
+
+function toFiniteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function formatInteger(value, fallback = 0) {
+  return String(Math.round(toFiniteNumber(value, fallback)));
+}
 
 /**
  * Initialize player search UI
@@ -25,6 +35,7 @@ export function initializePlayerSearch(onPlayerSelected, onCreatePlayer) {
     // Real-time search with debounce
     on(searchInput, 'input', () => {
       clearTimeout(searchTimeout);
+      latestSearchRequestId++;
       searchTimeout = setTimeout(() => {
         performSearch(searchInput.value);
       }, 300); // 300ms debounce
@@ -60,12 +71,14 @@ export function initializePlayerSearch(onPlayerSelected, onCreatePlayer) {
 async function performSearch(query) {
   const resultsContainer = $('playerSearchResults');
   if (!resultsContainer) return;
+  const requestId = ++latestSearchRequestId;
 
   // Show loading state
   resultsContainer.innerHTML = '<div class="small muted">搜索中...</div>';
 
   try {
     const { players, total } = await searchPlayers(query, 20);
+    if (requestId !== latestSearchRequestId) return;
 
     if (players.length === 0) {
       resultsContainer.innerHTML = `
@@ -79,10 +92,11 @@ async function performSearch(query) {
     // Render results
     renderSearchResults(players, resultsContainer);
   } catch (error) {
+    if (requestId !== latestSearchRequestId) return;
     console.error('Search error:', error);
     resultsContainer.innerHTML = `
       <div class="small" style="color: #ef4444;">
-        搜索失败: ${error.message}
+        搜索失败: ${escapeHtml(error.message)}
       </div>
     `;
   }
@@ -97,6 +111,7 @@ function renderSearchResults(players, container) {
   container.innerHTML = '';
 
   players.forEach(player => {
+    const playerStats = player.stats || {};
     const playerItem = document.createElement('div');
     playerItem.className = 'player-search-item';
     playerItem.style.cssText = `
@@ -121,7 +136,7 @@ function renderSearchResults(players, container) {
           <span style="color: #888; font-weight: normal; font-size: 0.9em;">@${escapeHtml(player.handle)}</span>
         </div>
         <div style="font-size: 0.85em; color: #888;">
-          ${escapeHtml(getPlayStyleLabel(player.playStyle))} · ${escapeHtml(player.stats.gamesPlayed)} 场游戏
+          ${escapeHtml(getPlayStyleLabel(player.playStyle))} · ${formatInteger(playerStats.sessionsPlayed || playerStats.gamesPlayed, 0)} 场游戏
         </div>
       </div>
       <button class="select-player-btn" style="padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">
@@ -155,6 +170,10 @@ function renderSearchResults(players, container) {
  * Clear search results
  */
 export function clearSearchResults() {
+  clearTimeout(searchTimeout);
+  searchTimeout = null;
+  latestSearchRequestId++;
+
   const resultsContainer = $('playerSearchResults');
   if (resultsContainer) {
     resultsContainer.innerHTML = '';
@@ -172,10 +191,12 @@ export function clearSearchResults() {
 export async function showInitialPlayers() {
   const resultsContainer = $('playerSearchResults');
   if (!resultsContainer) return;
+  const requestId = ++latestSearchRequestId;
 
   try {
     // Show most recent players as default
     const { players } = await searchPlayers('', 10);
+    if (requestId !== latestSearchRequestId) return;
 
     if (players.length > 0) {
       resultsContainer.innerHTML = '<div class="small muted" style="margin-bottom: 8px;">最近创建的玩家:</div>';
@@ -186,6 +207,7 @@ export async function showInitialPlayers() {
       resultsContainer.innerHTML = '<div class="small muted">暂无玩家，点击"创建玩家"开始</div>';
     }
   } catch (error) {
+    if (requestId !== latestSearchRequestId) return;
     console.error('Failed to load initial players:', error);
   }
 }

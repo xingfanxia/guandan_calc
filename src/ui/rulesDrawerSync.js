@@ -12,11 +12,11 @@
 import { $ } from '../core/utils.js';
 import { on as onEvent } from '../core/events.js';
 import config from '../core/config.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 function currentMode() {
   const el = $('mode');
-  const n = el ? parseInt(el.value, 10) : 4;
-  return Number.isFinite(n) ? n : 4;
+  return normalizePlayerCountMode(el ? el.value : 4);
 }
 
 function makeChip(keyText, valText) {
@@ -48,6 +48,12 @@ export function renderRulesDrawerChips() {
 
   const mode = currentMode();
   target.replaceChildren();
+
+  if (!mode) {
+    target.appendChild(makeChip('mode:', '无效'));
+    target.appendChild(makeChip('rules:', '请重新选择模式'));
+    return;
+  }
 
   if (mode === 4) {
     const c4 = config.get4PlayerRules();

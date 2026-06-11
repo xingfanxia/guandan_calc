@@ -96,7 +96,7 @@ await page.evaluate(async () => {
     [3, 3, 3, 3, 3, 3, 3, 3], // player 2: stable middle (石佛)
     [2, 4, 1, 5, 2, 1, 4, 6], // player 3: volatile (波动王)
     [5, 6, 4, 4, 5, 2, 2, 1], // player 4: improving (奋斗王)
-    [6, 1, 5, 2, 4, 6, 5, 4]  // player 5: chaotic (闪电侠)
+    [1, 2, 3, 2, 1, 3, 2, 1]  // player 5: team-leading tempo pressure (节奏核心)
   ];
 
   const players = playerMgrMod.getPlayers();

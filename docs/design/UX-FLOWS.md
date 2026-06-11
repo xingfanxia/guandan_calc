@@ -199,7 +199,7 @@ A compact preview labeled "示例 · 通关时刻" (Sample · Championship Momen
 Most honors aren't earned yet — show a "进行中" (in-progress) indicator on the gallery with current candidates:
 - 吕布 (most 1st): 阿伟 leading (2/4 1sts)
 - 阿斗 (most last): TBD
-- 闪电侠 (rank changes): 老张 leading (rank changed 3/4 rounds)
+- 节奏核心 (team-leading tempo pressure): 老张 leading (team context)
 - (others: 进行中 placeholder)
 
 ### Player profile snippet (for 阿伟 @awei — career stats)

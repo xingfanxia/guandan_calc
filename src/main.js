@@ -7,10 +7,15 @@
 import { $, on } from './core/utils.js';
 import state from './core/state.js';
 import config from './core/config.js';
-import { on as onEvent, emit } from './core/events.js';
+import { on as onEvent } from './core/events.js';
 
 // Controllers (NEW - extracted for maintainability)
-import { setupGameControls, attachTouchHandlersToAllTiles } from './controllers/gameControls.js';
+import {
+  setupGameControls,
+  attachTouchHandlersToAllTiles,
+  applyCalculatedRankingResult,
+  resetMatchAndSync
+} from './controllers/gameControls.js';
 import { setupPlayerControls } from './controllers/playerControls.js';
 import { setupExportControls } from './controllers/exportControls.js';
 import { setupRoomControls } from './controllers/roomControls.js';
@@ -35,27 +40,25 @@ import {
 } from './ranking/rankingRenderer.js';
 import {
   checkAutoCalculate,
-  calculateFromRanking,
-  getPlayerRankingData
+  calculateFromRanking
 } from './ranking/rankingCalculator.js';
-import { clearRanking as clearRankingState, getRanking } from './ranking/rankingManager.js';
+import { getRanking } from './ranking/rankingManager.js';
 
 // Statistics and UI
-import { renderStatistics, updatePlayerStats } from './stats/statistics.js';
-import { renderHonors, calculateHonors } from './stats/honors.js';
+import { renderStatistics } from './stats/statistics.js';
+import { renderHonors } from './stats/honors.js';
 import { applyTeamStyles, renderTeams, updateRuleHint } from './ui/teamDisplay.js';
-import { closeVictoryModal, showVictoryModal, getVotingResults } from './ui/victoryModal.js';
+import { closeVictoryModal } from './ui/victoryModal.js';
 
 // Share and room features
 import {
   checkURLForRoom,
-  getRoomInfo
+  getRoomInfo,
+  syncNow
 } from './share/roomManager.js';
 import { loadFromShareURL } from './share/shareManager.js';
 import { initializeViewerVotingSection } from './share/votingManager.js';
 import { showRoomUI, showHostBanner, showViewerBanner, disableViewerControls } from './share/roomUI.js';
-import { scheduleAutoVotingSync } from './share/votingSync.js';
-import { syncProfileStats } from './api/playerApi.js';
 
 // UI management
 import { lockTeamAssignmentPanel, unlockTeamAssignmentPanel, showCompactTeamRoster } from './ui/panelManager.js';
@@ -63,6 +66,7 @@ import { initTickerSync } from './ui/tickerSync.js';
 import { initCalcPreviewSync, renderCalcPreview } from './ui/calcPreviewSync.js';
 import { initRulesDrawerSync, renderRulesDrawerChips } from './ui/rulesDrawerSync.js';
 import { initSetupVisibility } from './ui/setupVisibility.js';
+import { resolveInitialPlayerCountMode } from './core/playerCountMode.js';
 
 // Theme system
 import * as themeManager from './themes/_shared/themeManager.js';
@@ -85,7 +89,7 @@ async function init() {
     themeManager.register(tradingTheme);
     themeManager.register(atelierTheme);
     themeManager.register(teatableTheme);
-    await themeManager.mount(themeManager.resolveBootTheme('broadcast'));
+    await themeManager.mount(themeManager.resolveBootTheme('linear'));
 
     // Check for room in URL first
     const isRoomMode = await checkURLForRoom();
@@ -220,7 +224,7 @@ function setupModuleEventHandlers() {
     renderTeamRosters();
     attachTouchHandlersToAllTiles();
 
-    const mode = parseInt($('mode').value);
+    const mode = $('mode').value;
     const check = checkAutoCalculate(mode);
 
     if (check.shouldCalculate) {
@@ -255,7 +259,7 @@ function setupModuleEventHandlers() {
         }
 
         if (explain) {
-          explain.textContent = result.calcResult.mode === '4'
+          explain.textContent = String(result.calcResult.mode) === '4'
             ? `4人表：(1,2)=${config.get4PlayerRules()['1,2']}；(1,3)=${config.get4PlayerRules()['1,3']}；(1,4)=${config.get4PlayerRules()['1,4']}`
             : '分差与资格规则已计算';
         }
@@ -267,79 +271,7 @@ function setupModuleEventHandlers() {
 
         // Auto-apply if enabled
         if (config.getPreference('autoApply')) {
-          const playerRankingData = getPlayerRankingData();
-
-          // Merge ranks into calcResult for applyGameResult
-          const fullCalcResult = {
-            ...result.calcResult,
-            ranks: result.ranks,
-            mode: String(mode)
-          };
-
-          const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
-
-          if (applyResult && applyResult.applied) {
-            updatePlayerStats(parseInt(mode));
-            clearRankingState();
-
-            const applyTip = $('applyTip');
-            if (applyTip) applyTip.textContent = applyResult.message;
-
-            renderTeams();
-            renderHistory();
-            renderStatistics();
-
-            console.log('Game applied, finalWin:', applyResult.finalWin);
-
-            // Handle final win (A-level victory)
-            if (applyResult.finalWin) {
-              console.log('🎉 Final win detected! Showing victory modal...');
-
-              // Show victory celebration first (await to fetch current profile)
-              await showVictoryModal(winnerName);
-
-              // Schedule auto-sync of voting results (5 minutes)
-              scheduleAutoVotingSync();
-
-              // Snapshot all state SYNCHRONOUSLY before the 2-second timeout.
-              // Without this, a user clicking Undo / Reset / Apply during the wait
-              // would cause syncProfileStats to read the post-mutation values
-              // (wrong stats credited to the wrong session).
-              const capturedMode = parseInt(mode);
-              const capturedHistoryEntry = JSON.parse(JSON.stringify(applyResult.historyEntry));
-              const capturedRoomInfo = getRoomInfo();
-              const capturedPlayers = getPlayers().map(p => ({ ...p }));
-              const capturedStats = JSON.parse(JSON.stringify(state.getPlayerStats()));
-
-              setTimeout(() => {
-                const sessionHonors = calculateHonors(capturedMode);
-                const votingResults = getVotingResults();
-
-                let sessionDuration = capturedHistoryEntry.sessionDuration || 0;
-                if (capturedRoomInfo.createdAt && capturedRoomInfo.finishedAt) {
-                  sessionDuration = Math.floor(
-                    (new Date(capturedRoomInfo.finishedAt).getTime() - new Date(capturedRoomInfo.createdAt).getTime()) / 1000
-                  );
-                  console.log(`✅ Calculated session duration from room: ${sessionDuration}s`);
-                }
-
-                const historyWithDuration = {
-                  ...capturedHistoryEntry,
-                  sessionDuration
-                };
-
-                syncProfileStats(
-                  historyWithDuration,
-                  capturedRoomInfo.roomCode || 'LOCAL',
-                  capturedPlayers,
-                  capturedStats,
-                  sessionHonors,
-                  votingResults,
-                  capturedRoomInfo.authToken || null  // host-only; viewers/LOCAL get null
-                );
-              }, 2000);
-            }
-          }
+          await applyCalculatedRankingResult(result, mode);
         }
       }
     } else {
@@ -373,21 +305,21 @@ function setupModuleEventHandlers() {
   onEvent('player:generated', () => {
     renderPlayers();
     attachTouchHandlersToAllTiles();
-    const mode = parseInt($('mode').value);
+    const mode = $('mode').value;
     renderRankingArea(mode);
   });
 
   onEvent('player:teamAssigned', () => {
     renderPlayers();
     attachTouchHandlersToAllTiles();
-    const mode = parseInt($('mode').value);
+    const mode = $('mode').value;
     renderRankingArea(mode);
   });
 
   onEvent('player:teamsShuffled', () => {
     renderPlayers();
     attachTouchHandlersToAllTiles();
-    const mode = parseInt($('mode').value);
+    const mode = $('mode').value;
     renderRankingArea(mode);
   });
 
@@ -400,7 +332,7 @@ function setupModuleEventHandlers() {
   onEvent('player:addedFromProfile', () => {
     renderPlayers();
     attachTouchHandlersToAllTiles();
-    const mode = parseInt($('mode').value);
+    const mode = $('mode').value;
     renderRankingArea(mode);
   });
 
@@ -409,7 +341,7 @@ function setupModuleEventHandlers() {
     if (success) {
       renderPlayers();
       attachTouchHandlersToAllTiles();
-      const mode = parseInt($('mode').value);
+      const mode = $('mode').value;
       renderRankingArea(mode);
     }
   });
@@ -464,13 +396,15 @@ function setupModuleEventHandlers() {
     if (history.length === 0) {
       unlockTeamAssignmentPanel();
     }
+
+    syncNow();
   });
 
   // Room events
   onEvent('room:updated', () => {
     // Viewer received update from host - refresh all UI
 
-    const mode = parseInt($('mode').value);
+    const { mode } = resolveAndSyncActiveMode();
 
     renderTeams();
     applyTeamStyles();
@@ -505,6 +439,21 @@ function setupModuleEventHandlers() {
 
 // attachTouchHandlersToAllTiles is now imported from controllers/gameControls.js
 
+function resolveAndSyncActiveMode() {
+  const players = getPlayers();
+  const modeElement = $('mode');
+  const mode = resolveInitialPlayerCountMode(modeElement?.value, players);
+  const modeValue = String(mode);
+
+  if (modeElement && modeElement.value !== modeValue) {
+    modeElement.value = modeValue;
+    updateRuleHint(modeValue);
+    updateBulkNamesPlaceholder(modeValue);
+  }
+
+  return { mode, modeValue, players };
+}
+
 /**
  * Render initial application state
  */
@@ -514,8 +463,7 @@ function renderInitialState() {
   applyTeamStyles();
 
   // Generate or load players
-  const mode = parseInt($('mode').value);
-  const players = getPlayers();
+  const { mode, modeValue, players } = resolveAndSyncActiveMode();
 
   // Only auto-generate if no players exist AND not in room/share mode
   // Allow users to start with empty state for profile selection
@@ -524,7 +472,7 @@ function renderInitialState() {
     renderPlayers(); // Render empty state
   } else if (players.length !== mode) {
     // Player count mismatch - regenerate
-    generatePlayers(mode, false);
+    generatePlayers(modeValue, false);
   } else {
     renderPlayers();
   }
@@ -569,11 +517,7 @@ if (document.readyState === 'loading') {
 if (typeof window !== 'undefined') {
   window.closeVictoryModal = closeVictoryModal;
   window.resetAll = () => {
-    const result = resetAll(true);
-    if (result.success) {
-      renderInitialState();
-      closeVictoryModal();
-    }
+    resetMatchAndSync(renderInitialState);
   };
 
   // Debug interface
@@ -593,10 +537,14 @@ if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js')
         .then(registration => {
-          console.log('✅ PWA Service Worker registered:', registration.scope);
+          if (registration?.scope) {
+            console.log('✅ PWA Service Worker registered:', registration.scope);
+          } else {
+            console.warn('PWA Service Worker registration completed without scope');
+          }
         })
         .catch(error => {
-          console.error('❌ Service Worker registration failed:', error);
+          console.warn('PWA Service Worker registration unavailable:', error);
         });
     });
   }

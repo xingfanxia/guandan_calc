@@ -2,37 +2,44 @@
 // Use with caution - permanent deletion
 
 import { kv } from '@vercel/kv';
-import { validateAdminToken } from './_utils.js';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   // Only allow POST requests (safer than DELETE)
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
-    const { handle, adminToken } = await request.json();
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+    const { handle, adminToken } = parsedBody.data;
 
     if (!handle) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Missing handle'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     // Admin auth — token validated against ADMIN_TOKEN env var with constant-time compare
     if (!validateAdminToken(adminToken)) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Unauthorized - Invalid admin token'
-      }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 403 });
+    }
+
+    if (!validateHandle(handle)) {
+      return jsonResponse({
+        error: 'Invalid handle format'
+      }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     const normalizedHandle = handle.toLowerCase();
@@ -40,15 +47,17 @@ export default async function handler(request) {
     // Get player to find ID
     const playerData = await kv.get(`player:${normalizedHandle}`);
     if (!playerData) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Player not found'
-      }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 404 });
     }
 
-    const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+    const player = parsePlayerRecord(playerData);
+    if (!player) {
+      return jsonResponse({
+        error: 'Player not found'
+      }, { ...RESPONSE_OPTIONS, status: 404 });
+    }
 
     // Delete player data
     await kv.del(`player:${normalizedHandle}`);
@@ -58,27 +67,16 @@ export default async function handler(request) {
       await kv.del(`player_id:${player.id}`);
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       deletedPlayer: player.handle
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Failed to delete player:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

@@ -64,6 +64,7 @@ export function initSetupVisibility() {
     'ranking:cleared',
     'ranking:randomized',
     'ranking:updated',
+    'state:currentRankingChanged',
     'game:rollback',
     'game:reset'
   ];

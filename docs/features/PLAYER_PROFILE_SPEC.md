@@ -47,22 +47,30 @@ Transform Guandan Calculator from a session-based tool into a **persistent gamin
     // Recent form (last 10 games)
     recentRankings: [1, 2, 1, 3, 1, 2, 2, 1, 3, 1],
 
-    // Honor counts (all 14 honors)
+    // Community voting and completed-session idempotency
+    mvpVotes: 12,
+    burdenVotes: 2,
+    votingHistory: {},
+    sessionHistory: {},
+
+    // Honor counts (all 16 honors)
     honors: {
       "吕布": 3,
       "阿斗": 0,
       "石佛": 2,
       "波动王": 1,
       "奋斗王": 0,
-      "辅助王": 4,
+      "逆转核心": 1,
       "翻车王": 1,
       "赌徒": 2,
       "大满贯": 1,
-      "连胜王": 5,
-      "佛系玩家": 3,
-      "守门员": 2,
-      "慢热王": 1,
-      "闪电侠": 4
+      "连段王": 5,
+      "团队中轴": 3,
+      "保底核心": 2,
+      "节奏核心": 4,
+      "燃尽王": 1,
+      "棋差一着": 2,
+      "抗压王": 0
     },
 
     // Streak tracking
@@ -82,7 +90,7 @@ Transform Guandan Calculator from a session-based tool into a **persistent gamin
       team: 1,
       teamWon: true,
       levelChange: "+3",
-      honorsEarned: ["吕布", "连胜王"]
+      honorsEarned: ["吕布", "连段王"]
     }
     // ... last 20 games
   ]
@@ -168,11 +176,37 @@ Query params:
 Response:
 ```json
 {
-  "players": [...],
+  "players": [
+    {
+      "id": "PLR_ABC123",
+      "handle": "xiaoming",
+      "displayName": "小明",
+      "emoji": "🐶",
+      "playStyle": "steady",
+      "tagline": "稳扎稳打",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "lastActiveAt": "2026-01-02T00:00:00.000Z",
+      "stats": {
+        "sessionsPlayed": 12,
+        "sessionsWon": 7,
+        "sessionWinRate": 0.583,
+        "avgRankingPerSession": 3.25,
+        "gamesPlayed": 12,
+        "wins": 7,
+        "winRate": 0.583,
+        "avgRanking": 3.25
+      }
+    }
+  ],
   "total": 150,
   "hasMore": true
 }
 ```
+
+List/search returns compact summaries only. It does not include large or
+detailed fields like `photoBase64`, `recentGames`, achievements, voting
+history, or partner/opponent maps. Use `GET /api/players/[handle]` for the full
+profile when adding a selected player to a session.
 
 ##### GET `/api/players/[handle]`
 
@@ -191,7 +225,7 @@ Request:
   "team": 1,
   "teamWon": true,
   "levelChange": "+3",
-  "honorsEarned": ["吕布", "连胜王"],
+  "honorsEarned": ["吕布", "连段王"],
   "mode": "4P"
 }
 ```
@@ -278,8 +312,8 @@ Response:
       tagline: "运筹帷幄，决胜千里"
     },
     playerHonors: {
-      "PLR_X7K2M9": ["吕布", "连胜王"],
-      "PLR_ABC123": ["辅助王"]
+      "PLR_X7K2M9": ["吕布", "连段王"],
+      "PLR_ABC123": ["逆转核心"]
     }
   }
 }
@@ -346,12 +380,12 @@ Response:
 │                                                             │
 │  ══════════════════════════════════════════════════════════│
 │                                                             │
-│  📊 生涯数据                     🏆 荣誉收集 (8/14)         │
+│  📊 生涯数据                     🏆 荣誉收集 (8/16)         │
 │  ┌────────────────────┐         ┌────────────────────┐     │
 │  │ 场次: 142          │         │ 吕布 ×3  石佛 ×2   │     │
-│  │ 胜场: 83 (58.4%)   │         │ 连胜王 ×5 大满贯 ×1│     │
-│  │ 平均名次: 2.3      │         │ 闪电侠 ×4          │     │
-│  │ 连胜纪录: 7        │         │ 🔒 未解锁: 6       │     │
+│  │ 胜场: 83 (58.4%)   │         │ 连段王 ×5 大满贯 ×1│     │
+│  │ 平均名次: 2.3      │         │ 节奏核心 ×4        │     │
+│  │ 连胜纪录: 7        │         │ 🔒 未解锁: 8       │     │
 │  └────────────────────┘         └────────────────────┘     │
 │                                                             │
 │  📈 近期状态 (最近10场)                                     │
@@ -359,9 +393,9 @@ Response:
 │                                                             │
 │  📜 对战记录                                                │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │ 12/8  │ A1B2C3 │ 🥇 第1 │ +3级 │ 吕布, 连胜王     │→  │
+│  │ 12/8  │ A1B2C3 │ 🥇 第1 │ +3级 │ 吕布, 连段王     │→  │
 │  │ 12/7  │ X9Y8Z7 │ 🥈 第2 │ +1级 │ -                │→  │
-│  │ 12/5  │ P4Q5R6 │ 🥉 第3 │ 失败 │ 辅助王           │→  │
+│  │ 12/5  │ P4Q5R6 │ 🥉 第3 │ 失败 │ 逆转核心         │→  │
 │  │ ...                                                 │   │
 │  └─────────────────────────────────────────────────────┘   │
 │                                                             │
@@ -508,7 +542,7 @@ partners: {
 }
 ```
 
-### Achievements System (20 Badges)
+### Achievements System (17 Active Badges)
 
 #### Milestone Achievements
 | ID | Name | Chinese | Requirement | Badge |
@@ -531,7 +565,7 @@ partners: {
 |----|------|---------|-------------|-------|
 | `honor_5` | Honor Hunter | 荣誉猎手 | Earn 5 different honors | 🎯 |
 | `honor_10` | Honor Collector | 荣誉收藏家 | Earn 10 different honors | 🏛️ |
-| `honor_all` | Honor Master | 全荣誉大师 | Earn all 14 honors | 💎 |
+| `honor_all` | Honor Master | 全荣誉大师 | Earn all 16 honors | 💎 |
 | `lubu_10` | Lü Bu Main | 吕布专业户 | Earn 吕布 10 times | ⚔️ |
 
 #### Social/Team Achievements

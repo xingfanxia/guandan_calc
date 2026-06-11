@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="broadcast">
+<html lang="zh-CN" data-theme="linear">
 <head>
 <script>
   // Theme bootstrap — must be inline + synchronous + ABOVE stylesheets so
   // the cascade resolves with the user's chosen theme on first paint, not
-  // with `data-theme="broadcast"` (the static fallback). Saved value list
+  // with `data-theme="linear"` (the static fallback). Saved value list
   // is the source of truth for valid theme names; sync with main.js.
   try { var t = localStorage.getItem('gd_v9_theme');
     if (t && ['broadcast','linear','trading','atelier','teatable'].indexOf(t) !== -1)
@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
-<!-- Theme: Broadcast Editorial -->
+<!-- Theme stylesheets -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
@@ -45,7 +45,7 @@
   <div class="container topnav__inner">
     <div class="topnav__brand">
       <div class="topnav__brand-mark">A</div>
-      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">CONSOLE · v10</span></span>
     </div>
     <div class="topnav__tabs">
       <a class="topnav__tab" href="/">
@@ -113,7 +113,7 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__brand">GD&nbsp;LIVE · CONSOLE · v10</div>
     <div class="footer__meta">
       <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
       · MADE WITH ❤️ BY XINGFAN XIA
@@ -124,34 +124,87 @@
 
 <script type="module">
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
-import { ACHIEVEMENTS } from '/src/stats/achievements.js';
+import { ACHIEVEMENTS, ACHIEVEMENT_COUNT } from '/src/stats/achievements.js';
 import { Chart, registerables } from 'chart.js';
 import { renderProfileAvatar } from '/src/player/photoRenderer.js';
 import { showEditModal, initializeEditModal } from '/src/player/playerEditModal.js';
 import { escapeHtml } from '/src/core/utils.js';
+import { CURRENT_HONOR_TITLES, normalizeHonorCounter } from '/shared/honorCatalog.js';
 
 Chart.register(...registerables);
 
+function toFiniteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function formatInteger(value, fallback = 0) {
+  return String(Math.round(toFiniteNumber(value, fallback)));
+}
+
+function formatFixed(value, digits = 2, fallback = 0) {
+  return toFiniteNumber(value, fallback).toFixed(digits);
+}
+
+function formatPercent(value, digits = 1) {
+  return formatFixed(toFiniteNumber(value, 0) * 100, digits);
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function normalizeCount(value) {
+  return Math.max(0, Math.round(toFiniteNumber(value, 0)));
+}
+
+function normalizeRate(value, fallback = 0) {
+  return clampNumber(toFiniteNumber(value, fallback), 0, 1);
+}
+
+function formatRatePercent(value) {
+  return formatFixed(normalizeRate(value) * 100, 1);
+}
+
+function normalizeRelationshipStatsMap(statsMap) {
+  if (!statsMap || typeof statsMap !== 'object' || Array.isArray(statsMap)) {
+    return [];
+  }
+
+  return Object.entries(statsMap)
+    .map(([handle, rawStats]) => {
+      const stats = rawStats && typeof rawStats === 'object' && !Array.isArray(rawStats)
+        ? rawStats
+        : {};
+      const games = normalizeCount(stats.games);
+      const wins = Math.min(games, normalizeCount(stats.wins));
+      const inferredWinRate = games > 0 ? wins / games : 0;
+      return {
+        handle: String(handle),
+        games,
+        wins,
+        winRate: normalizeRate(stats.winRate, inferredWinRate)
+      };
+    })
+    .filter(entry => entry.handle.trim().length > 0);
+}
+
 function formatDuration(seconds) {
-  if (!seconds) return '0分钟';
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
+  const safeSeconds = Math.max(0, toFiniteNumber(seconds, 0));
+  if (!safeSeconds) return '0分钟';
+  const hours = Math.floor(safeSeconds / 3600);
+  const mins = Math.floor((safeSeconds % 3600) / 60);
   if (hours > 0) return `${hours}小时${mins}分`;
   return `${mins}分钟`;
 }
 
 function renderPartnerRivalStats(player) {
-  const partners = player.stats.partners || {};
-  const opponents = player.stats.opponents || {};
-
-  if (Object.keys(partners).length === 0 && Object.keys(opponents).length === 0) return '';
-
-  const partnerStats = Object.entries(partners)
-    .map(([handle, s]) => ({ handle, ...s }))
+  const partnerStats = normalizeRelationshipStatsMap(player.stats?.partners)
     .sort((a, b) => b.winRate - a.winRate);
-  const opponentStats = Object.entries(opponents)
-    .map(([handle, s]) => ({ handle, ...s }))
+  const opponentStats = normalizeRelationshipStatsMap(player.stats?.opponents)
     .sort((a, b) => a.winRate - b.winRate);
+
+  if (partnerStats.length === 0 && opponentStats.length === 0) return '';
 
   const bestPartner    = partnerStats[0] || null;
   const worstPartner   = partnerStats.length > 1 ? partnerStats[partnerStats.length - 1] : null;
@@ -159,8 +212,13 @@ function renderPartnerRivalStats(player) {
   const easiestOpponent = opponentStats.length > 1 ? opponentStats[opponentStats.length - 1] : null;
 
   function relRow(handle, winRate, label, colorClass) {
-    const pct = (winRate * 100).toFixed(1);
-    return `<div class="rels-row" onclick="viewProfile('${escapeHtml(handle)}')">
+    const pct = formatRatePercent(winRate);
+    return `<div
+      class="rels-row"
+      role="link"
+      tabindex="0"
+      data-profile-handle="${escapeHtml(handle)}"
+    >
       <div class="rels-row-avatar">👤</div>
       <div class="rels-row-body">
         <div class="rels-row-name">${escapeHtml(label)}</div>
@@ -241,6 +299,45 @@ function renderPartnerRivalStats(player) {
 
 function viewProfile(handle) {
   window.location.href = '/player-profile.html?handle=' + encodeURIComponent(handle);
+}
+
+function viewRoom(roomCode) {
+  if (!roomCode || roomCode === 'LOCAL') return;
+  window.location.href = '/?room=' + encodeURIComponent(roomCode);
+}
+
+const profileContent = document.getElementById('profileContent');
+
+if (profileContent) {
+  profileContent.addEventListener('click', (event) => {
+    const profileRow = event.target.closest('[data-profile-handle]');
+    if (profileRow && profileContent.contains(profileRow)) {
+      viewProfile(profileRow.dataset.profileHandle || '');
+      return;
+    }
+
+    const gameRow = event.target.closest('[data-room-code]');
+    if (gameRow && profileContent.contains(gameRow)) {
+      viewRoom(gameRow.dataset.roomCode || '');
+    }
+  });
+
+  profileContent.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+
+    const profileRow = event.target.closest('[data-profile-handle]');
+    if (profileRow && profileContent.contains(profileRow)) {
+      event.preventDefault();
+      viewProfile(profileRow.dataset.profileHandle || '');
+      return;
+    }
+
+    const gameRow = event.target.closest('[data-room-code]');
+    if (gameRow && profileContent.contains(gameRow)) {
+      event.preventDefault();
+      viewRoom(gameRow.dataset.roomCode || '');
+    }
+  });
 }
 
 // Store chart instances
@@ -324,7 +421,7 @@ function renderPartnersChart(stats, sortBy) {
       labels: sorted.map(p => `@${p.handle}`),
       datasets: [{
         label: '胜率',
-        data: sorted.map(p => (p.winRate * 100).toFixed(1)),
+        data: sorted.map(p => Number(formatRatePercent(p.winRate))),
         backgroundColor: sorted.map(p =>
           p.winRate >= 0.6 ? 'rgba(74,148,86,0.8)' :
           p.winRate >= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
@@ -385,7 +482,7 @@ function renderOpponentsChart(stats, sortBy) {
       labels: sorted.map(p => `@${p.handle}`),
       datasets: [{
         label: '对手胜率',
-        data: sorted.map(p => (p.winRate * 100).toFixed(1)),
+        data: sorted.map(p => Number(formatRatePercent(p.winRate))),
         backgroundColor: sorted.map(p =>
           p.winRate <= 0.4 ? 'rgba(74,148,86,0.8)' :
           p.winRate <= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
@@ -431,14 +528,9 @@ function renderOpponentsChart(stats, sortBy) {
 }
 
 function setupPartnerRivalHandlers(player) {
-  const partners  = player.stats.partners  || {};
-  const opponents = player.stats.opponents || {};
-
-  const partnerStats = Object.entries(partners)
-    .map(([handle, s]) => ({ handle, ...s }))
+  const partnerStats = normalizeRelationshipStatsMap(player.stats?.partners)
     .sort((a, b) => b.winRate - a.winRate);
-  const opponentStats = Object.entries(opponents)
-    .map(([handle, s]) => ({ handle, ...s }))
+  const opponentStats = normalizeRelationshipStatsMap(player.stats?.opponents)
     .sort((a, b) => a.winRate - b.winRate);
 
   window.partnerStatsData  = partnerStats;
@@ -503,10 +595,16 @@ async function loadProfile(handle) {
     const profileHero = document.getElementById('profileHero');
     if (profileHero) profileHero.style.display = 'grid';
 
-    const topHonors = Object.entries(player.stats.honors)
+    const normalizedHonors = normalizeHonorCounter(player.stats?.honors || {});
+    const earnedHonors = CURRENT_HONOR_TITLES
+      .map(honor => [honor, normalizedHonors[honor] || 0])
       .filter(([_, count]) => count > 0)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
+      .sort((a, b) => b[1] - a[1]);
+    const topHonors = earnedHonors.slice(0, 8);
+    const totalHonorCount = earnedHonors.reduce((sum, [_, count]) => sum + count, 0);
+    const lockedHonorCount = CURRENT_HONOR_TITLES
+      .filter(honor => normalizedHonors[honor] === 0)
+      .length;
 
     // Build main content HTML
     const recentRankingsSection = (player.stats.recentRankings && player.stats.recentRankings.length > 0) ? `
@@ -528,7 +626,7 @@ async function loadProfile(handle) {
         <span class="section-rule__bar"></span>
         <span class="section-rule__label">荣誉收藏 · Honors Earned</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">${topHonors.length > 0 ? topHonors.reduce((s, [_, c]) => s + c, 0) : 0} TOTAL</span>
+        <span class="section-rule__meta">${totalHonorCount} TOTAL</span>
       </div>
       <div class="card">
         ${topHonors.length > 0 ? `
@@ -543,8 +641,8 @@ async function loadProfile(handle) {
               </div>`
             ).join('')}
           </div>
-          ${Object.keys(player.stats.honors).length > topHonors.length
-            ? `<p class="small muted" style="margin-top:var(--s4);">+ ${Object.keys(player.stats.honors).filter(h => player.stats.honors[h] === 0).length} 个荣誉待解锁</p>`
+          ${lockedHonorCount > 0
+            ? `<p class="small muted" style="margin-top:var(--s4);">+ ${lockedHonorCount} 个荣誉待解锁</p>`
             : ''}
         ` : '<p class="small muted" style="padding:var(--s4) 0;">暂无荣誉，继续加油！</p>'}
       </div>
@@ -555,7 +653,7 @@ async function loadProfile(handle) {
         <span class="section-rule__bar"></span>
         <span class="section-rule__label">成就徽章 · Achievements</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">${player.achievements ? player.achievements.length : 0} / 20 UNLOCKED</span>
+        <span class="section-rule__meta">${player.achievements ? player.achievements.length : 0} / ${ACHIEVEMENT_COUNT} UNLOCKED</span>
       </div>
       <div class="card">
         ${player.achievements && player.achievements.length > 0 ? `
@@ -584,14 +682,19 @@ async function loadProfile(handle) {
       <div class="card">
         ${player.recentGames.length > 0 ? `<div>
           ${player.recentGames.slice(0, 10).map(game => `
-            <div class="recent-game-row" onclick="location.href='/?room=${encodeURIComponent(game.roomCode)}'">
+            <div
+              class="recent-game-row"
+              role="${game.roomCode && game.roomCode !== 'LOCAL' ? 'link' : 'listitem'}"
+              ${game.roomCode && game.roomCode !== 'LOCAL' ? 'tabindex="0"' : ''}
+              data-room-code="${escapeHtml(game.roomCode || '')}"
+            >
               <div>
                 <div>
                   <span class="game-outcome ${game.teamWon ? 'game-outcome--win' : 'game-outcome--loss'}">
                     ${game.teamWon ? '胜' : '负'}
                   </span>
                   <span class="game-meta">
-                    · ${escapeHtml(game.mode)} · 平均${game.ranking}名 · ${game.rounds}轮
+                    · ${escapeHtml(game.mode)} · 平均${escapeHtml(game.ranking)}名 · ${escapeHtml(game.rounds)}轮
                     ${game.duration ? ' · ' + formatDuration(game.duration) : ''}
                   </span>
                 </div>
@@ -625,35 +728,35 @@ async function loadProfile(handle) {
         <div class="career-stats-grid">
           <div class="career-stat-tile">
             <div class="tile-label">游戏场次 · Sessions</div>
-            <div class="tile-val" id="statSessions">${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0}</div>
+            <div class="tile-val" id="statSessions">${formatInteger(player.stats.sessionsPlayed || player.stats.gamesPlayed, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">获胜场次 · Won</div>
-            <div class="tile-val" id="statWins">${player.stats.sessionsWon || player.stats.wins || 0}</div>
+            <div class="tile-val" id="statWins">${formatInteger(player.stats.sessionsWon || player.stats.wins, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">胜率 · Win Rate</div>
-            <div class="tile-val" id="statWinRate">${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}<span class="sub">%</span></div>
+            <div class="tile-val" id="statWinRate">${formatPercent(player.stats.sessionWinRate || player.stats.winRate)}<span class="sub">%</span></div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">场均排名 · Avg Rank</div>
-            <div class="tile-val" id="statAvgRank">${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)}</div>
+            <div class="tile-val" id="statAvgRank">${formatFixed(player.stats.avgRankingPerSession || player.stats.avgRanking)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">场均局数 · Avg Rounds</div>
-            <div class="tile-val" id="statAvgRounds">${Math.round(player.stats.avgRoundsPerSession || 30)}</div>
+            <div class="tile-val" id="statAvgRounds">${formatInteger(player.stats.avgRoundsPerSession, 30)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">最长局数 · Longest</div>
-            <div class="tile-val" id="statLongestRounds">${player.stats.longestSessionRounds || 0}</div>
+            <div class="tile-val" id="statLongestRounds">${formatInteger(player.stats.longestSessionRounds, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">当前连胜 · Streak</div>
-            <div class="tile-val" id="statCurrentStreak">${player.stats.currentWinStreak || 0}</div>
+            <div class="tile-val" id="statCurrentStreak">${formatInteger(player.stats.currentWinStreak, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">最长连胜 · Best Streak</div>
-            <div class="tile-val" id="statWinStreak">${player.stats.longestWinStreak || 0}</div>
+            <div class="tile-val" id="statWinStreak">${formatInteger(player.stats.longestWinStreak, 0)}</div>
           </div>
         </div>
       </div>
@@ -665,31 +768,31 @@ async function loadProfile(handle) {
         <div class="career-stats-grid">
           <div class="career-stat-tile">
             <div class="tile-label">总轮次 · Rounds</div>
-            <div class="tile-val" id="statRounds">${player.stats.roundsPlayed || 0}</div>
+            <div class="tile-val" id="statRounds">${formatInteger(player.stats.roundsPlayed, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">局均排名 · Per-round Rank</div>
-            <div class="tile-val" id="statAvgRankRound">${(player.stats.avgRankingPerRound || player.stats.avgRanking || 0).toFixed(2)}</div>
+            <div class="tile-val" id="statAvgRankRound">${formatFixed(player.stats.avgRankingPerRound || player.stats.avgRanking)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">总游戏时长 · Total Time</div>
-            <div class="tile-val" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds || 0)}</div>
+            <div class="tile-val" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">最长对局 · Longest</div>
-            <div class="tile-val" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds || 0)}</div>
+            <div class="tile-val" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">场均时长 · Avg Session</div>
-            <div class="tile-val" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds || 0)}</div>
+            <div class="tile-val" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">最C得票 · MVP Votes</div>
-            <div class="tile-val" style="color:var(--win);">${player.stats.mvpVotes || 0}</div>
+            <div class="tile-val" style="color:var(--win);">${formatInteger(player.stats.mvpVotes, 0)}</div>
           </div>
           <div class="career-stat-tile">
             <div class="tile-label">最闹得票 · Burden Votes</div>
-            <div class="tile-val" style="color:var(--loss);">${player.stats.burdenVotes || 0}</div>
+            <div class="tile-val" style="color:var(--loss);">${formatInteger(player.stats.burdenVotes, 0)}</div>
           </div>
         </div>
       </div>
@@ -756,9 +859,9 @@ async function loadProfile(handle) {
           statsTitle.textContent = modeLabel;
         }
 
-        document.getElementById('statSessions').textContent = stats.sessionsPlayed || stats.gamesPlayed || 0;
-        document.getElementById('statWins').textContent = stats.sessionsWon || stats.wins || 0;
-        document.getElementById('statWinRate').textContent = ((stats.sessionWinRate || stats.winRate || 0) * 100).toFixed(1) + '%';
+        document.getElementById('statSessions').textContent = formatInteger(stats.sessionsPlayed || stats.gamesPlayed, 0);
+        document.getElementById('statWins').textContent = formatInteger(stats.sessionsWon || stats.wins, 0);
+        document.getElementById('statWinRate').textContent = formatPercent(stats.sessionWinRate || stats.winRate) + '%';
 
         if (selectedMode === 'all' && player.stats.modeBreakdown) {
           const modesPlayed = Object.values(player.stats.modeBreakdown || {}).filter(c => c > 0).length;
@@ -766,24 +869,24 @@ async function loadProfile(handle) {
             document.getElementById('statAvgRank').textContent = '混合';
             document.getElementById('statAvgRankRound').textContent = '混合';
           } else {
-            document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
-            document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || 0).toFixed(2);
+            document.getElementById('statAvgRank').textContent = formatFixed(stats.avgRankingPerSession || stats.avgRanking);
+            document.getElementById('statAvgRankRound').textContent = formatFixed(stats.avgRankingPerRound);
           }
         } else {
-          document.getElementById('statAvgRank').textContent = (stats.avgRankingPerSession || stats.avgRanking || 0).toFixed(2);
-          document.getElementById('statAvgRankRound').textContent = (stats.avgRankingPerRound || 0).toFixed(2);
+          document.getElementById('statAvgRank').textContent = formatFixed(stats.avgRankingPerSession || stats.avgRanking);
+          document.getElementById('statAvgRankRound').textContent = formatFixed(stats.avgRankingPerRound);
         }
 
         document.getElementById('statAvgRounds').textContent = selectedMode === 'all'
-          ? Math.round(stats.avgRoundsPerSession || 30)
-          : Math.round(stats.avgRoundsPerSession || 0);
-        document.getElementById('statLongestRounds').textContent = stats.longestSessionRounds || 0;
-        document.getElementById('statCurrentStreak').textContent = stats.currentWinStreak || 0;
-        document.getElementById('statRounds').textContent = stats.roundsPlayed || 0;
-        document.getElementById('statWinStreak').textContent = stats.longestWinStreak || 0;
-        document.getElementById('statTotalTime').textContent = formatDuration(stats.totalPlayTimeSeconds || 0);
-        document.getElementById('statLongestTime').textContent = formatDuration(stats.longestSessionSeconds || 0);
-        document.getElementById('statAvgTime').textContent = formatDuration(stats.avgSessionSeconds || 0);
+          ? formatInteger(stats.avgRoundsPerSession, 30)
+          : formatInteger(stats.avgRoundsPerSession, 0);
+        document.getElementById('statLongestRounds').textContent = formatInteger(stats.longestSessionRounds, 0);
+        document.getElementById('statCurrentStreak').textContent = formatInteger(stats.currentWinStreak, 0);
+        document.getElementById('statRounds').textContent = formatInteger(stats.roundsPlayed, 0);
+        document.getElementById('statWinStreak').textContent = formatInteger(stats.longestWinStreak, 0);
+        document.getElementById('statTotalTime').textContent = formatDuration(stats.totalPlayTimeSeconds);
+        document.getElementById('statLongestTime').textContent = formatDuration(stats.longestSessionSeconds);
+        document.getElementById('statAvgTime').textContent = formatDuration(stats.avgSessionSeconds);
 
         const chartContainer = document.getElementById('recentRankingsChart')?.closest('.chart-wrap');
         if (stats.recentRankings && stats.recentRankings.length > 0) {

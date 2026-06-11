@@ -50,19 +50,32 @@ All keys use prefixes for namespace organization and efficient querying.
     avgRanking: 2.3,
     recentRankings: [1, 2, 1, 3, 1, 2, 2, 1, 3, 1],  // Last 10 games
 
-    // Honor counts (all 14 honors)
+    // Honor counts (all 16 honors)
     honors: {
       "吕布": 3,
       "阿斗": 0,
       "石佛": 2,
-      // ... all 14 honors
+      // ... all 16 honors
     },
 
     // Streak tracking
     currentWinStreak: 3,
     longestWinStreak: 7,
     currentLossStreak: 0,
-    longestLossStreak: 4
+    longestLossStreak: 4,
+
+    // Completed-profile-session idempotency
+    sessionHistory: {
+      "A1B2C3:game:12:t1:2024-12-08T20%3A30%3A00.000Z": {
+        roomCode: "A1B2C3",
+        mode: "4P",
+        team: 1,
+        teamWon: true,
+        ranking: 1,
+        rounds: 12,
+        recordedAt: "2024-12-08T20:31:00Z"
+      }
+    }
   },
 
   // Recent game history (last 20)
@@ -70,12 +83,13 @@ All keys use prefixes for namespace organization and efficient querying.
     {
       roomCode: "A1B2C3",
       date: "2024-12-08T20:30:00Z",
+      sessionKey: "A1B2C3:game:12:t1:2024-12-08T20%3A30%3A00.000Z",
       mode: "4P",
       ranking: 1,
       team: 1,
       teamWon: true,
       levelChange: "+3",
-      honorsEarned: ["吕布", "连胜王"]
+      honorsEarned: ["吕布", "连段王"]
     }
     // ... up to 20 most recent
   ]
@@ -129,19 +143,42 @@ All keys use prefixes for namespace organization and efficient querying.
 
   // Game configuration
   settings: {
-    numPlayers: 4,
-    teamNames: ["Team 1", "Team 2"],
-    // ... full settings object
+    t1: { name: "蓝队", color: "#3b82f6" },
+    t2: { name: "红队", color: "#ef4444" },
+    must1: true,
+    autoNext: true,
+    autoApply: true,
+    strictA: true,
+    c4: { "1,2": 3, "1,3": 2, "1,4": 1 },
+    t6: { g3: 7, g2: 4, g1: 1 },
+    p6: { "1": 5, "2": 4, "3": 3, "4": 3, "5": 1, "6": 0 },
+    t8: { g3: 11, g2: 5, g1: 0 },
+    p8: { "1": 7, "2": 6, "3": 5, "4": 4, "5": 3, "6": 2, "7": 1, "8": 0 }
   },
 
   // Current game state
   state: {
-    teamLevels: [5, 7],
-    teamAFail: [0, 0],
-    roundLevel: 7,
-    roundOwner: 2,
-    winner: null,
-    history: [...]
+    teams: {
+      t1: { lvl: "K", aFail: 0 },
+      t2: { lvl: "A", aFail: 1 }
+    },
+    roundLevel: "A",
+    roundOwner: "t2",
+    nextRoundBase: null,
+    gameStatus: {
+      ended: true,
+      winnerKey: "t2",
+      winnerName: "红队",
+      reason: "A_LEVEL_CLEARED"
+    },
+    winner: "t2",
+    history: [
+      {
+        winKey: "t2",
+        gameStatus: { ended: true, winnerKey: "t2", winnerName: "红队", reason: "A_LEVEL_CLEARED" },
+        prevWinner: "t1"  // rollback restores the legacy winner field alongside levels/status
+      }
+    ]
   },
 
   // Players (enhanced with profile handles in future)
@@ -164,12 +201,20 @@ All keys use prefixes for namespace organization and efficient querying.
 }
 ```
 
+**Validation notes:** `settings.t1.color` / `settings.t2.color` must be hex
+colors (`#rgb` or `#rrggbb`). `state.teams.*.aFail` must be a numeric integer
+from 0 to 2; stringified counters are rejected before room snapshots are stored
+or hydrated. Room snapshot player `photoBase64` values follow the player API
+contract: JPEG/PNG/WebP data URLs only, max 150,000 characters.
+History rollback snapshots may include `prevWinner` and it must be `t1`, `t2`,
+`null`, or omitted.
+
 > **Stats schema note (2026-05):** the `stats` object shown above is a simplified historical
 > snapshot. The current canonical structure is in `api/players/_utils.js` `initializePlayerStats`
 > and includes mode-specific sub-stats (`stats4P`, `stats6P`, `stats8P`), time tracking
 > (`totalPlayTimeSeconds`, `longestSessionSeconds`, `avgSessionSeconds`), session vs. round
 > separation (`sessionsPlayed`/`roundsPlayed`), partner/opponent maps, voting history, and
-> 14 honors. Treat `_utils.js` as the source of truth.
+> 16 honors. Treat `_utils.js` as the source of truth.
 
 **Access Patterns**:
 - Create: `kv.setex(`room:${code}`, 31536000, JSON.stringify(roomData))`
@@ -324,4 +369,4 @@ players: [
 |---|---|---|
 | `KV_REST_API_URL` | Upstash REST endpoint | KV operations fail |
 | `KV_REST_API_TOKEN` | KV write/read auth | KV operations fail |
-| `ADMIN_TOKEN` (since 2026-05) | Admin endpoint gate (delete / reset-stats / migrate-modes); also accepted as override on PROFILE_UPDATE alongside per-user ownership tokens (since 2026-05-03) | All admin endpoints reject 403 (fail-closed); PROFILE_UPDATE still works for owners with their Bearer token |
+| `ADMIN_TOKEN` (since 2026-05; extended 2026-06-10) | Admin endpoint gate (delete / reset-stats / migrate-modes / migrate-single / backfill-duration); also accepted as override on PROFILE_UPDATE alongside per-user ownership tokens (since 2026-05-03) | All admin endpoints reject 403 (fail-closed); PROFILE_UPDATE still works for owners with their Bearer token |

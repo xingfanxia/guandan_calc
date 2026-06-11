@@ -1,10 +1,9 @@
 /**
  * Theme manager — orchestrates theme registration, mounting, and persistence.
  *
- * Single-theme today (Broadcast); designed to support multi-theme switching
- * in Phase 2+. State preservation across switches is a no-op while only one
- * theme exists; Phase 2 will wire state.getSnapshot() / state.restore()
- * around the swap (per docs/design/THEME-ARCHITECTURE.md Section 3).
+ * Multi-theme manager for registration, switching, and first-paint fallback
+ * alignment. Phase 2 will wire state.getSnapshot() / state.restore() around
+ * theme swaps (per docs/design/THEME-ARCHITECTURE.md Section 3).
  */
 
 import { emit } from '../../core/events.js';
@@ -50,7 +49,7 @@ let current = null;
 export function getCurrent() { return current; }
 
 /** Resolve which theme to mount on boot — localStorage > default. */
-export function resolveBootTheme(defaultName = 'broadcast') {
+export function resolveBootTheme(defaultName = 'linear') {
   try {
     const saved = typeof localStorage !== 'undefined'
       ? localStorage.getItem(STORAGE_KEY)
@@ -94,7 +93,7 @@ export async function mount(themeName) {
   // Activate the theme's CSS scope.
   document.documentElement.dataset.theme = theme.name;
 
-  // Allow the theme to do any extra mounting work (currently a no-op for Broadcast).
+  // Allow the theme to do any extra mounting work.
   if (theme.layout?.mount) {
     await theme.layout.mount(rootEl, {
       featureManifest: resolveManifest(theme.featureManifest),

@@ -2,6 +2,15 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { addRoomIndexEntry } from './_index.js';
+import {
+  canonicalizeRoomSnapshotPayload,
+  isValidRoomSnapshotPayload
+} from '../../shared/roomSnapshotValidation.js';
+import { ROOM_SCHEMA_VERSION } from '../../shared/version.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
 // Cryptographically random room code (6 alphanumeric)
 function generateRoomCode() {
@@ -19,56 +28,72 @@ function generateAuthToken() {
 }
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
-    const gameData = await request.json();
-
-    if (!gameData.settings || !gameData.state || !gameData.players) {
-      return new Response(JSON.stringify({
-        error: 'Invalid game data structure'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
     }
+    const gameData = canonicalizeRoomSnapshotPayload(parsedBody.data);
+
+    if (
+      !gameData.settings ||
+      !gameData.state ||
+      !gameData.players ||
+      !isValidRoomSnapshotPayload(gameData)
+    ) {
+      return jsonResponse({
+        error: 'Invalid game data structure'
+      }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+    const canonicalGameData = gameData;
 
     // Generate unique room code
     let roomCode;
     let attempts = 0;
+    let roomCodeAvailable = false;
     do {
       roomCode = generateRoomCode();
       attempts++;
       const existing = await kv.get(`room:${roomCode}`);
-      if (!existing) break;
+      if (!existing) {
+        roomCodeAvailable = true;
+        break;
+      }
     } while (attempts < 10);
 
-    if (attempts >= 10) {
-      return new Response(JSON.stringify({
+    if (!roomCodeAvailable) {
+      return jsonResponse({
         error: 'Failed to generate unique room code'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 500 });
     }
 
     // Server-side host auth token. Stored in KV; required on all PUTs.
     // Returned to creator ONCE in this response — never exposed via GET.
     const authToken = generateAuthToken();
 
+    const now = new Date().toISOString();
+    const gameEnded = canonicalGameData.state?.gameStatus?.ended === true;
     const roomData = {
-      ...gameData,
+      ...canonicalGameData,
       roomCode,
       authToken,
-      createdAt: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
-      version: 'v9.0'
+      createdAt: now,
+      finishedAt: gameEnded ? now : null,
+      lastUpdated: now,
+      isFavorite: false,
+      endGameVotes: { mvp: {}, burden: {}, fingerprints: [] },
+      endGameVotesHistory: [],
+      version: ROOM_SCHEMA_VERSION
     };
+    delete roomData.favoritedAt;
+    delete roomData.unfavoritedAt;
 
     // 1 year TTL (favorite-aware updates extend permanently)
     await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(roomData));
@@ -76,38 +101,29 @@ export default async function handler(request) {
     // Add to rooms index for browsing (best-effort — non-critical)
     try {
       const roomsIndexKey = 'rooms:index';
-      let roomsIndex = await kv.get(roomsIndexKey) || [];
-      if (!Array.isArray(roomsIndex)) roomsIndex = [];
-      roomsIndex.unshift({ roomCode, createdAt: roomData.createdAt });
-      if (roomsIndex.length > 100) roomsIndex = roomsIndex.slice(0, 100);
+      const roomsIndex = addRoomIndexEntry(
+        await kv.get(roomsIndexKey),
+        { roomCode, createdAt: roomData.createdAt }
+      );
       await kv.set(roomsIndexKey, roomsIndex);
     } catch (indexError) {
       console.error('Failed to update rooms index:', indexError);
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       roomCode,
       authToken,           // host must persist — not retrievable later
+      createdAt: roomData.createdAt,
+      finishedAt: roomData.finishedAt,
       expiresIn: 31536000  // 1 year
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Failed to create room:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

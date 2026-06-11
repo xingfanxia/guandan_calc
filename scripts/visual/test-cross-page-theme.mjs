@@ -3,7 +3,7 @@
 
 import { chromium } from 'playwright';
 
-const URL_BASE = 'http://localhost:3000';
+const URL_BASE = process.env.APP_URL || 'http://localhost:3000';
 const PAGES = ['/', '/players.html', '/player-profile.html', '/rooms.html'];
 const THEMES_TO_TEST = ['trading', 'linear', 'atelier'];
 
@@ -39,20 +39,20 @@ for (const pagePath of PAGES) {
   const dataTheme = await page.evaluate(
     () => document.documentElement.getAttribute('data-theme'),
   );
-  const ok = dataTheme === 'broadcast';
-  console.log(`  ${ok ? '✓' : '✗'}  ${pagePath} no saved → data-theme="${dataTheme}" (expect broadcast)`);
+  const ok = dataTheme === 'linear';
+  console.log(`  ${ok ? '✓' : '✗'}  ${pagePath} no saved → data-theme="${dataTheme}" (expect linear)`);
   if (!ok) failures += 1;
 }
 
-// Verify invalid saved value falls back to broadcast (the static <html> default).
+// Verify invalid saved value falls back to the static <html> default.
 await page.goto(URL_BASE + '/');
 await page.evaluate(() => localStorage.setItem('gd_v9_theme', 'evil-payload'));
 await page.goto(URL_BASE + '/players.html');
 const dataTheme = await page.evaluate(
   () => document.documentElement.getAttribute('data-theme'),
 );
-const ok = dataTheme === 'broadcast';
-console.log(`  ${ok ? '✓' : '✗'}  /players.html with saved="evil-payload" → data-theme="${dataTheme}" (expect broadcast)`);
+const ok = dataTheme === 'linear';
+console.log(`  ${ok ? '✓' : '✗'}  /players.html with saved="evil-payload" → data-theme="${dataTheme}" (expect linear)`);
 if (!ok) failures += 1;
 
 await browser.close();

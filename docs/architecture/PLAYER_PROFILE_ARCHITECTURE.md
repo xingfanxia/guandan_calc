@@ -44,8 +44,8 @@ The Player Profile System transforms Guandan Calculator from a session-based too
 - **Persistent player identities** with unique @handles
 - **Dual stat tracking** (session-level + round-level)
 - **Time tracking** (duration, longest, average)
-- **14 honor system** with career tracking
-- **20 achievement badges** with auto-unlock
+- **16 honor system** with career tracking
+- **17 active achievement badges** with auto-unlock
 - **Community voting** (MVP + burden recognition)
 - **Profile pages** with complete career history
 
@@ -76,7 +76,7 @@ POST /api/players/create
 ```
 
 **Process**:
-1. Validate handle format (3-20 chars, alphanumeric + underscore)
+1. Validate handle format (3-20 chars, alphanumeric + underscore, excluding object-prototype keys)
 2. Check handle uniqueness
 3. Generate player ID (`PLR_XXXXXX`)
 4. Initialize stats with `initializePlayerStats()`
@@ -108,7 +108,7 @@ PUT  /api/players/[handle]
   "sessionDuration": 2700,   // Seconds
   "firstPlaces": 7,
   "lastPlaces": 2,
-  "honorsEarned": ["吕布", "连胜王"],
+  "honorsEarned": ["吕布", "连段王"],
   "votedMVP": false,
   "votedBurden": false,
   "mode": "8P"
@@ -148,7 +148,13 @@ GET /api/players/list?q=search&limit=20&offset=0
 2. Filter by search query (handle or displayName)
 3. Sort by `lastActiveAt DESC` (most recent first)
 4. Paginate (offset, limit)
-5. Return with `hasMore` flag
+5. Return compact list summaries with `hasMore` flag
+
+**Response Shape**: Each `players[]` item contains identity fields, tagline,
+timestamps, and compact aggregate stats only. It deliberately excludes
+`photoBase64`, `recentGames`, achievements, voting history, and
+partner/opponent maps. Clients that need a complete profile after selection
+must call `GET /api/players/{handle}`.
 
 **Use Cases**:
 - Player browser page
@@ -212,7 +218,7 @@ POST /api/players/reset-stats
 
 **Exports**:
 - `generatePlayerId()` - Random PLR_XXXXXX format
-- `validateHandle(handle)` - Check 3-20 chars, alphanumeric + _
+- `validateHandle(handle)` - Check 3-20 chars, alphanumeric + _, excluding object-prototype keys
 - `validatePlayerData(data)` - Validate all required fields
 - `initializePlayerStats()` - Fresh stats object with all fields
 
@@ -239,6 +245,8 @@ POST /api/players/reset-stats
   // Community voting
   mvpVotes: 0,
   burdenVotes: 0,
+  votingHistory: {},
+  sessionHistory: {},
 
   // Legacy (backward compatibility)
   gamesPlayed: 0,
@@ -249,13 +257,14 @@ POST /api/players/reset-stats
   // Recent performance
   recentRankings: [],
 
-  // Honors (14 total)
+  // Honors (16 current honors)
   honors: {
     '吕布': 0, '阿斗': 0, '石佛': 0,
-    '波动王': 0, '奋斗王': 0, '辅助王': 0,
+    '波动王': 0, '奋斗王': 0, '逆转核心': 0,
     '翻车王': 0, '赌徒': 0, '大满贯': 0,
-    '连胜王': 0, '佛系玩家': 0, '守门员': 0,
-    '慢热王': 0, '闪电侠': 0
+    '连段王': 0, '团队中轴': 0, '保底核心': 0,
+    '节奏核心': 0, '燃尽王': 0, '棋差一着': 0,
+    '抗压王': 0
   },
 
   // Streaks
@@ -384,7 +393,7 @@ syncProfileStats(historyEntry, roomCode, players, sessionStats, sessionHonors, v
 **Key Functions**:
 - `showVictoryModal(teamName)` - Display victory
 - `closeVictoryModal()` - Hide modal
-- `getVotingResults()` - Extract top voted players
+- `getVotingResults()` - Legacy local-vote hook; room votes sync separately
 
 **MVP Calculation**:
 ```javascript
@@ -410,7 +419,7 @@ winningPlayers.forEach(player => {
 
 #### **honors.js** - Honor Calculation
 
-**Purpose**: Calculate 14 honors from session stats
+**Purpose**: Calculate 16 full-session honors from session stats
 
 **Function**: `calculateHonors(totalPlayers)`
 
@@ -433,16 +442,16 @@ winningPlayers.forEach(player => {
 
 ---
 
-#### **achievements.js** - Achievement System
+#### **shared/achievementLogic.js** - Achievement System
 
-**Purpose**: Define and check 20 achievements
+**Purpose**: Define and check 17 active achievements for both frontend profile pages and backend profile writes. `src/stats/achievements.js` re-exports this shared module for browser compatibility.
 
-**Constant**: `ACHIEVEMENTS` - All 20 badge definitions
+**Constant**: `ACHIEVEMENTS` - All active badge definitions
 ```javascript
 {
   newbie: { name: '初来乍到', badge: '🐣', desc: '完成第一场游戏' },
   started: { name: '小试牛刀', badge: '⭐', desc: '完成10场游戏' },
-  // ... 18 more
+  // ... 16 more
 }
 ```
 
@@ -452,8 +461,8 @@ winningPlayers.forEach(player => {
 1. **Milestone** (4): Games played thresholds
 2. **Performance** (4): Win streaks and win rate
 3. **Honor Collection** (4): Honor diversity and counts
-4. **Social** (3): Session-specific feats
-5. **Special** (5): Unique accomplishments
+4. **Social** (3): Relationship milestones and session-specific feats
+5. **Special** (2): Unique accomplishments
 
 ---
 
@@ -559,7 +568,7 @@ if (applyResult.finalWin) {
 
   setTimeout(() => {
     const sessionHonors = calculateHonors(mode);
-    const votingResults = getVotingResults();  // Local votes
+    const votingResults = getVotingResults();  // Room votes sync separately
     const sessionStats = state.getPlayerStats();
 
     syncProfileStats(
@@ -730,15 +739,15 @@ applyGameResult() → finalWin: true
 showVictoryModal(teamName)
   ├─ Calculate MVP (lowest avg)
   ├─ Show tagline
-  └─ Enable voting (if room mode)
+  └─ Emit room voting event
   ↓
 scheduleAutoVotingSync() → 5-min timer
   ↓
-setTimeout(2000) → Wait for local voting
+setTimeout(2000) → Preserve legacy delay before profile sync
   ↓
-calculateHonors(mode) → Get 14 honor winners
+calculateHonors(mode) → Get 16 honor winners
   ↓
-getVotingResults() → Extract local votes
+getVotingResults() → {mvp: null, burden: null}; room votes sync separately
   ↓
 syncProfileStats(...) → For each profile player:
   ├─ Calculate session metrics
@@ -770,15 +779,34 @@ syncVotingToProfiles()
   ├─ GET /api/rooms/vote/[code]
   ├─ Find top MVP (most votes)
   ├─ Find top burden (most votes)
-  └─ For each winner:
+  ├─ PUT each profile that received votes
+  ├─ Report full/partial write failures instead of masking them as success
+  └─ For each write:
       PUT /api/players/[handle]
       mode: 'VOTE_ONLY'
       votedMVP: true/false
       votedBurden: true/false
         ↓
+        API: derive votingHistory key from authoritative room vote session
         API: Only increment vote counts
         Skip all other stats
 ```
+
+`votingHistory` is keyed by vote session for room games. The key includes the
+room code, completed game identity, and `endGameVotesHistory.length`, so a
+host reset or a later voting window in the same room does not overwrite a
+previous vote contribution. Legacy first-epoch entries keyed by bare `roomCode`
+are reused only when already present to avoid double-counting old data. LOCAL
+games have no authoritative room record, so `syncProfileStats()` sends a
+completed-session vote key and the owner-authenticated stats path uses it as a
+fallback.
+
+Full profile-session stats use a separate `gameSessionKey`/`sessionHistory`
+contract. That key excludes `endGameVotesHistory.length`, so resetting votes in
+the same room cannot make the server count the same completed game twice. A
+duplicate full-session PUT still refreshes authoritative vote deltas, then
+returns `duplicateSessionIgnored: true` without changing sessions, streaks,
+partner/opponent counts, honors, mode stats, or `recentGames`.
 
 ---
 
@@ -813,7 +841,7 @@ src/
 ├── stats/
 │   ├── statistics.js          # Session stats (unchanged)
 │   ├── honors.js              # Honor calculation (used for sync)
-│   └── achievements.js        # Achievement system (NEW)
+│   └── achievements.js        # Achievement re-export for browser imports
 │
 ├── ui/
 │   ├── victoryModal.js        # Enhanced with MVP tagline

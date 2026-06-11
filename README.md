@@ -12,8 +12,8 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
   - Persistent player identities with unique @handles
   - Career statistics tracking (sessions + individual rounds)
   - Time tracking: Total playtime, longest session, averages
-  - All 14 honors synced to profiles automatically
-  - 20 achievement badges with auto-unlock system
+  - All 16 honors synced to profiles automatically
+  - 17 active achievement badges with auto-unlock system
   - Partner/rival relationship tracking with win rates
   - Recent rankings history (last 10 sessions)
   - Player browser with search and pagination
@@ -57,27 +57,18 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
   - Support for 4, 6, and 8 player modes
   - Drag-and-drop ranking with automatic upgrade calculation
   - Team level progression: 2→3→4→5→6→7→8→9→10→J→Q→K→A
-  - A-level rules: Strict mode (must win at own A-level) vs. Lenient mode
-  - **4-player only**: 3 A-level failures (A1/A2/A3) → demote to level 2
-  - **6/8-player (since 2026-05)**: no failure counter, no demotion — keep playing until either side wins on their own A
+  - A-level clear: teams must win on their own A round without last place; lenient mode only disables A-fail demotion
+  - **Strict A failures**: 3 own-A failures (A1/A2/A3) → demote that team to level 2 across 4/6/8-player modes
   - 8-player sweep bonus: Top 4 positions = 4 level upgrade
   
 - **🏆 Comprehensive Honor System** 
-  - **14 data-driven honors** with sophisticated algorithms and cultural references:
-    - 🥇 **吕布**: First place ratio (quality over quantity) + reliability threshold
-    - 😅 **阿斗**: Last place ratio + consecutive penalty system
-    - 🗿 **石佛**: Excellence + stability (top 25% with low variance)
-    - 🌊 **波动王**: Volatility + extreme range bonus (1st to last swings)
-    - 📈 **奋斗王**: Progressive 3-segment trend analysis 
-    - 🛡️ **辅助王**: Team support score (bottom-half during team wins)
-    - 🎪 **翻车王**: Dramatic drops from top 3 to last place
-    - 🎲 **赌徒**: High risk high reward (high first + high last rates)
-    - 👑 **大满贯**: Experience all ranking positions (completion rate)
-    - 🔥 **连胜王**: Longest consecutive top-half streak
-    - 🧘 **佛系玩家**: Closest to median ranking (middle way)
-    - 🛡️ **守门员**: Protect teammates from last place when team loses
-    - 🐌 **慢热王**: Poor start but strong finish pattern
-    - ⚡ **闪电侠**: Most frequent ranking changes between games
+  - **16 full-session honors** with cultural references and whole-match algorithms, awarded after at least 5 rounds of evidence:
+    - **吕布 / 阿斗**: dominance and burden scores across the full session
+    - **石佛 / 团队中轴**: stability plus teammate-relative anchor impact
+    - **波动王**: rank movement magnitude, range, and volatility across the full session
+    - **节奏核心**: team-leading tempo pressure using teammate and opponent context
+    - **奋斗王 / 逆转核心 / 燃尽王**: early-to-late trend arcs and comeback/burnout stories
+    - **翻车王 / 赌徒 / 大满贯 / 连段王 / 保底核心 / 棋差一着 / 抗压王**: crash, extremes, coverage, top-half streak, no-last team safety net, repeated second, and pressure-rebound awards
   - **Clickable explanations**: Each honor shows detailed calculation and statistics
   - **Mode adaptive**: All algorithms properly scale for 4/6/8 player modes
   
@@ -92,7 +83,7 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
 - **📤 Advanced Export & Sharing**
   - Real-time room codes: 6-digit codes with favorite/browsing system
   - Room management: Favorite important rooms for permanent storage
-  - Mobile PNG: 600px width with player stats + 14 honors + game history
+  - Mobile PNG: 600px width with player stats + 16 honors + game history
   - Desktop PNG: Wide format (2200px) with complete data visualization
   - Static snapshots: URL-encoded data for permanent preservation
   - TXT/CSV export: Complete data analysis including honor calculations
@@ -147,8 +138,8 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
 The calculator supports customizable scoring rules:
 - **4-player mode**: Configure upgrade points for each ranking combination (1,2), (1,3), (1,4)
 - **6/8-player mode**: Configure point thresholds for 1, 2, or 3 level upgrades based on score differences
-- **A-level rules**: Strict mode (must win at own A-level) vs. Lenient mode (can win at any level)
-- **A-level failure (4-player only)**: 3 strikes (A1→A2→A3) → reset to level 2; 6/8 modes have no counter and no demotion (since 2026-05)
+- **A-level clear**: in both strict and lenient modes, teams must win on their own A round without last place
+- **A-level failure**: in strict mode, 3 own-A failures (A1→A2→A3) reset that team to level 2 in every mode; lenient mode keeps teams at A without fail counters
 - **Special bonuses**: 8-player sweep (positions 1,2,3,4) grants 4-level upgrade
 
 ### Browser Compatibility
@@ -166,8 +157,8 @@ The calculator supports customizable scoring rules:
   - 永久玩家身份识别 (@用户名系统)
   - 职业生涯统计追踪（完整局数 + 单回合）
   - 时间追踪：总游戏时长、最长局、平均时长
-  - 14项荣誉自动同步到档案
-  - 20个成就徽章自动解锁系统
+  - 16项荣誉自动同步到档案
+  - 17个活跃成就徽章自动解锁系统
   - 队友/对手关系追踪与胜率统计
   - 近期排名历史记录（最近10局）
   - 玩家浏览器：搜索与分页功能
@@ -211,26 +202,20 @@ The calculator supports customizable scoring rules:
   - 支持4人、6人和8人模式
   - 拖放式排名系统，自动计算升级结果
   - 团队级别进程：2→3→4→5→6→7→8→9→10→J→Q→K→A
-  - A级规则：严格模式（必须自己A级获胜）vs 宽松模式
+  - A级通关：必须在自己队A级胜利且胜方无末游；宽松模式只是不累计A失败
   - 8人横扫奖励：前4名位置 = 升4级
   
 - **🏆 荣誉提名系统**
-  - 基于真实数据的14项特殊荣誉：
-    - 🥇 **吕布**：最多第一名（传说战力）
-    - 😅 **阿斗**：最多垫底（需要保护）  
-    - 🗿 **石佛**：排名最稳定（稳如磐石）
-    - 🌊 **波动王**：排名波动最大（不可预测）
-    - 📈 **奋斗王**：排名稳步提升（越战越勇）
-    - 🛡️ **辅助王**：团队胜利时自己垫底最多（无私奉献）
-    - 🎪 **翻车王**：从前三名跌至垫底
-    - 🎲 **赌徒**：高风险高回报
-    - 👑 **大满贯**：体验所有排名位置
-    - 🔥 **连胜王**：最长连续上半区排名
-    - 🧘 **佛系玩家**：最接近中位排名
-    - 🛡️ **守门员**：团队失败时保护队友免于垫底
-    - 🐌 **慢热王**：开局不佳但强势收尾
-    - ⚡ **闪电侠**：排名变化最频繁
+  - 基于整场趋势和全局分布的16项特殊荣誉：
+    - 🥇 **吕布** / 😅 **阿斗**：全场统治力与全场低迷
+    - 🗿 **石佛** / 🧭 **团队中轴**：稳定输出与强于队友均值的支点
+    - 🌊 **波动王** / ⚡ **节奏核心**：全场波动与队伍领先节奏
+    - 📈 **奋斗王** / 📈 **逆转核心** / 🔥 **燃尽王**：后程爬升、低谷翻盘和后程坠落
+    - 🎪 **翻车王** / 🎲 **赌徒**：崩盘次数与极端名次组合
+    - 👑 **大满贯** / 🔥 **连段王**：排名覆盖和上半区连段
+    - 🛡️ **保底核心** / 🎯 **棋差一着** / 🧱 **抗压王**：不垫底且托住队友、无冠最强和低谷反弹
   - 可点击说明：每项荣誉显示详细计算和统计
+  - 至少5局后才发放整场荣誉，避免小样本过早贴标签
   - 模式自适应：所有算法适配4/6/8人模式
   
 - **📤 多格式导出分享**
@@ -288,7 +273,7 @@ The calculator supports customizable scoring rules:
 计算器支持自定义计分规则：
 - **4人模式**：配置排名组合升级分数，如(1,2)、(1,3)、(1,4)对应的升级级数
 - **6/8人模式**：基于分差配置升1、2或3级的分数阈值
-- **A级规则**：严格模式（必须在自己的A级获胜）vs 宽松模式（任何级别都可获胜）
+- **A级通关**：严格和宽松模式都必须在自己的A级获胜且胜方无末游；严格模式三次A失败退回2，宽松模式不累计失败
 - **特殊奖励**：8人横扫（占据1,2,3,4名位置）可获得4级升级
 
 ### 浏览器兼容性
@@ -313,7 +298,7 @@ The calculator supports customizable scoring rules:
 - **Auto-Sync**: Stats sync automatically after A-level victories
 - **Dual Metrics**: Session-level + round-level statistics
 - **Social Tracking**: Partner/rival relationships with win rates
-- **Achievement System**: 20 badges with auto-unlock logic
+- **Achievement System**: 17 active badges with auto-unlock logic
 
 ### Real-Time Backend Infrastructure
 - **Vercel KV (Upstash Redis)**: Ultra-fast room data storage (<1ms reads)

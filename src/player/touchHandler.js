@@ -9,6 +9,7 @@ import { assignPlayerToTeam } from './playerManager.js';
 import { handleRankDrop, handlePoolDrop } from './dragDrop.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
+import { hasRankingChanged } from '../ranking/rankingManager.js';
 
 // Touch drag state
 let touchDraggedElement = null;
@@ -19,6 +20,13 @@ let isDragging = false;  // Track if actively dragging
 let touchOffset = null; // Store offset from touch point to tile origin
 let cloneHalfWidth = 0;  // Store clone dimensions to avoid getBoundingClientRect in touchmove
 let cloneHalfHeight = 0;
+
+function normalizeTeamDataset(value) {
+  if (typeof value !== 'string' || !/^[12]$/.test(value.trim())) {
+    return null;
+  }
+  return Number(value.trim());
+}
 
 /**
  * Handle touch start (long-press detection)
@@ -168,19 +176,24 @@ export function handleTouchEnd(e) {
       console.log('Dropping on rank slot:', rankSlot.dataset.rank);
       const currentRanking = state.getCurrentRanking();
       const newRanking = handleRankDrop(rankSlot, player, currentRanking);
-      state.setCurrentRanking(newRanking);
-      emit('ranking:updated');
+      if (hasRankingChanged(currentRanking, newRanking)) {
+        state.setCurrentRanking(newRanking);
+        emit('ranking:updated');
+      }
       dropTarget = { type: 'rank', element: rankSlot, player };
     } else if (pool) {
       const currentRanking = state.getCurrentRanking();
       const newRanking = handlePoolDrop(player, currentRanking);
-      state.setCurrentRanking(newRanking);
+      if (hasRankingChanged(currentRanking, newRanking)) {
+        state.setCurrentRanking(newRanking);
+        emit('ranking:updated');
+      }
       dropTarget = { type: 'pool', element: pool, player };
     } else if (unassignedZone) {
       assignPlayerToTeam(player.id, null);
       dropTarget = { type: 'unassigned', element: unassignedZone, player };
     } else if (teamZone) {
-      const team = parseInt(teamZone.dataset.team);
+      const team = normalizeTeamDataset(teamZone.dataset.team);
       if (team) {
         assignPlayerToTeam(player.id, team);
         dropTarget = { type: 'team', element: teamZone, player };

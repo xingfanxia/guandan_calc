@@ -307,35 +307,39 @@
 ```
 
 #### `honors.js` - Honor Calculation
-**Purpose**: Calculate 14 honors from session data
+**Purpose**: Calculate 16 full-session honors from session data
 
 **Function**: `calculateHonors(totalPlayers)`
 **Returns**: Object with honor winners
+**Eligibility**: Full-session honors require at least 5 rounds of valid
+rankings before any award is emitted; otherwise cards remain in-progress.
 
 **Algorithms** (lines 38-328):
 - **吕布** (MVP): Most first places + tie-breaker
 - **阿斗** (Burden): Most last places
 - **石佛** (Stable): Low avg + low variance
 - **波动王** (Volatile): High variance
-- **奋斗王** (Improvement): 3-segment trend analysis
-- **辅助王** (Support): Bottom-half during team wins
+- **奋斗王** (Improvement): Early-to-late climb
+- **逆转核心** (Comeback Core): Low-to-high comeback arc
 - **翻车王** (Crash): Top 3 to last drops
 - **赌徒** (Gambler): High first + high last rates
 - **大满贯** (Complete): Experience all positions
-- **连胜王** (Streak): Longest top-half streak
-- **佛系玩家** (Median): Closest to middle
-- **守门员** (Keeper): Prevent last during team loss
-- **慢热王** (Slow Start): Poor start, strong finish
-- **闪电侠** (Frequent Changes): Most position changes
+- **连段王** (Top-Half Streak): Longest top-half streak
+- **团队中轴** (Team Anchor): Teammate-relative anchor impact
+- **保底核心** (Safety Net): No-last team safety net
+- **节奏核心** (Tempo Core): Team-leading pressure with opponent context
+- **燃尽王** (Burnout): Early-to-late collapse after a solid start
+- **棋差一着** (Almost): Repeated second place without wins
+- **抗压王** (Resilient): Rebounds after bottom-tier pressure rounds
 
-#### `achievements.js` - Achievement System (NEW)
-**Purpose**: Define and check 20 achievement badges
+#### `shared/achievementLogic.js` / `src/stats/achievements.js` - Achievement System (NEW)
+**Purpose**: Define and check 17 active achievement badges from one shared implementation. `src/stats/achievements.js` re-exports the shared catalog for existing frontend imports.
 
 **Constant**: `ACHIEVEMENTS` - All definitions
 ```javascript
 {
   newbie: { name: '初来乍到', badge: '🐣', desc: '完成第一场游戏' },
-  // ... 19 more
+  // ... 16 more
 }
 ```
 
@@ -343,8 +347,8 @@
 - Milestone (4): Games played thresholds
 - Performance (4): Streaks and win rate
 - Honor Collection (4): Honor diversity
-- Social (3): Session-specific
-- Special (5): Unique feats
+- Social (3): Relationship milestones and session-specific
+- Special (2): Unique feats
 
 ---
 
@@ -364,16 +368,14 @@
 - **`showVictoryModal(teamName)`** - Display (lines 50-146)
   - Calculate MVP (lowest avg ranking)
   - Show tagline if profile player
-  - Enable voting interface
+  - Emit room voting events
   - Display modal
 
-- **`getVotingResults()`** - Extract top votes (NEW)
-  - Returns `{mvp: playerId, burden: playerId}`
-  - Used for local voting sync
+- **`getVotingResults()`** - Legacy local-vote hook
+  - Returns `{mvp: null, burden: null}`
+  - Room voting results are synced through `votingManager.js`/`votingSync.js`
 
 - `closeVictoryModal()` - Hide modal
-- `renderVotingInterface()` - Show voting UI
-- `attachVoteHandlers()` - Wire vote buttons
 
 **MVP Calculation** (lines 48-68): Lowest average = best
 
@@ -616,7 +618,7 @@ top-partner + top-rival progress bars. Empty-state fallback for guest.
 - `create.js` - Generate 6-digit codes
 - `[code].js` - GET/PUT room data
 - `vote/[code].js` - Submit/fetch votes
-- `reset-vote/[code].js` - Clear votes
+- `reset-vote/[code].js` - Clear votes/fingerprints and archive last result snapshot
 - `favorite/[code].js` - Toggle favorite (1-year TTL)
 - `list.js` - Browse favorited rooms
 
@@ -667,9 +669,12 @@ top-partner + top-rival progress bars. Empty-state fallback for guest.
 2. Filter by query (handle or displayName)
 3. **Sort by lastActiveAt DESC** (most recent first)
 4. Paginate (offset, limit)
-5. Return with hasMore flag
+5. Return compact summaries with hasMore flag
 
 **Sorting**: Enables "recent players" feature
+**Payload boundary**: List/search responses omit large or detailed profile
+fields such as `photoBase64`, `recentGames`, achievements, voting history, and
+partner/opponent maps. Fetch `/api/players/{handle}` for the full profile.
 
 #### `touch.js` - Update Last Active
 **POST** `/api/players/touch`
@@ -882,11 +887,11 @@ main.js (orchestrator)
 ├─ stats/
 │  ├─ statistics.js
 │  ├─ honors.js (+ used in sync)
-│  └─ achievements.js (NEW)
+│  └─ achievements.js (shared achievement re-export)
 │
 ├─ ui/
 │  ├─ teamDisplay.js
-│  └─ victoryModal.js (+ MVP tagline, getVotingResults)
+│  └─ victoryModal.js (+ MVP tagline)
 │
 ├─ share/
 │  ├─ roomManager.js
@@ -914,15 +919,15 @@ main.js (orchestrator)
 3. showVictoryModal(teamName)
    ├─ Calculate MVP (lowest avg)
    ├─ Show tagline
-   └─ Enable voting
+   └─ Emit room voting event
    ↓
 4. scheduleAutoVotingSync() → 5-min timer
    ↓
-5. setTimeout(2000) → Wait for local voting
+5. setTimeout(2000) → Preserve legacy delay before profile sync
    ↓
-6. calculateHonors(mode) → 14 honor winners
+6. calculateHonors(mode) → 16 honor winners
    ↓
-7. getVotingResults() → {mvp, burden} from local votes
+7. getVotingResults() → {mvp: null, burden: null}; room votes sync separately
    ↓
 8. syncProfileStats(historyEntry, roomCode, players, sessionStats, sessionHonors, votingResults)
    ├─ Calculate relative rankings (1-8)

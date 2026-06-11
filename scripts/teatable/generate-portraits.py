@@ -88,9 +88,9 @@ HONORS = {
         "joyous open-mouthed shout"
     ),
     "lianshengewang": (
-        "a stoic veteran warrior with sword raised in salute, calm victorious "
-        "smile, layered armor plates suggested with confident strokes, "
-        "tassels on the sword hilt"
+        "a stoic veteran warrior holding formation through a long campaign, "
+        "sword raised in steady salute, layered armor plates suggested with "
+        "confident strokes, calm focus in the eyes"
     ),
     "foxiwanjia": (
         "a barefoot wandering zen monk strolling unhurriedly, half-smile of "
@@ -123,9 +123,9 @@ HONORS = {
         "dismay in the eyes — one move short of victory"
     ),
     "xiaochou": (
-        "a stylized opera clown with traditional jingju face paint, "
-        "exaggerated comedic features, mouth in a wide goofy grin, holding "
-        "a folding fan, theatrical pose — the everyman jester archetype"
+        "a calm strategist standing firm in wind and rain, robe edges "
+        "fluttering, one hand steadying a game table, expression composed "
+        "after pressure — resilient rebound archetype"
     ),
     "_profile": (
         "a contemplative Chinese tea-drinking scholar with kind eyes and a "

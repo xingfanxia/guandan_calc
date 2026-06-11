@@ -17,14 +17,16 @@
  */
 
 import { $, on } from '../core/utils.js';
-import { getRanking, setRankPosition, clearRankPosition } from './rankingManager.js';
-import { getPlayers, getPlayerById, areAllPlayersAssigned } from '../player/playerManager.js';
+import { getRanking, setRankPosition, clearRankPosition, hasRankingChanged } from './rankingManager.js';
+import { getPlayers, getPlayerById, areAllPlayersAssigned, normalizeTeamNumber } from '../player/playerManager.js';
 import { getDraggedPlayer, setDraggedPlayer } from '../player/playerRenderer.js';
 import { handleRankDrop, handlePoolDrop } from '../player/dragDrop.js';
-import { handleTouchStart, handleTouchMove, handleTouchEnd } from '../player/touchHandler.js';
+import { handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } from '../player/touchHandler.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
+import { isClearingANote } from '../game/gameStatus.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 // Chinese rank names by mode (4P, 6P, 8P)
 const RANK_NAMES = {
@@ -42,6 +44,13 @@ const RANK_NAMES = {
 function rankCn(rank, mode) {
   const names = RANK_NAMES[mode] || RANK_NAMES[8];
   return names[rank - 1] || `第${rank}名`;
+}
+
+function normalizeRankSlotDataset(value) {
+  if (typeof value !== 'string' || !/^[1-8]$/.test(value.trim())) {
+    return null;
+  }
+  return Number(value.trim());
 }
 
 /**
@@ -81,7 +90,7 @@ function handleText(player) {
  * @returns {string}
  */
 function teamColorClass(player) {
-  return player?.team === 1 ? 'blue' : 'red';
+  return normalizeTeamNumber(player?.team) === 1 ? 'blue' : 'red';
 }
 
 /**
@@ -98,21 +107,91 @@ function el(tag, className, text) {
   return node;
 }
 
+const rankingTouchBindings = new WeakMap();
+
+function clearRankingTouchHandlers(node) {
+  const cleanup = rankingTouchBindings.get(node);
+  if (cleanup) {
+    cleanup();
+    rankingTouchBindings.delete(node);
+  }
+  delete node.dataset.touchHandlersAttached;
+}
+
+function bindRankingTouchHandlers(node, player) {
+  clearRankingTouchHandlers(node);
+
+  const startHandler = (e) => {
+    handleTouchStart(e, player);
+  };
+
+  node.addEventListener('touchstart', startHandler, { passive: false });
+  node.addEventListener('touchmove', handleTouchMove, { passive: false });
+  node.addEventListener('touchend', handleTouchEnd, { passive: false });
+  node.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+  node.dataset.touchHandlersAttached = 'true';
+
+  rankingTouchBindings.set(node, () => {
+    node.removeEventListener('touchstart', startHandler);
+    node.removeEventListener('touchmove', handleTouchMove);
+    node.removeEventListener('touchend', handleTouchEnd);
+    node.removeEventListener('touchcancel', handleTouchCancel);
+  });
+}
+
+function bindRankSlotDropHandlers(slot) {
+  slot.ondragover = (e) => {
+    e.preventDefault();
+    slot.classList.add('drag-over');
+  };
+
+  slot.ondragleave = () => {
+    slot.classList.remove('drag-over');
+  };
+
+  slot.ondrop = (e) => {
+    e.preventDefault();
+    slot.classList.remove('drag-over');
+
+    const player = getDraggedPlayer();
+    if (!player) return;
+
+    const currentRanking = getRanking();
+    const newRanking = handleRankDrop(slot, player, currentRanking);
+    if (!hasRankingChanged(currentRanking, newRanking)) return;
+
+    state.setCurrentRanking(newRanking);
+    emit('ranking:updated');
+  };
+}
+
 /**
  * Check if game has ended (a team achieved A级通关)
  * @returns {Object|null} Victory info or null
  */
 export function checkGameEnded() {
+  if (typeof state.getGameStatus === 'function') {
+    const gameStatus = state.getGameStatus();
+    if (gameStatus?.ended) {
+      return {
+        winner: gameStatus.winnerName || config.getTeamName(gameStatus.winnerKey),
+        winKey: gameStatus.winnerKey
+      };
+    }
+  }
+
   const history = state.getHistory();
   if (history.length === 0) return null;
 
   const latestGame = history[history.length - 1];
-  // Check for actual victory (通关 without negation like "才能通关")
-  if (latestGame.aNote &&
-      latestGame.aNote.includes('通关') &&
-      !latestGame.aNote.includes('才能通关') &&
-      !latestGame.aNote.includes('需') &&
-      !latestGame.aNote.includes('但')) {
+  if (latestGame.gameStatus?.ended) {
+    return {
+      winner: latestGame.gameStatus.winnerName || latestGame.win,
+      winKey: latestGame.gameStatus.winnerKey || latestGame.winKey
+    };
+  }
+
+  if (isClearingANote(latestGame.aNote)) {
     return {
       winner: latestGame.win,
       winKey: latestGame.winKey
@@ -123,7 +202,7 @@ export function checkGameEnded() {
 
 /**
  * Render ranking area with slots
- * @param {number} mode - Game mode (4, 6, or 8)
+ * @param {number|string} mode - Game mode (4, 6, or 8)
  */
 export function renderRankingArea(mode) {
   const pool = $('playerPool');
@@ -131,7 +210,12 @@ export function renderRankingArea(mode) {
 
   if (!pool || !area) return;
 
-  const num = parseInt(mode);
+  const num = normalizePlayerCountMode(mode);
+  if (!num) {
+    pool.replaceChildren(el('div', 'small muted', '模式无效，请重新选择游戏人数'));
+    area.replaceChildren();
+    return;
+  }
 
   // Check if game has ended (A级通关)
   const victory = checkGameEnded();
@@ -155,6 +239,12 @@ export function renderRankingArea(mode) {
 
     wrap.appendChild(el('div', 'small muted', '比赛已结束，重置游戏可开始新一局'));
     pool.appendChild(wrap);
+    area.replaceChildren();
+    return;
+  }
+
+  if (getPlayers().length === 0) {
+    pool.replaceChildren(el('div', 'small muted', '请先添加或生成玩家'));
     area.replaceChildren();
     return;
   }
@@ -198,31 +288,7 @@ function createRankSlot(rank, mode) {
   // which decides between .slot--empty / .slot--target / .slot--filled
   // based on current ranking.
 
-  // Setup drop handlers
-  slot.ondragover = (e) => {
-    e.preventDefault();
-    slot.classList.add('drag-over');
-  };
-
-  slot.ondragleave = () => {
-    slot.classList.remove('drag-over');
-  };
-
-  slot.ondrop = (e) => {
-    e.preventDefault();
-    slot.classList.remove('drag-over');
-
-    const player = getDraggedPlayer();
-    if (player) {
-      const currentRanking = getRanking();
-      const newRanking = handleRankDrop(slot, player, currentRanking);
-
-      state.setCurrentRanking(newRanking);
-
-      // Trigger ranking update event to re-render
-      emit('ranking:updated');
-    }
-  };
+  bindRankSlotDropHandlers(slot);
 
   return slot;
 }
@@ -254,6 +320,7 @@ export function renderPlayerPool() {
     if (player) {
       const currentRanking = getRanking();
       const newRanking = handlePoolDrop(player, currentRanking);
+      if (!hasRankingChanged(currentRanking, newRanking)) return;
 
       state.setCurrentRanking(newRanking);
 
@@ -294,15 +361,18 @@ export function renderRankingSlots() {
   // Find lowest-numbered empty slot (the active drop target)
   let targetRank = null;
   slots.forEach(slot => {
-    const r = parseInt(slot.dataset.rank);
+    const r = normalizeRankSlotDataset(slot.dataset.rank);
+    if (r === null) return;
     if (!ranking[r] && targetRank === null) {
       targetRank = r;
     }
   });
 
   slots.forEach(slot => {
-    const rank = parseInt(slot.dataset.rank);
-    const mode = parseInt(slot.dataset.rankMode || '8');
+    const rank = normalizeRankSlotDataset(slot.dataset.rank);
+    if (rank === null) return;
+
+    const mode = normalizePlayerCountMode(slot.dataset.rankMode) || 8;
     const playerId = ranking[rank];
 
     if (playerId) {
@@ -364,10 +434,12 @@ function paintFilledSlot(slot, player, rank, mode) {
  * Mutate slot to "target" state (next-to-be-filled, glowing).
  */
 function paintTargetSlot(slot, rank, mode) {
+  clearRankingTouchHandlers(slot);
   slot.className = 'rank-slot slot slot--target';
   slot.draggable = false;
   delete slot.dataset.playerId;
   delete slot.dataset.playerData;
+  bindRankSlotDropHandlers(slot);
 
   slot.replaceChildren(
     el('span', 'slot__index', `POS · ${rank}`),
@@ -381,10 +453,12 @@ function paintTargetSlot(slot, rank, mode) {
  * Mutate slot to "empty" state (placeholder).
  */
 function paintEmptySlot(slot, rank, mode) {
+  clearRankingTouchHandlers(slot);
   slot.className = 'rank-slot slot slot--empty';
   slot.draggable = false;
   delete slot.dataset.playerId;
   delete slot.dataset.playerData;
+  bindRankSlotDropHandlers(slot);
 
   slot.replaceChildren(
     el('span', 'slot__index', `POS · ${rank}`),
@@ -418,32 +492,11 @@ function attachSlotDragHandlers(slot, player) {
 
   // Re-bind drop targets — after paintFilledSlot the slot is still a drop zone
   // for swapping players (drop another player onto a filled slot to swap).
-  slot.ondragover = (e) => {
-    e.preventDefault();
-    slot.classList.add('drag-over');
-  };
-  slot.ondragleave = () => {
-    slot.classList.remove('drag-over');
-  };
-  slot.ondrop = (e) => {
-    e.preventDefault();
-    slot.classList.remove('drag-over');
-    const dragged = getDraggedPlayer();
-    if (dragged && dragged.id !== player.id) {
-      const currentRanking = getRanking();
-      const newRanking = handleRankDrop(slot, dragged, currentRanking);
-      state.setCurrentRanking(newRanking);
-      emit('ranking:updated');
-    }
-  };
+  bindRankSlotDropHandlers(slot);
 
-  // Touch events — keep existing pattern (inline attach for iOS Safari).
-  slot.addEventListener('touchstart', function (e) {
-    handleTouchStart(e, player);
-  }, { passive: false });
-  slot.addEventListener('touchmove', handleTouchMove, { passive: false });
-  slot.addEventListener('touchend', handleTouchEnd, { passive: false });
-  slot.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  // Touch events — keep existing pattern (inline attach for iOS Safari), but
+  // replace stale closures when the same slot is repainted for another player.
+  bindRankingTouchHandlers(slot, player);
 }
 
 /**
@@ -487,13 +540,8 @@ function createPoolTile(player) {
     emit('drag:ended');
   };
 
-  // Touch events (iOS Safari requires inline attach at create-time)
-  tile.addEventListener('touchstart', function (e) {
-    handleTouchStart(e, player);
-  }, { passive: false });
-  tile.addEventListener('touchmove', handleTouchMove, { passive: false });
-  tile.addEventListener('touchend', handleTouchEnd, { passive: false });
-  tile.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+  // Touch events (iOS Safari requires inline attach at create-time).
+  bindRankingTouchHandlers(tile, player);
 
   return tile;
 }

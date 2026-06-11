@@ -4,9 +4,8 @@
  */
 
 import { $, on } from '../core/utils.js';
-import state from '../core/state.js';
 import config from '../core/config.js';
-import { emit } from '../core/events.js';
+import { handleFinalWinSideEffects } from './finalWinSideEffects.js';
 import { calculateFromRanking, getPlayerRankingData } from '../ranking/rankingCalculator.js';
 import { applyGameResult, advanceToNextRound } from '../game/rules.js';
 import { undoLast, resetAll, renderHistory } from '../game/history.js';
@@ -14,14 +13,34 @@ import { clearRanking as clearRankingState } from '../ranking/rankingManager.js'
 import { renderPlayerPool, renderRankingSlots, checkGameEnded } from '../ranking/rankingRenderer.js';
 import { updatePlayerStats, renderStatistics } from '../stats/statistics.js';
 import { renderTeams } from '../ui/teamDisplay.js';
-import { showVictoryModal, closeVictoryModal, getVotingResults } from '../ui/victoryModal.js';
-import { calculateHonors } from '../stats/honors.js';
-import { syncProfileStats } from '../api/playerApi.js';
+import { closeVictoryModal } from '../ui/victoryModal.js';
 import { getPlayers } from '../player/playerManager.js';
-import { getRoomInfo } from '../share/roomManager.js';
-import { scheduleAutoVotingSync } from '../share/votingSync.js';
+import { syncNow } from '../share/roomManager.js';
 import { handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel } from '../player/touchHandler.js';
 import { attachTouchHandlers } from '../player/playerRenderer.js';
+
+function normalizeTilePlayerId(value) {
+  if (typeof value === 'number') {
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  }
+  if (typeof value !== 'string' || !/^[1-9]\d*$/.test(value.trim())) {
+    return null;
+  }
+  return Number(value.trim());
+}
+
+function safeParseTilePlayerId(rawPlayerData) {
+  if (typeof rawPlayerData !== 'string' || rawPlayerData.trim() === '') {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawPlayerData);
+    return normalizeTilePlayerId(parsed?.id);
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Attach touch handlers to all player and ranking tiles
@@ -35,9 +54,9 @@ export function attachTouchHandlersToAllTiles() {
     // Skip if already has handlers attached
     if (tile.dataset.touchHandlersAttached === 'true') return;
 
-    const playerData = JSON.parse(tile.dataset.playerData || '{}');
-    if (playerData.id) {
-      const player = getPlayers().find(p => p.id === playerData.id);
+    const playerId = safeParseTilePlayerId(tile.dataset.playerData);
+    if (playerId) {
+      const player = getPlayers().find(p => p.id === playerId);
       if (player) {
         attachTouchHandlers(tile, player, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel);
         tile.dataset.touchHandlersAttached = 'true';
@@ -52,7 +71,7 @@ export function attachTouchHandlersToAllTiles() {
     // Skip if already has handlers attached
     if (tile.dataset.touchHandlersAttached === 'true') return;
 
-    const playerId = parseInt(tile.dataset.playerId);
+    const playerId = normalizeTilePlayerId(tile.dataset.playerId);
     if (playerId) {
       const player = getPlayers().find(p => p.id === playerId);
       if (player) {
@@ -61,6 +80,72 @@ export function attachTouchHandlersToAllTiles() {
       }
     }
   });
+}
+
+function setApplyTip(text) {
+  const applyTip = $('applyTip');
+  if (applyTip) applyTip.textContent = text;
+}
+
+/**
+ * Apply one completed ranking calculation and run all downstream side effects.
+ * This is the single transaction boundary for mutating levels/history/stats,
+ * clearing ranking slots, syncing rooms, and scheduling final-win profile work.
+ */
+export async function applyCalculatedRankingResult(result, mode) {
+  if (!result?.ok) {
+    const message = result?.message || '请先完成排名';
+    setApplyTip(message);
+    return { applied: false, reason: 'calculation_failed', message };
+  }
+
+  const playerRankingData = getPlayerRankingData();
+  const fullCalcResult = {
+    ...result.calcResult,
+    ranks: result.ranks,
+    mode: String(mode)
+  };
+
+  const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
+
+  if (!applyResult?.applied) {
+    const message = applyResult?.message || '应用失败：本局结果未写入';
+    setApplyTip(message);
+    return applyResult || { applied: false, reason: 'apply_failed', message };
+  }
+
+  updatePlayerStats(mode);
+  clearRankingState();
+  setApplyTip(applyResult.message || '已应用');
+
+  renderTeams();
+  renderHistory();
+  renderPlayerPool();
+  renderRankingSlots();
+  renderStatistics();
+  attachTouchHandlersToAllTiles();
+
+  const roomSync = syncNow();
+  console.log('Game applied, finalWin:', applyResult.finalWin);
+
+  if (applyResult.finalWin) {
+    const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
+    await roomSync;
+    await handleFinalWinSideEffects({ applyResult, winnerName, mode });
+  }
+
+  return applyResult;
+}
+
+export function resetMatchAndSync(renderInitialState) {
+  const result = resetAll(true);
+  if (result.success) {
+    setApplyTip(result.message);
+    renderInitialState();
+    closeVictoryModal();
+    syncNow();
+  }
+  return result;
 }
 
 /**
@@ -75,7 +160,7 @@ export function setupGameControls(renderInitialState) {
   // Apply button - Apply calculated results
   if (applyBtn) {
     on(applyBtn, 'click', async () => {
-      // Double-submit guard — `await showVictoryModal(...)` makes this handler
+      // Double-submit guard — final-win side effects are async, so this handler
       // async, so a fast double-click could trigger two applyGameResult runs and
       // double-increment team levels before the first finishes.
       if (applyBtn.disabled) return;
@@ -91,82 +176,9 @@ export function setupGameControls(renderInitialState) {
         }
 
         const mode = $('mode').value;
-        const result = calculateFromRanking(parseInt(mode));
+        const result = calculateFromRanking(mode);
 
-        if (result.ok) {
-          const playerRankingData = getPlayerRankingData();
-
-          const fullCalcResult = {
-            ...result.calcResult,
-            ranks: result.ranks,
-            mode: String(mode)
-          };
-
-          const applyResult = applyGameResult(fullCalcResult, result.winner, playerRankingData);
-
-          if (applyResult && applyResult.applied) {
-            updatePlayerStats(parseInt(mode));
-            clearRankingState();
-
-            const applyTip = $('applyTip');
-            if (applyTip) applyTip.textContent = applyResult.message;
-
-            renderTeams();
-            renderHistory();
-            renderPlayerPool();
-            renderRankingSlots();
-            renderStatistics();
-            attachTouchHandlersToAllTiles();
-
-            console.log('Game applied, finalWin:', applyResult.finalWin);
-
-            if (applyResult.finalWin) {
-              const winnerName = result.winner === 't1' ? config.getTeamName('t1') : config.getTeamName('t2');
-
-              await showVictoryModal(winnerName);
-              scheduleAutoVotingSync();
-
-              // Snapshot all state SYNCHRONOUSLY before the 2-second timeout.
-              // Same reasoning as main.js — undo / reset / re-rank during the wait
-              // would otherwise let the closure see post-mutation values.
-              const capturedMode = parseInt(mode);
-              const capturedHistoryEntry = JSON.parse(JSON.stringify(applyResult.historyEntry));
-              const capturedRoomInfo = getRoomInfo();
-              const capturedPlayers = getPlayers().map(p => ({ ...p }));
-              const capturedStats = JSON.parse(JSON.stringify(state.getPlayerStats()));
-
-              setTimeout(() => {
-                const sessionHonors = calculateHonors(capturedMode);
-                const votingResults = getVotingResults();
-
-                let sessionDuration = capturedHistoryEntry.sessionDuration || 0;
-                if (capturedRoomInfo.createdAt && capturedRoomInfo.finishedAt) {
-                  sessionDuration = Math.floor(
-                    (new Date(capturedRoomInfo.finishedAt).getTime() - new Date(capturedRoomInfo.createdAt).getTime()) / 1000
-                  );
-                  console.log(`✅ Calculated session duration from room: ${sessionDuration}s`);
-                }
-
-                const historyWithDuration = {
-                  ...capturedHistoryEntry,
-                  sessionDuration
-                };
-
-                syncProfileStats(
-                  historyWithDuration,
-                  capturedRoomInfo.roomCode || 'LOCAL',
-                  capturedPlayers,
-                  capturedStats,
-                  sessionHonors,
-                  votingResults
-                );
-              }, 2000);
-            }
-          }
-        } else {
-          const applyTip = $('applyTip');
-          if (applyTip) applyTip.textContent = result.message || '请先完成排名';
-        }
+        await applyCalculatedRankingResult(result, mode);
       } finally {
         applyBtn.disabled = false;
       }
@@ -181,72 +193,54 @@ export function setupGameControls(renderInitialState) {
       if (applyTip) {
         applyTip.textContent = result.message;
       }
-      renderTeams();
+      if (result.advanced) {
+        renderTeams();
+        syncNow();
+      }
     });
   }
 
   // Undo button - Undo last round
   if (undoBtn) {
     on(undoBtn, 'click', () => {
-      undoLast();
+      const result = undoLast();
       const applyTip = $('applyTip');
-      if (applyTip) applyTip.textContent = '已撤销。';
-      renderTeams();
-      renderHistory();
-      renderStatistics();
+      if (!result.success && applyTip) {
+        applyTip.textContent = result.message || '撤销失败。';
+      }
     });
   }
 
   // Reset button - Reset entire game
   if (resetBtn) {
     on(resetBtn, 'click', () => {
-      const result = resetAll(true);
-      if (result.success) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = result.message;
-        renderInitialState();
-        closeVictoryModal();
-      }
+      resetMatchAndSync(renderInitialState);
     });
   }
 
   // Manual calc button - Trigger calculation manually
   const manualCalcBtn = $('manualCalc');
   if (manualCalcBtn) {
-    on(manualCalcBtn, 'click', () => {
-      // Check if game has ended (A级通关)
-      if (checkGameEnded()) {
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '比赛已结束';
-        return;
-      }
+    on(manualCalcBtn, 'click', async () => {
+      if (manualCalcBtn.disabled) return;
+      manualCalcBtn.disabled = true;
 
-      const mode = parseInt($('mode').value);
-      const result = calculateFromRanking(mode);
+      try {
+        // Check if game has ended (A级通关)
+        if (checkGameEnded()) {
+          const applyTip = $('applyTip');
+          if (applyTip) applyTip.textContent = '比赛已结束';
+          return;
+        }
 
-      if (result.ok && config.getPreference('autoApply')) {
-        const playerRankingData = getPlayerRankingData();
+        const mode = $('mode').value;
+        const result = calculateFromRanking(mode);
 
-        // Merge ranks into calcResult for applyGameResult
-        const fullCalcResult = {
-          ...result.calcResult,
-          ranks: result.ranks,
-          mode: String(mode)
-        };
-
-        applyGameResult(fullCalcResult, result.winner, playerRankingData);
-        updatePlayerStats(mode);
-        clearRankingState();
-
-        const applyTip = $('applyTip');
-        if (applyTip) applyTip.textContent = '已应用';
-
-        renderTeams();
-        renderHistory();
-        renderPlayerPool();
-        renderRankingSlots();
-        renderStatistics();
-        attachTouchHandlersToAllTiles();
+        if (result.ok && config.getPreference('autoApply')) {
+          await applyCalculatedRankingResult(result, mode);
+        }
+      } finally {
+        manualCalcBtn.disabled = false;
       }
     });
   }

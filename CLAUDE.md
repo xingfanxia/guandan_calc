@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression tracking system for the Chinese climbing card game. Supports 4/6/8 player modes with team-based level progression (2→A), real-time room sharing, community voting, player profiles with photos, and 14 data-driven honor calculations.
+Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression tracking system for the Chinese climbing card game. Supports 4/6/8 player modes with team-based level progression (2→A), real-time room sharing, community voting, player profiles with photos, and 16 full-session honor calculations.
 
 ## Architecture Status
 
@@ -59,7 +59,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 **Statistics (3 modules)**: Player stats and achievements
 - `stats/statistics.js` - Session stats tracking, MVP/burden identification
-- `stats/honors.js` - 14 honor calculations with sophisticated algorithms
+- `stats/honors.js` - 16 full-session honor calculations with global/trend algorithms
 - `stats/achievements.js` - 20 achievement badge system
 
 **Player Profile System (6 modules)**: Persistent player identities
@@ -139,7 +139,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - Win rate visualization
 
 ### Admin Mode
-- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js` all validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
+- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js`, `migrate-single.js`, and `backfill-duration.js` validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
 - Set `ADMIN_TOKEN=...` in Vercel project env to enable; previous hardcoded password was rotated out 2026-05-02
 - Delete players with confirmation
 - Reset player stats
@@ -155,9 +155,10 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 ### Voting System Enhancement
 - Syncs ALL players who received votes (not just winners)
-- Idempotent voting with votingHistory tracking
+- Idempotent voting with vote-session-keyed votingHistory tracking
 - Actual vote counts tracked (3 votes = +3, not +1)
-- Safe to sync multiple times (latest votes applied)
+- Safe to sync multiple times (latest votes applied for that voting window)
+- Same-room vote reset/new windows no longer overwrite prior profile vote totals
 - Vote leaderboard updates for both host and viewer
 - Accurate popularity metrics
 
@@ -175,7 +176,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - `create.js` - Generate 6-digit room codes, initialize KV storage
 - `[code].js` - GET/PUT room data with auth token validation
 - `vote/[code].js` - Submit anonymous viewer votes for MVP/burden
-- `reset-vote/[code].js` - Clear voting results after host confirmation
+- `reset-vote/[code].js` - Clear authoritative vote results/fingerprints after host confirmation
 - `favorite/[code].js` - Toggle favorite status (1-year TTL)
 - `list.js` - Retrieve all favorited rooms
 
@@ -211,15 +212,17 @@ python -m http.server 8000
 - Configurable thresholds via settings
 
 **A-Level Logic** (lines 1533-1592 in src/app.js):
-- Strict mode: Must win at own A-level round (`ST.roundOwner === aTeam`)
-- Lenient mode: Can win at any level once at A
-- Failure tracking: 3 A-level failures = reset to level 2
+- Clear condition in every mode: must win at own A-level round (`ST.roundOwner === aTeam`) with no last-place winner
+- Lenient mode: own-A failures do not increment counters or demote; it does not allow away-level A clears
+- Failure tracking: in strict mode, 3 own-A failures = reset that team to level 2 across 4/6/8-player modes
 - Winner's level becomes next round's base (`nextBaseByRule`)
+- A-level clear is stored as structured `state.gameStatus`; do not infer match-ended status from `aNote` text except as a legacy fallback
 
 **Critical A-Level Implementation Details**:
 - Check `ST.roundOwner` to determine whose round it is
 - Only increment A-fail counter on team's own round
 - In strict mode, verify both `ST.roundLevel === 'A'` AND `ST.roundOwner === aTeam`
+- When both teams are at A, `roundOwner` is the only authoritative way to know whose A round is being played
 
 **8-Player Sweep Bonus** (lines 1442-1444):
 - Positions 1,2,3,4 grant 4-level upgrade
@@ -251,23 +254,15 @@ python -m http.server 8000
 
 **Vote Storage**: Round-specific data in KV with host auth validation
 
-### Honor Calculation System (14 Honors)
+### Honor Calculation System (16 Honors)
 
-Implemented in `statsManager.js` with sophisticated algorithms:
-- **吕布** (First place ratio): Quality over quantity with reliability threshold
-- **阿斗** (Last place ratio): Consecutive penalty system
-- **石佛** (Excellence + stability): Top 25% with low variance
-- **波动王** (Volatility): High variance + extreme range bonus
-- **奋斗王** (Progressive improvement): 3-segment trend analysis
-- **辅助王** (Team support): Bottom-half performance during team wins
-- **翻车王** (Dramatic drops): Top 3 to last place collapses
-- **赌徒** (High risk high reward): High first + high last rates
-- **大满贯** (Position completion): Experience all ranking positions
-- **连胜王** (Longest streak): Consecutive top-half finishes
-- **佛系玩家** (Median ranking): Closest to middle way
-- **守门员** (Teammate protection): Prevent last place during team losses
-- **慢热王** (Slow start pattern): Poor start but strong finish
-- **闪电侠** (Ranking changes): Most frequent position changes
+Implemented in `src/stats/honors.js` with sophisticated algorithms:
+- **吕布 / 阿斗**: Full-session dominance and burden scores
+- **石佛 / 波动王 / 节奏核心**: Stability, volatility, and team-leading tempo pressure
+- **奋斗王 / 逆转核心 / 燃尽王**: Late climb, comeback arc, and burnout arc
+- **翻车王 / 赌徒**: Crash count and extreme high/low profile
+- **大满贯 / 连段王 / 团队中轴**: Rank coverage, top-half streak, and teammate-relative anchor impact
+- **保底核心 / 棋差一着 / 抗压王**: No-last team safety net, repeated second without wins, and rebounds after bottom-tier pressure
 
 All algorithms scale properly for 4/6/8 player modes.
 
@@ -396,8 +391,8 @@ Transforms the app from session-based to a **persistent gaming platform** with:
 - Player profiles with unique @handles
 - Career stat tracking (dual metrics: sessions + rounds)
 - Time tracking (total, longest, average)
-- All 14 honors synced to profiles
-- 20 achievement badges (auto-unlock)
+- All 16 honors synced to profiles
+- 17 active achievement badges (auto-unlock)
 - Community voting integration
 - Partner/rival relationship tracking
 - Player browser and profile pages
@@ -417,7 +412,7 @@ Transforms the app from session-based to a **persistent gaming platform** with:
 - `player/playerCreateModal.js` - Creation modal
 - `player/playerManager.js` - Enhanced with `addPlayerFromProfile()`, `removePlayer()`
 - `share/votingSync.js` - Voting to profile sync
-- `stats/achievements.js` - 20 badge definitions
+- `shared/achievementLogic.js` / `stats/achievements.js` - 17 active badge definitions
 
 **Pages**:
 - `players.html` - Browse all players (search, pagination)

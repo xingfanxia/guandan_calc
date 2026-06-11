@@ -8,11 +8,40 @@ import { on as onEvent, emit } from '../core/events.js';
 import { getRoomInfo } from './roomManager.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getPlayers } from '../player/playerManager.js';
+import { getPlayers, normalizeTeamNumber } from '../player/playerManager.js';
 import { renderProfileAvatar } from '../player/photoRenderer.js';
+import { readOptionalJsonResponse as readOptionalJson } from '../api/httpResponse.js';
+import { getHistoryEntries, resolveGameStatus } from '../game/gameStatus.js';
+import {
+  deriveVoteSessionKey,
+  hasAlreadyVotedInSession,
+  markVotedInSession
+} from './voteSession.js';
+import { findPlayerByVoteId, normalizeVoteApiResults, normalizeVotePlayerId } from './voteResults.js';
+import { syncVotingToProfiles } from './votingSync.js';
 
 // Track if voting has been unlocked (prevent re-locking on refresh)
 let votingUnlocked = false;
+let hostVotePollingInterval = null;
+let activeVoteSessionKey = null;
+let volatileFingerprint = null;
+
+function readStoredFingerprint() {
+  try {
+    return globalThis.localStorage?.getItem?.('gd_voter_fingerprint') || null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredFingerprint(fingerprint) {
+  try {
+    globalThis.localStorage?.setItem?.('gd_voter_fingerprint', fingerprint);
+  } catch {
+    // Storage can be blocked in private/embedded contexts. The in-memory
+    // fallback still keeps repeated submissions in the same page stable.
+  }
+}
 
 /**
  * Generate a simple browser fingerprint for vote deduplication
@@ -20,20 +49,25 @@ let votingUnlocked = false;
  */
 function getBrowserFingerprint() {
   // Check if we already have a fingerprint stored
-  let storedFingerprint = localStorage.getItem('gd_voter_fingerprint');
+  const storedFingerprint = readStoredFingerprint();
 
   if (storedFingerprint) {
     return storedFingerprint;
   }
+  if (volatileFingerprint) {
+    return volatileFingerprint;
+  }
 
+  const nav = globalThis.navigator || {};
+  const display = globalThis.screen || {};
   // Generate new fingerprint from browser properties
   const components = [
-    navigator.userAgent,
-    navigator.language,
-    screen.width + 'x' + screen.height,
-    screen.colorDepth,
+    nav.userAgent || 'unknown',
+    nav.language || 'unknown',
+    (display.width || 0) + 'x' + (display.height || 0),
+    display.colorDepth || 'unknown',
     new Date().getTimezoneOffset(),
-    navigator.hardwareConcurrency || 'unknown',
+    nav.hardwareConcurrency || 'unknown',
     // Add some randomness for uniqueness
     Math.random().toString(36).substring(2, 15)
   ];
@@ -48,27 +82,78 @@ function getBrowserFingerprint() {
   // Add timestamp for extra uniqueness
   const fullFingerprint = hash + '_' + Date.now().toString(36);
 
-  // Store it
-  localStorage.setItem('gd_voter_fingerprint', fullFingerprint);
+  volatileFingerprint = fullFingerprint;
+  writeStoredFingerprint(fullFingerprint);
 
   return fullFingerprint;
 }
 
-/**
- * Check if current browser has already voted for this room
- */
-function hasAlreadyVoted(roomCode) {
-  const votedRooms = JSON.parse(localStorage.getItem('gd_voted_rooms') || '{}');
-  return votedRooms[roomCode] === true;
+function deriveVoteSessionKeyFromState(roomInfo = getRoomInfo()) {
+  return deriveVoteSessionKey({
+    roomCode: roomInfo.roomCode,
+    gameStatus: state.getGameStatus(),
+    history: state.getHistory(),
+    finishedAt: roomInfo.finishedAt,
+    endGameVotesHistory: []
+  });
+}
+
+function deriveVoteSessionKeyFromRoomData(roomData) {
+  return deriveVoteSessionKey({
+    roomCode: roomData?.roomCode || getRoomInfo().roomCode,
+    gameStatus: roomData?.state?.gameStatus,
+    history: getHistoryEntries(roomData?.state),
+    finishedAt: roomData?.finishedAt,
+    endGameVotesHistory: roomData?.endGameVotesHistory
+  });
+}
+
+function getCurrentVoteSessionKey(roomInfo = getRoomInfo()) {
+  if (activeVoteSessionKey) {
+    return activeVoteSessionKey;
+  }
+
+  activeVoteSessionKey = deriveVoteSessionKeyFromState(roomInfo);
+  return activeVoteSessionKey;
+}
+
+export function resolveVotingWinner(gameStatus, history) {
+  const resolvedStatus = resolveGameStatus(gameStatus, history);
+  if (!resolvedStatus.ended || !resolvedStatus.winnerKey) {
+    return null;
+  }
+
+  return {
+    winKey: resolvedStatus.winnerKey,
+    winName: resolvedStatus.winnerName || null
+  };
 }
 
 /**
- * Mark current browser as having voted for this room
+ * Check if current browser has already voted in the active voting window.
  */
-function markAsVoted(roomCode) {
-  const votedRooms = JSON.parse(localStorage.getItem('gd_voted_rooms') || '{}');
-  votedRooms[roomCode] = true;
-  localStorage.setItem('gd_voted_rooms', JSON.stringify(votedRooms));
+function hasAlreadyVoted(roomInfo = getRoomInfo()) {
+  return hasAlreadyVotedInSession(globalThis.localStorage, getCurrentVoteSessionKey(roomInfo));
+}
+
+/**
+ * Mark current browser as having voted in the active voting window.
+ */
+function markAsVoted(roomInfo = getRoomInfo()) {
+  return markVotedInSession(globalThis.localStorage, getCurrentVoteSessionKey(roomInfo));
+}
+
+export function resetViewerVotingState() {
+  votingUnlocked = false;
+
+  const roomInfo = getRoomInfo();
+  if (roomInfo.isViewer) {
+    initializeViewerVotingSection();
+  }
+}
+
+export function resetViewerVotingUnlockState() {
+  votingUnlocked = false;
 }
 
 /**
@@ -86,13 +171,20 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
   }
 
   // Check if already voted (client-side check)
-  if (hasAlreadyVoted(roomInfo.roomCode)) {
+  if (hasAlreadyVoted(roomInfo)) {
     console.warn('Already voted for this room');
     return { success: false, error: 'already_voted' };
   }
 
+  const normalizedMvpPlayerId = normalizeVotePlayerId(mvpPlayerId);
+  const normalizedBurdenPlayerId = normalizeVotePlayerId(burdenPlayerId);
+  if (!normalizedMvpPlayerId || !normalizedBurdenPlayerId) {
+    console.error('Invalid vote player ID');
+    return { success: false, error: 'invalid_player' };
+  }
+
   // Validate: MVP and burden cannot be the same person
-  if (mvpPlayerId === burdenPlayerId) {
+  if (normalizedMvpPlayerId === normalizedBurdenPlayerId) {
     console.error('MVP and burden cannot be the same person');
     return { success: false, error: 'same_person' };
   }
@@ -101,30 +193,33 @@ export async function submitEndGameVotes(mvpPlayerId, burdenPlayerId) {
     const gameNumber = state.getHistory().length;
     const fingerprint = getBrowserFingerprint();
 
-    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`, {
+    const response = await fetch(`/api/rooms/vote/${encodeURIComponent(roomInfo.roomCode)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        mvpPlayerId,
-        burdenPlayerId,
+        mvpPlayerId: normalizedMvpPlayerId,
+        burdenPlayerId: normalizedBurdenPlayerId,
         gameNumber,
         fingerprint
       })
     });
 
-    const result = await response.json();
+    const result = await readOptionalJson(response);
 
     if (!response.ok) {
-      console.error('Failed to submit vote:', result.error);
+      console.error('Failed to submit vote:', result.error || response.statusText);
       return { success: false, error: result.error || 'server_error' };
     }
 
     // Mark as voted locally
-    markAsVoted(roomInfo.roomCode);
+    markAsVoted(roomInfo);
 
-    emit('voting:submitted', { mvpPlayerId, burdenPlayerId });
+    emit('voting:submitted', {
+      mvpPlayerId: normalizedMvpPlayerId,
+      burdenPlayerId: normalizedBurdenPlayerId
+    });
 
     // ALSO call directly to ensure it runs
     setTimeout(() => {
@@ -152,16 +247,18 @@ export async function getEndGameVotingResults() {
   try {
     const gameNumber = state.getHistory().length;
 
-    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}?game=${gameNumber}`);
+    const response = await fetch(`/api/rooms/vote/${encodeURIComponent(roomInfo.roomCode)}?game=${gameNumber}`);
 
     if (!response.ok) {
       return null;
     }
 
-    const text = await response.text();
-    const results = text ? JSON.parse(text) : null;
+    const payload = await readOptionalJson(response);
+    if (!payload?.success || !payload?.votes) {
+      return null;
+    }
 
-    return results;
+    return normalizeVoteApiResults(payload);
   } catch (error) {
     console.error('Error fetching voting results:', error);
     return null;
@@ -184,7 +281,7 @@ export async function resetVoting(authToken) {
     const history = state.getHistory();
     const roundNumber = history.length;
 
-    const response = await fetch(`/api/rooms/reset-vote/${roomInfo.roomCode}`, {
+    const response = await fetch(`/api/rooms/reset-vote/${encodeURIComponent(roomInfo.roomCode)}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -285,16 +382,21 @@ export function unlockViewerVoting() {
   // Already unlocked, don't recreate
   if (votingUnlocked) return;
 
-  votingUnlocked = true;
+  let votingCard = document.getElementById('viewerVotingCard');
+  if (!votingCard) {
+    initializeViewerVotingSection();
+    votingCard = document.getElementById('viewerVotingCard');
+  }
 
-  const votingCard = document.getElementById('viewerVotingCard');
   if (!votingCard) {
     console.error('Voting card not found');
     return;
   }
 
+  votingUnlocked = true;
+
   // Check if already voted
-  if (hasAlreadyVoted(roomInfo.roomCode)) {
+  if (hasAlreadyVoted(roomInfo)) {
     // Show "already voted" UI
     votingCard.style.background = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
     votingCard.style.border = '3px solid #6b7280';
@@ -324,15 +426,16 @@ export function unlockViewerVoting() {
 
   // Calculate winning team MVP and teammates
   const history = state.getHistory();
-  const latestGame = history.length > 0 ? history[history.length - 1] : null;
+  const votingWinner = resolveVotingWinner(state.getGameStatus(), history);
   let winnerSection = '';
   
-  if (latestGame) {
-    const winningTeamKey = latestGame.winKey;
-    const winningTeamName = latestGame.win;
+  if (votingWinner) {
+    const winningTeamKey = votingWinner.winKey;
+    const winningTeamName = votingWinner.winName ||
+      (winningTeamKey === 't1' ? config.getTeamName('t1') : config.getTeamName('t2'));
     const winningTeamColor = winningTeamKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
     const winningTeamNum = winningTeamKey === 't1' ? 1 : 2;
-    const teamPlayers = players.filter(p => p.team === winningTeamNum);
+    const teamPlayers = players.filter(p => normalizeTeamNumber(p.team) === winningTeamNum);
     const playerStats = state.getPlayerStats();
     
     // Find MVP
@@ -470,7 +573,8 @@ export function unlockViewerVoting() {
 
     mvpBtns.forEach(btn => {
       btn.onclick = () => {
-        const playerId = parseInt(btn.dataset.playerId);
+        const playerId = normalizeVotePlayerId(btn.dataset.playerId);
+        if (!playerId) return;
 
         selectedMVP = playerId;
 
@@ -491,7 +595,8 @@ export function unlockViewerVoting() {
 
     burdenBtns.forEach(btn => {
       btn.onclick = () => {
-        const playerId = parseInt(btn.dataset.playerId);
+        const playerId = normalizeVotePlayerId(btn.dataset.playerId);
+        if (!playerId) return;
 
         selectedBurden = playerId;
 
@@ -531,10 +636,10 @@ export function unlockViewerVoting() {
           setTimeout(updateVoteLeaderboard, 200);
 
           const status = document.getElementById('viewerVoteStatus');
-          const mvpPlayer = players.find(p => p.id === selectedMVP);
-          const burdenPlayer = players.find(p => p.id === selectedBurden);
+          const mvpPlayer = findPlayerByVoteId(players, selectedMVP);
+          const burdenPlayer = findPlayerByVoteId(players, selectedBurden);
 
-          if (status) {
+          if (status && mvpPlayer && burdenPlayer) {
             status.innerHTML = `✅ 投票成功！<br>MVP: ${escapeHtml(mvpPlayer.emoji)}${escapeHtml(mvpPlayer.name)}<br>最闹: ${escapeHtml(burdenPlayer.emoji)}${escapeHtml(burdenPlayer.name)}<br><br>正在获取投票结果...`;
             status.style.background = 'rgba(34, 197, 94, 0.5)';
           }
@@ -572,21 +677,27 @@ export function unlockViewerVoting() {
 
       // Check for same person selection
       if (selectedMVP && selectedBurden && selectedMVP === selectedBurden) {
-        const player = players.find(p => p.id === selectedMVP);
-        status.innerHTML = `⚠️ 警告：不能选同一个人！<br>${escapeHtml(player.emoji)}${escapeHtml(player.name)} 不能同时是 MVP 和累赘`;
+        const player = findPlayerByVoteId(players, selectedMVP);
+        status.innerHTML = player
+          ? `⚠️ 警告：不能选同一个人！<br>${escapeHtml(player.emoji)}${escapeHtml(player.name)} 不能同时是 MVP 和累赘`
+          : '⚠️ 警告：不能选同一个人！';
         status.style.background = 'rgba(239, 68, 68, 0.5)';
         return;
       }
 
       let text = '';
       if (selectedMVP) {
-        const mvpPlayer = players.find(p => p.id === selectedMVP);
-        text += `MVP: ${escapeHtml(mvpPlayer.emoji)}${escapeHtml(mvpPlayer.name)}`;
+        const mvpPlayer = findPlayerByVoteId(players, selectedMVP);
+        if (mvpPlayer) {
+          text += `MVP: ${escapeHtml(mvpPlayer.emoji)}${escapeHtml(mvpPlayer.name)}`;
+        }
       }
       if (selectedBurden) {
-        const burdenPlayer = players.find(p => p.id === selectedBurden);
-        if (text) text += '<br>';
-        text += `最闹: ${escapeHtml(burdenPlayer.emoji)}${escapeHtml(burdenPlayer.name)}`;
+        const burdenPlayer = findPlayerByVoteId(players, selectedBurden);
+        if (burdenPlayer) {
+          if (text) text += '<br>';
+          text += `最闹: ${escapeHtml(burdenPlayer.emoji)}${escapeHtml(burdenPlayer.name)}`;
+        }
       }
 
       if (text) {
@@ -611,15 +722,21 @@ export function showEndGameVotingForViewers() {
     return;
   }
   
-  const latestGame = history[history.length - 1];
-  const winningTeamKey = latestGame.winKey;
-  const winningTeamName = latestGame.win;
+  const votingWinner = resolveVotingWinner(state.getGameStatus(), history);
+  if (!votingWinner) {
+    console.log('No resolved voting winner, skipping winner display');
+    return;
+  }
+
+  const winningTeamKey = votingWinner.winKey;
+  const winningTeamName = votingWinner.winName ||
+    (winningTeamKey === 't1' ? config.getTeamName('t1') : config.getTeamName('t2'));
   const winningTeamColor = winningTeamKey === 't1' ? config.getTeamColor('t1') : config.getTeamColor('t2');
   const winningTeamNum = winningTeamKey === 't1' ? 1 : 2;
   
   const players = getPlayers();
   const playerStats = state.getPlayerStats();
-  const teamPlayers = players.filter(p => p.team === winningTeamNum);
+  const teamPlayers = players.filter(p => normalizeTeamNumber(p.team) === winningTeamNum);
   
   console.log('Winning team:', winningTeamName, 'Players:', teamPlayers.length);
   
@@ -700,6 +817,56 @@ onEvent('voting:submitted', () => {
   setTimeout(updateVoteLeaderboard, 500);
 });
 
+onEvent('state:gameStatusChanged', ({ status } = {}) => {
+  if (!status?.ended) {
+    activeVoteSessionKey = null;
+    resetViewerVotingState();
+  }
+});
+
+onEvent('game:rollback', () => {
+  activeVoteSessionKey = null;
+  resetViewerVotingState();
+});
+
+function resetVotingSessionState() {
+  activeVoteSessionKey = null;
+  resetViewerVotingState();
+}
+
+[
+  'game:reset',
+  'state:gameReset',
+  'state:allReset'
+].forEach(eventName => {
+  onEvent(eventName, resetVotingSessionState);
+});
+
+onEvent('room:left', () => {
+  activeVoteSessionKey = null;
+  votingUnlocked = false;
+});
+
+onEvent('room:dataLoaded', ({ roomData } = {}) => {
+  const roomInfo = getRoomInfo();
+  if (!roomInfo.isViewer) return;
+
+  const nextSessionKey = deriveVoteSessionKeyFromRoomData(roomData);
+  if (!nextSessionKey) {
+    activeVoteSessionKey = null;
+    resetViewerVotingState();
+    return;
+  }
+
+  const sessionChanged = activeVoteSessionKey && activeVoteSessionKey !== nextSessionKey;
+  activeVoteSessionKey = nextSessionKey;
+
+  if (sessionChanged) {
+    resetViewerVotingState();
+    showEndGameVotingForViewers();
+  }
+});
+
 /**
  * Show vote results to viewer after voting
  */
@@ -708,24 +875,31 @@ async function showVoteResultsToViewer(votingCard) {
   if (!roomInfo.roomCode) return;
 
   try {
-    const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
-    const data = await response.json();
+    const response = await fetch(`/api/rooms/vote/${encodeURIComponent(roomInfo.roomCode)}`);
+    const data = await readOptionalJson(response);
 
     if (!data.success || !data.votes) return;
+    const results = normalizeVoteApiResults(data);
 
     const players = getPlayers();
-    const mvpVotes = Object.entries(data.votes.mvp || {})
-      .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+    const mvpVotes = Object.entries(results.mvp.votes || {})
+      .map(([id, count]) => ({ p: findPlayerByVoteId(players, id), count }))
       .filter(v => v.p)
       .sort((a, b) => b.count - a.count);
 
-    const burdenVotes = Object.entries(data.votes.burden || {})
-      .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
+    const burdenVotes = Object.entries(results.burden.votes || {})
+      .map(([id, count]) => ({ p: findPlayerByVoteId(players, id), count }))
       .filter(v => v.p)
       .sort((a, b) => b.count - a.count);
 
-    // Add results section to voting card
-    const resultsDiv = document.createElement('div');
+    // Refresh a stable results section instead of appending duplicates when
+    // viewers poll, re-open, or receive multiple voting events.
+    let resultsDiv = votingCard.querySelector('#viewerVoteResultsContainer, .viewer-vote-results');
+    if (!resultsDiv) {
+      resultsDiv = document.createElement('div');
+      votingCard.appendChild(resultsDiv);
+    }
+    resultsDiv.className = 'viewer-vote-results';
     resultsDiv.style.cssText = `
       margin-top: 20px;
       padding: 15px;
@@ -756,57 +930,56 @@ async function showVoteResultsToViewer(votingCard) {
       </div>
     `;
 
-    votingCard.appendChild(resultsDiv);
-
   } catch (error) {
     console.error('Error fetching vote results:', error);
   }
 }
 
 export async function updateVoteLeaderboard() {
-
   const roomInfo = getRoomInfo();
   if (!roomInfo.roomCode) {
     return;
   }
 
+  try {
+    const response = await fetch(`/api/rooms/vote/${encodeURIComponent(roomInfo.roomCode)}`);
+    const data = await readOptionalJson(response);
 
-  const response = await fetch(`/api/rooms/vote/${roomInfo.roomCode}`);
-  const data = await response.json();
+    if (!data.success || !data.votes) {
+      return;
+    }
+    const results = normalizeVoteApiResults(data);
+
+    const players = getPlayers();
 
 
-  if (!data.success || !data.votes) {
-    return;
+    const mvp = Object.entries(results.mvp.votes || {})
+      .map(([id, count]) => ({ p: findPlayerByVoteId(players, id), count }))
+      .filter(v => v.p)
+      .sort((a, b) => b.count - a.count);
+
+    const burden = Object.entries(results.burden.votes || {})
+      .map(([id, count]) => ({ p: findPlayerByVoteId(players, id), count }))
+      .filter(v => v.p)
+      .sort((a, b) => b.count - a.count);
+
+
+    const mvpDiv = document.getElementById('mvpStatsTable');
+    const burdenDiv = document.getElementById('burdenStatsTable');
+
+
+    if (mvpDiv) {
+      const html = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${escapeHtml(v.p.emoji)}${escapeHtml(v.p.name)}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
+      mvpDiv.innerHTML = html;
+    }
+
+    if (burdenDiv) {
+      const html = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${escapeHtml(v.p.emoji)}${escapeHtml(v.p.name)}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
+      burdenDiv.innerHTML = html;
+    }
+  } catch (error) {
+    console.error('Error updating vote leaderboard:', error);
   }
-
-  const players = getPlayers();
-
-
-  const mvp = Object.entries(data.votes.mvp || {})
-    .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
-    .filter(v => v.p)
-    .sort((a, b) => b.count - a.count);
-
-  const burden = Object.entries(data.votes.burden || {})
-    .map(([id, count]) => ({ p: players.find(p => p.id === parseInt(id)), count }))
-    .filter(v => v.p)
-    .sort((a, b) => b.count - a.count);
-
-
-  const mvpDiv = document.getElementById('mvpStatsTable');
-  const burdenDiv = document.getElementById('burdenStatsTable');
-
-
-  if (mvpDiv) {
-    const html = mvp.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(34,197,94,0.2);border-left:3px solid #22c55e;border-radius:4px;">${i+1}. ${escapeHtml(v.p.emoji)}${escapeHtml(v.p.name)}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
-    mvpDiv.innerHTML = html;
-  }
-
-  if (burdenDiv) {
-    const html = burden.map((v, i) => `<div style="padding:8px;margin:4px 0;background:rgba(239,68,68,0.2);border-left:3px solid #ef4444;border-radius:4px;">${i+1}. ${escapeHtml(v.p.emoji)}${escapeHtml(v.p.name)}: <strong>${v.count}票</strong></div>`).join('') || '暂无数据';
-    burdenDiv.innerHTML = html;
-  }
-
 }
 
 /**
@@ -820,12 +993,15 @@ export async function showHostVoting() {
   const votingSection = $('votingSection');
   if (!votingSection) return;
 
+  votingSection.hidden = false;
   votingSection.style.display = 'block';
 
   const results = await getEndGameVotingResults();
 
   const hostInterface = $('hostVotingInterface');
   if (!hostInterface) return;
+  hostInterface.hidden = false;
+  hostInterface.style.display = 'block';
 
   if (!results || !results.mvp || !results.burden) {
     hostInterface.innerHTML = '<p class="muted">暂无投票数据</p>';
@@ -837,7 +1013,7 @@ export async function showHostVoting() {
   // Format vote results
   const mvpVotes = Object.entries(results.mvp.votes || {})
     .map(([playerId, count]) => {
-      const player = players.find(p => p.id === parseInt(playerId));
+      const player = findPlayerByVoteId(players, playerId);
       return { player, count };
     })
     .filter(v => v.player)
@@ -845,7 +1021,7 @@ export async function showHostVoting() {
 
   const burdenVotes = Object.entries(results.burden.votes || {})
     .map(([playerId, count]) => {
-      const player = players.find(p => p.id === parseInt(playerId));
+      const player = findPlayerByVoteId(players, playerId);
       return { player, count };
     })
     .filter(v => v.player)
@@ -893,25 +1069,39 @@ export async function showHostVoting() {
   const clearBtn = $('clearVotes');
 
   if (confirmBtn) {
-    confirmBtn.onclick = () => {
-      // Record winning votes to "人民的声音"
-      if (mvpVotes.length > 0) {
+    confirmBtn.onclick = async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = '同步中...';
+
+      const syncResult = await syncVotingToProfiles();
+      if (!syncResult.success) {
+        alert(`投票结果同步失败: ${syncResult.reason || 'unknown'}`);
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '✅ 确认并记录';
+        return;
       }
-      if (burdenVotes.length > 0) {
+
+      const resetSuccess = await resetVoting(roomInfo.authToken);
+      if (!resetSuccess) {
+        alert('投票结果已同步，但清空投票失败，请稍后重试');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '✅ 确认并记录';
+        return;
       }
-      alert('投票结果已确认');
+
+      alert(`投票结果已确认并记录到"人民的声音"\n已同步 ${syncResult.totalPlayersSynced || 0} 位玩家`);
+      await showHostVoting();
     };
   }
 
   if (clearBtn) {
     clearBtn.onclick = async () => {
-      const authToken = prompt('请输入房主密码:');
-      if (authToken) {
-        const success = await resetVoting(authToken);
-        if (success) {
-          alert('投票已清空');
-          showHostVoting(); // Refresh
-        }
+      const success = await resetVoting(roomInfo.authToken);
+      if (success) {
+        alert('投票已清空');
+        showHostVoting(); // Refresh
+      } else {
+        alert('投票清空失败');
       }
     };
   }
@@ -920,14 +1110,28 @@ export async function showHostVoting() {
 /**
  * Start live vote count polling (host only)
  */
+export function stopVotePolling() {
+  if (hostVotePollingInterval) {
+    clearInterval(hostVotePollingInterval);
+    hostVotePollingInterval = null;
+  }
+}
+
 export function startVotePolling() {
   // P2 #10 fix: `isHost` was an undefined module-scoped ref; getRoomInfo() is
-  // the canonical source. Note: this function never stops the interval — if
-  // host stops being host (e.g., room ends) the polling continues. Pre-existing
-  // behavior, not in scope of this fix.
-  if (!getRoomInfo().isHost) return;
+  // the canonical source.
+  if (!getRoomInfo().isHost) {
+    stopVotePolling();
+    return;
+  }
 
-  setInterval(async () => {
+  stopVotePolling();
+
+  hostVotePollingInterval = setInterval(async () => {
+    if (!getRoomInfo().isHost) {
+      stopVotePolling();
+      return;
+    }
     await showHostVoting();
   }, 1000); // Update every second
 }

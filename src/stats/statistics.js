@@ -5,7 +5,7 @@
  */
 
 import { $, escapeHtml } from '../core/utils.js';
-import { getPlayers, getPlayerById, getPlayersByTeam } from '../player/playerManager.js';
+import { getPlayers, getPlayersByTeam, normalizeTeamNumber } from '../player/playerManager.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { emit, on as onEvent, off as offEvent } from '../core/events.js';
@@ -13,6 +13,8 @@ import { renderHonors } from './honors.js';
 import { findMVPAndBurden } from './mvpBurden.js';
 import { getManifest } from '../themes/_shared/themeManager.js';
 import { renderRankingSparkline } from '../themes/_shared/sparkline.js';
+import { resolveStatsSparklinePlayerCount } from './statsMode.js';
+import { applyRankingToPlayerStats } from './statisticsUpdater.js';
 
 // Re-render the stats table when the theme changes so the sparkline column
 // appears/disappears mid-session as featureManifest.sparklines toggles.
@@ -30,44 +32,21 @@ if (typeof import.meta !== 'undefined' && import.meta.hot) {
  * @param {number} mode - Game mode
  */
 export function updatePlayerStats(mode) {
-  const num = parseInt(mode);
-  const lastPlace = num;
-  const ranking = state.getCurrentRanking();
-  const playerStats = state.getPlayerStats();
+  const result = applyRankingToPlayerStats({
+    players: getPlayers(),
+    playerStats: state.getPlayerStats(),
+    ranking: state.getCurrentRanking(),
+    mode
+  });
 
-  for (let rank = 1; rank <= num; rank++) {
-    const playerId = ranking[rank];
-    if (playerId) {
-      const player = getPlayerById(playerId);
-      if (player) {
-        if (!playerStats[playerId]) {
-          playerStats[playerId] = {
-            games: 0,
-            totalRank: 0,
-            firstPlaceCount: 0,
-            lastPlaceCount: 0,
-            rankings: []
-          };
-        }
-
-        const stats = playerStats[playerId];
-        stats.games++;
-        stats.totalRank += rank;
-        stats.rankings.push(rank);
-
-        // Count first and last places
-        if (rank === 1) {
-          stats.firstPlaceCount = (stats.firstPlaceCount || 0) + 1;
-        }
-        if (rank === lastPlace) {
-          stats.lastPlaceCount = (stats.lastPlaceCount || 0) + 1;
-        }
-      }
-    }
+  if (!result.ok) {
+    console.error(result.message);
+    return result;
   }
 
-  state.setPlayerStats(playerStats);
-  emit('stats:updated', { playerStats });
+  state.setPlayerStats(result.playerStats);
+  emit('stats:updated', { playerStats: result.playerStats });
+  return result;
 }
 
 /**
@@ -118,26 +97,29 @@ export function renderPlayerStatsTable() {
 
   // Sort by team, then by average ranking
   playerData.sort((a, b) => {
-    if (a.player.team !== b.player.team) {
-      return (a.player.team || 999) - (b.player.team || 999);
+    const teamA = normalizeTeamNumber(a.player.team) || 999;
+    const teamB = normalizeTeamNumber(b.player.team) || 999;
+    if (teamA !== teamB) {
+      return teamA - teamB;
     }
     return a.avgRank - b.avgRank;
   });
 
-  const mode = players.length || 8;
+  const mode = resolveStatsSparklinePlayerCount($('mode')?.value, players.length);
 
   // Render rows
   playerData.forEach(data => {
     const { player, stats, avgRank } = data;
     const tr = document.createElement('tr');
+    const team = normalizeTeamNumber(player.team);
 
-    const teamName = player.team === 1 ? config.getTeamName('t1') :
-                     (player.team === 2 ? config.getTeamName('t2') : '未分配');
-    const teamColor = player.team === 1 ? config.getTeamColor('t1') :
-                      (player.team === 2 ? config.getTeamColor('t2') : '#666');
+    const teamName = team === 1 ? config.getTeamName('t1') :
+                     (team === 2 ? config.getTeamName('t2') : '未分配');
+    const teamColor = team === 1 ? config.getTeamColor('t1') :
+                      (team === 2 ? config.getTeamColor('t2') : '#666');
 
     // Subtle team background
-    if (player.team === 1 || player.team === 2) {
+    if (team === 1 || team === 2) {
       tr.style.background = `linear-gradient(90deg, ${teamColor}08, transparent)`;
     }
 

@@ -17,8 +17,9 @@ import { renderPlayers } from '../player/playerRenderer.js';
 import { clearRanking as clearRankingState, randomizeRanking } from '../ranking/rankingManager.js';
 import { initializePlayerSearch, showInitialPlayers, clearSearchResults } from '../player/playerSearch.js';
 import { initializeCreateModal, showCreateModal } from '../player/playerCreateModal.js';
-import { searchPlayers } from '../api/playerApi.js';
+import { resolveFullPlayerProfile, searchPlayers } from '../api/playerApi.js';
 import { checkGameEnded, renderRankingArea } from '../ranking/rankingRenderer.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 /**
  * Setup all player control button handlers
@@ -34,7 +35,7 @@ export function setupPlayerControls() {
   // Generate players button
   if (generateBtn) {
     on(generateBtn, 'click', () => {
-      const mode = parseInt($('mode').value);
+      const mode = $('mode').value;
       generatePlayers(mode, true);
     });
   }
@@ -42,7 +43,7 @@ export function setupPlayerControls() {
   // Shuffle teams button
   if (shuffleBtn) {
     on(shuffleBtn, 'click', () => {
-      const mode = parseInt($('mode').value);
+      const mode = $('mode').value;
       shuffleTeams(mode);
     });
   }
@@ -75,17 +76,22 @@ export function setupPlayerControls() {
         return;
       }
 
-      const mode = parseInt($('mode').value);
+      const mode = $('mode').value;
       const players = getPlayers();
       const playerIds = players.map(p => p.id);
 
-      randomizeRanking(playerIds, mode);
+      const randomized = randomizeRanking(playerIds, mode);
 
       // Surface what happened — without this hint, autoApply consumes the
       // random fill in the same frame and the user thinks the click did
       // nothing. Tells them whether result auto-applied or awaits manual click.
       const applyTip = $('applyTip');
       if (applyTip) {
+        if (!randomized) {
+          applyTip.textContent = '玩家人数与当前模式不匹配，无法随机排名';
+          return;
+        }
+
         const autoApply = document.getElementById('autoApply')?.checked;
         applyTip.textContent = autoApply
           ? '✓ 已随机分配名次，结果已自动应用'
@@ -113,7 +119,12 @@ export function setupPlayerControls() {
   // Quick start button
   if (quickStartBtn) {
     on(quickStartBtn, 'click', async () => {
-      const mode = parseInt($('mode').value);
+      const modeValue = $('mode').value;
+      const mode = normalizePlayerCountMode(modeValue);
+      if (!mode) {
+        alert('无效游戏人数模式');
+        return;
+      }
 
       // Try to load recent players from profile database
       try {
@@ -127,7 +138,9 @@ export function setupPlayerControls() {
           state.setPlayers([]);
 
           // Add recent profile players
-          recentPlayers.forEach(profile => {
+          const fullProfiles = await Promise.all(recentPlayers.map(resolveFullPlayerProfile));
+
+          fullProfiles.forEach(profile => {
             addPlayerFromProfile(profile);
           });
 
@@ -144,14 +157,14 @@ export function setupPlayerControls() {
       }
 
       // Fallback: Generate session players with quick names
-      generatePlayers(mode, true);
+      generatePlayers(modeValue, true);
       const quickNames = mode === 4 ? '豪 小 大 姐' :
                           mode === 6 ? '豪 小 大 姐 夫 塞' :
                           '豪 小 大 姐 夫 塾 帆 鱼';
 
       const success = applyBulkNames(quickNames);
       if (success) {
-        shuffleTeams(mode);
+        shuffleTeams(modeValue);
         renderPlayers();
         renderRankingArea(mode);
       }
@@ -161,8 +174,9 @@ export function setupPlayerControls() {
   // Player profile search and creation
   initializePlayerSearch(
     // onPlayerSelected callback
-    (player) => {
-      const addedPlayer = addPlayerFromProfile(player);
+    async (player) => {
+      const fullProfile = await resolveFullPlayerProfile(player);
+      const addedPlayer = addPlayerFromProfile(fullProfile);
       if (addedPlayer) {
         renderPlayers();
         console.log('Player added from profile:', addedPlayer);

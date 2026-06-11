@@ -6,9 +6,16 @@
 
 import { $ } from '../core/utils.js';
 import { getDraggedPlayer, setDraggedPlayer } from './playerRenderer.js';
-import { assignPlayerToTeam, isTeamFull } from './playerManager.js';
+import { assignPlayerToTeam, isTeamFull, normalizeTeamNumber } from './playerManager.js';
 import { emit } from '../core/events.js';
 import state from '../core/state.js';
+
+function normalizeRankDataset(value) {
+  if (typeof value !== 'string' || !/^[1-8]$/.test(value.trim())) {
+    return null;
+  }
+  return Number(value.trim());
+}
 
 /**
  * Setup drop zones for team assignment
@@ -43,7 +50,7 @@ export function setupDropZones(mode) {
       // Check if team is full
       if (zone.team !== null && isTeamFull(zone.team, mode)) {
         // Check if player is already on this team
-        if (player.team !== zone.team) {
+        if (normalizeTeamNumber(player.team) !== zone.team) {
           alert('该队伍已满员！');
           return;
         }
@@ -68,7 +75,7 @@ export function handleRankDrop(slot, player, currentRanking) {
     return currentRanking;
   }
 
-  const rank = parseInt(slot.dataset.rank);
+  const rank = normalizeRankDataset(slot.dataset.rank);
   if (!rank) {
     return currentRanking;
   }
@@ -106,8 +113,6 @@ export function handleRankDrop(slot, player, currentRanking) {
   // Add player to new rank
   newRanking[rank] = player.id;
 
-  emit('ranking:updated', { rank, playerId: player.id });
-
   return newRanking;
 }
 
@@ -123,15 +128,19 @@ export function handlePoolDrop(player, currentRanking) {
   }
 
   const newRanking = { ...currentRanking };
+  let removed = false;
 
   // Remove player from ranking
   for (const rank in newRanking) {
     if (newRanking[rank] === player.id) {
       delete newRanking[rank];
+      removed = true;
     }
   }
 
-  emit('ranking:playerReturnedToPool', { playerId: player.id });
+  if (removed) {
+    emit('ranking:playerReturnedToPool', { playerId: player.id });
+  }
 
   return newRanking;
 }

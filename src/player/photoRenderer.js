@@ -5,6 +5,29 @@
 
 import { escapeHtml } from '../core/utils.js';
 
+const MAX_AVATAR_DATA_URL_LENGTH = 150000;
+const AVATAR_DATA_URL_RE = /^data:image\/(?:jpeg|png|webp);base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const ALLOWED_AVATAR_PHOTO_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp'
+]);
+
+export function isAllowedAvatarPhoto(photoDataUrl) {
+  return typeof photoDataUrl === 'string' &&
+    photoDataUrl.length <= MAX_AVATAR_DATA_URL_LENGTH &&
+    AVATAR_DATA_URL_RE.test(photoDataUrl);
+}
+
+export function isAllowedAvatarPhotoFile(file) {
+  return Boolean(file && ALLOWED_AVATAR_PHOTO_MIME_TYPES.has(file.type));
+}
+
+export function resolveAvatarPhoto(player) {
+  const avatarPhoto = player?.photoBase64 || player?.photo;
+  return isAllowedAvatarPhoto(avatarPhoto) ? avatarPhoto : null;
+}
+
 /**
  * Render player avatar (photo or emoji) with proper sizing and fallback
  * @param {Object} player - Player object with emoji and optional photoBase64
@@ -46,12 +69,13 @@ export function renderProfileAvatar(player, size = 64, options = {}) {
     line-height: 1;
   `;
 
-  if (player.photoBase64) {
+  const avatarPhoto = resolveAvatarPhoto(player);
+  if (avatarPhoto) {
     // Show photo with emoji fallback
     return `
       <div class="${className}" style="${containerStyle}">
         <img
-          src="${escapeHtml(player.photoBase64)}"
+          src="${escapeHtml(avatarPhoto)}"
           alt="${escapeHtml(player.displayName || player.name)}"
           style="${photoStyle}"
           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"

@@ -12,10 +12,12 @@
  */
 
 import { $, on } from '../core/utils.js';
-import { getPlayers, getPlayersByTeam, updatePlayer } from './playerManager.js';
+import { getPlayers, getPlayersByTeam, normalizeTeamNumber, updatePlayer } from './playerManager.js';
 import { getRanking } from '../ranking/rankingManager.js';
 import config from '../core/config.js';
 import { emit } from '../core/events.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
+import { resolveAvatarPhoto } from './photoRenderer.js';
 
 export let draggedPlayer = null;
 
@@ -47,7 +49,8 @@ function rosterTagFor(player) {
   if (!player) return { text: 'POOL', modifier: '' };
   const ranking = getRanking();
   const modeEl = $('mode');
-  const mode = modeEl ? parseInt(modeEl.value) : 8;
+  const mode = normalizePlayerCountMode(modeEl ? modeEl.value : 8);
+  if (!mode) return { text: 'POOL', modifier: '' };
   const names = RANK_NAMES[mode] || RANK_NAMES[8];
 
   for (let rank = 1; rank <= mode; rank++) {
@@ -82,10 +85,11 @@ export function createRosterRow(player) {
   row.dataset.playerData = JSON.stringify({ id: player.id });
 
   const avatar = document.createElement('div');
-  avatar.className = `roster-row__avatar roster-row__avatar--${player.team === 1 ? 'blue' : 'red'}`;
-  if (player.photo) {
+  avatar.className = `roster-row__avatar roster-row__avatar--${normalizeTeamNumber(player.team) === 1 ? 'blue' : 'red'}`;
+  const avatarPhoto = resolveAvatarPhoto(player);
+  if (avatarPhoto) {
     const img = document.createElement('img');
-    img.src = player.photo;
+    img.src = avatarPhoto;
     img.alt = '';
     avatar.appendChild(img);
   } else {
@@ -175,9 +179,10 @@ export function renderPlayers() {
 
   const players = getPlayers();
   players.forEach(player => {
-    if (player.team === 1) {
+    const team = normalizeTeamNumber(player.team);
+    if (team === 1) {
       team1ZoneEl.appendChild(createRosterRow(player));
-    } else if (player.team === 2) {
+    } else if (team === 2) {
       team2ZoneEl.appendChild(createRosterRow(player));
     } else {
       unassignedEl.appendChild(createPlayerTile(player));

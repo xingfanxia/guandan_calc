@@ -20,8 +20,9 @@ KV_REST_API_READ_ONLY_TOKEN=AkGXAAIgc...
 KV_URL=rediss://default:...@together-mackerel-16791.upstash.io:6379
 REDIS_URL=rediss://default:...@together-mackerel-16791.upstash.io:6379
 
-# Admin token (since 2026-05 audit) — REQUIRED or all admin endpoints fail-closed.
-# Gates: api/players/delete, api/players/reset-stats, api/players/migrate-modes,
+# Admin token (since 2026-05 audit; extended 2026-06-10) — REQUIRED or all
+# admin endpoints fail-closed.
+# Gates: delete, reset-stats, migrate-modes, migrate-single, backfill-duration,
 # and api/players/[handle].js PROFILE_UPDATE mode. See docs/SECURITY.md.
 ADMIN_TOKEN=replace_with_long_random_string  # e.g., openssl rand -hex 32
 ```

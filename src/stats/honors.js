@@ -6,6 +6,10 @@
 import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
 import { getManifest } from '../themes/_shared/themeManager.js';
+import { resolvePlayerCountMode } from '../core/playerCountMode.js';
+import { resolveAvatarPhoto } from '../player/photoRenderer.js';
+
+const MIN_HONOR_GAMES = 5;
 
 /**
  * Calculate POPULATION variance (divides by N, not N-1).
@@ -13,10 +17,10 @@ import { getManifest } from '../themes/_shared/themeManager.js';
  * For n=1, the only datapoint equals the mean → variance is 0. That's
  * mathematically correct (no spread in a single observation) but
  * uninformative for volatility honors, where "this player has played one
- * game" should not classify them as stable. Variance-based honors below
- * gate on `rankings.length < 5` to avoid this case — DO NOT call
- * calculateVariance from a context that lacks a similar small-sample
- * guard.
+ * game" should not classify them as stable. Honors globally require at least
+ * 5 valid rankings before awarding, which keeps variance-based awards from
+ * firing on small samples — DO NOT call calculateVariance from a context that
+ * lacks a similar small-sample guard.
  *
  * Population (N) is intentional: we treat each player's session-level
  * rankings as a complete observed history, not a sample drawn from a
@@ -35,322 +39,489 @@ function calculateVariance(rankings) {
   return squaredDiffs.reduce((sum, val) => sum + val, 0) / rankings.length;
 }
 
-/**
- * Calculate improvement (first half vs second half)
- */
-function calculateImprovementScore(rankings) {
-  if (rankings.length < 6) return 0;
+function normalizeRankings(rankings, totalPlayers) {
+  if (!Array.isArray(rankings)) return [];
 
-  const third = Math.floor(rankings.length / 3);
-  const early = rankings.slice(0, third);
-  const late = rankings.slice(-third);
+  return rankings
+    .map(rank => Number(rank))
+    .filter(rank =>
+      Number.isSafeInteger(rank) &&
+      rank >= 1 &&
+      rank <= totalPlayers
+    );
+}
 
-  const earlyAvg = early.reduce((sum, r) => sum + r, 0) / early.length;
-  const lateAvg = late.reduce((sum, r) => sum + r, 0) / late.length;
+export function resolveHonorPlayerCount(modeValue, fallbackCount = 8) {
+  return resolvePlayerCountMode(modeValue, fallbackCount);
+}
 
-  return earlyAvg - lateAvg; // Positive = improvement
+function getActiveHonorPlayerCount() {
+  const modeValue = typeof document !== 'undefined'
+    ? document.getElementById('mode')?.value
+    : undefined;
+  return resolveHonorPlayerCount(modeValue, getPlayers().length);
 }
 
 /**
- * Calculate honors
+ * Calculate honors from explicit player/stat data.
+ */
+export function calculateHonorsFromData(players = [], allStats = {}, totalPlayers = 8) {
+  const playerList = Array.isArray(players) ? players : [];
+  const statsByPlayer = allStats && typeof allStats === 'object' && !Array.isArray(allStats)
+    ? allStats
+    : {};
+
+  totalPlayers = resolveHonorPlayerCount(totalPlayers, playerList.length);
+  const honors = {};
+  const minGames = MIN_HONOR_GAMES;
+  const mid = Math.ceil(totalPlayers / 2);
+  const midRank = (totalPlayers + 1) / 2;
+  const topTierThreshold = Math.max(1, Math.ceil(totalPlayers / 3));
+  const bottomTierThreshold = totalPlayers - topTierThreshold + 1;
+
+  function average(values) {
+    return values.length > 0
+      ? values.reduce((sum, value) => sum + value, 0) / values.length
+      : null;
+  }
+
+  function resolveTeamNumber(team) {
+    const value = Number(team);
+    return value === 1 || value === 2 ? value : null;
+  }
+
+  const playerRows = playerList
+    .map(player => {
+      if (!player || typeof player !== 'object') return null;
+
+      const stats = statsByPlayer[player.id];
+      const rankings = normalizeRankings(stats?.rankings, totalPlayers);
+      return { player, stats, rankings, team: resolveTeamNumber(player.team) };
+    })
+    .filter(Boolean);
+
+  const eligible = playerRows
+    .map(row => {
+      const { player, stats, rankings, team } = row;
+      if (!stats || rankings.length < minGames) {
+        return null;
+      }
+
+      const games = rankings.length;
+      const totalRank = rankings.reduce((sum, rank) => sum + rank, 0);
+      const firstCount = rankings.filter(rank => rank === 1).length;
+      const lastCount = rankings.filter(rank => rank === totalPlayers).length;
+      const avg = totalRank / games;
+      const variance = calculateVariance(rankings);
+      const firstRate = firstCount / games;
+      const lastRate = lastCount / games;
+      const topHalfRate = rankings.filter(rank => rank <= mid).length / games;
+      const bottomHalfRate = rankings.filter(rank => rank > mid).length / games;
+      const uniqueRanks = new Set(rankings);
+      const bestRank = Math.min(...rankings);
+      const worstRank = Math.max(...rankings);
+      const rankRange = worstRank - bestRank;
+      let movement = 0;
+      let changes = 0;
+      let topHalfStreak = 0;
+      let bestTopHalfStreak = 0;
+      let bottomHalfStreak = 0;
+      let bestBottomHalfStreak = 0;
+      let crashes = 0;
+      let leaps = 0;
+      let pressureRounds = 0;
+      let pressureRebounds = 0;
+
+      for (let i = 0; i < rankings.length; i++) {
+        const rank = rankings[i];
+        if (rank >= bottomTierThreshold) {
+          pressureRounds++;
+        }
+
+        if (rank <= mid) {
+          topHalfStreak++;
+          bottomHalfStreak = 0;
+        } else {
+          bottomHalfStreak++;
+          topHalfStreak = 0;
+        }
+        bestTopHalfStreak = Math.max(bestTopHalfStreak, topHalfStreak);
+        bestBottomHalfStreak = Math.max(bestBottomHalfStreak, bottomHalfStreak);
+
+        if (i === 0) continue;
+        const prev = rankings[i - 1];
+        movement += Math.abs(rank - prev);
+        if (rank !== prev) changes++;
+        if (prev <= topTierThreshold && rank >= bottomTierThreshold) crashes++;
+        if (prev >= bottomTierThreshold && rank <= topTierThreshold) leaps++;
+        if (prev >= bottomTierThreshold && rank <= mid) pressureRebounds++;
+      }
+
+      let teammateAvgTotal = 0;
+      let teammateContextRounds = 0;
+      let teammateLeadRounds = 0;
+      let supportFloorRounds = 0;
+      let teamAvgTotal = 0;
+      let opponentAvgTotal = 0;
+      let teamContextRounds = 0;
+      let teamEdgeRounds = 0;
+
+      if (team !== null) {
+        for (let i = 0; i < rankings.length; i++) {
+          const rank = rankings[i];
+          const teammateRanks = playerRows
+            .filter(other => other !== row && other.team === team)
+            .map(other => other.rankings[i])
+            .filter(Number.isFinite);
+          const teamRanks = playerRows
+            .filter(other => other.team === team)
+            .map(other => other.rankings[i])
+            .filter(Number.isFinite);
+          const opponentRanks = playerRows
+            .filter(other => other.team !== null && other.team !== team)
+            .map(other => other.rankings[i])
+            .filter(Number.isFinite);
+
+          const teammateRoundAvg = average(teammateRanks);
+          if (teammateRoundAvg !== null) {
+            teammateContextRounds++;
+            teammateAvgTotal += teammateRoundAvg;
+            if (rank < teammateRoundAvg) teammateLeadRounds++;
+            if (rank <= mid && teammateRoundAvg > mid) supportFloorRounds++;
+          }
+
+          const teamRoundAvg = average(teamRanks);
+          const opponentRoundAvg = average(opponentRanks);
+          if (teamRoundAvg !== null && opponentRoundAvg !== null) {
+            teamContextRounds++;
+            teamAvgTotal += teamRoundAvg;
+            opponentAvgTotal += opponentRoundAvg;
+            if (teamRoundAvg < opponentRoundAvg) teamEdgeRounds++;
+          }
+        }
+      }
+
+      const segmentSize = Math.max(2, Math.floor(rankings.length / 3));
+      const early = rankings.slice(0, segmentSize);
+      const late = rankings.slice(-segmentSize);
+      const earlyAvg = early.reduce((sum, rank) => sum + rank, 0) / early.length;
+      const lateAvg = late.reduce((sum, rank) => sum + rank, 0) / late.length;
+      const improvement = earlyAvg - lateAvg;
+      const decline = lateAvg - earlyAvg;
+      const lateBottomHalfRate = late.filter(rank => rank > mid).length / late.length;
+      const lateLastRate = late.filter(rank => rank === totalPlayers).length / late.length;
+      const secondCount = rankings.filter(rank => rank === 2).length;
+      const pressureRate = pressureRounds / games;
+      const pressureRecoveryRate = pressureRounds > 0 ? pressureRebounds / pressureRounds : 0;
+      const sustainedRecoveryRate = Math.max(0, topHalfRate - pressureRate);
+      const changeRate = games > 1 ? changes / (games - 1) : 0;
+      const teammateAvg = teammateContextRounds > 0 ? teammateAvgTotal / teammateContextRounds : null;
+      const teammateDelta = teammateAvg !== null ? teammateAvg - avg : 0;
+      const teammateLeadRate = teammateContextRounds > 0 ? teammateLeadRounds / teammateContextRounds : 0;
+      const supportFloorRate = teammateContextRounds > 0 ? supportFloorRounds / teammateContextRounds : 0;
+      const teamAvg = teamContextRounds > 0 ? teamAvgTotal / teamContextRounds : null;
+      const opponentAvg = teamContextRounds > 0 ? opponentAvgTotal / teamContextRounds : null;
+      const teamEdgeRate = teamContextRounds > 0 ? teamEdgeRounds / teamContextRounds : 0;
+      const dominanceScore = (firstRate * 2.2) + topHalfRate + ((totalPlayers + 1 - avg) / totalPlayers);
+      const burdenScore = (lastRate * 2.2) + bottomHalfRate + (avg / totalPlayers);
+      const stabilityScore = topHalfRate + ((totalPlayers + 1 - avg) / totalPlayers) - (variance / totalPlayers);
+      const volatilityScore = movement + (variance * 2) + rankRange;
+      const comebackArcScore = improvement + (leaps * 0.75) +
+        (earlyAvg >= bottomTierThreshold && lateAvg <= topTierThreshold ? 2 : 0);
+      const burnoutScore = (decline * 2) + (lateBottomHalfRate * 2) +
+        lateLastRate + (bestBottomHalfStreak / games);
+      const resilienceScore = (pressureRecoveryRate * 4) + (topHalfRate * 2) +
+        sustainedRecoveryRate + (Math.min(pressureRebounds, 3) * 0.25) -
+        Math.max(0, avg - midRank);
+      const fastAttackScore = (topHalfRate * 3) +
+        (changeRate * 1.5) +
+        (((totalPlayers + 1 - avg) / totalPlayers) * 2) +
+        (bestTopHalfStreak / games) +
+        Math.max(0, midRank - earlyAvg) -
+        (variance / totalPlayers) -
+        lastRate;
+      const globalImpactScore = dominanceScore +
+        (Math.max(0, teammateDelta) * 0.8) +
+        (teammateLeadRate * 0.8) +
+        (teamEdgeRate * 0.5);
+      const globalBurdenScore = burdenScore +
+        (Math.max(0, -teammateDelta) * 0.8) +
+        ((teammateContextRounds > 0 ? 1 - teammateLeadRate : 0) * 0.35);
+      const teamAnchorScore = (Math.max(0, teammateDelta) * 1.4) +
+        (teammateLeadRate * 1.2) +
+        (supportFloorRate * 1.4) +
+        (topHalfRate * 0.8) +
+        (teamEdgeRate * 0.5) -
+        (variance / totalPlayers) -
+        (Math.max(0, avg - midRank) * 0.25);
+      const floorCoreScore = (Math.max(0, teammateDelta) * 1.5) +
+        (supportFloorRate * 2) +
+        (1 - lastRate) +
+        ((totalPlayers + 1 - worstRank) / totalPlayers) +
+        (teamEdgeRate * 0.5) -
+        (Math.max(0, avg - midRank) * 0.2);
+      const tempoCoreScore = fastAttackScore +
+        (teammateLeadRate * 1.1) +
+        (teamEdgeRate * 1.1) +
+        (Math.max(0, teammateDelta) * 0.5);
+
+      return {
+        player,
+        stats,
+        rankings,
+        games,
+        firstCount,
+        lastCount,
+        avg,
+        variance,
+        firstRate,
+        lastRate,
+        topHalfRate,
+        bottomHalfRate,
+        uniqueRanks,
+        bestRank,
+        worstRank,
+        rankRange,
+        movement,
+        changes,
+        crashes,
+        leaps,
+        pressureRate,
+        pressureRounds,
+        pressureRebounds,
+        pressureRecoveryRate,
+        sustainedRecoveryRate,
+        changeRate,
+        bestTopHalfStreak,
+        bestBottomHalfStreak,
+        earlyAvg,
+        lateAvg,
+        improvement,
+        decline,
+        lateBottomHalfRate,
+        lateLastRate,
+        secondCount,
+        dominanceScore,
+        burdenScore,
+        stabilityScore,
+        volatilityScore,
+        comebackArcScore,
+        burnoutScore,
+        resilienceScore,
+        fastAttackScore,
+        teammateAvg,
+        teammateDelta,
+        teammateLeadRate,
+        supportFloorRate,
+        teamAvg,
+        opponentAvg,
+        teamEdgeRate,
+        globalImpactScore,
+        globalBurdenScore,
+        teamAnchorScore,
+        floorCoreScore,
+        tempoCoreScore
+      };
+    })
+    .filter(Boolean);
+
+  if (eligible.length === 0) return honors;
+
+  function bestBy(candidates, compare) {
+    return candidates.reduce((best, candidate) => {
+      if (!best) return candidate;
+      return compare(candidate, best) > 0 ? candidate : best;
+    }, null);
+  }
+
+  function assign(key, metric, score) {
+    if (metric) {
+      honors[key] = {
+        player: metric.player,
+        score,
+        stats: {
+          ...metric.stats,
+          games: metric.games,
+          totalRank: metric.avg * metric.games,
+          firstPlaceCount: metric.firstCount,
+          lastPlaceCount: metric.lastCount,
+          rankings: metric.rankings
+        }
+      };
+    }
+  }
+
+  const mvp = bestBy(eligible, (a, b) =>
+    (a.globalImpactScore - b.globalImpactScore) ||
+    (b.avg - a.avg) ||
+    (a.firstCount - b.firstCount)
+  );
+  assign('mvp', mvp, mvp?.globalImpactScore.toFixed(2));
+
+  const burden = bestBy(eligible, (a, b) =>
+    (a.globalBurdenScore - b.globalBurdenScore) ||
+    (a.avg - b.avg) ||
+    (a.lastCount - b.lastCount)
+  );
+  assign('burden', burden, burden?.globalBurdenScore.toFixed(2));
+
+  const stable = bestBy(
+    eligible.filter(metric => metric.avg <= mid && metric.variance <= totalPlayers),
+    (a, b) =>
+      (a.stabilityScore - b.stabilityScore) ||
+      (b.variance - a.variance) ||
+      (b.avg - a.avg)
+  );
+  assign('stable', stable, stable?.variance.toFixed(2));
+
+  const rollercoaster = bestBy(
+    eligible.filter(metric => metric.movement >= Math.max(4, metric.games - 1)),
+    (a, b) =>
+      (a.volatilityScore - b.volatilityScore) ||
+      (a.movement - b.movement) ||
+      (a.variance - b.variance)
+  );
+  assign('rollercoaster', rollercoaster, rollercoaster?.movement);
+
+  const comeback = bestBy(
+    eligible.filter(metric => metric.improvement > 1 && metric.lateAvg <= mid),
+    (a, b) =>
+      (a.improvement - b.improvement) ||
+      (b.lateAvg - a.lateAvg) ||
+      (a.topHalfRate - b.topHalfRate)
+  );
+  assign('comeback', comeback, comeback ? `+${comeback.improvement.toFixed(1)}` : null);
+
+  const fanche = bestBy(
+    eligible.filter(metric => metric.crashes > 0),
+    (a, b) =>
+      (a.crashes - b.crashes) ||
+      (a.movement - b.movement) ||
+      (a.variance - b.variance)
+  );
+  assign('fanche', fanche, fanche?.crashes);
+
+  const gambler = bestBy(
+    eligible.filter(metric => metric.firstCount > 0 && metric.lastCount > 0),
+    (a, b) => {
+      const scoreA = Math.sqrt(a.firstRate * a.lastRate) * (a.firstCount + a.lastCount);
+      const scoreB = Math.sqrt(b.firstRate * b.lastRate) * (b.firstCount + b.lastCount);
+      return (scoreA - scoreB) || (a.movement - b.movement);
+    }
+  );
+  assign('gambler', gambler, gambler ? `${gambler.firstCount}冠${gambler.lastCount}末` : null);
+
+  const complete = bestBy(
+    eligible.filter(metric => metric.uniqueRanks.size >= totalPlayers),
+    (a, b) =>
+      (a.uniqueRanks.size - b.uniqueRanks.size) ||
+      (a.uniqueRanks.size / a.games - b.uniqueRanks.size / b.games) ||
+      (a.movement - b.movement)
+  );
+  assign('complete', complete, complete ? `${complete.uniqueRanks.size}/${totalPlayers}` : null);
+
+  const streak = bestBy(
+    eligible.filter(metric => metric.bestTopHalfStreak >= 3),
+    (a, b) =>
+      (a.bestTopHalfStreak - b.bestTopHalfStreak) ||
+      (a.topHalfRate - b.topHalfRate) ||
+      (b.avg - a.avg)
+  );
+  assign('streak', streak, streak?.bestTopHalfStreak);
+
+  const median = bestBy(
+    eligible.filter(metric => metric.teammateAvg !== null && metric.teammateDelta > 0),
+    (a, b) =>
+      (a.teamAnchorScore - b.teamAnchorScore) ||
+      (a.teammateDelta - b.teammateDelta) ||
+      (a.teammateLeadRate - b.teammateLeadRate) ||
+      (b.avg - a.avg)
+  );
+  assign('median', median, median ? `+${median.teammateDelta.toFixed(1)}` : null);
+
+  const carp = bestBy(
+    eligible.filter(metric => metric.comebackArcScore > 1.5 && metric.lateAvg <= mid),
+    (a, b) =>
+      (a.comebackArcScore - b.comebackArcScore) ||
+      (a.improvement - b.improvement) ||
+      (b.lateAvg - a.lateAvg)
+  );
+  assign('carp', carp, carp ? `+${carp.improvement.toFixed(1)}` : null);
+
+  const nonstick = bestBy(
+    eligible.filter(metric => metric.lastCount === 0 && metric.teammateAvg !== null),
+    (a, b) =>
+      (a.floorCoreScore - b.floorCoreScore) ||
+      (a.supportFloorRate - b.supportFloorRate) ||
+      (a.teammateDelta - b.teammateDelta) ||
+      (b.worstRank - a.worstRank) ||
+      (b.avg - a.avg)
+  );
+  assign('nonstick', nonstick, nonstick ? `+${nonstick.teammateDelta.toFixed(1)}` : null);
+
+  const frequent = bestBy(
+    eligible.filter(metric =>
+      metric.changes >= 2 &&
+      metric.topHalfRate >= 0.75 &&
+      metric.avg <= midRank &&
+      metric.bestTopHalfStreak >= 3 &&
+      metric.teamEdgeRate >= 0.5
+    ),
+    (a, b) =>
+      (a.tempoCoreScore - b.tempoCoreScore) ||
+      (a.teamEdgeRate - b.teamEdgeRate) ||
+      (a.topHalfRate - b.topHalfRate) ||
+      (a.changeRate - b.changeRate) ||
+      (b.avg - a.avg)
+  );
+  assign('frequent', frequent, frequent ? `${Math.round(frequent.teamEdgeRate * 100)}%` : null);
+
+  const burnout = bestBy(
+    eligible.filter(metric =>
+      metric.decline > 1 &&
+      metric.earlyAvg <= midRank &&
+      metric.lateAvg > midRank &&
+      metric.lateBottomHalfRate >= 0.5
+    ),
+    (a, b) =>
+      (a.burnoutScore - b.burnoutScore) ||
+      (a.decline - b.decline) ||
+      (a.lateBottomHalfRate - b.lateBottomHalfRate) ||
+      (a.avg - b.avg)
+  );
+  assign('burnout', burnout, burnout ? `+${burnout.decline.toFixed(1)}` : null);
+
+  const almost = bestBy(
+    eligible.filter(metric => metric.firstCount === 0 && metric.secondCount > 0),
+    (a, b) =>
+      (a.secondCount - b.secondCount) ||
+      (b.avg - a.avg) ||
+      (a.topHalfRate - b.topHalfRate)
+  );
+  assign('almost', almost, almost ? `${almost.secondCount}次第2` : null);
+
+  const resilient = bestBy(
+    eligible.filter(metric => metric.pressureRebounds > 0 && metric.topHalfRate >= 0.35),
+    (a, b) =>
+      (a.resilienceScore - b.resilienceScore) ||
+      (a.pressureRecoveryRate - b.pressureRecoveryRate) ||
+      (a.sustainedRecoveryRate - b.sustainedRecoveryRate) ||
+      (b.pressureRate - a.pressureRate) ||
+      (a.pressureRebounds - b.pressureRebounds) ||
+      (b.avg - a.avg)
+  );
+  assign('resilient', resilient, resilient ? `${resilient.pressureRebounds}/${resilient.pressureRounds}` : null);
+
+  return honors;
+}
+
+/**
+ * Calculate honors from the current live session state.
  */
 export function calculateHonors(totalPlayers = 8) {
   const players = getPlayers();
   const allStats = state.getPlayerStats();
-
-  const honors = {};
-
-  const eligible = players.filter(p => {
-    const stats = allStats[p.id];
-    return stats && stats.games >= 5;
-  });
-
-  if (eligible.length === 0) return honors;
-
-  // Simple honors with tie-breakers
-  let maxFirst = 0, mvpAvgRank = Infinity;
-  let maxLast = 0, burdenAvgRank = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const avgRank = stats.totalRank / stats.games;
-
-    // 吕布 - most first places, tie-breaker: lower avg rank (better)
-    if (stats.firstPlaceCount > maxFirst) {
-      maxFirst = stats.firstPlaceCount;
-      mvpAvgRank = avgRank;
-      honors.mvp = { player, score: stats.firstPlaceCount };
-    } else if (stats.firstPlaceCount === maxFirst && stats.firstPlaceCount > 0) {
-      // Tie-breaker: lower average rank wins
-      if (avgRank < mvpAvgRank) {
-        mvpAvgRank = avgRank;
-        honors.mvp = { player, score: stats.firstPlaceCount };
-      }
-    }
-
-    // 阿斗 - most last places, tie-breaker: higher avg rank (worse)
-    if (stats.lastPlaceCount > maxLast) {
-      maxLast = stats.lastPlaceCount;
-      burdenAvgRank = avgRank;
-      honors.burden = { player, score: stats.lastPlaceCount };
-    } else if (stats.lastPlaceCount === maxLast && stats.lastPlaceCount > 0) {
-      // Tie-breaker: higher average rank wins (is worse)
-      if (avgRank > burdenAvgRank) {
-        burdenAvgRank = avgRank;
-        honors.burden = { player, score: stats.lastPlaceCount };
-      }
-    }
-  });
-
-  // Variance-based
-  let minVar = Infinity, maxVar = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    if (!stats.rankings || stats.rankings.length < 5) return;
-
-    const variance = calculateVariance(stats.rankings);
-    const avgRank = stats.totalRank / stats.games;
-
-    // 石佛 (stable + good)
-    if (avgRank <= 4.5 && variance < 4.5 && variance < minVar) {
-      minVar = variance;
-      honors.stable = { player, score: variance.toFixed(2) };
-    }
-
-    // 波动王
-    if (variance > 2.5 && variance > maxVar) {
-      maxVar = variance;
-      honors.rollercoaster = { player, score: variance.toFixed(2) };
-    }
-  });
-
-  // Improvement
-  let maxImp = -Infinity;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    if (!stats.rankings || stats.rankings.length < 8) return;
-
-    const imp = calculateImprovementScore(stats.rankings);
-
-    if (imp > 1.0 && imp > maxImp) {
-      maxImp = imp;
-      honors.comeback = { player, score: `+${imp.toFixed(1)}` };
-    }
-  });
-
-  // 翻车王 (Crash) - From top tier to dead last in consecutive games.
-  // Top tier scales by mode: ceil(N/3) so 4P=top 1-2, 6P=top 1-2, 8P=top 1-3.
-  // Previously hardcoded `<= 3`, which in 4P meant 75% of the field qualified — trivially true.
-  let maxCrash = 0;
-  const topTierThreshold = Math.max(1, Math.ceil(totalPlayers / 3));
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    let crashes = 0;
-
-    for (let i = 1; i < stats.rankings.length; i++) {
-      if (stats.rankings[i - 1] <= topTierThreshold && stats.rankings[i] === totalPlayers) {
-        crashes++;
-      }
-    }
-
-    if (crashes > maxCrash) {
-      maxCrash = crashes;
-      honors.fanche = { player, score: crashes };
-    }
-  });
-
-  // Grand slam
-  let maxComplete = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const unique = new Set(stats.rankings);
-    const rate = unique.size / totalPlayers;
-
-    if (rate > maxComplete) {
-      maxComplete = rate;
-      honors.complete = { player, score: `${unique.size}/${totalPlayers}` };
-    }
-  });
-
-  // Win streak
-  let maxStreak = 0;
-  const mid = Math.ceil(totalPlayers / 2);
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    let streak = 0, best = 0;
-
-    stats.rankings.forEach(r => {
-      if (r <= mid) {
-        streak++;
-        best = Math.max(best, streak);
-      } else {
-        streak = 0;
-      }
-    });
-
-    if (best >= 3 && best > maxStreak) {
-      maxStreak = best;
-      honors.streak = { player, score: best };
-    }
-  });
-
-  // Median player
-  const midRank = (totalPlayers + 1) / 2;
-  let minDev = Infinity;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const avg = stats.totalRank / stats.games;
-    const dev = Math.abs(avg - midRank);
-
-    if (dev < minDev) {
-      minDev = dev;
-      honors.median = { player, score: avg.toFixed(2) };
-    }
-  });
-
-  // Frequent changes
-  let maxChanges = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    let changes = 0;
-
-    for (let i = 1; i < stats.rankings.length; i++) {
-      if (stats.rankings[i] !== stats.rankings[i - 1]) {
-        changes++;
-      }
-    }
-
-    if (changes > maxChanges) {
-      maxChanges = changes;
-      honors.frequent = { player, score: changes };
-    }
-  });
-
-  // 鲤鱼王 (Comeback King) - From bottom tier to #1 in consecutive games.
-  // Bottom tier scales by mode: top-third sized window from the bottom — 4P=bottom 1-2 (3,4),
-  // 6P=bottom 1-2 (5,6), 8P=bottom 1-3 (6,7,8). Previously `>= totalPlayers - 2`, which in 4P
-  // included rank 2 as "bottom 3" — too lax.
-  let maxLeaps = 0;
-  const bottomTierThreshold = totalPlayers - Math.max(1, Math.ceil(totalPlayers / 3)) + 1;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    let leaps = 0;
-
-    for (let i = 1; i < stats.rankings.length; i++) {
-      const prevRank = stats.rankings[i - 1];
-      const currRank = stats.rankings[i];
-
-      // From bottom tier to #1
-      if (prevRank >= bottomTierThreshold && currRank === 1) {
-        leaps++;
-      }
-    }
-
-    if (leaps > maxLeaps && leaps > 0) {
-      maxLeaps = leaps;
-      honors.carp = { player, score: leaps };
-    }
-  });
-
-  // 不粘锅 (Non-stick) - 0 last places, lowest average (best who never hit bottom)
-  let bestNonstick = Infinity;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const avgRank = stats.totalRank / stats.games;
-
-    if (stats.lastPlaceCount === 0 && avgRank < bestNonstick && stats.games >= 5) {
-      bestNonstick = avgRank;
-      honors.nonstick = { player, score: avgRank.toFixed(2) };
-    }
-  });
-
-  // 燃尽王 (Burnout) - Longest consecutive streak in bottom 4
-  let maxBurnout = 0;
-  const bottomThreshold = Math.ceil(totalPlayers * 0.5); // Bottom half
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    let currentStreak = 0;
-    let longestStreak = 0;
-
-    stats.rankings.forEach(rank => {
-      if (rank > bottomThreshold) {
-        currentStreak++;
-        longestStreak = Math.max(longestStreak, currentStreak);
-      } else {
-        currentStreak = 0;
-      }
-    });
-
-    if (longestStreak >= 3 && longestStreak > maxBurnout) {
-      maxBurnout = longestStreak;
-      honors.burnout = { player, score: longestStreak };
-    }
-  });
-
-  // 棋差一着 (Almost There) - Best average rank among those who never got 1st place
-  let bestAlmost = Infinity;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const avgRank = stats.totalRank / stats.games;
-
-    // Must have 0 first places and at least 5 games
-    if (stats.firstPlaceCount === 0 && stats.games >= 5 && avgRank < bestAlmost) {
-      bestAlmost = avgRank;
-      honors.almost = { player, score: avgRank.toFixed(2) };
-    }
-  });
-
-  // 赌徒 (Gambler) - High first rate + high last rate (risky player)
-  let maxGamblerScore = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-
-    // Must have at least 1 first AND 1 last place to be a "gambler"
-    if (stats.firstPlaceCount > 0 && stats.lastPlaceCount > 0) {
-      const firstRate = stats.firstPlaceCount / stats.games;
-      const lastRate = stats.lastPlaceCount / stats.games;
-
-      // Gambler score: rewards having BOTH extremes
-      // Use geometric mean to require balance of both
-      const gamblerScore = Math.sqrt(firstRate * lastRate) * (stats.firstPlaceCount + stats.lastPlaceCount);
-
-      if (gamblerScore > maxGamblerScore) {
-        maxGamblerScore = gamblerScore;
-        honors.gambler = {
-          player,
-          score: `${stats.firstPlaceCount}冠${stats.lastPlaceCount}末`
-        };
-      }
-    }
-  });
-
-  // 🤡 (Clown) - Worst average rank among those who never got 1st place
-  let worstClown = 0;
-
-  eligible.forEach(player => {
-    const stats = allStats[player.id];
-    const avgRank = stats.totalRank / stats.games;
-
-    // Must have 0 first places and at least 5 games, find WORST (highest) average
-    if (stats.firstPlaceCount === 0 && stats.games >= 5 && avgRank > worstClown) {
-      worstClown = avgRank;
-      honors.clown = { player, score: avgRank.toFixed(2) };
-    }
-  });
-
-  return honors;
+  return calculateHonorsFromData(players, allStats, totalPlayers);
 }
 
 /**
@@ -359,22 +530,53 @@ export function calculateHonors(totalPlayers = 8) {
  * and a stat-formatter that returns { primary, label } for the recipient block.
  */
 const HONOR_META = {
-  lyubu:        { honorKey: 'mvp',          title: '吕布',     fmtStat: (h, st) => ({ primary: `${st.firstPlaceCount} / ${st.games}`, label: '头游' }) },
-  adou:         { honorKey: 'burden',       title: '阿斗',     fmtStat: (h, st) => ({ primary: `${st.lastPlaceCount} / ${st.games}`, label: '垫底' }) },
-  shifo:        { honorKey: 'stable',       title: '石佛',     fmtStat: (h, st) => ({ primary: `σ ${h.score}`, label: `n=${st.games}` }) },
-  bodongwang:   { honorKey: 'rollercoaster',title: '波动王',   fmtStat: (h, st) => ({ primary: `σ ${h.score}`, label: `${Math.min(...st.rankings)}–${Math.max(...st.rankings)}` }) },
-  fendouwang:   { honorKey: 'comeback',     title: '奋斗王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '位提升' }) },
-  fanchewang:   { honorKey: 'fanche',       title: '翻车王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '崩盘次' }) },
-  dutu:         { honorKey: 'gambler',      title: '赌徒',     fmtStat: (h, st) => ({ primary: `${h.score}`, label: '高风险' }) },
-  damanguan:    { honorKey: 'complete',     title: '大满贯',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '体验过' }) },
-  lianshengewang:{honorKey: 'streak',       title: '连胜王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '连胜' }) },
-  foxiwanjia:   { honorKey: 'median',       title: '佛系玩家', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
-  liyuwang:     { honorKey: 'carp',         title: '鲤鱼王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '逆转次' }) },
-  buzhanguo:    { honorKey: 'nonstick',     title: '不粘锅',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
-  shandianxia:  { honorKey: 'frequent',     title: '闪电侠',   fmtStat: (h, st) => ({ primary: `${h.score} / ${st.games}`, label: '换名次' }) },
-  ranjinwang:   { honorKey: 'burnout',      title: '燃尽王',   fmtStat: (h, st) => ({ primary: `${h.score}`, label: '连低迷' }) },
-  qichayizhao:  { honorKey: 'almost',       title: '棋差一着', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) },
-  xiaochou:     { honorKey: 'clown',        title: '🤡',       fmtStat: (h, st) => ({ primary: `${h.score}`, label: '平均名' }) }
+  lyubu:         { honorKey: 'mvp',           title: '吕布',     glyph: '🥇', color: '#d4af37', fmtStat: (h, st) => ({ primary: `${st.firstPlaceCount} / ${st.games}`, label: '头游' }) },
+  adou:          { honorKey: 'burden',        title: '阿斗',     glyph: '😅', color: '#8b4513', fmtStat: (h, st) => ({ primary: `${st.lastPlaceCount} / ${st.games}`, label: '垫底' }) },
+  shifo:         { honorKey: 'stable',        title: '石佛',     glyph: '🗿', color: '#708090', fmtStat: (h, st) => ({ primary: `σ ${h.score}`, label: `n=${st.games}` }) },
+  bodongwang:    { honorKey: 'rollercoaster', title: '波动王',   glyph: '🌊', color: '#ff4500', fmtStat: (h, st) => ({ primary: `Σ ${h.score}`, label: `${Math.min(...st.rankings)}–${Math.max(...st.rankings)}` }) },
+  fendouwang:    { honorKey: 'comeback',      title: '奋斗王',   glyph: '📈', color: '#32cd32', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '位提升' }) },
+  fanchewang:    { honorKey: 'fanche',        title: '翻车王',   glyph: '🎪', color: '#dc143c', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '崩盘次' }) },
+  dutu:          { honorKey: 'gambler',       title: '赌徒',     glyph: '🎲', color: '#8b5cf6', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '高风险' }) },
+  damanguan:     { honorKey: 'complete',      title: '大满贯',   glyph: '👑', color: '#ffd700', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '体验过' }) },
+  lianshengewang:{ honorKey: 'streak',        title: '连段王',   glyph: '🔥', color: '#ff6347', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '上半区连段' }) },
+  foxiwanjia:    { honorKey: 'median',        title: '团队中轴', glyph: '🧭', color: '#9370db', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '强于队友均值' }) },
+  liyuwang:      { honorKey: 'carp',          title: '逆转核心', glyph: '📈', color: '#f97316', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '后程提升' }) },
+  buzhanguo:     { honorKey: 'nonstick',      title: '保底核心', glyph: '🛡️', color: '#10b981', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '强于队友均值' }) },
+  shandianxia:   { honorKey: 'frequent',      title: '节奏核心', glyph: '⚡', color: '#ffa500', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '队伍领先局' }) },
+  ranjinwang:    { honorKey: 'burnout',       title: '燃尽王',   glyph: '🔥', color: '#b91c1c', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '后程下滑' }) },
+  qichayizhao:   { honorKey: 'almost',        title: '棋差一着', glyph: '🎯', color: '#3b82f6', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '差一名' }) },
+  xiaochou:      { honorKey: 'resilient',     title: '抗压王',   glyph: '🧱', color: '#0f766e', fmtStat: (h, st) => ({ primary: `${h.score}`, label: '反弹/承压' }) }
+};
+
+export function buildHonorExportRows(honors = {}, allStats = {}) {
+  return Object.entries(HONOR_META).map(([id, meta]) => {
+    const honorData = honors[meta.honorKey];
+    const player = honorData?.player || null;
+    const stats = player
+      ? (honorData.stats || allStats[player.id] || {
+        games: 0,
+        totalRank: 0,
+        firstPlaceCount: 0,
+        lastPlaceCount: 0,
+        rankings: []
+      })
+      : null;
+    const stat = player ? meta.fmtStat(honorData, stats) : null;
+    return {
+      id,
+      title: meta.title,
+      glyph: meta.glyph,
+      color: meta.color,
+      playerText: player ? `${player.emoji || ''}${player.name || '玩家'}` : '—',
+      metricText: stat ? `${stat.primary}${stat.label ? ` ${stat.label}` : ''}` : '进行中'
+    };
+  });
+}
+
+const HONOR_PORTRAIT_IDS = {
+  // xiaochou is kept as the DOM/asset slot for compatibility with old themes,
+  // but the current honor uses the neutral profile portrait.
+  xiaochou: '_profile'
 };
 
 function avatarChar(player) {
@@ -430,15 +632,16 @@ function updateHonorArticle(article, honorData, meta) {
   if (honorData?.player) {
     const p = honorData.player;
     const allStats = state.getPlayerStats() || {};
-    const st = allStats[p.id] || { games: 0, totalRank: 0, firstPlaceCount: 0, lastPlaceCount: 0, rankings: [] };
+    const st = honorData.stats || allStats[p.id] || { games: 0, totalRank: 0, firstPlaceCount: 0, lastPlaceCount: 0, rankings: [] };
 
     // Avatar
     if (avatar) {
       avatar.className = `honor__avatar ${teamColorClass(p)}`;
       avatar.replaceChildren();
-      if (p.photo) {
+      const avatarPhoto = resolveAvatarPhoto(p);
+      if (avatarPhoto) {
         const img = document.createElement('img');
-        img.src = p.photo;
+        img.src = avatarPhoto;
         img.alt = '';
         img.style.width = '100%';
         img.style.height = '100%';
@@ -513,7 +716,7 @@ function updateHonorArticle(article, honorData, meta) {
  * Render all 16 honors with editorial recipient blocks.
  */
 export function renderHonors() {
-  const honors = calculateHonors(getPlayers().length);
+  const honors = calculateHonors(getActiveHonorPlayerCount());
   const articles = document.querySelectorAll('.honor[data-honor-id]');
   const portraitsMode = getManifest().honorPortraits;
 
@@ -544,7 +747,8 @@ function syncHonorPortrait(article, honorId, portraitsMode) {
     if (existing) existing.remove();
     return;
   }
-  const src = `/themes/teatable/honors/${honorId}.jpg`;
+  const portraitId = HONOR_PORTRAIT_IDS[honorId] || honorId;
+  const src = `/themes/teatable/honors/${portraitId}.jpg`;
   if (existing) {
     if (existing.getAttribute('src') !== src) existing.setAttribute('src', src);
     return;

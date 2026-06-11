@@ -5,14 +5,44 @@
 
 import state from '../core/state.js';
 import config from '../core/config.js';
+import { getHistoryEntries, resolveGameStatus } from '../game/gameStatus.js';
 import { getPlayers } from '../player/playerManager.js';
+import {
+  canonicalizeRoomSnapshotPayload,
+  isValidRoomSnapshotPayload
+} from './roomSnapshotValidation.js';
+import { applySnapshotSettings } from './roomSettings.js';
+
+function snapshotWinnerFromStatus(gameStatus) {
+  return gameStatus?.winnerKey || state.getWinner();
+}
+
+function latestHistoryWinner(history) {
+  return [...history]
+    .reverse()
+    .find(entry => entry?.winKey === 't1' || entry?.winKey === 't2')
+    ?.winKey || null;
+}
+
+function resolveSnapshotWinner(snapshotWinner, gameStatus, history = []) {
+  if (gameStatus?.ended && (gameStatus.winnerKey === 't1' || gameStatus.winnerKey === 't2')) {
+    return gameStatus.winnerKey;
+  }
+  if (snapshotWinner === 't1' || snapshotWinner === 't2') return snapshotWinner;
+  const historyWinner = latestHistoryWinner(history);
+  if (historyWinner) return historyWinner;
+  return gameStatus?.winnerKey || null;
+}
 
 /**
  * Generate shareable URL with game state
  * @returns {string} Shareable URL
  */
 export function generateShareURL() {
-  const gameData = {
+  const history = state.getHistory();
+  const gameStatus = resolveGameStatus(state.getGameStatus(), history);
+
+  const gameData = canonicalizeRoomSnapshotPayload({
     settings: config.getAll(),
     state: {
       teams: {
@@ -20,17 +50,22 @@ export function generateShareURL() {
         t2: { lvl: state.getTeamLevel('t2'), aFail: state.getTeamAFail('t2') }
       },
       roundLevel: state.getRoundLevel(),
-      history: state.getHistory()
+      roundOwner: state.getRoundOwner(),
+      nextRoundBase: state.getNextRoundBase(),
+      gameStatus,
+      history,
+      winner: snapshotWinnerFromStatus(gameStatus)
     },
     players: getPlayers(),
-    playerStats: state.getPlayerStats()
-  };
+    playerStats: state.getPlayerStats(),
+    currentRanking: state.getCurrentRanking()
+  });
 
   // Compress and encode
   const encoded = btoa(encodeURIComponent(JSON.stringify(gameData)));
   const baseURL = window.location.origin + window.location.pathname;
 
-  return `${baseURL}?share=${encoded}`;
+  return `${baseURL}?share=${encodeURIComponent(encoded)}`;
 }
 
 /**
@@ -45,47 +80,42 @@ export function loadFromShareURL() {
 
   try {
     const decoded = JSON.parse(decodeURIComponent(atob(shareData)));
+    const snapshot = canonicalizeRoomSnapshotPayload(decoded);
+    if (!isValidRoomSnapshotPayload(snapshot)) {
+      return false;
+    }
 
     // Load config
-    if (decoded.settings) {
-      Object.keys(decoded.settings).forEach(key => {
-        if (key === 't1' || key === 't2') {
-          config.setTeam(key, decoded.settings[key]);
-        } else if (['must1', 'autoNext', 'autoApply', 'strictA'].includes(key)) {
-          config.setPreference(key, decoded.settings[key]);
-        }
-      });
+    if (snapshot.settings) {
+      applySnapshotSettings(snapshot.settings);
     }
 
     // Load state
-    if (decoded.state) {
-      const s = decoded.state;
+    if (snapshot.state) {
+      const s = snapshot.state;
+      const incomingHistory = getHistoryEntries(s);
 
-      if (s.teams) {
-        state.setTeamLevel('t1', s.teams.t1.lvl);
-        state.setTeamAFail('t1', s.teams.t1.aFail || 0);
-        state.setTeamLevel('t2', s.teams.t2.lvl);
-        state.setTeamAFail('t2', s.teams.t2.aFail || 0);
-      }
+      state.setTeamLevel('t1', s.teams?.t1?.lvl ?? '2');
+      state.setTeamAFail('t1', s.teams?.t1?.aFail ?? 0);
+      state.setTeamLevel('t2', s.teams?.t2?.lvl ?? '2');
+      state.setTeamAFail('t2', s.teams?.t2?.aFail ?? 0);
+      state.setRoundLevel(s.roundLevel ?? '2');
+      state.setRoundOwner(s.roundOwner ?? null);
+      state.setNextRoundBase(s.nextRoundBase ?? null);
 
-      if (s.roundLevel) state.setRoundLevel(s.roundLevel);
-
-      // Load history
-      if (s.history && Array.isArray(s.history)) {
-        state.clearHistory();
-        s.history.forEach(entry => state.addHistoryEntry(entry));
-      }
+      // Treat shared state as a complete snapshot. A legacy snapshot without
+      // history means "no captured history", not "keep stale local history".
+      state.setHistory(incomingHistory);
+      const loadedGameStatus = resolveGameStatus(s.gameStatus, incomingHistory);
+      state.setGameStatus(loadedGameStatus);
+      state.setWinner(resolveSnapshotWinner(s.winner, loadedGameStatus, incomingHistory) || 't1');
     }
 
-    // Load players
-    if (decoded.players) {
-      state.setPlayers(decoded.players);
-    }
-
-    // Load stats
-    if (decoded.playerStats) {
-      state.setPlayerStats(decoded.playerStats);
-    }
+    // Load dependent player data as a complete snapshot. Missing legacy
+    // fields mean "not captured", not "keep whatever local state had".
+    state.setPlayers(snapshot.players || []);
+    state.setPlayerStats(snapshot.playerStats || {});
+    state.setCurrentRanking(snapshot.currentRanking || {});
 
     return true;
   } catch (error) {
@@ -116,8 +146,8 @@ export function showShareModal() {
   content.innerHTML = `
     <h2 style="color: #fff; margin: 0 0 16px 0;">📤 分享游戏快照</h2>
     <p style="color: #999; margin-bottom: 20px;">复制此链接，其他人可查看游戏状态（静态快照，不实时更新）</p>
-    <textarea readonly style="width: 100%; height: 120px; background: #2a2b2c; color: #fff; border: 1px solid #444;
-      border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; margin-bottom: 20px;">${shareURL}</textarea>
+    <textarea id="shareURLText" readonly style="width: 100%; height: 120px; background: #2a2b2c; color: #fff; border: 1px solid #444;
+      border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; margin-bottom: 20px;"></textarea>
     <div style="display: flex; gap: 12px; justify-content: center;">
       <button id="copyShareURL" style="padding: 12px 20px; background: #22c55e; color: white; border: none;
         border-radius: 8px; cursor: pointer;">📋 复制链接</button>
@@ -128,6 +158,11 @@ export function showShareModal() {
 
   modal.appendChild(content);
   document.body.appendChild(modal);
+
+  const shareURLText = content.querySelector('#shareURLText');
+  if (shareURLText) {
+    shareURLText.value = shareURL;
+  }
 
   // Event listeners
   content.querySelector('#copyShareURL').onclick = async () => {

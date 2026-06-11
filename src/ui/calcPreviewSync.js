@@ -17,11 +17,11 @@ import { getRanking } from '../ranking/rankingManager.js';
 import { getPlayerById } from '../player/playerManager.js';
 import config from '../core/config.js';
 import state from '../core/state.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 function modeNumber() {
   const modeEl = $('mode');
-  const n = modeEl ? parseInt(modeEl.value, 10) : 4;
-  return Number.isFinite(n) ? n : 4;
+  return normalizePlayerCountMode(modeEl ? modeEl.value : 4);
 }
 
 function teamSlotsFor(mode) {
@@ -138,6 +138,15 @@ export function renderCalcPreview() {
 
   const ranking = getRanking();
   const mode = modeNumber();
+  if (!mode) {
+    container.replaceChildren(makeColored('模式无效，请重新选择模式', 'pending'));
+    const hint = $('calcpreviewHint');
+    if (hint) {
+      hint.textContent = '请重新选择模式';
+    }
+    return;
+  }
+
   const points = pointsFor(mode);
   const thresholds = thresholdsFor(mode);
 
@@ -228,6 +237,7 @@ export function initCalcPreviewSync() {
   onEvent('ranking:cleared', renderCalcPreview);
   onEvent('ranking:randomized', renderCalcPreview);
   onEvent('ranking:updated', renderCalcPreview);
+  onEvent('state:currentRankingChanged', renderCalcPreview);
   onEvent('config:settingChanged', renderCalcPreview);
   onEvent('config:rulesUpdated', renderCalcPreview);
   onEvent('ui:modeChanged', renderCalcPreview);

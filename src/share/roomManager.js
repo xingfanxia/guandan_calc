@@ -5,9 +5,15 @@
 
 import state from '../core/state.js';
 import config from '../core/config.js';
+import { readOptionalJsonResponse } from '../api/httpResponse.js';
 import { getPlayers } from '../player/playerManager.js';
 import { emit } from '../core/events.js';
-import { checkGameEnded } from '../ranking/rankingRenderer.js';
+import { getHistoryEntries, resolveGameStatus } from '../game/gameStatus.js';
+import {
+  canonicalizeRoomSnapshotPayload,
+  isValidRoomSnapshotPayload
+} from './roomSnapshotValidation.js';
+import { applySnapshotSettings } from './roomSettings.js';
 
 // Room state
 let currentRoomCode = null;
@@ -16,9 +22,59 @@ let isHost = false;
 let isViewer = false;
 let roomCreatedAt = null;  // Track room creation time for timer
 let roomFinishedAt = null;  // Track game finish time for timer
+let roomIsFavorite = false;
 let syncInterval = null;
 let pollInterval = null;
 let lastKnownUpdate = null;
+let roomConnectionGeneration = 0;
+
+export function normalizeRoomCode(value) {
+  const normalized = String(value || '').trim().toUpperCase();
+  return /^[A-Z0-9]{6}$/.test(normalized) ? normalized : null;
+}
+
+function roomDetailRequestOptions(token) {
+  const normalizedToken = typeof token === 'string' ? token.trim() : '';
+  if (!normalizedToken) return undefined;
+
+  return {
+    headers: {
+      Authorization: `Bearer ${normalizedToken}`
+    }
+  };
+}
+
+function validTimestampString(value) {
+  if (typeof value !== 'string' || value.trim().length === 0) return null;
+  return Number.isFinite(new Date(value).getTime()) ? value : null;
+}
+
+function snapshotWinnerFromStatus(gameStatus) {
+  return gameStatus?.winnerKey || state.getWinner();
+}
+
+function latestHistoryWinner(history) {
+  return [...history]
+    .reverse()
+    .find(entry => entry?.winKey === 't1' || entry?.winKey === 't2')
+    ?.winKey || null;
+}
+
+function resolveSnapshotWinner(snapshotWinner, gameStatus, history = []) {
+  if (gameStatus?.ended && (gameStatus.winnerKey === 't1' || gameStatus.winnerKey === 't2')) {
+    return gameStatus.winnerKey;
+  }
+  if (snapshotWinner === 't1' || snapshotWinner === 't2') return snapshotWinner;
+  const historyWinner = latestHistoryWinner(history);
+  if (historyWinner) return historyWinner;
+  return gameStatus?.winnerKey || null;
+}
+
+function canonicalizeValidRoomSnapshot(roomData) {
+  const snapshot = canonicalizeRoomSnapshotPayload(roomData);
+  if (!isValidRoomSnapshotPayload(snapshot)) return null;
+  return normalizeRoomCode(snapshot.roomCode) ? snapshot : null;
+}
 
 // Dev mode now proxies /api/* to production via vite.config.js, so room
 // features work in dev (hits real prod KV through deployed Edge Functions).
@@ -30,14 +86,46 @@ if (isDevelopment) {
   console.info('[roomManager] Dev mode: /api/* proxied to gd.ax0x.ai. Room features hit prod KV.');
 }
 
+function stopRoomTimers() {
+  if (syncInterval) clearInterval(syncInterval);
+  if (pollInterval) clearInterval(pollInterval);
+  syncInterval = null;
+  pollInterval = null;
+}
+
+function clearRoomConnection(emitLeft = true) {
+  stopRoomTimers();
+  roomConnectionGeneration += 1;
+  currentRoomCode = null;
+  authToken = null;
+  isHost = false;
+  isViewer = false;
+  roomCreatedAt = null;
+  roomFinishedAt = null;
+  roomIsFavorite = false;
+  lastKnownUpdate = null;
+
+  if (emitLeft) {
+    emit('room:left');
+  }
+}
+
 /**
  * Create a new room
  * @returns {Promise<{roomCode: string, authToken: string}|null>}
  */
 export async function createRoom() {
+  // Creating a room is a transition away from any previous room. If the create
+  // request later fails, staying connected as the old host would let the old
+  // auto-sync interval push the freshly reset local game into the old room.
+  clearRoomConnection(currentRoomCode || isHost || isViewer);
+
   try {
+    const history = state.getHistory();
+    const gameStatus = resolveGameStatus(state.getGameStatus(), history);
+
     // Gather current game state
-    const roomData = {
+    const roomData = canonicalizeRoomSnapshotPayload({
       settings: config.getAll(),
       state: {
         teams: {
@@ -47,13 +135,14 @@ export async function createRoom() {
         roundLevel: state.getRoundLevel(),
         roundOwner: state.getRoundOwner(),
         nextRoundBase: state.getNextRoundBase(),
-        history: state.getHistory(),
-        winner: state.getWinner()
+        gameStatus,
+        history,
+        winner: snapshotWinnerFromStatus(gameStatus)
       },
       players: getPlayers(),
       playerStats: state.getPlayerStats(),
       currentRanking: state.getCurrentRanking()
-    };
+    });
 
     // Call API to create room
     const response = await fetch('/api/rooms/create', {
@@ -72,28 +161,34 @@ export async function createRoom() {
       return null;
     }
 
-    const text = await response.text();
+    const result = await readOptionalJsonResponse(response);
 
-    const result = text ? JSON.parse(text) : null;
-
-    if (result.success && result.roomCode) {
-      currentRoomCode = result.roomCode;
-      // Server issues the auth token at create-time; client persists it for PUTs.
-      // Fall back to client-side generation if server hasn't been redeployed yet
-      // (legacy server returns no token; the next PUT will TOFU-pin it server-side).
-      authToken = result.authToken || generateAuthToken();
+    const createdRoomCode = normalizeRoomCode(result.roomCode);
+    const createdAuthToken = typeof result.authToken === 'string' ? result.authToken.trim() : '';
+    if (result.success && createdRoomCode && createdAuthToken) {
+      currentRoomCode = createdRoomCode;
+      // Server issues the host token at create-time; missing token is a failed
+      // room-create contract, not something the client should silently replace.
+      authToken = createdAuthToken;
       isHost = true;
       isViewer = false;
+      roomCreatedAt = validTimestampString(result.createdAt) || new Date().toISOString();
+      roomFinishedAt = validTimestampString(result.finishedAt);
+      roomIsFavorite = false;
 
       // Start auto-sync for host
       startAutoSync();
 
-      emit('room:created', { roomCode: result.roomCode });
+      emit('room:created', { roomCode: createdRoomCode });
 
       return {
-        roomCode: result.roomCode,
+        roomCode: createdRoomCode,
         authToken: authToken
       };
+    }
+
+    if (result.success && createdRoomCode && !createdAuthToken) {
+      console.error('Failed to create room: server response missing host auth token');
     }
 
     return null;
@@ -110,28 +205,55 @@ export async function createRoom() {
  * @returns {Promise<boolean>} Success status
  */
 export async function joinRoom(roomCode, token = null) {
+  const normalizedRoomCode = normalizeRoomCode(roomCode);
+  if (!normalizedRoomCode) {
+    console.warn('Invalid room code:', roomCode);
+    alert('房间代码格式无效');
+    return false;
+  }
+
   try {
+    const normalizedToken = typeof token === 'string' ? token.trim() : '';
+    const roomUrl = `/api/rooms/${encodeURIComponent(normalizedRoomCode)}`;
+
     // Fetch room data
-    const response = await fetch(`/api/rooms/${roomCode}`);
+    let response = await fetch(roomUrl, roomDetailRequestOptions(normalizedToken));
+
+    if (normalizedToken && response.status === 403) {
+      console.warn('Room host auth failed; joining as viewer instead:', normalizedRoomCode);
+      response = await fetch(roomUrl);
+    }
 
     if (!response.ok) {
-      console.error('Room not found:', roomCode);
+      console.error('Room not found:', normalizedRoomCode);
       alert('房间不存在或已过期');
       return false;
     }
 
-    const responseData = await response.json();
+    const responseData = await readOptionalJsonResponse(response);
 
     // Extract actual data from response structure {success: true, data: {...}}
-    const roomData = responseData.data || responseData;
+    const roomData = canonicalizeValidRoomSnapshot(responseData.data || responseData);
+    const hostVerified = Boolean(normalizedToken && responseData.hostVerified === true);
 
-    // Load room data into state
+    if (!roomData) {
+      throw new Error('Invalid room data snapshot');
+    }
+
+    stopRoomTimers();
+    roomConnectionGeneration += 1;
+    currentRoomCode = normalizedRoomCode;
+    authToken = hostVerified ? normalizedToken : null;
+    isHost = hostVerified;
+    isViewer = !hostVerified;
+
+    if (normalizedToken && !hostVerified) {
+      console.warn('Room auth token was not verified; using viewer mode:', normalizedRoomCode);
+    }
+
+    // Load room data after setting room mode so emitted load/victory events can
+    // route correctly for viewer/host-specific UI.
     loadRoomData(roomData);
-
-    currentRoomCode = roomCode;
-    authToken = token;
-    isHost = !!token; // If has token, is host
-    isViewer = !token; // Otherwise is viewer
 
     if (isHost) {
       // Start auto-sync for host
@@ -141,7 +263,7 @@ export async function joinRoom(roomCode, token = null) {
       startPolling();
     }
 
-    emit('room:joined', { roomCode, isHost, isViewer });
+    emit('room:joined', { roomCode: normalizedRoomCode, isHost, isViewer });
 
     return true;
   } catch (error) {
@@ -156,80 +278,64 @@ export async function joinRoom(roomCode, token = null) {
  * @param {Object} roomData - Room data from API
  */
 function loadRoomData(roomData) {
+  roomData = canonicalizeValidRoomSnapshot(roomData);
+  if (!roomData) {
+    throw new Error('Invalid room data snapshot');
+  }
+
   // Load config
   if (roomData.settings) {
-    Object.keys(roomData.settings).forEach(key => {
-      if (key === 't1' || key === 't2') {
-        config.setTeam(key, roomData.settings[key]);
-      } else if (['must1', 'autoNext', 'autoApply', 'strictA'].includes(key)) {
-        config.setPreference(key, roomData.settings[key]);
-      }
-    });
+    applySnapshotSettings(roomData.settings);
   }
 
   // Load state
   if (roomData.state) {
     const s = roomData.state;
+    const incomingHistory = getHistoryEntries(s);
 
-    if (s.teams) {
-      state.setTeamLevel('t1', s.teams.t1.lvl);
-      state.setTeamAFail('t1', s.teams.t1.aFail || 0);
-      state.setTeamLevel('t2', s.teams.t2.lvl);
-      state.setTeamAFail('t2', s.teams.t2.aFail || 0);
-    }
+    state.setTeamLevel('t1', s.teams?.t1?.lvl ?? '2');
+    state.setTeamAFail('t1', s.teams?.t1?.aFail ?? 0);
+    state.setTeamLevel('t2', s.teams?.t2?.lvl ?? '2');
+    state.setTeamAFail('t2', s.teams?.t2?.aFail ?? 0);
+    state.setRoundLevel(s.roundLevel ?? '2');
+    state.setRoundOwner(s.roundOwner ?? null);
+    state.setNextRoundBase(s.nextRoundBase ?? null);
 
-    if (s.roundLevel) state.setRoundLevel(s.roundLevel);
-    if (s.roundOwner) state.setRoundOwner(s.roundOwner);
-    if (s.nextRoundBase !== undefined) state.setNextRoundBase(s.nextRoundBase);
-    if (s.winner) state.setWinner(s.winner);
-
-    // Load history (use setHistory to avoid emitting individual historyAdded events)
-    if (s.history && Array.isArray(s.history)) {
-      state.setHistory(s.history);
-    }
+    // Treat room state as a complete snapshot. A legacy snapshot without
+    // history means "no captured history", not "keep stale local history".
+    state.setHistory(incomingHistory);
+    const loadedGameStatus = resolveGameStatus(s.gameStatus, incomingHistory);
+    state.setGameStatus(loadedGameStatus);
+    state.setWinner(resolveSnapshotWinner(s.winner, loadedGameStatus, incomingHistory) || 't1');
   }
 
-  // Load players FIRST (before emitting victory event!)
-  if (roomData.players) {
-    state.setPlayers(roomData.players);
-  }
-
-  // THEN check for A-level victory and emit (after players are loaded)
-  if (roomData.state && roomData.state.history && Array.isArray(roomData.state.history)) {
-    if (roomData.state.history.length > 0) {
-      const latestGame = roomData.state.history[roomData.state.history.length - 1];
-
-      // Check if this is an A-level victory (aNote contains "通关")
-      if (latestGame.aNote && latestGame.aNote.includes('通关')) {
-        emit('game:victoryForVoting', { teamName: latestGame.win });
-      }
-    }
-  }
-
-  // Load stats
-  if (roomData.playerStats) {
-    state.setPlayerStats(roomData.playerStats);
-  }
-
-  // Load ranking
-  if (roomData.currentRanking) {
-    state.setCurrentRanking(roomData.currentRanking);
-  }
+  // Load dependent data before emitting any completed-game events. The viewer
+  // voting UI reads players, stats, ranking, and room metadata synchronously
+  // when it unlocks.
+  state.setPlayers(roomData.players || []);
+  state.setPlayerStats(roomData.playerStats || {});
+  state.setCurrentRanking(roomData.currentRanking || {});
 
   lastKnownUpdate = roomData.lastUpdated || new Date().toISOString();
   roomCreatedAt = roomData.createdAt || null; // Update creation time
   roomFinishedAt = roomData.finishedAt || null; // Update finish time
+  roomIsFavorite = Boolean(roomData.isFavorite);
 
-  console.log('Room data loaded, createdAt:', roomCreatedAt, 'roomData:', { 
-    code: roomData.roomCode, 
+  console.log('Room data loaded, createdAt:', roomCreatedAt, 'roomData:', {
+    code: roomData.roomCode,
     created: roomData.createdAt,
-    updated: roomData.lastUpdated 
+    updated: roomData.lastUpdated
   });
 
   emit('room:dataLoaded', { roomData });
 
   // ALSO emit room:updated for initial load (triggers UI updates)
   emit('room:updated', { roomData });
+
+  const loadedStatus = state.getGameStatus();
+  if (loadedStatus.ended) {
+    emit('game:victoryForVoting', { teamName: loadedStatus.winnerName });
+  }
 }
 
 /**
@@ -242,13 +348,22 @@ export async function syncToRoom() {
     return false;
   }
 
+  const syncRoomCode = currentRoomCode;
+  const syncAuthToken = authToken;
+  const syncGeneration = roomConnectionGeneration;
+
   try {
     // FIRST fetch existing room to preserve votes
-    const existingResponse = await fetch(`/api/rooms/${currentRoomCode}`);
-    const existingData = existingResponse.ok ? await existingResponse.json() : null;
+    const existingResponse = await fetch(`/api/rooms/${encodeURIComponent(syncRoomCode)}`);
+    const existingData = existingResponse.ok ? await readOptionalJsonResponse(existingResponse) : null;
     const existingRoom = existingData?.data || existingData || {};
+    const history = state.getHistory();
+    const gameStatus = resolveGameStatus(state.getGameStatus(), history);
+    const gameEnded = gameStatus?.ended === true;
+    const isFavoriteRoom = Boolean(existingRoom.isFavorite || roomIsFavorite);
+    const emptyEndGameVotes = { mvp: {}, burden: {}, fingerprints: [] };
 
-    const roomData = {
+    const roomData = canonicalizeRoomSnapshotPayload({
       settings: config.getAll(),
       state: {
         teams: {
@@ -258,24 +373,35 @@ export async function syncToRoom() {
         roundLevel: state.getRoundLevel(),
         roundOwner: state.getRoundOwner(),
         nextRoundBase: state.getNextRoundBase(),
-        history: state.getHistory(),
-        winner: state.getWinner()
+        gameStatus,
+        history,
+        winner: snapshotWinnerFromStatus(gameStatus)
       },
       players: getPlayers(),
       playerStats: state.getPlayerStats(),
       currentRanking: state.getCurrentRanking(),
       createdAt: existingRoom.createdAt || roomCreatedAt || new Date().toISOString(),  // Preserve creation time
-      finishedAt: existingRoom.finishedAt || (checkGameEnded() ? new Date().toISOString() : null),  // Set when game ends
+      finishedAt: gameEnded ? (existingRoom.finishedAt || new Date().toISOString()) : null,  // Clear when host resets / rolls back before victory
+      isFavorite: isFavoriteRoom,
+      favoritedAt: isFavoriteRoom ? (existingRoom.favoritedAt || null) : null,
       lastUpdated: new Date().toISOString(),
-      // PRESERVE VOTES!
-      endGameVotes: existingRoom.endGameVotes || { mvp: {}, burden: {} }
-    };
+      // Preserve active votes only while the room is actually ended. A host
+      // reset/rollback opens the game again; carrying old vote maps forward
+      // would make the next voting window show stale counts or reject old
+      // fingerprints as duplicates.
+      endGameVotes: gameEnded
+        ? (existingRoom.endGameVotes || emptyEndGameVotes)
+        : emptyEndGameVotes,
+      endGameVotesHistory: Array.isArray(existingRoom.endGameVotesHistory)
+        ? existingRoom.endGameVotesHistory
+        : []
+    });
 
-    const response = await fetch(`/api/rooms/${currentRoomCode}`, {
+    const response = await fetch(`/api/rooms/${encodeURIComponent(syncRoomCode)}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`
+        'Authorization': `Bearer ${syncAuthToken}`
       },
       body: JSON.stringify(roomData)
     });
@@ -285,7 +411,20 @@ export async function syncToRoom() {
       return false;
     }
 
-    emit('room:synced', { roomCode: currentRoomCode });
+    if (
+      roomConnectionGeneration !== syncGeneration ||
+      currentRoomCode !== syncRoomCode ||
+      authToken !== syncAuthToken ||
+      !isHost
+    ) {
+      console.warn('Ignoring stale room sync completion:', syncRoomCode);
+      return false;
+    }
+
+    emit('room:synced', { roomCode: syncRoomCode });
+    roomCreatedAt = roomData.createdAt;
+    roomFinishedAt = roomData.finishedAt;
+    roomIsFavorite = roomData.isFavorite;
     return true;
   } catch (error) {
     console.error('Error syncing to room:', error);
@@ -322,23 +461,31 @@ function startPolling() {
 
 }
 
+function scheduleRoomUpdate(callback) {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(callback);
+    return;
+  }
+  setTimeout(callback, 0);
+}
+
 /**
  * Poll for updates (viewer mode)
  * @param {boolean} forceLoad - Force load even if no changes (for initial poll)
  */
 async function pollForUpdates(forceLoad = false) {
-  if (!currentRoomCode || isHost) return;
+  const pollRoomCode = currentRoomCode;
+  if (!pollRoomCode || isHost) return;
 
   try {
-    const response = await fetch(`/api/rooms/${currentRoomCode}`);
+    const response = await fetch(`/api/rooms/${encodeURIComponent(pollRoomCode)}`);
 
     if (!response.ok) {
       console.error('Failed to poll room:', response.status);
       return;
     }
 
-    const text = await response.text();
-    const responseData = text ? JSON.parse(text) : null;
+    const responseData = await readOptionalJsonResponse(response);
 
     if (!responseData) {
       console.error('No room data received');
@@ -346,12 +493,14 @@ async function pollForUpdates(forceLoad = false) {
     }
 
     // Extract actual data from response structure {success: true, data: {...}}
-    const roomData = responseData.data || responseData;
+    const roomData = canonicalizeValidRoomSnapshot(responseData.data || responseData);
 
     if (!roomData) {
       console.error('No data in response');
       return;
     }
+
+    if (currentRoomCode !== pollRoomCode || isHost) return;
 
     // Check if data has changed
     const newUpdate = roomData.lastUpdated || new Date().toISOString();
@@ -364,11 +513,7 @@ async function pollForUpdates(forceLoad = false) {
       loadRoomData(roomData);
 
       if (hasChanged) {
-        // Use requestAnimationFrame to avoid blocking polling
-        requestAnimationFrame(() => {
-          emit('room:updated', { roomData });
-          showUpdateNotification();
-        });
+        scheduleRoomUpdate(showUpdateNotification);
       }
     }
   } catch (error) {
@@ -387,28 +532,7 @@ function showUpdateNotification() {
  * Leave current room
  */
 export function leaveRoom() {
-  if (syncInterval) clearInterval(syncInterval);
-  if (pollInterval) clearInterval(pollInterval);
-
-  currentRoomCode = null;
-  authToken = null;
-  isHost = false;
-  isViewer = false;
-  lastKnownUpdate = null;
-
-  emit('room:left');
-}
-
-/**
- * Generate auth token for host
- */
-function generateAuthToken() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = '';
-  for (let i = 0; i < 32; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  clearRoomConnection(true);
 }
 
 /**
@@ -438,8 +562,17 @@ export function getRoomInfo() {
     isViewer,
     authToken: isHost ? authToken : null,
     createdAt: roomCreatedAt,
-    finishedAt: roomFinishedAt
+    finishedAt: roomFinishedAt,
+    isFavorite: roomIsFavorite
   };
+}
+
+/**
+ * Update local favorite metadata after a successful favorite API call.
+ */
+export function setRoomFavoriteState(isFavorite) {
+  roomIsFavorite = Boolean(isFavorite);
+  emit('room:favoriteChanged', { isFavorite: roomIsFavorite });
 }
 
 /**
@@ -447,8 +580,9 @@ export function getRoomInfo() {
  */
 export function syncNow() {
   if (isHost) {
-    syncToRoom();
+    return syncToRoom();
   }
+  return false;
 }
 
 // Export room state getters

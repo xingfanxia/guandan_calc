@@ -2,42 +2,54 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
-import { sanitizePlayer } from './_utils.js';
+import { handleCorsPreflight, jsonResponse } from '../_cors.js';
+import { parseListPagination, parsePlayerRecord, summarizePlayerForList, validateHandle } from './_utils.js';
+
+const RESPONSE_OPTIONS = { methods: 'GET, OPTIONS' };
+
+function normalizeSearchText(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function matchesSearch(player, query) {
+  if (!query) return true;
+  return normalizeSearchText(player?.handle).includes(query) ||
+    normalizeSearchText(player?.displayName).includes(query);
+}
+
+function hasListableHandle(player) {
+  return typeof player?.handle === 'string' && validateHandle(player.handle);
+}
+
+function getSortablePlayerTimestamp(player) {
+  const rawValue = player?.lastActiveAt || player?.createdAt;
+  if (typeof rawValue !== 'string' || rawValue.trim() === '') return 0;
+
+  const timestamp = Date.parse(rawValue);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'GET, OPTIONS');
+  if (preflight) return preflight;
+
   // Only allow GET requests
   if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
     // Parse query parameters
     const url = new URL(request.url);
-    const searchQuery = url.searchParams.get('q') || '';
-    const limit = parseInt(url.searchParams.get('limit') || '20', 10);
-    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    const searchQuery = normalizeSearchText(url.searchParams.get('q') || '');
+    const pagination = parseListPagination(url.searchParams);
 
     // Validate parameters
-    if (limit < 1 || limit > 100) {
-      return new Response(JSON.stringify({
-        error: 'Invalid limit. Must be between 1 and 100.'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (pagination.error) {
+      return jsonResponse({ error: pagination.error }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
-    if (offset < 0) {
-      return new Response(JSON.stringify({
-        error: 'Invalid offset. Must be 0 or greater.'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
+    const { limit, offset } = pagination;
 
     // Get all player keys
     const playerKeys = await kv.keys('player:*');
@@ -48,23 +60,17 @@ export default async function handler(request) {
 
     // Parse and filter players
     let players = playerData
-      .filter(data => data !== null)
-      .map(data => typeof data === 'string' ? JSON.parse(data) : data);
+      .map(parsePlayerRecord)
+      .filter(hasListableHandle);
 
     // Apply search filter if query provided
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      players = players.filter(player =>
-        player.handle.toLowerCase().includes(query) ||
-        player.displayName.toLowerCase().includes(query)
-      );
+      players = players.filter(player => matchesSearch(player, searchQuery));
     }
 
     // Sort by lastActiveAt DESC (most recently active first), fallback to createdAt
     players.sort((a, b) => {
-      const aTime = new Date(a.lastActiveAt || a.createdAt);
-      const bTime = new Date(b.lastActiveAt || b.createdAt);
-      return bTime - aTime;
+      return getSortablePlayerTimestamp(b) - getSortablePlayerTimestamp(a);
     });
 
     // Get total count before pagination
@@ -76,32 +82,21 @@ export default async function handler(request) {
     // Check if there are more results
     const hasMore = (offset + limit) < total;
 
-    // Strip token hash from every record — internal-only, never sent to clients.
-    const sanitized = paginatedPlayers.map(sanitizePlayer);
+    // Return compact list summaries. Full profiles include large photoBase64
+    // blobs and private-ish history maps; clients fetch /api/players/{handle}
+    // after selection when they need a complete profile.
+    const summaries = paginatedPlayers.map(summarizePlayerForList);
 
     // Return results
-    return new Response(JSON.stringify({
-      players: sanitized,
+    return jsonResponse({
+      players: summaries,
       total: total,
       hasMore: hasMore
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Failed to list players:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Internal server error' }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

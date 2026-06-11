@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="broadcast">
+<html lang="zh-CN" data-theme="linear">
 <head>
 <script>
   // Theme bootstrap — must be inline + synchronous + ABOVE stylesheets so
   // the cascade resolves with the user's chosen theme on first paint, not
-  // with `data-theme="broadcast"` (the static fallback). Saved value list
+  // with `data-theme="linear"` (the static fallback). Saved value list
   // is the source of truth for valid theme names; sync with main.js.
   try { var t = localStorage.getItem('gd_v9_theme');
     if (t && ['broadcast','linear','trading','atelier','teatable'].indexOf(t) !== -1)
@@ -13,7 +13,7 @@
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>玩家浏览器 · GD LIVE BROADCAST</title>
+<title>玩家浏览器 · GD LIVE CONSOLE</title>
 <meta name="theme-color" content="#1c1f29">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
-<!-- Theme: Broadcast Editorial. Fonts match index.html exactly. -->
+<!-- Theme stylesheets. Fonts match index.html exactly. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
@@ -45,7 +45,7 @@
   <div class="container topnav__inner">
     <div class="topnav__brand">
       <div class="topnav__brand-mark">A</div>
-      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">CONSOLE · v10</span></span>
     </div>
     <div class="topnav__tabs">
       <a class="topnav__tab" href="/">
@@ -133,7 +133,7 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__brand">GD&nbsp;LIVE · CONSOLE · v10</div>
     <div class="footer__meta">
       <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
       · MADE WITH ❤️ BY XINGFAN XIA
@@ -154,6 +154,23 @@ let allPlayers = [];
 let filteredPlayers = [];
 let isAdminMode = false;
 let adminToken = '';
+
+function toFiniteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function formatInteger(value, fallback = 0) {
+  return String(Math.round(toFiniteNumber(value, fallback)));
+}
+
+function formatFixed(value, digits = 2, fallback = 0) {
+  return toFiniteNumber(value, fallback).toFixed(digits);
+}
+
+function formatPercent(value, digits = 1) {
+  return formatFixed(toFiniteNumber(value, 0) * 100, digits);
+}
 
 // Initialize create modal
 initializeCreateModal((createdPlayer) => {
@@ -240,43 +257,56 @@ function renderPlayers() {
     return;
   }
 
-  container.innerHTML = playersToShow.map(player => `
-    <div class="player-card" onclick="location.href='/player-profile.html?handle=${encodeURIComponent(player.handle)}'">
-      <div class="player-card__head">
-        <div class="player-card__avatar-wrap">
-          ${renderProfileAvatar(player, 56)}
+  container.innerHTML = playersToShow.map(player => {
+    const playerStats = player.stats || {};
+
+    return `
+      <div
+        class="player-card"
+        role="link"
+        tabindex="0"
+        data-profile-handle="${escapeHtml(player.handle)}"
+      >
+        <div class="player-card__head">
+          <div class="player-card__avatar-wrap">
+            ${renderProfileAvatar(player, 56)}
+          </div>
+          <div class="player-card__identity">
+            <h3 class="player-card__name">${escapeHtml(player.displayName)}</h3>
+            <div class="player-card__handle">@${escapeHtml(player.handle)}</div>
+          </div>
         </div>
-        <div class="player-card__identity">
-          <h3 class="player-card__name">${escapeHtml(player.displayName)}</h3>
-          <div class="player-card__handle">@${escapeHtml(player.handle)}</div>
+
+        ${player.tagline ? `<p class="player-card__tagline">${escapeHtml(player.tagline)}</p>` : ''}
+
+        <div class="player-card__stats">
+          <span class="stat-badge">🎮 ${formatInteger(playerStats.sessionsPlayed || playerStats.gamesPlayed, 0)} 场</span>
+          <span class="stat-badge">🏆 ${formatInteger(playerStats.sessionsWon || playerStats.wins, 0)} 胜</span>
+          <span class="stat-badge">胜率 ${formatPercent(playerStats.sessionWinRate || playerStats.winRate)}%</span>
+          <span class="stat-badge">场均 ${formatFixed(playerStats.avgRankingPerSession || playerStats.avgRanking)} 名</span>
         </div>
+
+        ${isAdminMode && adminToken ? `
+          <div class="player-card__admin">
+            <button
+              type="button"
+              class="player-card__admin-btn player-card__admin-btn--reset"
+              data-admin-action="reset"
+              data-player-handle="${escapeHtml(player.handle)}">
+              🔄 重置统计
+            </button>
+            <button
+              type="button"
+              class="player-card__admin-btn player-card__admin-btn--delete"
+              data-admin-action="delete"
+              data-player-handle="${escapeHtml(player.handle)}">
+              🗑️ 删除玩家
+            </button>
+          </div>
+        ` : ''}
       </div>
-
-      ${player.tagline ? `<p class="player-card__tagline">${escapeHtml(player.tagline)}</p>` : ''}
-
-      <div class="player-card__stats">
-        <span class="stat-badge">🎮 ${player.stats.sessionsPlayed || player.stats.gamesPlayed || 0} 场</span>
-        <span class="stat-badge">🏆 ${player.stats.sessionsWon || player.stats.wins || 0} 胜</span>
-        <span class="stat-badge">胜率 ${((player.stats.sessionWinRate || player.stats.winRate || 0) * 100).toFixed(1)}%</span>
-        <span class="stat-badge">场均 ${(player.stats.avgRankingPerSession || player.stats.avgRanking || 0).toFixed(2)} 名</span>
-      </div>
-
-      ${isAdminMode && adminToken ? `
-        <div class="player-card__admin" onclick="event.stopPropagation()">
-          <button
-            class="player-card__admin-btn player-card__admin-btn--reset"
-            onclick="event.stopPropagation(); resetPlayerStats('${player.handle}')">
-            🔄 重置统计
-          </button>
-          <button
-            class="player-card__admin-btn player-card__admin-btn--delete"
-            onclick="event.stopPropagation(); deletePlayer('${player.handle}')">
-            🗑️ 删除玩家
-          </button>
-        </div>
-      ` : ''}
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
   // Update pagination
   updatePagination();
@@ -299,6 +329,47 @@ function updatePagination() {
 
   prevBtn.disabled = currentPage === 0;
   nextBtn.disabled = currentPage >= totalPages - 1;
+}
+
+function openPlayerProfile(handle) {
+  if (!handle) return;
+  location.href = `/player-profile.html?handle=${encodeURIComponent(handle)}`;
+}
+
+const playersListElement = document.getElementById('playersList');
+
+if (playersListElement) {
+  playersListElement.addEventListener('click', (event) => {
+    const adminButton = event.target.closest('[data-admin-action]');
+    if (adminButton && playersListElement.contains(adminButton)) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const handle = adminButton.dataset.playerHandle || '';
+      if (adminButton.dataset.adminAction === 'reset') {
+        window.resetPlayerStats(handle);
+      } else if (adminButton.dataset.adminAction === 'delete') {
+        window.deletePlayer(handle);
+      }
+      return;
+    }
+
+    const card = event.target.closest('[data-profile-handle]');
+    if (card && playersListElement.contains(card)) {
+      openPlayerProfile(card.dataset.profileHandle || '');
+    }
+  });
+
+  playersListElement.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    if (event.target.closest('[data-admin-action]')) return;
+
+    const card = event.target.closest('[data-profile-handle]');
+    if (!card || !playersListElement.contains(card)) return;
+
+    event.preventDefault();
+    openPlayerProfile(card.dataset.profileHandle || '');
+  });
 }
 
 // Event handlers
@@ -333,7 +404,7 @@ document.getElementById('nextPage').onclick = () => {
   }
 };
 
-// Admin functions (global for onclick handlers)
+// Admin functions
 window.deletePlayer = async function(handle) {
   if (!adminToken) {
     alert('请先输入管理员密码');

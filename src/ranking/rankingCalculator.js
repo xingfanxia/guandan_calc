@@ -4,8 +4,8 @@
  * Converts player ranking to calculation input
  */
 
-import { getRanking, getRankingProgress, isRankingComplete } from './rankingManager.js';
-import { getPlayers, getPlayerById } from '../player/playerManager.js';
+import { getRanking, getRankingProgress, isRankingComplete, normalizeRankingMode } from './rankingManager.js';
+import { getPlayers, getPlayerById, normalizeTeamNumber } from '../player/playerManager.js';
 import { calculateUpgrade } from '../game/calculator.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
@@ -36,7 +36,13 @@ export function checkAutoCalculate(mode) {
  * @returns {{ok: boolean, winner?: string, ranks?: number[], calcResult?: Object, message?: string}}
  */
 export function calculateFromRanking(mode) {
-  const num = parseInt(mode);
+  const num = normalizeRankingMode(mode);
+  if (!num) {
+    return {
+      ok: false,
+      message: '错误：无效游戏人数模式'
+    };
+  }
 
   // Check if ranking is complete
   if (!isRankingComplete(num)) {
@@ -66,27 +72,58 @@ export function calculateFromRanking(mode) {
     };
   }
 
-  // Winner is whoever has first place — coerce team to Number to handle string ('1'/'2')
-  // from JSON round-trip / form input where strict === would silently default to 't2'.
-  const winnerKey = Number(firstPlacePlayer.team) === 1 ? 't1' : 't2';
-  state.setWinner(winnerKey);
+  const firstPlaceTeam = normalizeTeamNumber(firstPlacePlayer.team);
+  if (!firstPlaceTeam) {
+    return {
+      ok: false,
+      message: '错误：第1名玩家尚未分配队伍'
+    };
+  }
 
-  // Collect ranks for each team (same coercion)
+  const winnerKey = firstPlaceTeam === 1 ? 't1' : 't2';
+
+  // Collect ranks for each team after validating every ranked player.
   const team1Ranks = [];
   const team2Ranks = [];
 
   for (let rank = 1; rank <= num; rank++) {
     const playerId = ranking[rank];
-    if (playerId) {
-      const player = getPlayerById(playerId);
-      if (player) {
-        if (Number(player.team) === 1) {
-          team1Ranks.push(rank);
-        } else {
-          team2Ranks.push(rank);
-        }
-      }
+    if (!playerId) {
+      return {
+        ok: false,
+        message: `错误：未找到第${rank}名`
+      };
     }
+
+    const player = getPlayerById(playerId);
+    if (!player) {
+      return {
+        ok: false,
+        message: `错误：未找到第${rank}名玩家`
+      };
+    }
+
+    const teamNumber = normalizeTeamNumber(player.team);
+    if (!teamNumber) {
+      return {
+        ok: false,
+        message: `错误：第${rank}名玩家尚未分配队伍`
+      };
+    }
+
+    if (teamNumber === 1) {
+      team1Ranks.push(rank);
+    } else {
+      team2Ranks.push(rank);
+    }
+  }
+
+  const expectedTeamSize = num / 2;
+  if (team1Ranks.length !== expectedTeamSize || team2Ranks.length !== expectedTeamSize) {
+    return {
+      ok: false,
+      message: `错误：队伍人数不匹配（蓝队 ${team1Ranks.length}/${expectedTeamSize}，红队 ${team2Ranks.length}/${expectedTeamSize}）`
+    };
   }
 
   // Use winning team's ranks for calculation
@@ -108,6 +145,16 @@ export function calculateFromRanking(mode) {
     p8: eightRules.points
   };
   const calcResult = calculateUpgrade(String(num), winnerRanks, calcConfig, must1);
+
+  if (calcResult?.details?.error) {
+    return {
+      ok: false,
+      message: '错误：排名数据无法计算升级',
+      calcResult
+    };
+  }
+
+  state.setWinner(winnerKey);
 
   emit('ranking:calculated', {
     winner: winnerKey,

@@ -2,6 +2,7 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
 import {
   generatePlayerId,
   validatePlayerData,
@@ -11,28 +12,31 @@ import {
   sanitizePlayer
 } from './_utils.js';
 
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
+
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   // Only allow POST requests
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
     // Parse request body
-    const playerData = await request.json();
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+    const playerData = parsedBody.data;
 
     // Validate player data
     const validation = validatePlayerData(playerData);
     if (!validation.valid) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: validation.error
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     // Normalize handle to lowercase
@@ -41,17 +45,15 @@ export default async function handler(request) {
     // Check if handle already exists
     const existing = await kv.get(`player:${handle}`);
     if (existing) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Handle already exists. Please choose a different handle.'
-      }), {
-        status: 409,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 409 });
     }
 
     // Generate unique player ID
     let playerId;
     let idAttempts = 0;
+    let playerIdAvailable = false;
     do {
       playerId = generatePlayerId();
       idAttempts++;
@@ -59,17 +61,15 @@ export default async function handler(request) {
       // Check if ID already exists (very unlikely but check anyway)
       const existingId = await kv.get(`player_id:${playerId}`);
       if (!existingId) {
+        playerIdAvailable = true;
         break;
       }
     } while (idAttempts < 10);
 
-    if (idAttempts >= 10) {
-      return new Response(JSON.stringify({
+    if (!playerIdAvailable) {
+      return jsonResponse({
         error: 'Failed to generate unique player ID'
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 500 });
     }
 
     // Issue per-user ownership token. Raw token is returned ONCE in this response;
@@ -101,28 +101,17 @@ export default async function handler(request) {
     await kv.set(`player_id:${playerId}`, handle);
 
     // Return created player + raw token (shown once, client persists to localStorage)
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       player: sanitizePlayer(player),
       ownershipToken
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Failed to create player:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

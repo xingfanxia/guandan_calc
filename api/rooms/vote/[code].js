@@ -1,62 +1,71 @@
 // End-game voting - with fingerprint deduplication
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../../_cors.js';
+import { parseRoomRecord } from '../_record.js';
+import {
+  isValidRoomCode,
+  normalizeVoteStore,
+  publicVoteStoreForRoom,
+  saveRoomWithFavoriteTtl,
+  validateVotePayload,
+  VOTE_FINGERPRINT_CAP
+} from '../_votes.js';
+
+const RESPONSE_OPTIONS = { methods: 'GET, POST, OPTIONS' };
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'GET, POST, OPTIONS');
+  if (preflight) return preflight;
+
   const url = new URL(request.url);
   const roomCode = url.pathname.split('/').pop();
+  if (!isValidRoomCode(roomCode)) {
+    return jsonResponse({ error: 'Invalid room code format' }, { ...RESPONSE_OPTIONS, status: 400 });
+  }
 
   if (request.method === 'POST') {
     try {
-      const { mvpPlayerId, burdenPlayerId, fingerprint } = await request.json();
+      const parsedBody = await parseJsonBody(request);
+      if (!parsedBody.ok) {
+        return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+      }
+      const { mvpPlayerId, burdenPlayerId, fingerprint } = parsedBody.data;
 
       if (!mvpPlayerId || !burdenPlayerId) {
-        return new Response(JSON.stringify({ error: 'Missing player IDs' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ error: 'Missing player IDs' }, { ...RESPONSE_OPTIONS, status: 400 });
       }
 
       // Validate: MVP and burden cannot be the same person
       if (mvpPlayerId === burdenPlayerId) {
-        return new Response(JSON.stringify({ error: 'same_person' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ error: 'same_person' }, { ...RESPONSE_OPTIONS, status: 400 });
       }
 
       // Get room
       const roomData = await kv.get(`room:${roomCode}`);
       if (!roomData) {
-        return new Response(JSON.stringify({ error: 'Room not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        return jsonResponse({ error: 'Room not found' }, { ...RESPONSE_OPTIONS, status: 404 });
       }
 
-      const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
-
-      // Initialize vote structure if needed
-      if (!room.endGameVotes) {
-        room.endGameVotes = { mvp: {}, burden: {}, fingerprints: [] };
+      const room = parseRoomRecord(roomData);
+      if (!room) {
+        return jsonResponse({ error: 'Room not found' }, { ...RESPONSE_OPTIONS, status: 404 });
+      }
+      const validation = validateVotePayload(room, { mvpPlayerId, burdenPlayerId, fingerprint });
+      if (!validation.ok) {
+        return jsonResponse({ error: validation.error }, { ...RESPONSE_OPTIONS, status: validation.status });
       }
 
-      // Ensure fingerprints array exists
-      if (!room.endGameVotes.fingerprints) {
-        room.endGameVotes.fingerprints = [];
-      }
+      room.endGameVotes = normalizeVoteStore(room.endGameVotes);
 
       // Check for duplicate fingerprint
-      if (fingerprint && room.endGameVotes.fingerprints.includes(fingerprint)) {
-        console.log('Duplicate fingerprint detected:', fingerprint);
-        return new Response(JSON.stringify({ error: 'duplicate_fingerprint' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+      if (room.endGameVotes.fingerprints.includes(validation.fingerprint)) {
+        console.log('Duplicate vote fingerprint detected');
+        return jsonResponse({ error: 'duplicate_fingerprint' }, { ...RESPONSE_OPTIONS, status: 400 });
       }
 
       // Store vote
-      room.endGameVotes.mvp[mvpPlayerId] = (room.endGameVotes.mvp[mvpPlayerId] || 0) + 1;
-      room.endGameVotes.burden[burdenPlayerId] = (room.endGameVotes.burden[burdenPlayerId] || 0) + 1;
+      room.endGameVotes.mvp[validation.mvpPlayerId] = (room.endGameVotes.mvp[validation.mvpPlayerId] || 0) + 1;
+      room.endGameVotes.burden[validation.burdenPlayerId] = (room.endGameVotes.burden[validation.burdenPlayerId] || 0) + 1;
 
       // Store fingerprint to prevent duplicate voting.
       // Cap to last 1000 — without this, fingerprint storage grows linearly forever,
@@ -65,32 +74,21 @@ export default async function handler(request) {
       // (each room has at most a handful of viewers); when the cap is reached,
       // the oldest fingerprints fall off, allowing those clients to re-vote — an
       // acceptable trade in this app's threat model (casual vote, not high-stakes).
-      const FINGERPRINT_CAP = 1000;
-      if (fingerprint) {
-        room.endGameVotes.fingerprints.push(fingerprint);
-        if (room.endGameVotes.fingerprints.length > FINGERPRINT_CAP) {
-          room.endGameVotes.fingerprints = room.endGameVotes.fingerprints.slice(-FINGERPRINT_CAP);
-        }
+      room.endGameVotes.fingerprints.push(validation.fingerprint);
+      if (room.endGameVotes.fingerprints.length > VOTE_FINGERPRINT_CAP) {
+        room.endGameVotes.fingerprints = room.endGameVotes.fingerprints.slice(-VOTE_FINGERPRINT_CAP);
       }
 
-      console.log('Saving votes:', room.endGameVotes);
-
       // Save
-      await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(room));
+      await saveRoomWithFavoriteTtl(kv, roomCode, room);
 
       console.log('Votes saved successfully');
 
-      return new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ success: true }, RESPONSE_OPTIONS);
 
     } catch (error) {
       console.error('Vote error:', error);
-      return new Response(JSON.stringify({ error: 'Internal error' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Internal error' }, { ...RESPONSE_OPTIONS, status: 500 });
     }
 
   } else if (request.method === 'GET') {
@@ -98,40 +96,32 @@ export default async function handler(request) {
       const roomData = await kv.get(`room:${roomCode}`);
 
       if (!roomData) {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
           votes: { mvp: {}, burden: {} }
-        }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        }, RESPONSE_OPTIONS);
       }
 
-      const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+      const room = parseRoomRecord(roomData);
+      if (!room) {
+        return jsonResponse({
+          success: true,
+          votes: { mvp: {}, burden: {} }
+        }, RESPONSE_OPTIONS);
+      }
 
-      console.log('GET votes:', room.endGameVotes);
-
-      return new Response(JSON.stringify({
+      return jsonResponse({
         success: true,
-        votes: room.endGameVotes || { mvp: {}, burden: {} }
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
+        votes: publicVoteStoreForRoom(room)
+      }, RESPONSE_OPTIONS);
 
     } catch (error) {
       console.error('GET error:', error);
-      return new Response(JSON.stringify({ error: 'Error' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Error' }, { ...RESPONSE_OPTIONS, status: 500 });
     }
 
   } else {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 }
 

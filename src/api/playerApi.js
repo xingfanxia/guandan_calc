@@ -3,14 +3,65 @@
 
 import { ACHIEVEMENTS } from '../stats/achievements.js';
 import { showToast } from '../ui/toast.js';
+import { HONOR_TITLES_BY_KEY } from '../../shared/honorCatalog.js';
+import { resolveGameStatus } from '../../shared/gameStatus.js';
+import { deriveGameSessionKey, deriveVoteSessionKey } from '../../shared/voteSessionKey.js';
+import { resolvePlayerCountMode } from '../core/playerCountMode.js';
+import { normalizeVotePlayerId } from '../share/voteResults.js';
+import { readOptionalJsonResponse as readOptionalJson } from './httpResponse.js';
 
 const API_BASE = window.location.origin;
+
+function playerProfileUrl(handle) {
+  return `${API_BASE}/api/players/${encodeURIComponent(handle)}`;
+}
+
+function normalizeHonorRecipientId(value) {
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function normalizeSessionTeamNumber(team) {
+  if (team === 1 || team === '1') return 1;
+  if (team === 2 || team === '2') return 2;
+  if (typeof team === 'string') {
+    const trimmed = team.trim();
+    if (trimmed === '1') return 1;
+    if (trimmed === '2') return 2;
+  }
+  return null;
+}
+
+function voteResultMatchesPlayer(votePlayerId, playerId) {
+  const normalizedVotePlayerId = normalizeVotePlayerId(votePlayerId);
+  if (!normalizedVotePlayerId) return false;
+
+  return normalizedVotePlayerId === normalizeVotePlayerId(playerId);
+}
 
 // ===== Ownership token storage =====
 // Issued by server at create-time, kept in localStorage so the original creator
 // can self-edit their profile from the same browser without admin intervention.
 // Per-handle key isolates tokens — useful if multiple players share a device.
 const OWNER_TOKEN_PREFIX = 'gd_owner_token_';
+
+export function mapSessionHonorsToPlayerHonors(sessionHonors = {}) {
+  const playerHonors = {};
+
+  Object.entries(sessionHonors).forEach(([honorKey, honorData]) => {
+    if (!honorData?.player) return;
+
+    const honorName = HONOR_TITLES_BY_KEY[honorKey];
+    if (!honorName) return;
+
+    const playerId = normalizeHonorRecipientId(honorData.player.id);
+    if (playerId === null) return;
+
+    if (!playerHonors[playerId]) playerHonors[playerId] = [];
+    playerHonors[playerId].push(honorName);
+  });
+
+  return playerHonors;
+}
 
 export function getOwnershipToken(handle) {
   if (!handle) return null;
@@ -40,6 +91,32 @@ export function clearOwnershipToken(handle) {
   } catch {}
 }
 
+function normalizePlayerSearchResult(payload) {
+  const data = payload && typeof payload === 'object' && !Array.isArray(payload)
+    ? payload
+    : {};
+  const players = Array.isArray(data.players) ? data.players : [];
+  const total = Number(data.total);
+
+  return {
+    ...data,
+    players,
+    total: Number.isSafeInteger(total) && total >= 0 ? total : players.length,
+    hasMore: data.hasMore === true
+  };
+}
+
+function normalizeSuccessfulWriteResult(result) {
+  const data = result && typeof result === 'object' && !Array.isArray(result)
+    ? result
+    : {};
+
+  return {
+    ...data,
+    success: data.success !== false
+  };
+}
+
 /**
  * Search for players by handle or displayName
  * @param {string} query - Search query
@@ -58,7 +135,7 @@ export async function searchPlayers(query = '', limit = 20) {
       throw new Error(`Search failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    return normalizePlayerSearchResult(await readOptionalJson(response));
   } catch (error) {
     console.error('searchPlayers error:', error);
     throw error;
@@ -72,7 +149,7 @@ export async function searchPlayers(query = '', limit = 20) {
  */
 export async function getPlayer(handle) {
   try {
-    const response = await fetch(`${API_BASE}/api/players/${handle}`);
+    const response = await fetch(playerProfileUrl(handle));
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -81,10 +158,29 @@ export async function getPlayer(handle) {
       throw new Error(`Get player failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    const result = await readOptionalJson(response);
+    if (!result.player || typeof result.player !== 'object' || Array.isArray(result.player)) {
+      throw new Error('Invalid player response');
+    }
+
+    return result;
   } catch (error) {
     console.error('getPlayer error:', error);
     throw error;
+  }
+}
+
+export async function resolveFullPlayerProfile(playerSummary) {
+  if (!playerSummary?.handle || playerSummary.photoBase64 !== undefined) {
+    return playerSummary;
+  }
+
+  try {
+    const result = await getPlayer(playerSummary.handle);
+    return result.player || playerSummary;
+  } catch (error) {
+    console.warn(`Failed to load full profile for @${playerSummary.handle}; using list summary`, error);
+    return playerSummary;
   }
 }
 
@@ -108,7 +204,7 @@ export async function createPlayer(data) {
       body: JSON.stringify(data)
     });
 
-    const result = await response.json();
+    const result = await readOptionalJson(response);
 
     if (!response.ok) {
       throw new Error(result.error || `Create player failed: ${response.statusText}`);
@@ -147,7 +243,25 @@ export function validateHandle(handle) {
     return { valid: false, error: '用户名只能包含字母、数字和下划线' };
   }
 
+  const unsafeObjectKeys = new Set(['__proto__', 'prototype', 'constructor']);
+  if (unsafeObjectKeys.has(handle.toLowerCase())) {
+    return { valid: false, error: '用户名不可使用系统保留词' };
+  }
+
   return { valid: true };
+}
+
+function normalizeProfileHandleCandidate(rawHandle) {
+  if (typeof rawHandle !== 'string') return null;
+
+  const normalizedHandle = rawHandle.trim().toLowerCase();
+  if (normalizedHandle === 'session') return null;
+  return validateHandle(normalizedHandle).valid ? normalizedHandle : null;
+}
+
+export function getPlayerProfileHandle(player) {
+  return normalizeProfileHandleCandidate(player?.handle) ||
+    normalizeProfileHandleCandidate(player?.profileHandle);
 }
 
 /**
@@ -208,7 +322,7 @@ export async function touchPlayer(handle) {
       throw new Error(`Touch player failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    return normalizeSuccessfulWriteResult(await readOptionalJson(response));
   } catch (error) {
     console.error('touchPlayer error:', error);
     // Don't throw - this is a non-critical operation
@@ -239,7 +353,7 @@ export async function updatePlayerStats(handle, gameResult, roomAuthToken = null
       if (ownerToken) headers['Authorization'] = `Bearer ${ownerToken}`;
     }
 
-    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+    const response = await fetch(playerProfileUrl(handle), {
       method: 'PUT',
       headers,
       body: JSON.stringify(gameResult)
@@ -249,7 +363,7 @@ export async function updatePlayerStats(handle, gameResult, roomAuthToken = null
       throw new Error(`Update stats failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    return normalizeSuccessfulWriteResult(await readOptionalJson(response));
   } catch (error) {
     console.error('updatePlayerStats error:', error);
     // Don't throw - this is a non-critical operation
@@ -272,22 +386,54 @@ export async function updatePlayerStats(handle, gameResult, roomAuthToken = null
  *   per-player ownership token from localStorage is used.
  */
 export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players = [], sessionStats = {}, sessionHonors = {}, votingResults = null, roomAuthToken = null) {
-  if (!historyEntry || players.length === 0 || !sessionStats) {
+  const playerList = Array.isArray(players) ? players : [];
+  const statsByPlayer = sessionStats && typeof sessionStats === 'object' && !Array.isArray(sessionStats)
+    ? sessionStats
+    : {};
+  const honorsByKey = sessionHonors && typeof sessionHonors === 'object' && !Array.isArray(sessionHonors)
+    ? sessionHonors
+    : {};
+
+  if (!historyEntry || playerList.length === 0 || Object.keys(statsByPlayer).length === 0) {
     console.log('Skipping profile stats sync - missing data');
     return;
   }
 
+  const voteSessionKey = deriveVoteSessionKey({
+    roomCode,
+    gameStatus: historyEntry.gameStatus,
+    history: [historyEntry],
+    finishedAt: historyEntry.gameEndedAt,
+    endGameVotesHistory: []
+  });
+  const gameSessionKey = deriveGameSessionKey({
+    roomCode,
+    gameStatus: historyEntry.gameStatus,
+    history: [historyEntry],
+    finishedAt: historyEntry.gameEndedAt
+  });
+  const resolvedGameStatus = resolveGameStatus(historyEntry.gameStatus, [historyEntry]);
+  const winnerTeamKey = resolvedGameStatus.ended && resolvedGameStatus.winnerKey
+    ? resolvedGameStatus.winnerKey
+    : historyEntry.winKey;
+
+  const sessionPlayers = playerList.filter(player => {
+    const stats = statsByPlayer[player?.id];
+    return stats && stats.games > 0 && normalizeSessionTeamNumber(player?.team) !== null;
+  });
+  const sessionMode = `${resolvePlayerCountMode(historyEntry.mode, sessionPlayers.length || playerList.length)}P`;
+
   console.log('Syncing COMPLETE SESSION stats for all players:', {
     roomCode,
-    playerCount: players.length,
-    winner: historyEntry.winKey,
-    totalRounds: Object.values(sessionStats).length > 0 ? sessionStats[Object.keys(sessionStats)[0]]?.games : 0,
-    honorsCount: Object.keys(sessionHonors).length
+    playerCount: sessionPlayers.length,
+    winner: winnerTeamKey,
+    totalRounds: Object.values(statsByPlayer).length > 0 ? statsByPlayer[Object.keys(statsByPlayer)[0]]?.games : 0,
+    honorsCount: Object.keys(honorsByKey).length
   });
 
   // Calculate relative rankings within this session
-  const playerAverages = players.map(p => {
-    const stats = sessionStats[p.id];
+  const playerAverages = sessionPlayers.map(p => {
+    const stats = statsByPlayer[p.id];
     return {
       playerId: p.id,
       avgRank: stats && stats.games > 0 ? stats.totalRank / stats.games : 999
@@ -300,69 +446,46 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
     relativeRankings[item.playerId] = index + 1;
   });
 
-  // Map honors to players
-  const playerHonors = {};
-  Object.entries(sessionHonors).forEach(([honorKey, honorData]) => {
-    if (honorData && honorData.player) {
-      const playerId = honorData.player.id;
-      if (!playerHonors[playerId]) playerHonors[playerId] = [];
-      
-      // Map honor keys to Chinese names
-      const honorNames = {
-        mvp: '吕布',
-        burden: '阿斗',
-        stable: '石佛',
-        rollercoaster: '波动王',
-        comeback: '奋斗王',
-        assist: '辅助王',
-        fanche: '翻车王',
-        gambler: '赌徒',
-        complete: '大满贯',
-        streak: '连胜王',
-        median: '佛系玩家',
-        keeper: '守门员',
-        slowstart: '慢热王',
-        frequent: '闪电侠'
-      };
-      
-      const honorName = honorNames[honorKey];
-      if (honorName) {
-        playerHonors[playerId].push(honorName);
-      }
-    }
-  });
+  // Map current session honor keys to profile-facing honor names.
+  const playerHonors = mapSessionHonorsToPlayerHonors(honorsByKey);
 
-  // Iterate through ALL players and sync their complete session stats
-  for (const player of players) {
+  // Iterate through players who actually have stats in this completed session.
+  for (const player of sessionPlayers) {
     // Only update if player has a profile handle
-    if (!player.handle) continue;
+    const playerHandle = getPlayerProfileHandle(player);
+    if (!playerHandle) continue;
 
     // Get this player's complete session stats
-    const playerSessionStats = sessionStats[player.id];
+    const playerSessionStats = statsByPlayer[player.id];
     if (!playerSessionStats || !playerSessionStats.games) {
-      console.warn(`No session stats for player ${player.id} (@${player.handle})`);
+      console.warn(`No session stats for player ${player.id} (@${playerHandle})`);
       continue;
     }
 
-    const playerTeamKey = `t${player.team}`;
+    const playerTeam = normalizeSessionTeamNumber(player.team);
+    const playerTeamKey = playerTeam ? `t${playerTeam}` : null;
     const avgRanking = playerSessionStats.totalRank / playerSessionStats.games;
     const honorsEarned = playerHonors[player.id] || [];
     const relativeRank = relativeRankings[player.id] || 0;  // Position within session (1-8)
 
     // Get teammates and opponents
-    const teammates = players.filter(p => p.team === player.team && p.id !== player.id && p.handle);
-    const opponents = players.filter(p => p.team !== player.team && p.handle);
+    const teammateHandles = sessionPlayers
+      .filter(p => normalizeSessionTeamNumber(p.team) === playerTeam && p.id !== player.id)
+      .map(getPlayerProfileHandle).filter(Boolean);
+    const opponentHandles = sessionPlayers
+      .filter(p => normalizeSessionTeamNumber(p.team) !== playerTeam)
+      .map(getPlayerProfileHandle).filter(Boolean);
 
     // Check if player was voted as MVP or burden
-    const wasMVP = votingResults && votingResults.mvp === player.id;
-    const wasBurden = votingResults && votingResults.burden === player.id;
+    const wasMVP = voteResultMatchesPlayer(votingResults?.mvp, player.id);
+    const wasBurden = voteResultMatchesPlayer(votingResults?.burden, player.id);
 
     const gameResult = {
       roomCode,
       ranking: Math.round(avgRanking * 10) / 10,  // Session average ranking
       relativeRank: relativeRank,  // Position within this session (1-8)
-      team: player.team,
-      teamWon: historyEntry.winKey === playerTeamKey,
+      team: playerTeam || player.team,
+      teamWon: winnerTeamKey === playerTeamKey,
       gamesInSession: playerSessionStats.games,  // Total rounds played
       sessionDuration: historyEntry.sessionDuration || 0,  // Session duration in seconds
       firstPlaces: playerSessionStats.firstPlaceCount || 0,
@@ -370,22 +493,24 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       honorsEarned: honorsEarned,  // Honors won in this session
       votedMVP: wasMVP,      // Community voted as MVP
       votedBurden: wasBurden, // Community voted as burden
-      teammates: teammates.map(p => p.handle),  // Teammate handles
-      opponents: opponents.map(p => p.handle),  // Opponent handles
-      mode: `${players.length}P`,
+      gameSessionKey,
+      voteSessionKey,
+      teammates: teammateHandles,  // Teammate handles
+      opponents: opponentHandles,  // Opponent handles
+      mode: sessionMode,
       finalLevel: historyEntry[playerTeamKey] || '?'  // Team's final level
     };
 
-    console.log(`Syncing session for @${player.handle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, 对局内排名 #${relativeRank}, honors: ${honorsEarned.join(',')}`, gameResult);
+    console.log(`Syncing session for @${playerHandle}: ${playerSessionStats.games} rounds, avg ${avgRanking.toFixed(2)}, 对局内排名 #${relativeRank}, honors: ${honorsEarned.join(',')}`, gameResult);
 
     // Non-blocking stats update — host token authorizes writes for every
     // participant of this room; LOCAL games fall back to per-player owner token.
-    updatePlayerStats(player.handle, gameResult, roomAuthToken).then(result => {
+    updatePlayerStats(playerHandle, gameResult, roomAuthToken).then(result => {
       if (result.success) {
-        console.log(`✅ Session stats synced for @${player.handle}`);
+        console.log(`✅ Session stats synced for @${playerHandle}`);
         const unlocked = Array.isArray(result.newAchievements) ? result.newAchievements : [];
         if (unlocked.length > 0) {
-          const displayLabel = player.displayName ? `${player.displayName} @${player.handle}` : `@${player.handle}`;
+          const displayLabel = player.displayName ? `${player.displayName} @${playerHandle}` : `@${playerHandle}`;
           // Stagger so multiple unlocks for the same player aren't all queued at the same instant
           unlocked.forEach((id, idx) => {
             const def = ACHIEVEMENTS[id];
@@ -402,10 +527,10 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
           });
         }
       } else {
-        console.warn(`❌ Failed to sync session for @${player.handle}`);
+        console.warn(`❌ Failed to sync session for @${playerHandle}`);
       }
     }).catch(err => {
-      console.error(`Error syncing session for @${player.handle}:`, err);
+      console.error(`Error syncing session for @${playerHandle}:`, err);
     });
   }
 }
@@ -476,13 +601,13 @@ export async function rotatePlayerToken(handle, adminToken = null) {
     const body = { mode: 'ROTATE_TOKEN' };
     if (adminToken) body.adminToken = adminToken;
 
-    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+    const response = await fetch(playerProfileUrl(handle), {
       method: 'PUT',
       headers,
       body: JSON.stringify(body)
     });
 
-    const result = await response.json();
+    const result = await readOptionalJson(response);
     if (!response.ok) {
       throw new Error(result.error || `Rotate token failed: ${response.statusText}`);
     }
@@ -526,7 +651,7 @@ export async function updatePlayerProfile(handle, updates) {
       headers['Authorization'] = `Bearer ${ownerToken}`;
     }
 
-    const response = await fetch(`${API_BASE}/api/players/${handle}`, {
+    const response = await fetch(playerProfileUrl(handle), {
       method: 'PUT',
       headers,
       body: JSON.stringify({
@@ -535,7 +660,7 @@ export async function updatePlayerProfile(handle, updates) {
       })
     });
 
-    const result = await response.json();
+    const result = await readOptionalJson(response);
 
     if (!response.ok) {
       throw new Error(result.error || `Update profile failed: ${response.statusText}`);

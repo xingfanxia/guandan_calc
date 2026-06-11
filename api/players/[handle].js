@@ -2,6 +2,20 @@
 // UTF-8 encoding for Chinese characters
 
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import {
+  CURRENT_HONOR_COUNT,
+  CURRENT_HONOR_TITLES,
+  canonicalizeHonorTitle,
+  normalizeHonorCounter
+} from '../../shared/honorCatalog.js';
+import { checkAchievements, getNewAchievements } from '../../shared/achievementLogic.js';
+import {
+  deriveGameProfileHistoryKey,
+  deriveVoteProfileHistoryKey
+} from '../../shared/voteSessionKey.js';
+import { getHistoryEntries, resolveGameStatus } from '../../shared/gameStatus.js';
+import { publicVoteStoreForRoom } from '../rooms/_votes.js';
 import {
   validateHandle,
   initializePlayerStats,
@@ -10,57 +24,486 @@ import {
   validateOwnershipToken,
   extractBearerToken,
   sanitizePlayer,
+  parsePlayerRecord,
+  normalizeRecordMap,
   constantTimeEqual,
   generateOwnershipToken,
   hashToken
 } from './_utils.js';
+import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
+import { parseRoomRecord } from '../rooms/_record.js';
 
-// Achievement checking - inline to avoid module imports in Edge Functions
-function checkAchievements(stats, lastSession = null) {
-  const earned = [];
+const RESPONSE_OPTIONS = {
+  methods: 'GET, PUT, OPTIONS',
+  allowedHeaders: 'Content-Type, Authorization'
+};
+const MAX_PROFILE_VOTE_COUNT = 1000;
 
-  // Milestone achievements
-  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 1) earned.push('newbie');
-  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 10) earned.push('started');
-  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 100) earned.push('veteran');
-  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 1000) earned.push('legend');
-
-  // Performance achievements
-  if ((stats.sessionsWon || stats.wins) >= 1) earned.push('first_win');
-  if (stats.longestWinStreak >= 5) earned.push('streak_5');
-  if (stats.longestWinStreak >= 10) earned.push('streak_10');
-  if ((stats.sessionsPlayed || stats.gamesPlayed) >= 20 && 
-      (stats.sessionWinRate || stats.winRate || 0) >= 0.7) {
-    earned.push('champion');
+export function normalizeProfileVoteCount(value, votedFlag = false) {
+  if (value === undefined || value === null) {
+    return votedFlag ? 1 : 0;
   }
 
-  // Honor collection achievements
-  const honors = stats.honors || {};
-  const uniqueHonors = Object.values(honors).filter(count => count > 0).length;
-  if (uniqueHonors >= 5) earned.push('honor_5');
-  if (uniqueHonors >= 10) earned.push('honor_10');
-  if (uniqueHonors >= 14) earned.push('honor_all');
-  if ((honors['吕布'] || 0) >= 10) earned.push('lubu_10');
-
-  // Session-specific achievements
-  if (lastSession) {
-    const rounds = lastSession.gamesInSession || 0;
-    const avgRank = lastSession.ranking || 999;
-
-    if (rounds > 50) earned.push('marathon');
-    if (rounds < 15 && lastSession.teamWon) earned.push('quick_finish');
-    if (avgRank <= 1.5) earned.push('perfect');
-    if ((lastSession.lastPlaces || 0) >= 5 && lastSession.teamWon) earned.push('unlucky');
+  const count = Number(value);
+  if (!Number.isSafeInteger(count) || count < 0 || count > MAX_PROFILE_VOTE_COUNT) {
+    return 0;
   }
 
-  return earned;
+  return count;
+}
+
+function normalizeProfileHandleCandidate(rawHandle) {
+  if (typeof rawHandle !== 'string') return null;
+  const normalized = rawHandle.trim().toLowerCase();
+  if (normalized === 'session' || !validateHandle(normalized)) return null;
+  return normalized;
+}
+
+function normalizeRoomPlayerProfileHandle(player) {
+  return normalizeProfileHandleCandidate(player?.handle) ||
+    normalizeProfileHandleCandidate(player?.profileHandle);
+}
+
+export function findRoomPlayerByProfileHandle(roomPlayers, handle) {
+  if (!Array.isArray(roomPlayers) || typeof handle !== 'string') return null;
+
+  const normalizedHandle = handle.trim().toLowerCase();
+  if (!validateHandle(normalizedHandle)) return null;
+
+  return roomPlayers.find(player =>
+    normalizeRoomPlayerProfileHandle(player) === normalizedHandle
+  ) || null;
+}
+
+function getRoomPlayerTeamKey(roomPlayer) {
+  const team = Number(roomPlayer?.team);
+  if (team === 1) return 't1';
+  if (team === 2) return 't2';
+  return null;
+}
+
+function resolveRoomPlayerTeamWon(room, roomPlayer) {
+  if (!room || !roomPlayer) return null;
+
+  const playerTeamKey = getRoomPlayerTeamKey(roomPlayer);
+  if (!playerTeamKey) return null;
+
+  const history = getHistoryEntries(room?.state);
+  const gameStatus = resolveGameStatus(room?.state?.gameStatus, history);
+  if (!gameStatus.ended || !gameStatus.winnerKey) return null;
+
+  return playerTeamKey === gameStatus.winnerKey;
+}
+
+function applyProfileVoteStats(stats, votingHistoryKey, gameResult, syncedAt = new Date().toISOString()) {
+  stats.votingHistory = normalizeRecordMap(stats.votingHistory);
+
+  const oldVotes = stats.votingHistory[votingHistoryKey] || { mvp: 0, burden: 0 };
+  // Use ?? not || so explicit `0` from client is respected (0 votes received).
+  // Previously `||` would fall through to the votedMVP boolean and flip 0 to 1.
+  const newMvpVotes = normalizeProfileVoteCount(gameResult.mvpVoteCount, gameResult.votedMVP);
+  const newBurdenVotes = normalizeProfileVoteCount(gameResult.burdenVoteCount, gameResult.votedBurden);
+
+  const mvpDelta = newMvpVotes - oldVotes.mvp;
+  const burdenDelta = newBurdenVotes - oldVotes.burden;
+
+  // Clamp running totals at 0 — `votingHistory` deltas can legitimately go
+  // negative (vote reset, authoritative read drops below previously-synced
+  // count), so without the clamp legacy/inflated histories could push lifetime
+  // totals below zero.
+  stats.mvpVotes = Math.max(0, (stats.mvpVotes || 0) + mvpDelta);
+  stats.burdenVotes = Math.max(0, (stats.burdenVotes || 0) + burdenDelta);
+
+  stats.votingHistory[votingHistoryKey] = {
+    mvp: newMvpVotes,
+    burden: newBurdenVotes,
+    roomCode: gameResult.roomCode,
+    lastSynced: syncedAt
+  };
+}
+
+const MAX_SESSION_ROUNDS = 10000;
+const MAX_SESSION_SECONDS = 30 * 24 * 60 * 60;
+const MAX_PROFILE_RELATION_HANDLES = 7;
+const MAX_PROFILE_SESSION_KEY_LENGTH = 500;
+const VALID_STATS_MODES = new Set(['4P', '6P', '8P', 'VOTE_ONLY']);
+const STATS_MODE_PLAYER_COUNTS = Object.freeze({
+  '4P': 4,
+  '6P': 6,
+  '8P': 8
+});
+const MAX_PROFILE_SESSION_HONORS = CURRENT_HONOR_COUNT;
+const UNSAFE_OBJECT_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+
+function normalizeProfileStatsRoomCode(value) {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toUpperCase();
+  if (normalized === 'LOCAL') return normalized;
+  return /^[A-Z0-9]{6}$/.test(normalized) ? normalized : null;
+}
+
+function parseFiniteNumber(value) {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function parseInteger(value) {
+  if (typeof value === 'string' && value.trim() === '') return null;
+  const number = Number(value);
+  return Number.isSafeInteger(number) ? number : null;
+}
+
+function normalizeOptionalBoolean(value, field) {
+  if (value === undefined || value === null) return { ok: true, data: false };
+  if (typeof value !== 'boolean') return { ok: false, error: `Invalid ${field}` };
+  return { ok: true, data: value };
+}
+
+function normalizeOptionalVoteCount(value, field) {
+  if (value === undefined || value === null) return { ok: true, data: undefined };
+
+  const count = parseInteger(value);
+  if (count === null || count < 0 || count > MAX_PROFILE_VOTE_COUNT) {
+    return { ok: false, error: `Invalid ${field}` };
+  }
+
+  return { ok: true, data: count };
+}
+
+function normalizeHandleList(value, field) {
+  if (value === undefined || value === null) return { ok: true, data: [] };
+  if (!Array.isArray(value) || value.length > MAX_PROFILE_RELATION_HANDLES) {
+    return { ok: false, error: `Invalid ${field}` };
+  }
+
+  const seen = new Set();
+  const handles = [];
+  for (const item of value) {
+    if (typeof item !== 'string') return { ok: false, error: `Invalid ${field}` };
+    const normalized = item.trim().toLowerCase();
+    if (!validateHandle(normalized)) return { ok: false, error: `Invalid ${field}` };
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      handles.push(normalized);
+    }
+  }
+  return { ok: true, data: handles };
+}
+
+function normalizeOptionalSessionKey(value, field) {
+  if (value === undefined || value === null) return { ok: true, data: undefined };
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (
+    typeof value !== 'string' ||
+    normalized.length === 0 ||
+    normalized.length > MAX_PROFILE_SESSION_KEY_LENGTH ||
+    UNSAFE_OBJECT_KEYS.has(normalized.toLowerCase())
+  ) {
+    return { ok: false, error: `Invalid ${field}` };
+  }
+  return { ok: true, data: normalized };
+}
+
+function normalizeHonorsEarned(value) {
+  if (value === undefined || value === null) return { ok: true, data: [] };
+  if (!Array.isArray(value) || value.length > MAX_PROFILE_SESSION_HONORS) {
+    return { ok: false, error: 'Invalid honorsEarned' };
+  }
+
+  const seen = new Set();
+  const honorsEarned = [];
+
+  for (const item of value) {
+    const honorTitle = canonicalizeHonorTitle(item);
+    if (!honorTitle) {
+      return { ok: false, error: 'Invalid honorsEarned' };
+    }
+    if (!seen.has(honorTitle)) {
+      seen.add(honorTitle);
+      honorsEarned.push(honorTitle);
+    }
+  }
+
+  return { ok: true, data: honorsEarned };
+}
+
+export function normalizeGameStatsUpdate(gameResult = {}) {
+  const roomCode = normalizeProfileStatsRoomCode(gameResult.roomCode);
+  if (!roomCode) {
+    return { ok: false, error: 'Invalid roomCode' };
+  }
+
+  const mode = typeof gameResult.mode === 'string' ? gameResult.mode.trim() : '';
+  if (!VALID_STATS_MODES.has(mode)) {
+    return { ok: false, error: 'Invalid mode' };
+  }
+  const isVoteOnly = mode === 'VOTE_ONLY';
+  const maxRankForMode = STATS_MODE_PLAYER_COUNTS[mode] || 8;
+
+  const ranking = parseFiniteNumber(gameResult.ranking);
+  if (
+    ranking === null ||
+    ranking < 0 ||
+    ranking > maxRankForMode ||
+    (!isVoteOnly && ranking <= 0)
+  ) {
+    return { ok: false, error: 'Invalid ranking' };
+  }
+
+  const team = parseInteger(gameResult.team);
+  if (team !== 1 && team !== 2) {
+    return { ok: false, error: 'Invalid team' };
+  }
+
+  const gamesInSession = gameResult.gamesInSession === undefined
+    ? (isVoteOnly ? 0 : 1)
+    : parseInteger(gameResult.gamesInSession);
+  if (
+    gamesInSession === null ||
+    gamesInSession < 0 ||
+    gamesInSession > MAX_SESSION_ROUNDS ||
+    (!isVoteOnly && gamesInSession < 1)
+  ) {
+    return { ok: false, error: 'Invalid gamesInSession' };
+  }
+
+  const sessionDuration = gameResult.sessionDuration === undefined
+    ? 0
+    : parseFiniteNumber(gameResult.sessionDuration);
+  if (sessionDuration === null || sessionDuration < 0 || sessionDuration > MAX_SESSION_SECONDS) {
+    return { ok: false, error: 'Invalid sessionDuration' };
+  }
+
+  const firstPlaces = gameResult.firstPlaces === undefined ? 0 : parseInteger(gameResult.firstPlaces);
+  if (firstPlaces === null || firstPlaces < 0 || firstPlaces > gamesInSession) {
+    return { ok: false, error: 'Invalid firstPlaces' };
+  }
+
+  const lastPlaces = gameResult.lastPlaces === undefined ? 0 : parseInteger(gameResult.lastPlaces);
+  if (lastPlaces === null || lastPlaces < 0 || lastPlaces > gamesInSession) {
+    return { ok: false, error: 'Invalid lastPlaces' };
+  }
+  if (firstPlaces + lastPlaces > gamesInSession) {
+    return { ok: false, error: 'Invalid firstPlaces/lastPlaces total' };
+  }
+
+  let relativeRank = gameResult.relativeRank;
+  if (relativeRank !== undefined && relativeRank !== null) {
+    relativeRank = parseInteger(relativeRank);
+    if (relativeRank === null || relativeRank < 1 || relativeRank > maxRankForMode) {
+      return { ok: false, error: 'Invalid relativeRank' };
+    }
+  } else {
+    relativeRank = undefined;
+  }
+
+  const teamWon = normalizeOptionalBoolean(gameResult.teamWon, 'teamWon');
+  if (!teamWon.ok) return teamWon;
+
+  const votedMVP = normalizeOptionalBoolean(gameResult.votedMVP, 'votedMVP');
+  if (!votedMVP.ok) return votedMVP;
+
+  const votedBurden = normalizeOptionalBoolean(gameResult.votedBurden, 'votedBurden');
+  if (!votedBurden.ok) return votedBurden;
+
+  const mvpVoteCount = normalizeOptionalVoteCount(gameResult.mvpVoteCount, 'mvpVoteCount');
+  if (!mvpVoteCount.ok) return mvpVoteCount;
+
+  const burdenVoteCount = normalizeOptionalVoteCount(gameResult.burdenVoteCount, 'burdenVoteCount');
+  if (!burdenVoteCount.ok) return burdenVoteCount;
+
+  const teammates = normalizeHandleList(gameResult.teammates, 'teammates');
+  if (!teammates.ok) return teammates;
+
+  const opponents = normalizeHandleList(gameResult.opponents, 'opponents');
+  if (!opponents.ok) return opponents;
+
+  const gameSessionKey = normalizeOptionalSessionKey(gameResult.gameSessionKey, 'gameSessionKey');
+  if (!gameSessionKey.ok) return gameSessionKey;
+  if (!isVoteOnly && gameSessionKey.data === undefined) {
+    return { ok: false, error: 'Invalid gameSessionKey' };
+  }
+
+  const voteSessionKey = normalizeOptionalSessionKey(gameResult.voteSessionKey, 'voteSessionKey');
+  if (!voteSessionKey.ok) return voteSessionKey;
+
+  const honorsEarned = normalizeHonorsEarned(gameResult.honorsEarned);
+  if (!honorsEarned.ok) return honorsEarned;
+
+  return {
+    ok: true,
+    data: {
+      ...gameResult,
+      roomCode,
+      ranking,
+      team,
+      gamesInSession,
+      sessionDuration,
+      firstPlaces,
+      lastPlaces,
+      relativeRank,
+      teamWon: teamWon.data,
+      votedMVP: votedMVP.data,
+      votedBurden: votedBurden.data,
+      mvpVoteCount: mvpVoteCount.data,
+      burdenVoteCount: burdenVoteCount.data,
+      teammates: teammates.data,
+      opponents: opponents.data,
+      gameSessionKey: gameSessionKey.data,
+      voteSessionKey: voteSessionKey.data,
+      honorsEarned: honorsEarned.data,
+      mode
+    }
+  };
+}
+
+const MODE_STATS_KEYS = ['stats4P', 'stats6P', 'stats8P'];
+const MODE_BREAKDOWN_KEYS = ['4P', '6P', '8P'];
+const STATS_INTEGER_FIELDS = [
+  'sessionsPlayed',
+  'sessionsWon',
+  'longestSessionRounds',
+  'roundsPlayed',
+  'totalPlayTimeSeconds',
+  'longestSessionSeconds',
+  'currentWinStreak',
+  'longestWinStreak',
+  'currentLossStreak',
+  'longestLossStreak'
+];
+const STATS_NUMBER_FIELDS = [
+  'sessionWinRate',
+  'avgRankingPerSession',
+  'avgRoundsPerSession',
+  'avgRankingPerRound',
+  'avgSessionSeconds'
+];
+const STATS_LEGACY_INTEGER_FIELDS = ['mvpVotes', 'burdenVotes', 'gamesPlayed', 'wins'];
+const STATS_LEGACY_NUMBER_FIELDS = ['winRate', 'avgRanking'];
+const MAX_RECENT_RANKINGS = 10;
+const MAX_RELATIVE_RANKING = 8;
+
+function isPlainRecord(value) {
+  return value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeNonNegativeInteger(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : fallback;
+}
+
+function normalizeNonNegativeNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 ? number : fallback;
+}
+
+function normalizeRecentRankings(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map(item => Number(item))
+    .filter(item => Number.isSafeInteger(item) && item > 0 && item <= MAX_RELATIVE_RANKING)
+    .slice(0, MAX_RECENT_RANKINGS);
+}
+
+function rankingsChanged(before, after) {
+  if (!Array.isArray(before) || before.length !== after.length) return true;
+  return after.some((item, index) => before[index] !== item);
+}
+
+function normalizeStatsBucketShape(current, defaults) {
+  const source = isPlainRecord(current) ? current : {};
+  const next = { ...defaults, ...source };
+  let changed = source !== current;
+
+  STATS_INTEGER_FIELDS.forEach(field => {
+    if (!(field in source)) changed = true;
+    const normalized = normalizeNonNegativeInteger(next[field], defaults[field] || 0);
+    if (next[field] !== normalized) changed = true;
+    next[field] = normalized;
+  });
+
+  STATS_NUMBER_FIELDS.forEach(field => {
+    if (!(field in source)) changed = true;
+    const normalized = normalizeNonNegativeNumber(next[field], defaults[field] || 0);
+    if (next[field] !== normalized) changed = true;
+    next[field] = normalized;
+  });
+
+  if (!('recentRankings' in source)) changed = true;
+  const recentRankings = normalizeRecentRankings(next.recentRankings);
+  if (rankingsChanged(next.recentRankings, recentRankings)) changed = true;
+  next.recentRankings = recentRankings;
+
+  return { stats: next, changed };
+}
+
+function applyStatsBucketShape(target, normalized) {
+  STATS_INTEGER_FIELDS.forEach(field => {
+    target[field] = normalized[field];
+  });
+  STATS_NUMBER_FIELDS.forEach(field => {
+    target[field] = normalized[field];
+  });
+  target.recentRankings = normalized.recentRankings;
+}
+
+function normalizeProfileStatsShape(stats) {
+  const freshStats = initializePlayerStats();
+  let changed = false;
+
+  const overallStats = normalizeStatsBucketShape(stats, freshStats);
+  applyStatsBucketShape(stats, overallStats.stats);
+  if (overallStats.changed) changed = true;
+
+  STATS_LEGACY_INTEGER_FIELDS.forEach(field => {
+    const normalized = normalizeNonNegativeInteger(stats[field], freshStats[field] || 0);
+    if (stats[field] !== normalized) changed = true;
+    stats[field] = normalized;
+  });
+
+  STATS_LEGACY_NUMBER_FIELDS.forEach(field => {
+    const normalized = normalizeNonNegativeNumber(stats[field], freshStats[field] || 0);
+    if (stats[field] !== normalized) changed = true;
+    stats[field] = normalized;
+  });
+
+  MODE_STATS_KEYS.forEach(key => {
+    const normalizedModeStats = normalizeStatsBucketShape(stats[key], freshStats[key]);
+    stats[key] = normalizedModeStats.stats;
+    if (normalizedModeStats.changed) changed = true;
+  });
+
+  if (!isPlainRecord(stats.modeBreakdown)) {
+    stats.modeBreakdown = { ...freshStats.modeBreakdown };
+    changed = true;
+  }
+
+  MODE_BREAKDOWN_KEYS.forEach(key => {
+    const count = normalizeNonNegativeInteger(stats.modeBreakdown[key], freshStats.modeBreakdown[key] || 0);
+    if (stats.modeBreakdown[key] !== count) {
+      stats.modeBreakdown[key] = count;
+      changed = true;
+    }
+  });
+
+  return changed;
 }
 
 // Migrate historical games to mode-specific stats (runs once per player)
 function migrateToModeStats(player) {
+  if (!player.stats || typeof player.stats !== 'object') {
+    player.stats = initializePlayerStats();
+    return true;
+  }
+
+  player.stats.honors = normalizeHonorCounter(player.stats.honors);
+  player.stats.sessionHistory = normalizeRecordMap(player.stats.sessionHistory);
+
   // Check if already migrated
   if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
-    return false; // Already migrated
+    return normalizeProfileStatsShape(player.stats); // Already migrated; repair partial legacy shapes.
   }
 
   console.log(`Migrating historical games for @${player.handle}`);
@@ -76,96 +519,10 @@ function migrateToModeStats(player) {
   // Replay recent games to populate mode stats
   // Note: recentGames is stored newest-first, so reverse for chronological replay
   if (player.recentGames && Array.isArray(player.recentGames)) {
-    const gamesOldestFirst = [...player.recentGames].reverse();
-    const overallRecentRankings = player.stats.recentRankings || [];
-    const rankingsByMode = { '4P': [], '6P': [], '8P': [] }; // Collect rankings per mode
-
-    gamesOldestFirst.forEach((game, gameIndex) => {
-      const mode = game.mode; // '4P', '6P', '8P'
-      if (!mode) {
-        console.log(`Skipping game ${gameIndex}: no mode`);
-        return;
-      }
-
-      const modeStats = player.stats[`stats${mode}`];
-      if (!modeStats) {
-        console.log(`Skipping game ${gameIndex}: no stats for ${mode}`);
-        return;
-      }
-
-      console.log(`Processing game ${gameIndex}: ${mode}, room=${game.roomCode}, duration=${game.duration}`);
-
-      // Increment session counter
-      modeStats.sessionsPlayed++;
-      if (game.teamWon) modeStats.sessionsWon++;
-
-      // Update win rate
-      modeStats.sessionWinRate = modeStats.sessionsWon / modeStats.sessionsPlayed;
-
-      // Update average ranking per session
-      const prevTotal = modeStats.avgRankingPerSession * (modeStats.sessionsPlayed - 1);
-      modeStats.avgRankingPerSession = (prevTotal + game.ranking) / modeStats.sessionsPlayed;
-
-      // Update rounds tracking
-      if (game.rounds) {
-        modeStats.roundsPlayed += game.rounds;
-        const prevRoundsTotal = modeStats.avgRoundsPerSession * (modeStats.sessionsPlayed - 1);
-        modeStats.avgRoundsPerSession = (prevRoundsTotal + game.rounds) / modeStats.sessionsPlayed;
-
-        // Update avgRankingPerRound (weighted by rounds in this session)
-        const prevRoundRankTotal = modeStats.avgRankingPerRound * (modeStats.roundsPlayed - game.rounds);
-        modeStats.avgRankingPerRound = (prevRoundRankTotal + (game.ranking * game.rounds)) / modeStats.roundsPlayed;
-
-        if (game.rounds > modeStats.longestSessionRounds) {
-          modeStats.longestSessionRounds = game.rounds;
-        }
-      }
-
-      // Update time tracking
-      if (game.duration) {
-        const before = modeStats.totalPlayTimeSeconds || 0;
-        modeStats.totalPlayTimeSeconds = before + game.duration;
-        console.log(`[${mode}] Time: ${before} + ${game.duration} = ${modeStats.totalPlayTimeSeconds}`);
-
-        if (game.duration > (modeStats.longestSessionSeconds || 0)) {
-          modeStats.longestSessionSeconds = game.duration;
-        }
-        modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
-      } else {
-        console.log(`[${mode}] No duration for game`);
-      }
-
-      // Add to recent rankings per mode (collect, will trim to 10 later)
-      // Use overall recentRankings at corresponding index (they're in same order)
-      const rankingIndex = player.recentGames.length - 1 - gameIndex; // Convert to index in original array
-      const ranking = overallRecentRankings[rankingIndex];
-      if (ranking !== undefined) {
-        rankingsByMode[mode].push(ranking);
-      }
-
-      // Update mode breakdown
-      player.stats.modeBreakdown[mode]++;
-
-      // Update win/loss streaks (calculate from game outcomes in chronological order)
-      if (game.teamWon) {
-        modeStats.currentWinStreak = (modeStats.currentWinStreak || 0) + 1;
-        modeStats.currentLossStreak = 0;
-        if (modeStats.currentWinStreak > (modeStats.longestWinStreak || 0)) {
-          modeStats.longestWinStreak = modeStats.currentWinStreak;
-        }
-      } else {
-        modeStats.currentLossStreak = (modeStats.currentLossStreak || 0) + 1;
-        modeStats.currentWinStreak = 0;
-        if (modeStats.currentLossStreak > (modeStats.longestLossStreak || 0)) {
-          modeStats.longestLossStreak = modeStats.currentLossStreak;
-        }
-      }
+    applyLegacyRecentGamesToModeStats(player, {
+      preferOverallRecentRankings: true,
+      log: true
     });
-
-    // Assign collected rankings to each mode (keep last 10, newest first)
-    player.stats.stats4P.recentRankings = rankingsByMode['4P'].slice(-10).reverse();
-    player.stats.stats6P.recentRankings = rankingsByMode['6P'].slice(-10).reverse();
-    player.stats.stats8P.recentRankings = rankingsByMode['8P'].slice(-10).reverse();
 
     console.log(`Migration complete: 4P=${player.stats.modeBreakdown['4P']}, 6P=${player.stats.modeBreakdown['6P']}, 8P=${player.stats.modeBreakdown['8P']}`);
     console.log(`Time stats BEFORE aggregation: 6P=${player.stats.stats6P?.totalPlayTimeSeconds}, 8P=${player.stats.stats8P?.totalPlayTimeSeconds}`);
@@ -256,16 +613,18 @@ function migrateToModeStats(player) {
     player.stats.avgRanking = player.stats.avgRankingPerSession;
   }
 
+  normalizeProfileStatsShape(player.stats);
+
   return true; // Migration performed
 }
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'GET, PUT, OPTIONS', 'Content-Type, Authorization');
+  if (preflight) return preflight;
+
   // Only allow GET and PUT requests
   if (request.method !== 'GET' && request.method !== 'PUT') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
@@ -275,57 +634,56 @@ export default async function handler(request) {
 
     // Validate handle format
     if (!validateHandle(handle)) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         error: 'Invalid handle format'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     if (request.method === 'GET') {
+      // Migration is a write and must not be triggered by a public GET.
+      // Reject before any KV access so unauthenticated maintenance attempts
+      // fail closed even when storage env vars are unavailable locally.
+      if (url.searchParams.get('migrate') === 'true') {
+        return jsonResponse({
+          error: 'Manual migration requires an admin-gated maintenance endpoint'
+        }, { ...RESPONSE_OPTIONS, status: 403 });
+      }
+
       // Get player data from KV
       const playerData = await kv.get(`player:${handle}`);
 
       if (!playerData) {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           error: 'Player not found'
-        }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        }, { ...RESPONSE_OPTIONS, status: 404 });
       }
 
-      // Parse player data (might be string or object)
-      const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
-
-      // Check if migration requested via query param
-      const url = new URL(request.url);
-      if (url.searchParams.get('migrate') === 'true') {
-        const migrated = migrateToModeStats(player);
-        if (migrated) {
-          await kv.set(`player:${handle}`, JSON.stringify(player));
-          console.log(`✅ Migrated @${handle} via GET param`);
-        }
+      const player = parsePlayerRecord(playerData);
+      if (!player) {
+        return jsonResponse({
+          error: 'Player not found'
+        }, { ...RESPONSE_OPTIONS, status: 404 });
+      }
+      if (!player.stats || typeof player.stats !== 'object') {
+        player.stats = initializePlayerStats();
+      } else {
+        player.stats.honors = normalizeHonorCounter(player.stats.honors);
+        player.stats.sessionHistory = normalizeRecordMap(player.stats.sessionHistory);
       }
 
       // Return full player profile (strip token hash — internal-only)
-      return new Response(JSON.stringify({
+      return jsonResponse({
         success: true,
         player: sanitizePlayer(player)
-      }), {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type'
-        }
-      });
+      }, RESPONSE_OPTIONS);
 
     } else if (request.method === 'PUT') {
       // Parse request body
-      const requestData = await request.json();
+      const parsedBody = await parseJsonBody(request);
+      if (!parsedBody.ok) {
+        return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+      }
+      const requestData = parsedBody.data;
 
       // Check if this is a profile update (not a game stats update)
       if (requestData.mode === 'PROFILE_UPDATE') {
@@ -336,14 +694,16 @@ export default async function handler(request) {
         // (must compare Bearer against stored hash) and for the update target.
         const existingData = await kv.get(`player:${handle}`);
         if (!existingData) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Player not found'
-          }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          }, { ...RESPONSE_OPTIONS, status: 404 });
         }
-        const player = typeof existingData === 'string' ? JSON.parse(existingData) : existingData;
+        const player = parsePlayerRecord(existingData);
+        if (!player) {
+          return jsonResponse({
+            error: 'Player not found'
+          }, { ...RESPONSE_OPTIONS, status: 404 });
+        }
 
         // Auth: admin token (body) OR ownership Bearer (header).
         // Admin always overrides; owner only works if the player record was created
@@ -358,29 +718,26 @@ export default async function handler(request) {
         }
 
         if (!adminOk && !ownerOk) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Unauthorized — profile updates require ownership token or admin token'
-          }), {
-            status: 403,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          }, { ...RESPONSE_OPTIONS, status: 403 });
         }
+        const nextPhotoBase64 = updates.photoBase64 !== undefined
+          ? updates.photoBase64
+          : player.photoBase64;
         const validation = validatePlayerData({
           handle,  // For validation only (not updated)
-          displayName: updates.displayName || 'dummy',  // Required for validation
-          emoji: updates.emoji || '🐶',  // Required for validation
-          photoBase64: updates.photoBase64,  // Optional
-          playStyle: updates.playStyle || 'steady',  // Required for validation
-          tagline: updates.tagline || 'dummy'  // Required for validation
+          displayName: updates.displayName !== undefined ? updates.displayName : (player.displayName || 'Profile'),
+          emoji: updates.emoji !== undefined ? updates.emoji : (player.emoji || '🐶'),
+          photoBase64: nextPhotoBase64 === null ? undefined : nextPhotoBase64,
+          playStyle: updates.playStyle !== undefined ? updates.playStyle : (player.playStyle || 'steady'),
+          tagline: updates.tagline !== undefined ? updates.tagline : (player.tagline || 'Profile')
         });
 
         if (!validation.valid) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: validation.error
-          }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          }, { ...RESPONSE_OPTIONS, status: 400 });
         }
 
         // Update ONLY profile fields (not stats, not handle, not ownershipTokenHash)
@@ -398,18 +755,10 @@ export default async function handler(request) {
 
         console.log(`Profile updated for @${handle} (auth: ${adminOk ? 'admin' : 'owner'})`);
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
           player: sanitizePlayer(player)
-        }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
+        }, RESPONSE_OPTIONS);
       }
 
       // ===== ROTATE OWNERSHIP TOKEN MODE =====
@@ -422,14 +771,16 @@ export default async function handler(request) {
       if (requestData.mode === 'ROTATE_TOKEN') {
         const existingData = await kv.get(`player:${handle}`);
         if (!existingData) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Player not found'
-          }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' }
-          });
+          }, { ...RESPONSE_OPTIONS, status: 404 });
         }
-        const player = typeof existingData === 'string' ? JSON.parse(existingData) : existingData;
+        const player = parsePlayerRecord(existingData);
+        if (!player) {
+          return jsonResponse({
+            error: 'Player not found'
+          }, { ...RESPONSE_OPTIONS, status: 404 });
+        }
 
         const adminOk = validateAdminToken(requestData.adminToken);
         let ownerOk = false;
@@ -440,13 +791,12 @@ export default async function handler(request) {
           }
         }
         if (!adminOk && !ownerOk) {
-          return new Response(JSON.stringify({
+          return jsonResponse({
             error: 'Unauthorized — token rotation requires current ownership Bearer or admin token'
-          }), {
+          }, {
+            ...RESPONSE_OPTIONS,
             status: 403,
             headers: {
-              'Content-Type': 'application/json',
-              'Access-Control-Allow-Origin': '*',
               'WWW-Authenticate': 'Bearer realm="player-rotate"'
             }
           });
@@ -464,46 +814,41 @@ export default async function handler(request) {
         await kv.set(`player:${handle}`, JSON.stringify(player));
         console.log(`Token rotated for @${handle} (auth: ${adminOk ? 'admin' : 'owner'})`);
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
           ownershipToken: newToken,  // shown ONCE — client persists, server forgets
           player: sanitizePlayer(player)
-        }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-          }
-        });
+        }, RESPONSE_OPTIONS);
       }
 
       // ===== GAME STATS UPDATE MODE (existing logic) =====
-      const gameResult = requestData;
-
-      // Validate required fields
-      if (!gameResult.roomCode || gameResult.ranking === undefined || !gameResult.team) {
-        return new Response(JSON.stringify({
-          error: 'Missing required fields: roomCode, ranking, team'
-        }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+      const statsInput = normalizeGameStatsUpdate(requestData);
+      if (!statsInput.ok) {
+        return jsonResponse({
+          error: statsInput.error
+        }, { ...RESPONSE_OPTIONS, status: 400 });
       }
+      const gameResult = statsInput.data;
 
       // Get existing player data
       const playerData = await kv.get(`player:${handle}`);
       if (!playerData) {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           error: 'Player not found'
-        }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        }, { ...RESPONSE_OPTIONS, status: 404 });
       }
 
-      const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+      const player = parsePlayerRecord(playerData);
+      if (!player) {
+        return jsonResponse({
+          error: 'Player not found'
+        }, { ...RESPONSE_OPTIONS, status: 404 });
+      }
+      if (!player.stats || typeof player.stats !== 'object') {
+        player.stats = initializePlayerStats();
+      }
+      player.stats.honors = normalizeHonorCounter(player.stats.honors);
+      player.stats.sessionHistory = normalizeRecordMap(player.stats.sessionHistory);
 
       // Load the room once (single KV roundtrip) — used by BOTH the auth gate
       // (host-Bearer check needs room.authToken + room.players[]) and the
@@ -519,9 +864,13 @@ export default async function handler(request) {
       if (isRealRoomCode) {
         const roomData = await kv.get(`room:${submittedRoomCode}`);
         if (roomData) {
-          _room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+          _room = parseRoomRecord(roomData);
         }
       }
+      const _roomPlayers = Array.isArray(_room?.players) ? _room.players : [];
+      const _targetRoomPlayer = _room
+        ? findRoomPlayerByProfileHandle(_roomPlayers, handle)
+        : null;
 
       // ===== AUTH GATE for stats path =====
       // Three valid credentials, in priority order. Any one passes:
@@ -546,20 +895,29 @@ export default async function handler(request) {
         }
 
         if (!_ownerOk && _room && _room.authToken && constantTimeEqual(_bearer, _room.authToken)) {
-          const roomPlayers = Array.isArray(_room.players) ? _room.players : [];
-          const inRoom = roomPlayers.some(p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle);
-          if (inRoom) _hostOk = true;
+          if (_targetRoomPlayer) _hostOk = true;
         }
       }
 
-      if (!_adminOk && !_ownerOk && !_hostOk) {
-        return new Response(JSON.stringify({
-          error: 'Unauthorized — stats updates require room-host bearer, owner bearer, or admin token'
-        }), {
+      if (!_adminOk && isRealRoomCode && !_hostOk) {
+        return jsonResponse({
+          error: 'Unauthorized — real-room stats updates require room-host bearer or admin token'
+        }, {
+          ...RESPONSE_OPTIONS,
           status: 403,
           headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'WWW-Authenticate': 'Bearer realm="player-stats"'
+          }
+        });
+      }
+
+      if (!_adminOk && !_ownerOk && !_hostOk) {
+        return jsonResponse({
+          error: 'Unauthorized — stats updates require room-host bearer, owner bearer, or admin token'
+        }, {
+          ...RESPONSE_OPTIONS,
+          status: 403,
+          headers: {
             'WWW-Authenticate': 'Bearer realm="player-stats"'
           }
         });
@@ -567,21 +925,19 @@ export default async function handler(request) {
 
       // ===== AUTHORITATIVE VOTE COUNTS (P1 #2 fix) =====
       // For room games, override client-supplied mvpVoteCount / burdenVoteCount
-      // with the server's actual stored counts. Even an authenticated host
-      // shouldn't be able to inflate vote totals — auth proves identity, not
-      // truth-of-claim. For LOCAL games there's no shared store, so client
-      // values are the only source — accepted (LOCAL stats only update the
-      // client's own profile via owner-Bearer, so the worst case is self-spam).
+      // with the server's actual stored counts from an active vote window.
+      // Even an authenticated host shouldn't be able to inflate vote totals —
+      // auth proves identity, not truth-of-claim. For LOCAL games there's no
+      // shared store, so client values are the only source — accepted (LOCAL
+      // stats only update the client's own profile via owner-Bearer, so the
+      // worst case is self-spam).
       if (_room) {
-        const roomPlayers = Array.isArray(_room.players) ? _room.players : [];
-        const targetPlayer = roomPlayers.find(
-          p => p && typeof p.handle === 'string' && p.handle.toLowerCase() === handle
-        );
-        if (targetPlayer && targetPlayer.id !== undefined) {
-          const mvpMap = (_room.endGameVotes && _room.endGameVotes.mvp) || {};
-          const burdenMap = (_room.endGameVotes && _room.endGameVotes.burden) || {};
-          gameResult.mvpVoteCount = Math.max(0, Number(mvpMap[targetPlayer.id]) || 0);
-          gameResult.burdenVoteCount = Math.max(0, Number(burdenMap[targetPlayer.id]) || 0);
+        if (_targetRoomPlayer && _targetRoomPlayer.id !== undefined) {
+          const voteStore = publicVoteStoreForRoom(_room);
+          const mvpMap = voteStore.mvp || {};
+          const burdenMap = voteStore.burden || {};
+          gameResult.mvpVoteCount = normalizeProfileVoteCount(mvpMap[_targetRoomPlayer.id]);
+          gameResult.burdenVoteCount = normalizeProfileVoteCount(burdenMap[_targetRoomPlayer.id]);
         } else {
           // Defensive (LOW finding from review 2026-05-03): if room metadata is
           // malformed and targetPlayer.id can't be resolved, force authoritative
@@ -609,11 +965,52 @@ export default async function handler(request) {
 
       // Update stats - now receiving SESSION stats (multiple rounds)
       const gamesInSession = gameResult.gamesInSession || 1;
+      const currentHonorTitles = new Set(CURRENT_HONOR_TITLES);
+      const votingHistoryKey = deriveVoteProfileHistoryKey(
+        gameResult.roomCode,
+        _room,
+        player.stats.votingHistory || {},
+        gameResult.voteSessionKey
+      );
+      const gameSessionHistoryKey = deriveGameProfileHistoryKey(
+        gameResult.roomCode,
+        _room,
+        gameResult.gameSessionKey || gameResult.voteSessionKey
+      );
 
       // Check if this is vote-only update
       const isVoteOnly = gameResult.mode === 'VOTE_ONLY';
+      const authoritativeTeamWon = isVoteOnly
+        ? null
+        : resolveRoomPlayerTeamWon(_room, _targetRoomPlayer);
+      if (authoritativeTeamWon !== null) {
+        gameResult.teamWon = authoritativeTeamWon;
+      }
       
       if (!isVoteOnly) {
+        player.stats.sessionHistory = normalizeRecordMap(player.stats.sessionHistory);
+        const duplicateSessionIgnored =
+          gameSessionHistoryKey &&
+          Object.prototype.hasOwnProperty.call(player.stats.sessionHistory, gameSessionHistoryKey);
+        if (duplicateSessionIgnored) {
+          applyProfileVoteStats(player.stats, votingHistoryKey, gameResult);
+          player.lastActiveAt = new Date().toISOString();
+
+          // Restore the snapshotted security-sensitive fields. The stats path
+          // shouldn't be able to overwrite these even by accident.
+          if (_frozenOwnershipHash !== undefined) player.ownershipTokenHash = _frozenOwnershipHash;
+          if (_frozenId !== undefined) player.id = _frozenId;
+
+          await kv.set(`player:${handle}`, JSON.stringify(player));
+
+          return jsonResponse({
+            success: true,
+            updatedStats: player.stats,
+            newAchievements: [],
+            duplicateSessionIgnored: true
+          }, RESPONSE_OPTIONS);
+        }
+
         // ===== UPDATE OVERALL STATS =====
         // Snapshot the OLD count BEFORE incrementing — running averages must use N_old.
         // Previously: prevSessionTotal multiplied by (sessionsPlayed - 1) AFTER increment,
@@ -675,42 +1072,18 @@ export default async function handler(request) {
         // Update honors (from session calculation)
         if (gameResult.honorsEarned && Array.isArray(gameResult.honorsEarned)) {
           gameResult.honorsEarned.forEach(honor => {
-            if (player.stats.honors[honor] !== undefined) {
+            if (currentHonorTitles.has(honor)) {
               player.stats.honors[honor] = (player.stats.honors[honor] || 0) + 1;
             }
           });
         }
 
         // Update community voting stats (idempotent with votingHistory)
-        const roomCode = gameResult.roomCode;
-        player.stats.votingHistory = player.stats.votingHistory || {};
-
-        const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
-        // Use ?? not || so explicit `0` from client is respected (0 votes received).
-        // Previously `||` would fall through to the votedMVP boolean and flip 0 to 1.
-        const newMvpVotes = gameResult.mvpVoteCount ?? (gameResult.votedMVP ? 1 : 0);
-        const newBurdenVotes = gameResult.burdenVoteCount ?? (gameResult.votedBurden ? 1 : 0);
-
-        const mvpDelta = newMvpVotes - oldVotes.mvp;
-        const burdenDelta = newBurdenVotes - oldVotes.burden;
-
-        // Clamp running totals at 0 — `votingHistory` deltas can legitimately
-        // go negative (vote reset, authoritative read drops below previously-
-        // synced count), so without the clamp legacy/inflated histories could
-        // push lifetime totals below zero.
-        player.stats.mvpVotes = Math.max(0, (player.stats.mvpVotes || 0) + mvpDelta);
-        player.stats.burdenVotes = Math.max(0, (player.stats.burdenVotes || 0) + burdenDelta);
-
-        // Update room history (overwrite)
-        player.stats.votingHistory[roomCode] = {
-          mvp: newMvpVotes,
-          burden: newBurdenVotes,
-          lastSynced: new Date().toISOString()
-        };
+        applyProfileVoteStats(player.stats, votingHistoryKey, gameResult);
 
         // Update partner/opponent tracking
-        player.stats.partners = player.stats.partners || {};
-        player.stats.opponents = player.stats.opponents || {};
+        player.stats.partners = normalizeRecordMap(player.stats.partners);
+        player.stats.opponents = normalizeRecordMap(player.stats.opponents);
 
         // Track teammates
         if (gameResult.teammates && Array.isArray(gameResult.teammates)) {
@@ -764,7 +1137,8 @@ export default async function handler(request) {
         player.recentGames.unshift({
           roomCode: gameResult.roomCode,
           date: new Date().toISOString(),
-          mode: gameResult.mode || '8P',
+          sessionKey: gameSessionHistoryKey || undefined,
+          mode: gameResult.mode,
           ranking: Math.round(gameResult.ranking * 10) / 10,  // Session average
           team: gameResult.team,
           teamWon: gameResult.teamWon,
@@ -781,11 +1155,23 @@ export default async function handler(request) {
         // Update lastActiveAt
         player.lastActiveAt = new Date().toISOString();
 
+        if (gameSessionHistoryKey) {
+          player.stats.sessionHistory[gameSessionHistoryKey] = {
+            roomCode: gameResult.roomCode,
+            mode: gameResult.mode,
+            team: gameResult.team,
+            teamWon: !!gameResult.teamWon,
+            ranking: Math.round(gameResult.ranking * 10) / 10,
+            rounds: gamesInSession,
+            recordedAt: player.lastActiveAt
+          };
+        }
+
         // Check for new achievements
-        const oldAchievements = player.achievements || [];
+        const oldAchievements = player.achievements;
         const newAchievements = checkAchievements(player.stats, gameResult);
         player.achievements = newAchievements;
-        const unlockedAchievements = newAchievements.filter(id => !oldAchievements.includes(id));
+        const unlockedAchievements = getNewAchievements(oldAchievements, newAchievements);
 
         // ===== UPDATE MODE-SPECIFIC STATS =====
         const gameMode = gameResult.mode; // '4P', '6P', '8P'
@@ -867,45 +1253,14 @@ export default async function handler(request) {
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
           updatedStats: player.stats,
           newAchievements: unlockedAchievements  // Return newly unlocked achievements
-        }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
+        }, RESPONSE_OPTIONS);
       } else {
         // Vote-only mode: only update voting stats (idempotent with votingHistory)
-        const roomCode = gameResult.roomCode;
-        player.stats.votingHistory = player.stats.votingHistory || {};
-
-        const oldVotes = player.stats.votingHistory[roomCode] || { mvp: 0, burden: 0 };
-        // Use ?? not || — see comment in non-vote-only path above
-        const newMvpVotes = gameResult.mvpVoteCount ?? (gameResult.votedMVP ? 1 : 0);
-        const newBurdenVotes = gameResult.burdenVoteCount ?? (gameResult.votedBurden ? 1 : 0);
-
-        const mvpDelta = newMvpVotes - oldVotes.mvp;
-        const burdenDelta = newBurdenVotes - oldVotes.burden;
-
-        // Clamp running totals at 0 — `votingHistory` deltas can legitimately
-        // go negative (vote reset, authoritative read drops below previously-
-        // synced count), so without the clamp legacy/inflated histories could
-        // push lifetime totals below zero.
-        player.stats.mvpVotes = Math.max(0, (player.stats.mvpVotes || 0) + mvpDelta);
-        player.stats.burdenVotes = Math.max(0, (player.stats.burdenVotes || 0) + burdenDelta);
-
-        // Update room history (overwrite)
-        player.stats.votingHistory[roomCode] = {
-          mvp: newMvpVotes,
-          burden: newBurdenVotes,
-          lastSynced: new Date().toISOString()
-        };
+        applyProfileVoteStats(player.stats, votingHistoryKey, gameResult);
 
         // Restore the snapshotted security-sensitive fields (see stats path above)
         if (_frozenOwnershipHash !== undefined) player.ownershipTokenHash = _frozenOwnershipHash;
@@ -914,30 +1269,19 @@ export default async function handler(request) {
         // Save updated player
         await kv.set(`player:${handle}`, JSON.stringify(player));
 
-        return new Response(JSON.stringify({
+        return jsonResponse({
           success: true,
           updatedStats: player.stats,
           newAchievements: []  // No new achievements in vote-only mode
-        }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-          }
-        });
+        }, RESPONSE_OPTIONS);
       }
     }
 
   } catch (error) {
     console.error('Failed to get player:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Internal server error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

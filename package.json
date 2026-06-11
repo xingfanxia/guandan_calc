@@ -1,6 +1,6 @@
 {
   "name": "guandan-calculator",
-  "version": "8.0.0",
+  "version": "10.0.0",
   "description": "A comprehensive web-based scoring calculator for Guandan (掼蛋) card game",
   "type": "module",
   "scripts": {
@@ -14,7 +14,7 @@
     "@playwright/test": "^1.59.1",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
-    "vite": "^5.0.0"
+    "vite": "^8.0.16"
   },
   "author": "Xingfan Xia",
   "license": "MIT",

@@ -326,9 +326,11 @@
 - `src/controllers/settingsControls.js` - Better sync success message
 
 **Implementation:**
-- votingHistory: `{ roomCode: { mvp: count, burden: count, lastSynced: ISO } }`
+- votingHistory: `{ voteSessionKey: { mvp: count, burden: count, roomCode, lastSynced: ISO } }`
 - Delta calculation: newVotes - oldVotes
-- Safe to sync multiple times (latest votes replace room's contribution)
+- Safe to sync multiple times (latest votes replace that vote session's contribution)
+- Same-room reset/new voting windows use distinct vote-session keys, with legacy first-epoch `roomCode` keys preserved when already present
+- LOCAL sessions send a completed-session vote key so multiple local games do not overwrite the single `LOCAL` entry
 - All vote recipients get credit
 
 **Benefits:**

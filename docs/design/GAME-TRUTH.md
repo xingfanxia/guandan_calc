@@ -56,16 +56,18 @@ The round-owner concept matters enormously for A-level wins: in **strict mode** 
 
 When a team is at level A:
 
-| Condition | 4-player | 6/8-player (since 2026-05) |
+| Condition | Strict A mode | Lenient A mode |
 |---|---|---|
 | Win at own A round, no 末游 | **通关** ✓ | **通关** ✓ |
 | Win at own A round, has 末游 | A-fail counter +1 | Stay at A, keep playing |
-| Win at opponent's round | Strict: not 通关. Lenient: 通关 | Strict: not 通关. Lenient: 通关 |
+| Win at opponent's round | Not 通关; return to own A | Not 通关; return to own A |
 | Lose at own A round | A-fail counter +1 | Stay at A, keep playing |
-| 3 consecutive A-fails | **Demote to level 2** | (n/a — no tracking) |
+| 3 own-A failures | **Demote that team to level 2** | No demotion |
 
-- **Strict mode** (default): must win at YOUR OWN A-level round AND have no 末游
-- **Lenient mode**: any A-level win counts (still need no 末游)
+- **通关 condition in both modes**: must win at YOUR OWN A-level round AND have no 末游
+- **Strict mode** (default): failed own-A attempts increment A1/A2/A3 and the third failure demotes that team to 2
+- **Lenient mode**: own-A failures do not increment counters or demote; teams keep playing until a valid own-A clear
+- `roundOwner` is authoritative when both teams are at A; do not infer owner from matching levels.
 
 ---
 
@@ -84,7 +86,7 @@ When a team is at level A:
 | 二游 | 2nd place |
 | 末游 | last place ("tail tour") |
 | 双下 / 大D | "double down" — 1st AND 2nd from same team (sweep) |
-| A失败 (A1/A2/A3) | A-level failure count (4-player only) |
+| A失败 (A1/A2/A3) | Strict-mode own-A failure count; 3 resets that team to 2 |
 | 回滚至此前 | rollback to before this round |
 | 撤销上一局 | undo last round |
 | 待排名玩家 | players awaiting ranking |
@@ -107,6 +109,8 @@ When a team is at level A:
 ## 6. The Honors System — 16 honors (NOT 14)
 
 Source: `index.html:341-407`. Each is a CHARACTER ARCHETYPE with cultural depth.
+The live system waits for at least 5 rounds before awarding these full-session
+honors; earlier states remain "数据采集中" to avoid noisy small-sample labels.
 
 | Honor | 解释 | Reference |
 |---|---|---|
@@ -118,14 +122,14 @@ Source: `index.html:341-407`. Each is a CHARACTER ARCHETYPE with cultural depth.
 | 翻车王 | 前3掉垫底 | Crash King — top-3 to last |
 | 赌徒 | 高风险高回报 | The Gambler |
 | 大满贯 | 体验所有排名 | Grand Slam — all positions |
-| 连胜王 | 连续好排名 | Streak King |
-| 佛系玩家 | 总是中游 | Zen Player — always middle |
-| 鲤鱼王 | 惊天逆转 | Carp King — 鲤鱼跃龙门 legend |
-| 不粘锅 | 从不垫底 | Non-stick Pan — never last |
-| 闪电侠 | 变化频繁 | The Flash |
-| 燃尽王 | 持续低迷 | Burnout King |
+| 连段王 | 连续好排名 | Top-Half Streak King |
+| 团队中轴 | 队内支点 | Team Anchor — consistently above teammate average |
+| 逆转核心 | 惊天逆转 | Comeback Core — low-to-high comeback arc |
+| 保底核心 | 队伍保底 | Safety Net — no-last team floor |
+| 节奏核心 | 队伍节奏 | Tempo Core — team-leading pressure |
+| 燃尽王 | 后程坠落 | Burnout King |
 | 棋差一着 | 差点登顶 | One Move Short |
-| 🤡 | 无冠最菜 | The Clown — literal emoji honor |
+| 抗压王 | 低谷反弹 | Pressure Rebound — rebounds after bottom-tier pressure rounds |
 
 **Visual opportunity:** these aren't generic badges — they're literary references. They deserve typography/illustration that respects their gravity. v1 demos used 6 abstract badges; the real system has 16 with story.
 
@@ -213,8 +217,8 @@ Both demos must use this scenario so they're directly comparable.
 | 吕布 | 阿伟 | 8/22 first places |
 | 石佛 | 阿伟 | top 25%, low variance |
 | 阿斗 | 阿明 | 8/22 last places |
-| 闪电侠 | 老张 | rank changed in 17/22 rounds |
-| 守门员 (variant of 不粘锅) | 大刘 | prevented teammate-last 5 times |
+| 节奏核心 | 老张 | 75% team-leading rounds with active pressure |
+| 保底核心 | 大刘 | no-last team safety net |
 | 大满贯 | 小美 | finished in every position 1-6 |
 
 ### Player profile snippet (for 阿伟 @awei — career stats, NOT just this session)
@@ -234,7 +238,7 @@ Both demos must use this scenario so they're directly comparable.
 2. ❌ "Ranking positions 1-6" with cryptic placeholder labels → **use 头游/二游/末游 terminology** + clear player tile placement showing team color
 3. ❌ Missing "round owner" concept → must show whose level this round is at (e.g., "本局：A · 红队的级")
 4. ❌ Missing "下局级牌" preview chip
-5. ❌ Used 14 honors → actually **16, including 🤡** (literally an emoji honor)
+5. ❌ Used 14 honors → actually **16, including 抗压王** (pressure-rebound honor)
 6. ❌ Didn't distinguish algorithmic MVP from voted MVP → show both separately
 7. ❌ Missing the **玩家池** (player pool drag-source) above ranking slots
 8. ❌ Missing "应用结果" + "进入下一局" two-button workflow (manual mode)

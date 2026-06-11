@@ -4,6 +4,7 @@
 import { createPlayer, validateHandle, getPlayStyles } from '../api/playerApi.js';
 import { $ } from '../core/utils.js';
 import { setupModalAccessibility } from '../core/modal.js';
+import { isAllowedAvatarPhotoFile } from './photoRenderer.js';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
@@ -67,7 +68,7 @@ export function showCreateModal() {
           />
           <div id="handleError" style="color: #ef4444; font-size: 0.85em; margin-top: 4px; display: none;"></div>
           <div style="color: #888; font-size: 0.85em; margin-top: 4px;">
-            只能包含字母、数字和下划线，显示时会加上 @ 符号
+            只能包含字母、数字和下划线，不能使用系统保留词，显示时会加上 @ 符号
           </div>
         </div>
 
@@ -291,8 +292,8 @@ function setupModalHandlers() {
       if (!file) return;
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('请选择图片文件');
+      if (!isAllowedAvatarPhotoFile(file)) {
+        alert('请选择 JPG、PNG 或 WebP 图片');
         return;
       }
 

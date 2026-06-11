@@ -58,7 +58,12 @@ export function emit(event, data) {
   // Call all listeners with the data
   listeners[event].forEach(callback => {
     try {
-      callback(data);
+      const result = callback(data);
+      if (result && typeof result.then === 'function') {
+        result.catch(error => {
+          console.error(`Error in event listener for "${event}":`, error);
+        });
+      }
     } catch (error) {
       console.error(`Error in event listener for "${event}":`, error);
     }
@@ -73,8 +78,8 @@ export function emit(event, data) {
  */
 export function once(event, callback) {
   const wrapper = (data) => {
-    callback(data);
     off(event, wrapper);
+    return callback(data);
   };
 
   return on(event, wrapper);

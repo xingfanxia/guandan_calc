@@ -1,5 +1,6 @@
 // Utility functions for player profile APIs
 // UTF-8 encoding for Chinese characters
+import { createHonorCounter } from '../../shared/honorCatalog.js';
 
 /**
  * Generate unique player ID in format PLR_XXXXXX
@@ -32,7 +33,16 @@ export function validateHandle(handle) {
 
   // Check format (alphanumeric + underscore only, no @ symbol)
   const handleRegex = /^[a-zA-Z0-9_]+$/;
-  return handleRegex.test(handle);
+  if (!handleRegex.test(handle)) return false;
+
+  const unsafeObjectKeys = new Set(['__proto__', 'prototype', 'constructor']);
+  return !unsafeObjectKeys.has(handle.toLowerCase());
+}
+
+function isAllowedPhotoDataUrl(photoBase64) {
+  if (typeof photoBase64 !== 'string') return false;
+
+  return /^data:image\/(?:jpeg|png|webp);base64,(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(photoBase64);
 }
 
 /**
@@ -42,19 +52,19 @@ export function validateHandle(handle) {
  */
 export function validatePlayerData(data) {
   // Required fields
-  if (!data.handle) {
+  if (typeof data.handle !== 'string' || data.handle.trim() === '') {
     return { valid: false, error: 'Missing required field: handle' };
   }
-  if (!data.displayName) {
+  if (typeof data.displayName !== 'string' || data.displayName.trim() === '') {
     return { valid: false, error: 'Missing required field: displayName' };
   }
-  if (!data.emoji) {
+  if (typeof data.emoji !== 'string' || data.emoji.trim() === '') {
     return { valid: false, error: 'Missing required field: emoji' };
   }
-  if (!data.playStyle) {
+  if (typeof data.playStyle !== 'string' || data.playStyle.trim() === '') {
     return { valid: false, error: 'Missing required field: playStyle' };
   }
-  if (!data.tagline) {
+  if (typeof data.tagline !== 'string' || data.tagline.trim() === '') {
     return { valid: false, error: 'Missing required field: tagline' };
   }
 
@@ -94,11 +104,12 @@ export function validatePlayerData(data) {
 
   // Validate photoBase64 if provided (optional field)
   if (data.photoBase64) {
-    // Check if it's a valid data URL
-    if (!data.photoBase64.startsWith('data:image/')) {
-      return { valid: false, error: 'Invalid photo format. Must be a data URL' };
+    // Match the client uploader contract. Do not accept arbitrary image/*
+    // data URLs such as SVG, which can carry active content in some renderers.
+    if (!isAllowedPhotoDataUrl(data.photoBase64)) {
+      return { valid: false, error: 'Invalid photo format. Must be a JPEG, PNG, or WebP data URL' };
     }
-    
+
     // Check size (limit to ~100KB base64 to avoid bloat)
     if (data.photoBase64.length > 150000) {
       return { valid: false, error: 'Photo too large. Please use a smaller image (max ~100KB)' };
@@ -113,7 +124,7 @@ export function validatePlayerData(data) {
  * @returns {object} Stats object with all honors at 0
  */
 export function initializePlayerStats() {
-  const baseStatsStructure = {
+  const createBaseStatsStructure = () => ({
     // Session-level stats (complete games)
     sessionsPlayed: 0,
     sessionsWon: 0,
@@ -139,7 +150,9 @@ export function initializePlayerStats() {
     longestWinStreak: 0,
     currentLossStreak: 0,
     longestLossStreak: 0
-  };
+  });
+
+  const baseStatsStructure = createBaseStatsStructure();
 
   return {
     // Overall stats (aggregated across all modes)
@@ -149,6 +162,9 @@ export function initializePlayerStats() {
     mvpVotes: 0,
     burdenVotes: 0,
     votingHistory: {},
+
+    // Completed-session idempotency
+    sessionHistory: {},
     
     // Partner/Opponent tracking (aggregated)
     partners: {},
@@ -161,27 +177,12 @@ export function initializePlayerStats() {
     avgRanking: 0,
     
     // Honors (aggregated across all modes)
-    honors: {
-      '吕布': 0,
-      '阿斗': 0,
-      '石佛': 0,
-      '波动王': 0,
-      '奋斗王': 0,
-      '辅助王': 0,
-      '翻车王': 0,
-      '赌徒': 0,
-      '大满贯': 0,
-      '连胜王': 0,
-      '佛系玩家': 0,
-      '守门员': 0,
-      '慢热王': 0,
-      '闪电侠': 0
-    },
+    honors: createHonorCounter(),
     
     // Mode-specific stats (NEW!)
-    stats4P: { ...baseStatsStructure },
-    stats6P: { ...baseStatsStructure },
-    stats8P: { ...baseStatsStructure },
+    stats4P: createBaseStatsStructure(),
+    stats6P: createBaseStatsStructure(),
+    stats8P: createBaseStatsStructure(),
     
     // Mode distribution counter
     modeBreakdown: {
@@ -296,4 +297,91 @@ export function sanitizePlayer(player) {
   if (!player) return player;
   const { ownershipTokenHash, ...rest } = player;
   return rest;
+}
+
+export function parsePlayerRecord(value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string') {
+    return value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function normalizeRecordMap(value) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+}
+
+function toNonNegativeFiniteNumber(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
+}
+
+function summarizeStatsForList(stats = {}) {
+  const safeStats = normalizeRecordMap(stats);
+  return {
+    sessionsPlayed: toNonNegativeFiniteNumber(safeStats.sessionsPlayed),
+    sessionsWon: toNonNegativeFiniteNumber(safeStats.sessionsWon),
+    sessionWinRate: toNonNegativeFiniteNumber(safeStats.sessionWinRate),
+    avgRankingPerSession: toNonNegativeFiniteNumber(safeStats.avgRankingPerSession),
+    gamesPlayed: toNonNegativeFiniteNumber(safeStats.gamesPlayed ?? safeStats.sessionsPlayed),
+    wins: toNonNegativeFiniteNumber(safeStats.wins ?? safeStats.sessionsWon),
+    winRate: toNonNegativeFiniteNumber(safeStats.winRate ?? safeStats.sessionWinRate),
+    avgRanking: toNonNegativeFiniteNumber(safeStats.avgRanking ?? safeStats.avgRankingPerSession)
+  };
+}
+
+/**
+ * Public list/search payload. Full player profiles can contain large photos,
+ * recentGames, relationship maps, and voting history; list surfaces only need
+ * identity plus compact aggregate stats. Use GET /api/players/{handle} when a
+ * caller needs the full profile after selection.
+ *
+ * @param {object|null} player
+ * @returns {object|null}
+ */
+export function summarizePlayerForList(player) {
+  if (!player) return player;
+  const safe = sanitizePlayer(player);
+  return {
+    id: safe.id,
+    handle: safe.handle,
+    displayName: safe.displayName,
+    emoji: safe.emoji,
+    playStyle: safe.playStyle,
+    tagline: safe.tagline,
+    createdAt: safe.createdAt,
+    lastActiveAt: safe.lastActiveAt,
+    stats: summarizeStatsForList(safe.stats)
+  };
+}
+
+export function parseListPagination(searchParams, { defaultLimit = 20, maxLimit = 100 } = {}) {
+  const rawLimit = searchParams.get('limit') ?? String(defaultLimit);
+  const rawOffset = searchParams.get('offset') ?? '0';
+
+  if (!/^\d+$/.test(rawLimit)) {
+    return { error: `Invalid limit. Must be an integer between 1 and ${maxLimit}.` };
+  }
+
+  if (!/^\d+$/.test(rawOffset)) {
+    return { error: 'Invalid offset. Must be an integer 0 or greater.' };
+  }
+
+  const limit = Number(rawLimit);
+  const offset = Number(rawOffset);
+
+  if (limit < 1 || limit > maxLimit) {
+    return { error: `Invalid limit. Must be an integer between 1 and ${maxLimit}.` };
+  }
+  if (!Number.isSafeInteger(offset)) {
+    return { error: 'Invalid offset. Must be a safe integer 0 or greater.' };
+  }
+
+  return { limit, offset };
 }

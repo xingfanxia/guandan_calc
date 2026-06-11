@@ -2,12 +2,43 @@
 // Run this once to migrate existing players without waiting for next game
 
 import { kv } from '@vercel/kv';
-import { initializePlayerStats, validateAdminToken } from './_utils.js';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { initializePlayerStats, normalizeRecordMap, parsePlayerRecord, validateAdminToken } from './_utils.js';
+import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
+import { normalizeHonorCounter } from '../../shared/honorCatalog.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
 // Migrate single player's historical games to mode-specific stats
 function migratePlayerToModeStats(player) {
+  const honorsBefore = JSON.stringify(player.stats?.honors || null);
+
+  if (!player.stats || typeof player.stats !== 'object') {
+    player.stats = initializePlayerStats();
+    return {
+      migrated: true,
+      gamesProcessed: 0,
+      breakdown: player.stats.modeBreakdown,
+      reason: 'initialized_missing_stats'
+    };
+  }
+
+  player.stats.honors = normalizeHonorCounter(player.stats.honors);
+  const normalizedSessionHistory = normalizeRecordMap(player.stats.sessionHistory);
+  const sessionHistoryChanged = normalizedSessionHistory !== player.stats.sessionHistory;
+  player.stats.sessionHistory = normalizedSessionHistory;
+  const honorsChanged = honorsBefore !== JSON.stringify(player.stats.honors);
+
   // Check if already migrated
   if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
+    if (honorsChanged || sessionHistoryChanged) {
+      return {
+        migrated: true,
+        gamesProcessed: 0,
+        breakdown: player.stats.modeBreakdown,
+        reason: honorsChanged ? 'normalized_honors' : 'normalized_session_history'
+      };
+    }
     return { migrated: false, reason: 'already_migrated' };
   }
 
@@ -22,57 +53,7 @@ function migratePlayerToModeStats(player) {
 
   // Replay recent games to populate mode stats
   if (player.recentGames && Array.isArray(player.recentGames)) {
-    player.recentGames.forEach(game => {
-      const mode = game.mode;
-      if (!mode) return;
-
-      const modeStats = player.stats[`stats${mode}`];
-      if (!modeStats) return;
-
-      migratedGames++;
-
-      // Increment session counter
-      modeStats.sessionsPlayed++;
-      if (game.teamWon) modeStats.sessionsWon++;
-
-      // Update win rate
-      modeStats.sessionWinRate = modeStats.sessionsWon / modeStats.sessionsPlayed;
-
-      // Update average ranking per session
-      const prevTotal = modeStats.avgRankingPerSession * (modeStats.sessionsPlayed - 1);
-      modeStats.avgRankingPerSession = (prevTotal + game.ranking) / modeStats.sessionsPlayed;
-
-      // Update rounds tracking
-      if (game.rounds) {
-        modeStats.roundsPlayed += game.rounds;
-        const prevRoundsTotal = modeStats.avgRoundsPerSession * (modeStats.sessionsPlayed - 1);
-        modeStats.avgRoundsPerSession = (prevRoundsTotal + game.rounds) / modeStats.sessionsPlayed;
-
-        if (game.rounds > modeStats.longestSessionRounds) {
-          modeStats.longestSessionRounds = game.rounds;
-        }
-      }
-
-      // Update time tracking
-      if (game.duration) {
-        modeStats.totalPlayTimeSeconds += game.duration;
-        if (game.duration > modeStats.longestSessionSeconds) {
-          modeStats.longestSessionSeconds = game.duration;
-        }
-        modeStats.avgSessionSeconds = modeStats.totalPlayTimeSeconds / modeStats.sessionsPlayed;
-      }
-
-      // Add to recent rankings (keep last 10 per mode)
-      if (!modeStats.recentRankings) modeStats.recentRankings = [];
-      const relativeRank = game.relativeRank || Math.round(game.ranking);
-      modeStats.recentRankings.push(relativeRank);
-      if (modeStats.recentRankings.length > 10) {
-        modeStats.recentRankings = modeStats.recentRankings.slice(-10);
-      }
-
-      // Update mode breakdown
-      player.stats.modeBreakdown[mode]++;
-    });
+    migratedGames = applyLegacyRecentGamesToModeStats(player);
   }
 
   return {
@@ -83,26 +64,25 @@ function migratePlayerToModeStats(player) {
 }
 
 export default async function handler(request) {
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
   // Only allow POST requests
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
     // Admin auth — previously this endpoint was PUBLIC, allowing anyone to trigger
     // a mass-rewrite of every player profile in KV (DoS + data corruption risk).
-    let body = {};
-    try { body = await request.json(); } catch { /* empty body OK for legacy curl */ }
-    if (!validateAdminToken(body.adminToken)) {
-      return new Response(JSON.stringify({
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+    if (!validateAdminToken(parsedBody.data.adminToken)) {
+      return jsonResponse({
         error: 'Unauthorized - Invalid admin token'
-      }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      }, { ...RESPONSE_OPTIONS, status: 403 });
     }
 
     // Get all player keys
@@ -131,7 +111,17 @@ export default async function handler(request) {
         const playerData = await kv.get(key);
         if (!playerData) continue;
 
-        const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+        const player = parsePlayerRecord(playerData);
+        if (!player) {
+          results.failed++;
+          results.details.push({
+            handle: key.replace(/^player:/, ''),
+            status: 'failed',
+            reason: 'invalid_player_record'
+          });
+          continue;
+        }
+
         const migrationResult = migratePlayerToModeStats(player);
 
         if (migrationResult.migrated) {
@@ -159,27 +149,18 @@ export default async function handler(request) {
       }
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       message: `Migration complete: ${results.migrated} migrated, ${results.alreadyMigrated} already done`,
       ...results
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Migration failed:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Migration failed',
       details: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 

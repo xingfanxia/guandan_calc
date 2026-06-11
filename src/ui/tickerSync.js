@@ -12,14 +12,17 @@ import { $ } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
 import { on as onEvent } from '../core/events.js';
+import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 
 let elapsedTimer = null;
 
 /** @param {string} n - player count ('4', '6', or '8') */
 function modeLabel(n) {
-  if (String(n) === '4') return '4人 · 2v2';
-  if (String(n) === '6') return '6人 · 3v3';
-  return '8人 · 4v4';
+  const mode = normalizePlayerCountMode(n);
+  if (mode === 4) return '4人 · 2v2';
+  if (mode === 6) return '6人 · 3v3';
+  if (mode === 8) return '8人 · 4v4';
+  return '模式无效';
 }
 
 function pad2(n) {

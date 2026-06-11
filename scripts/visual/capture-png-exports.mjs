@@ -73,7 +73,7 @@ for (const theme of THEMES) {
     const fakeHistory = [
       { ts: '12:01', mode: '6', win: '红', winKey: 't2', combo: '1, 2, 5', up: 2, t1: '2', t2: '4', round: '2', aNote: '', prevT1Lvl: '2', prevT2Lvl: '2', prevT1A: 0, prevT2A: 0, prevRound: '2', prevRoundOwner: null },
       { ts: '12:30', mode: '6', win: '红', winKey: 't2', combo: '1, 2, 3', up: 3, t1: '2', t2: '7', round: '4', aNote: '', prevT1Lvl: '2', prevT2Lvl: '4', prevT1A: 0, prevT2A: 0, prevRound: '4', prevRoundOwner: 't2' },
-      { ts: '13:00', mode: '6', win: '红', winKey: 't2', combo: '1, 3, 4', up: 0, t1: '2', t2: 'A', round: 'A', aNote: 'A级通关', prevT1Lvl: '2', prevT2Lvl: '7', prevT1A: 0, prevT2A: 0, prevRound: '7', prevRoundOwner: 't2' },
+      { ts: '13:00', mode: '6', win: '红', winKey: 't2', combo: '1, 3, 4', up: 0, t1: '2', t2: 'A', round: 'A', aNote: '红队 A级通关（胜方无末游，在自己的A级）', gameStatus: { ended: true, winnerKey: 't2', winnerName: '红队', reason: 'A_LEVEL_CLEARED' }, prevT1Lvl: '2', prevT2Lvl: '7', prevT1A: 0, prevT2A: 0, prevRound: '7', prevRoundOwner: 't2' },
     ];
     state.setHistory(fakeHistory);
     state.setTeamLevel('t1', '2');

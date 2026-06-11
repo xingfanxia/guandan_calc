@@ -4,6 +4,7 @@
 import { updatePlayerProfile, validateHandle, getPlayStyles, getOwnershipToken, clearOwnershipToken, rotatePlayerToken } from '../api/playerApi.js';
 import { $, escapeHtml } from '../core/utils.js';
 import { setupModalAccessibility } from '../core/modal.js';
+import { isAllowedAvatarPhotoFile, resolveAvatarPhoto } from './photoRenderer.js';
 
 // Import emoji list from playerManager
 import { ANIMAL_EMOJIS } from './playerManager.js';
@@ -33,7 +34,8 @@ export function showEditModal(player) {
   }
 
   currentPlayer = player;
-  selectedPhotoBase64 = player.photoBase64 || null;
+  const currentAvatarPhoto = resolveAvatarPhoto(player);
+  selectedPhotoBase64 = currentAvatarPhoto;
 
   // Remove existing modal if any
   if (modalElement) {
@@ -114,9 +116,9 @@ export function showEditModal(player) {
           </label>
 
           <!-- Current photo (if exists) -->
-          ${player.photoBase64 ? `
+          ${currentAvatarPhoto ? `
             <div id="currentPhotoSection" style="text-align: center; margin-bottom: 12px;">
-              <img id="currentPhotoImg" src="${escapeHtml(player.photoBase64)}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <img id="currentPhotoImg" src="${escapeHtml(currentAvatarPhoto)}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
               <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
                 <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
                   更换照片
@@ -129,10 +131,10 @@ export function showEditModal(player) {
           ` : ''}
 
           <!-- Photo upload section -->
-          <div id="photoUploadContainer" style="${player.photoBase64 ? 'display: none;' : ''}">
+          <div id="photoUploadContainer" style="${currentAvatarPhoto ? 'display: none;' : ''}">
             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
             <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
-              📁 ${player.photoBase64 ? '选择新照片' : '上传照片'} (1:1比例)
+              📁 ${currentAvatarPhoto ? '选择新照片' : '上传照片'} (1:1比例)
             </button>
             <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
               仅接受正方形图片，将自动压缩至400x400
@@ -337,8 +339,8 @@ function setupModalHandlers() {
       if (!file) return;
 
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('请选择图片文件');
+      if (!isAllowedAvatarPhotoFile(file)) {
+        alert('请选择 JPG、PNG 或 WebP 图片');
         return;
       }
 
@@ -393,13 +395,14 @@ function setupModalHandlers() {
   if (cancelNewPhotoBtn) {
     cancelNewPhotoBtn.addEventListener('click', () => {
       // Restore original photo state
-      selectedPhotoBase64 = currentPlayer.photoBase64 || null;
+      const originalAvatarPhoto = resolveAvatarPhoto(currentPlayer);
+      selectedPhotoBase64 = originalAvatarPhoto;
 
       if (photoPreview) {
         photoPreview.style.display = 'none';
       }
 
-      if (currentPlayer.photoBase64) {
+      if (originalAvatarPhoto) {
         // Had photo originally, show it
         if (currentPhotoSection) {
           currentPhotoSection.style.display = 'block';

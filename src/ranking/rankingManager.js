@@ -6,12 +6,47 @@
 import state from '../core/state.js';
 import { emit } from '../core/events.js';
 
+const VALID_RANKING_MODES = new Set([4, 6, 8]);
+
+export function normalizeRankingMode(mode) {
+  let num = null;
+
+  if (typeof mode === 'number') {
+    num = Number.isInteger(mode) ? mode : null;
+  } else if (typeof mode === 'string') {
+    const trimmed = mode.trim();
+    num = /^(4|6|8)$/.test(trimmed) ? Number(trimmed) : null;
+  }
+
+  return VALID_RANKING_MODES.has(num) ? num : null;
+}
+
 /**
  * Get current ranking
  * @returns {Object} Ranking object (copy)
  */
 export function getRanking() {
   return state.getCurrentRanking();
+}
+
+/**
+ * Compare two ranking maps by rank key and player id.
+ * @param {Object} currentRanking
+ * @param {Object} nextRanking
+ * @returns {boolean}
+ */
+export function hasRankingChanged(currentRanking, nextRanking) {
+  const current = currentRanking || {};
+  const next = nextRanking || {};
+  const keys = new Set([...Object.keys(current), ...Object.keys(next)]);
+
+  for (const key of keys) {
+    if (current[key] !== next[key]) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -54,7 +89,8 @@ export function clearRanking() {
  */
 export function isRankingComplete(mode) {
   const ranking = state.getCurrentRanking();
-  const requiredCount = parseInt(mode);
+  const requiredCount = normalizeRankingMode(mode);
+  if (!requiredCount) return false;
 
   let filledCount = 0;
   for (let i = 1; i <= requiredCount; i++) {
@@ -74,7 +110,10 @@ export function isRankingComplete(mode) {
  */
 export function getRankingProgress(mode) {
   const ranking = state.getCurrentRanking();
-  const total = parseInt(mode);
+  const total = normalizeRankingMode(mode);
+  if (!total) {
+    return { filled: 0, total: 0 };
+  }
 
   let filled = 0;
   for (let i = 1; i <= total; i++) {
@@ -94,7 +133,25 @@ export function getRankingProgress(mode) {
  * @param {number} mode - Game mode
  */
 export function randomizeRanking(playerIds, mode) {
-  const num = parseInt(mode);
+  const num = normalizeRankingMode(mode);
+  if (!num) {
+    console.error('Invalid ranking mode:', mode);
+    return false;
+  }
+
+  if (!Array.isArray(playerIds) || playerIds.length !== num) {
+    console.error(`Invalid random ranking player count: expected ${num}, got ${Array.isArray(playerIds) ? playerIds.length : 'invalid'}`);
+    return false;
+  }
+
+  const seen = new Set();
+  for (const playerId of playerIds) {
+    if (!Number.isSafeInteger(playerId) || playerId <= 0 || seen.has(playerId)) {
+      console.error('Invalid random ranking player ids:', playerIds);
+      return false;
+    }
+    seen.add(playerId);
+  }
 
   // Fisher-Yates shuffle
   const shuffled = playerIds.slice();
@@ -112,4 +169,5 @@ export function randomizeRanking(playerIds, mode) {
   state.setCurrentRanking(newRanking);
   emit('ranking:randomized', { ranking: newRanking });
   emit('ranking:updated'); // Also emit updated event to trigger UI refresh
+  return true;
 }

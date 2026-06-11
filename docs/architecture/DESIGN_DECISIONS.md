@@ -50,9 +50,9 @@ Standard MVP/stats are boring and don't engage players
 
 #### Solution: Cultural Gaming References
 - **Historical figures**: 吕布 (legendary), 阿斗 (weak) create narrative
-- **Gaming terms**: 很C, 很闹, 波动王, 奋斗王, 辅助王 add personality
+- **Gaming terms**: 波动王, 奋斗王, 连段王, 棋差一着, 抗压王 add personality
 - **Visual hierarchy**: Color-coded badges with emoji indicators
-- **Data requirements**: 3+ games minimum prevents noise from small samples
+- **Data requirements**: 5+ completed rounds prevent small samples from assigning full-session labels too early
 
 #### Design Rationale:
 - **Emotional connection**: Players care more about being "吕布" than "highest average"
@@ -98,7 +98,7 @@ Standard MVP/stats are boring and don't engage players
 - **石佛**: #708090 (Gray) - Stable, solid, unchanging like stone
 - **波动王**: #ff4500 (Orange-Red) - Dynamic, unpredictable energy
 - **奋斗王**: #32cd32 (Green) - Growth, improvement, progress
-- **辅助王**: #4169e1 (Royal Blue) - Noble sacrifice, team support
+- **抗压王**: #0f766e (Deep teal) - Pressure recovery and resilience
 
 ### Typography Hierarchy
 
@@ -166,29 +166,29 @@ This design approach creates an engaging, culturally relevant, and technically s
 
 ---
 
-## 🎲 Game Rule Decisions (2026-05)
+## 🎲 Game Rule Decisions (2026-06)
 
-### 6/8-player A-level simplification
+### Strict A applies across 4/6/8-player modes
 
-**Decision (2026-05-02):** Remove the A1/A2/A3 failure counter and demotion-to-level-2 rule
-for 6 and 8-player modes. Game continues until either side wins on their own A level
-(subject to the strict/lenient `strictA` preference). 4-player rules unchanged.
+**Decision (2026-06-10):** In strict-A mode, all modes use the same own-A failure model:
+an A-level team must win on its own A round with no 末游 to clear. Losing on its own A,
+or winning its own A while carrying 末游, increments A1/A2/A3; the third failure demotes
+only that team to level 2.
 
 **Why:**
-- Long Guandan nights had teams rubber-banding back to level 2 after streaks of close losses
-  at A — deflating to play through.
-- The 3-strike penalty is a rule that scaled poorly to 6/8 modes (more players → harder to
-  avoid last-place rotations → easier to accumulate strikes through no fault of yours).
-- Keeping the rule in 4-player mode preserves the traditional Guandan experience for the
-  most-played mode.
+- The match ending condition depends on whose A round is being played, not player count.
+- 6/8 sessions still need a deterministic strict-mode pressure valve; otherwise both teams
+  can sit at A indefinitely while viewers see ambiguous "通关中" status.
+- Host/viewer sync now carries structured `state.gameStatus`, so the frontend does not need
+  to infer match-ended state from Chinese `aNote` text.
 
-**Implementation:** `tracksAFail(mode)` helper in `src/game/rules.js` returns `true` only
-for `'4'`. The `recordAFail()` helper inside `checkALevelRules` no-ops in 6/8.
-`teamDisplay.js` hides the `A 失败` chip and shows `通关中` instead of `A0/3` in 6/8 modes.
+**Implementation:** `src/game/rules.js` records own-A failures when `strictA` is enabled,
+regardless of mode. `src/ui/teamDisplay.js` shows A-fail chips in strict mode. `roundOwner`
+is authoritative when both teams are at A.
 
-**Trade-off:** 6/8 sessions can theoretically run forever if both teams reach A and neither
-manages a clean win at their own A. In practice this is rare and the game state (long history
-of A-level rounds) makes it self-limiting.
+**Trade-off:** Strict 6/8 sessions can demote from A again. Users who want the less punishing
+long-session behavior can turn off `strictA`; lenient mode hides A-fail chips and keeps teams
+at A until a valid clear.
 
 ---
 

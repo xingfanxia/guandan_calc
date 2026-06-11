@@ -169,13 +169,13 @@ calculateImprovement(rankings) {
 }
 ```
 
-#### Support Play Detection (辅助王)
+#### Pressure Recovery Detection (抗压王)
 ```javascript
-countSupportWins(player) {
-  return gameHistory.filter(game => {
-    const teamWon = game.winKey === getPlayerTeam(player);
-    const playerFinishedLast = getPlayerRank(game, player) === maxRank;
-    return teamWon && playerFinishedLast;
+countPressureRebounds(rankings, totalPlayers) {
+  const bottomTier = totalPlayers - Math.max(1, Math.ceil(totalPlayers / 3)) + 1;
+  return rankings.filter((rank, index) => {
+    const nextRank = rankings[index + 1];
+    return rank >= bottomTier && nextRank && nextRank <= Math.ceil(totalPlayers / 2);
   }).length;
 }
 ```

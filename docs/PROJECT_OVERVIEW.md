@@ -8,7 +8,7 @@ A comprehensive **real-time multiplayer** Guandan (掼蛋) scoring calculator th
 
 - **4/6/8 player modes** with team-based level progression (2→A)
 - **Real-time room sharing** with 6-digit codes
-- **14 data-driven honors** with cultural Chinese gaming references
+- **16 full-session honors** with cultural Chinese gaming references, awarded only after enough session evidence (5+ rounds)
 - **Community voting** for MVP/burden selection
 - **Mobile-optimized exports** (PNG, TXT, CSV)
 
@@ -28,10 +28,11 @@ A comprehensive **real-time multiplayer** Guandan (掼蛋) scoring calculator th
 - Smart reset preserving player setup
 
 ### Phase 3: Statistics & Honors
-14 honor categories with Chinese gaming culture:
-- 吕布, 阿斗, 石佛, 波动王, 奋斗王, 辅助王
-- 翻车王, 赌徒, 大满贯, 连胜王, 佛系玩家
-- 守门员, 慢热王, 闪电侠
+16 honor categories with full-session/global algorithms. The live UI keeps
+honors in "数据采集中" until at least 5 rounds have been played:
+- 吕布, 阿斗, 石佛, 波动王, 奋斗王, 逆转核心
+- 翻车王, 赌徒, 大满贯, 连段王, 团队中轴, 保底核心
+- 节奏核心, 燃尽王, 棋差一着, 抗压王
 
 ### Phase 4: Real-Time Platform
 - Room sharing with Vercel KV (Upstash Redis)

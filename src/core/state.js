@@ -6,6 +6,127 @@
 
 import { load, save, KEYS } from './storage.js';
 import { emit } from './events.js';
+import { resolveGameStatus } from '../../shared/gameStatus.js';
+import { isValidRoomSnapshotPayload } from '../../shared/roomSnapshotValidation.js';
+
+function clonePlainData(value) {
+  if (value === undefined) return undefined;
+  return JSON.parse(JSON.stringify(value));
+}
+
+const VALID_LEVELS = new Set(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']);
+const VALID_TEAM_KEYS = new Set(['t1', 't2']);
+
+function normalizeLevel(value) {
+  const normalized = String(value);
+  return VALID_LEVELS.has(normalized) ? normalized : null;
+}
+
+function normalizeOptionalLevel(value) {
+  if (value === undefined || value === null) return null;
+  return normalizeLevel(value);
+}
+
+function isValidTeamKey(value) {
+  return VALID_TEAM_KEYS.has(value);
+}
+
+function normalizeAFail(value) {
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 0 && count <= 2 ? count : null;
+}
+
+function normalizePlayerTeam(team) {
+  if (team === undefined || team === null) return null;
+  if (team === 1 || team === 2) return team;
+  if (typeof team === 'string') {
+    const trimmed = team.trim();
+    if (trimmed === '1' || trimmed === 'A') return 1;
+    if (trimmed === '2' || trimmed === 'B') return 2;
+  }
+  // Preserve unknown values so validation can reject malformed snapshots.
+  return team;
+}
+
+function normalizePlayerId(id) {
+  if (Number.isSafeInteger(id) && id > 0) return id;
+  if (typeof id === 'string') {
+    const trimmed = id.trim();
+    if (/^[1-9]\d*$/.test(trimmed)) {
+      const numericId = Number(trimmed);
+      if (Number.isSafeInteger(numericId)) return numericId;
+    }
+  }
+  // Preserve unknown values so validation can reject malformed snapshots.
+  return id;
+}
+
+function normalizePlayerRecord(player) {
+  if (player === null || typeof player !== 'object' || Array.isArray(player)) {
+    return player;
+  }
+
+  return {
+    ...player,
+    id: normalizePlayerId(player.id),
+    team: normalizePlayerTeam(player.team)
+  };
+}
+
+function normalizePlayers(players) {
+  return clonePlainData(players).map(normalizePlayerRecord);
+}
+
+function normalizePlayersForValidation(players) {
+  if (!Array.isArray(players)) return players;
+  return normalizePlayers(players);
+}
+
+function pruneRankingForPlayers(ranking, players) {
+  if (!ranking || typeof ranking !== 'object' || Array.isArray(ranking)) return {};
+  if (!Array.isArray(players) || players.length === 0) return {};
+
+  const playerIds = new Set(players.map(player => player.id));
+  const maxRank = Math.min(players.length, 8);
+  const seen = new Set();
+  const pruned = {};
+
+  for (const [rankKey, playerId] of Object.entries(ranking)) {
+    const rank = Number(rankKey);
+    if (!Number.isSafeInteger(rank) || rank < 1 || rank > maxRank) continue;
+    if (!Number.isSafeInteger(playerId) || !playerIds.has(playerId) || seen.has(playerId)) continue;
+    pruned[rankKey] = playerId;
+    seen.add(playerId);
+  }
+
+  return pruned;
+}
+
+function plainDataEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function validatePlayersPayload(players) {
+  return isValidRoomSnapshotPayload({ players: normalizePlayersForValidation(players) });
+}
+
+function validatePlayerStatsPayload(players, playerStats) {
+  return isValidRoomSnapshotPayload({
+    players: normalizePlayersForValidation(players),
+    playerStats
+  });
+}
+
+function validateCurrentRankingPayload(players, currentRanking) {
+  return isValidRoomSnapshotPayload({
+    players: normalizePlayersForValidation(players),
+    currentRanking
+  });
+}
+
+function validateHistoryPayload(history) {
+  return isValidRoomSnapshotPayload({ state: { history } });
+}
 
 // Singleton instance
 let instance = null;
@@ -26,6 +147,12 @@ class GameState {
     this.roundLevel = '2';
     this.roundOwner = null;
     this.nextRoundBase = null;
+    this.gameStatus = {
+      ended: false,
+      winnerKey: null,
+      winnerName: null,
+      reason: null
+    };
     this.history = [];
     this.winner = 't1';
 
@@ -50,19 +177,44 @@ class GameState {
     this._hydrated = true;
 
     const savedState = load(KEYS.STATE, null);
+    const savedPlayers = load(KEYS.PLAYERS, []);
+    const savedStats = load(KEYS.STATS, {});
 
-    if (savedState) {
-      this.teams = savedState.teams || this.teams;
-      this.roundLevel = savedState.roundLevel || '2';
-      this.roundOwner = savedState.roundOwner || null;
-      this.nextRoundBase = savedState.nextRoundBase || null;
-      this.history = savedState.history || [];
-      this.winner = savedState.winner || 't1';
+    if (isValidRoomSnapshotPayload({ state: savedState })) {
+      this.teams = savedState.teams
+        ? {
+          t1: {
+            lvl: normalizeLevel(savedState.teams.t1.lvl) || '2',
+            aFail: normalizeAFail(savedState.teams.t1.aFail ?? 0) ?? 0
+          },
+          t2: {
+            lvl: normalizeLevel(savedState.teams.t2.lvl) || '2',
+            aFail: normalizeAFail(savedState.teams.t2.aFail ?? 0) ?? 0
+          }
+        }
+        : this.teams;
+      this.roundLevel = normalizeLevel(savedState.roundLevel ?? '2') || '2';
+      this.roundOwner = savedState.roundOwner ?? null;
+      this.history = Array.isArray(savedState.history)
+        ? JSON.parse(JSON.stringify(savedState.history))
+        : [];
+      this.gameStatus = resolveGameStatus(savedState.gameStatus, this.history);
+      this.nextRoundBase = this.gameStatus.ended
+        ? null
+        : normalizeOptionalLevel(savedState.nextRoundBase);
+      this.winner = this.gameStatus.ended && isValidTeamKey(this.gameStatus.winnerKey)
+        ? this.gameStatus.winnerKey
+        : (isValidTeamKey(savedState.winner) ? savedState.winner : 't1');
     }
 
-    // Load players separately
-    this.players = load(KEYS.PLAYERS, []);
-    this.playerStats = load(KEYS.STATS, {});
+    // Load players separately. These are persisted outside KEYS.STATE, so they
+    // must be validated separately before becoming room-sync source data.
+    this.players = validatePlayersPayload(savedPlayers)
+      ? normalizePlayers(savedPlayers)
+      : [];
+    this.playerStats = validatePlayerStatsPayload(this.players, savedStats)
+      ? clonePlainData(savedStats)
+      : {};
 
     emit('state:hydrated');
   }
@@ -76,6 +228,7 @@ class GameState {
       roundLevel: this.roundLevel,
       roundOwner: this.roundOwner,
       nextRoundBase: this.nextRoundBase,
+      gameStatus: this.gameStatus,
       history: this.history,
       winner: this.winner
     };
@@ -94,7 +247,7 @@ class GameState {
   // ===========================
 
   getTeam(teamKey) {
-    return this.teams[teamKey];
+    return this.teams[teamKey] ? clonePlainData(this.teams[teamKey]) : undefined;
   }
 
   getTeamLevel(teamKey) {
@@ -114,23 +267,33 @@ class GameState {
   // ===========================
 
   setTeamLevel(teamKey, level) {
-    if (!['t1', 't2'].includes(teamKey)) {
+    if (!isValidTeamKey(teamKey)) {
       throw new Error(`Invalid team key: ${teamKey}`);
     }
 
-    this.teams[teamKey].lvl = level;
+    const normalizedLevel = normalizeLevel(level);
+    if (!normalizedLevel) {
+      throw new Error(`Invalid team level: ${level}`);
+    }
+
+    this.teams[teamKey].lvl = normalizedLevel;
     this.persist();
-    emit('state:teamLevelChanged', { team: teamKey, level });
+    emit('state:teamLevelChanged', { team: teamKey, level: normalizedLevel });
   }
 
   setTeamAFail(teamKey, count) {
-    if (!['t1', 't2'].includes(teamKey)) {
+    if (!isValidTeamKey(teamKey)) {
       throw new Error(`Invalid team key: ${teamKey}`);
     }
 
-    this.teams[teamKey].aFail = count;
+    const normalizedCount = normalizeAFail(count);
+    if (normalizedCount === null) {
+      throw new Error(`Invalid A-fail count: ${count}`);
+    }
+
+    this.teams[teamKey].aFail = normalizedCount;
     this.persist();
-    emit('state:teamAFailChanged', { team: teamKey, count });
+    emit('state:teamAFailChanged', { team: teamKey, count: normalizedCount });
   }
 
   setWinner(teamKey) {
@@ -139,6 +302,7 @@ class GameState {
     }
 
     this.winner = teamKey;
+    this.persist();
     emit('state:winnerChanged', { winner: teamKey });
   }
 
@@ -151,9 +315,14 @@ class GameState {
   }
 
   setRoundLevel(level) {
-    this.roundLevel = level;
+    const normalizedLevel = normalizeLevel(level);
+    if (!normalizedLevel) {
+      throw new Error(`Invalid round level: ${level}`);
+    }
+
+    this.roundLevel = normalizedLevel;
     this.persist();
-    emit('state:roundLevelChanged', { level });
+    emit('state:roundLevelChanged', { level: normalizedLevel });
   }
 
   getRoundOwner() {
@@ -161,6 +330,10 @@ class GameState {
   }
 
   setRoundOwner(teamKey) {
+    if (teamKey !== null && !isValidTeamKey(teamKey)) {
+      throw new Error(`Invalid round owner: ${teamKey}`);
+    }
+
     this.roundOwner = teamKey;
     this.persist();
     emit('state:roundOwnerChanged', { owner: teamKey });
@@ -171,9 +344,78 @@ class GameState {
   }
 
   setNextRoundBase(level) {
-    this.nextRoundBase = level;
+    if (level !== null) {
+      const normalizedLevel = normalizeLevel(level);
+      if (!normalizedLevel) {
+        throw new Error(`Invalid next round base: ${level}`);
+      }
+      this.nextRoundBase = normalizedLevel;
+    } else {
+      this.nextRoundBase = null;
+    }
     this.persist();
-    emit('state:nextRoundBaseChanged', { level });
+    emit('state:nextRoundBaseChanged', { level: this.nextRoundBase });
+  }
+
+  getGameStatus() {
+    return JSON.parse(JSON.stringify(this.gameStatus));
+  }
+
+  setGameStatus(status) {
+    if (status?.ended !== undefined && typeof status.ended !== 'boolean') {
+      throw new Error('Invalid game status: ended must be a boolean');
+    }
+
+    const ended = status?.ended === true;
+    const winnerKey = ended ? (status?.winnerKey || null) : null;
+    const winnerName = ended ? (status?.winnerName || null) : null;
+    const reason = ended ? (status?.reason || null) : null;
+
+    if (winnerKey !== null && !isValidTeamKey(winnerKey)) {
+      throw new Error('Invalid game status: winnerKey must be t1, t2, or null');
+    }
+    if (ended && !winnerKey) {
+      throw new Error('Invalid game status: ended status requires a winner key');
+    }
+    if (winnerName !== null && typeof winnerName !== 'string') {
+      throw new Error('Invalid game status: winnerName must be a string or null');
+    }
+    if (reason !== null && typeof reason !== 'string') {
+      throw new Error('Invalid game status: reason must be a string or null');
+    }
+
+    const nextRoundBaseChanged = ended && this.nextRoundBase !== null;
+    if (nextRoundBaseChanged) {
+      this.nextRoundBase = null;
+    }
+    const winnerChanged = ended && winnerKey && this.winner !== winnerKey;
+    if (winnerChanged) {
+      this.winner = winnerKey;
+    }
+
+    this.gameStatus = {
+      ended,
+      winnerKey,
+      winnerName,
+      reason
+    };
+    this.persist();
+    if (winnerChanged) {
+      emit('state:winnerChanged', { winner: winnerKey });
+    }
+    if (nextRoundBaseChanged) {
+      emit('state:nextRoundBaseChanged', { level: null });
+    }
+    emit('state:gameStatusChanged', { status: this.getGameStatus() });
+  }
+
+  clearGameStatus() {
+    this.setGameStatus({
+      ended: false,
+      winnerKey: null,
+      winnerName: null,
+      reason: null
+    });
   }
 
   // ===========================
@@ -181,10 +423,15 @@ class GameState {
   // ===========================
 
   getHistory() {
-    return [...this.history]; // Return copy
+    return clonePlainData(this.history);
   }
 
   addHistoryEntry(entry) {
+    const nextHistory = [...this.history, entry];
+    if (!validateHistoryPayload(nextHistory)) {
+      throw new Error('Invalid history entry');
+    }
+
     // Deep clone to break reference sharing with callers — prevents external
     // mutation of a stored entry from corrupting rollback snapshots.
     this.history.push(JSON.parse(JSON.stringify(entry)));
@@ -213,8 +460,13 @@ class GameState {
    * @param {Array} historyArray - Complete history array
    */
   setHistory(historyArray) {
+    const nextHistory = historyArray || [];
+    if (!validateHistoryPayload(nextHistory)) {
+      throw new Error('Invalid history');
+    }
+
     // Deep clone to detach from caller's reference (room-sync payload, etc.)
-    this.history = historyArray ? JSON.parse(JSON.stringify(historyArray)) : [];
+    this.history = JSON.parse(JSON.stringify(nextHistory));
     this.persist();
     emit('state:historySet', { historyArray });
   }
@@ -224,13 +476,25 @@ class GameState {
   // ===========================
 
   getPlayers() {
-    return [...this.players]; // Return copy
+    return clonePlainData(this.players);
   }
 
   setPlayers(players) {
-    this.players = players;
+    const nextPlayers = players || [];
+    if (!validatePlayersPayload(nextPlayers)) {
+      throw new Error('Invalid players');
+    }
+
+    const normalizedPlayers = normalizePlayers(nextPlayers);
+    const nextRanking = pruneRankingForPlayers(this.currentRanking, normalizedPlayers);
+    const rankingChanged = !plainDataEqual(this.currentRanking, nextRanking);
+    this.players = normalizedPlayers;
+    this.currentRanking = nextRanking;
     this.persist();
-    emit('state:playersChanged', { players });
+    emit('state:playersChanged', { players: this.getPlayers() });
+    if (rankingChanged) {
+      emit('state:currentRankingChanged', { ranking: this.getCurrentRanking() });
+    }
   }
 
   getPlayerStats() {
@@ -243,17 +507,27 @@ class GameState {
   }
 
   setPlayerStats(stats) {
-    this.playerStats = stats;
+    const nextStats = stats || {};
+    if (!validatePlayerStatsPayload(this.players, nextStats)) {
+      throw new Error('Invalid player stats');
+    }
+
+    this.playerStats = clonePlainData(nextStats);
     this.persist();
     emit('state:playerStatsChanged', { stats });
   }
 
   getCurrentRanking() {
-    return { ...this.currentRanking }; // Return copy
+    return clonePlainData(this.currentRanking);
   }
 
   setCurrentRanking(ranking) {
-    this.currentRanking = ranking;
+    const nextRanking = ranking || {};
+    if (!validateCurrentRankingPayload(this.players, nextRanking)) {
+      throw new Error('Invalid current ranking');
+    }
+
+    this.currentRanking = clonePlainData(nextRanking);
     // Note: Don't persist ranking (temporary state)
     emit('state:currentRankingChanged', { ranking });
   }
@@ -288,6 +562,12 @@ class GameState {
     this.roundLevel = '2';
     this.roundOwner = null;
     this.nextRoundBase = null;
+    this.gameStatus = {
+      ended: false,
+      winnerKey: null,
+      winnerName: null,
+      reason: null
+    };
     this.history = [];
     this.winner = 't1';
     this.currentRanking = {};

@@ -7,7 +7,7 @@ Guandan (掼蛋) is a climbing card game that originated in Jiangsu Province, Ch
 ## Basic Gameplay
 
 ### Objective
-Teams progress through card ranks (2→3→4→5→6→7→8→9→10→J→Q→K→A) by winning rounds. The first team to win at A-level wins the entire match.
+Teams progress through card ranks (2→3→4→5→6→7→8→9→10→J→Q→K→A) by winning rounds. A team wins the match only by clearing its own A-level round without a last-place player; winning while playing another team's level only returns play to that team's own A-level round.
 
 ### Card Rankings
 - Cards rank from 2 (lowest) to A (highest)
@@ -30,8 +30,8 @@ In 4-player mode, the two players from the winning team finish in specific posit
 
 ### 6-Player Mode
 Teams of 3 players each. Upgrades are based on the point differential between teams:
-- Large point advantage (≥11 points): Upgrade 3 levels
-- Medium point advantage (≥6 points): Upgrade 2 levels
+- Large point advantage (≥7 points): Upgrade 3 levels
+- Medium point advantage (≥4 points): Upgrade 2 levels
 - Small point advantage (≥1 point): Upgrade 1 level
 - No upgrade if the winning team doesn't have first place (optional rule)
 
@@ -39,8 +39,8 @@ Teams of 3 players each. Upgrades are based on the point differential between te
 Teams of 4 players each. Similar to 6-player mode but with adjusted thresholds:
 - **Special Rule**: If one team takes positions 1,2,3,4 (complete sweep), they upgrade 4 levels
 - Large point advantage (≥11 points): Upgrade 3 levels
-- Medium point advantage (≥6 points): Upgrade 2 levels
-- Small point advantage (≥1 point): Upgrade 1 level
+- Medium point advantage (≥5 points): Upgrade 2 levels
+- Small point advantage (≥0 points): Upgrade 1 level
 - No upgrade if the winning team doesn't have first place (optional rule)
 
 ## A-Level Special Rules
@@ -50,32 +50,27 @@ When a team reaches A-level, special rules apply:
 
 **Strict Mode**
 - The team must win while playing at their own A-level to win the match
-- If they win at the opponent's level, they don't win the match (no level progression)
-- Winning with a last-place player counts as a failure
+- If they win at the opponent's level, they don't win the match; play returns to that team's own A
+- Winning on the team's own A-level with a last-place player counts as a failure
+- Losing on the team's own A-level also counts as a failure
+- After 3 own-A failures, that team is reset to level 2
 
 **Lenient Mode**
-- The team can win the match by winning at any level (their own or opponent's)
-- Winning with a last-place player still counts as a failure
+- The team still must win on its own A-level round, without a last-place player, to win the match
+- Winning at the opponent's level or another level returns play to that team's own A instead of clearing
+- Own-A failures do not increment A-fail counters and do not demote the team
 
-### A-Level Failures (4-player mode ONLY since 2026-05)
+### A-Level Failures (strict mode)
 
-- If an A-level team loses or wins with a last-place player, it counts as a failure
+- If an A-level team loses on its own A round or wins its own A round with a last-place player, it counts as a failure
 - After 3 failures (A1 → A2 → A3), the team is reset to level 2
 - The failure count is tracked separately for each team
+- Failure tracking applies to 4-, 6-, and 8-player modes when `strictA` is enabled
 
-### 6-Player and 8-Player Mode (since 2026-05)
+### 6-Player and 8-Player Mode
 
-The 3-strike A-fail rule was **removed** for 6/8-player modes:
-
-- **No A1/A2/A3 failure tracking** — A-level losses don't accumulate strikes
-- **No demotion to level 2** — teams stay at A regardless of how many losing rounds they have at A
-- **Game continues** until either side wins on their own A level (subject to the strict/lenient
-  preference described above)
-- **UI behavior**: the `A 失败` chip is hidden, and the `A 状态` chip displays `通关中` instead of
-  `A0/3` once a team reaches A
-
-This change makes 6/8 sessions less punishing — long Guandan nights no longer rubber-band a team
-back to level 2 after a streak of close losses at A. 4-player rules are unchanged.
+6/8-player modes now follow the same strict-A failure policy as 4-player mode when `strictA`
+is enabled. In lenient mode, A-fail chips are hidden and teams continue at A until a valid clear.
 
 ## Calculator-Specific Features
 
@@ -102,7 +97,7 @@ After each round, record:
 ### Auto-progression Options
 - **Auto Next Round**: Automatically advance to the next round after applying results
 - **Auto Apply**: Automatically clear the ranking board after recording results
-- **Strict A Mode**: Toggle between strict and lenient A-level victory conditions
+- **Strict A Mode**: Toggle whether own-A failures accumulate and demote after A3; clear still requires winning on the team's own A round
 
 ## Strategic Elements
 

@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="broadcast">
+<html lang="zh-CN" data-theme="linear">
 <head>
 <script>
   // Theme bootstrap — must be inline + synchronous + ABOVE stylesheets so
   // the cascade resolves with the user's chosen theme on first paint, not
-  // with `data-theme="broadcast"` (the static fallback). Saved value list
+  // with `data-theme="linear"` (the static fallback). Saved value list
   // is the source of truth for valid theme names; sync with main.js.
   try { var t = localStorage.getItem('gd_v9_theme');
     if (t && ['broadcast','linear','trading','atelier','teatable'].indexOf(t) !== -1)
@@ -27,7 +27,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
-<!-- Theme: Broadcast Editorial. Fonts loaded from Google for parity with the design ref. -->
+<!-- Theme stylesheets. Fonts loaded from Google for parity with the design refs. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
@@ -46,7 +46,7 @@
   <div class="container topnav__inner">
     <div class="topnav__brand">
       <div class="topnav__brand-mark">A</div>
-      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">BROADCAST · v10</span></span>
+      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">CONSOLE · v10</span></span>
     </div>
     <div class="topnav__tabs">
       <a class="topnav__tab topnav__tab--active" href="/" aria-current="page">
@@ -575,11 +575,11 @@
     <article class="honor" data-honor-id="lyubu">
       <div class="honor__top">
         <span class="honor__index">01 / 16</span>
-        <span class="honor__cat">最多第一名</span>
+        <span class="honor__cat">全场统治力</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">吕布</div>
-      <div class="honor__desc">三国第一武将 · King of First</div>
+      <div class="honor__desc">头游率 + 上半区压制 · Dominance</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="lyubu">—</span></div>
@@ -590,11 +590,11 @@
     <article class="honor" data-honor-id="adou">
       <div class="honor__top">
         <span class="honor__index">02 / 16</span>
-        <span class="honor__cat">最多垫底</span>
+        <span class="honor__cat">整场低迷</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">阿斗</div>
-      <div class="honor__desc">扶不起的阿斗 · Bottom Dweller</div>
+      <div class="honor__desc">末游率 + 下半区停留 · Burden Arc</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="adou">—</span></div>
@@ -605,11 +605,11 @@
     <article class="honor" data-honor-id="shifo">
       <div class="honor__top">
         <span class="honor__index">03 / 16</span>
-        <span class="honor__cat">优秀且稳定</span>
+        <span class="honor__cat">稳定高位</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">石佛</div>
-      <div class="honor__desc">如石如佛 · Stone Buddha</div>
+      <div class="honor__desc">低方差 + 高位输出 · Stone Buddha</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="shifo">—</span></div>
@@ -620,11 +620,11 @@
     <article class="honor" data-honor-id="bodongwang">
       <div class="honor__top">
         <span class="honor__index">04 / 16</span>
-        <span class="honor__cat">排名波动最大</span>
+        <span class="honor__cat">总位移最大</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">波动王</div>
-      <div class="honor__desc">High Volatility · 大起大落</div>
+      <div class="honor__desc">全场名次震荡 · Volatility</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="bodongwang">—</span></div>
@@ -635,11 +635,11 @@
     <article class="honor" data-honor-id="fendouwang">
       <div class="honor__top">
         <span class="honor__index">05 / 16</span>
-        <span class="honor__cat">排名稳步提升</span>
+        <span class="honor__cat">后程爬升</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">奋斗王</div>
-      <div class="honor__desc">Steady Climber · 越战越勇</div>
+      <div class="honor__desc">前段到后段明显变强 · Climber</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="fendouwang">—</span></div>
@@ -650,11 +650,11 @@
     <article class="honor" data-honor-id="fanchewang">
       <div class="honor__top">
         <span class="honor__index">06 / 16</span>
-        <span class="honor__cat">前3掉垫底</span>
+        <span class="honor__cat">高位坠落</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">翻车王</div>
-      <div class="honor__desc">Spectacular Crash · 戏剧性崩盘</div>
+      <div class="honor__desc">上位区坠入底部 · Crash Arc</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="fanchewang">—</span></div>
@@ -665,11 +665,11 @@
     <article class="honor" data-honor-id="dutu">
       <div class="honor__top">
         <span class="honor__index">07 / 16</span>
-        <span class="honor__cat">高风险高回报</span>
+        <span class="honor__cat">极端摇摆</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">赌徒</div>
-      <div class="honor__desc">High Stakes · 拿1多但垫底也多</div>
+      <div class="honor__desc">头游和末游都多 · High Stakes</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="dutu">—</span></div>
@@ -680,11 +680,11 @@
     <article class="honor" data-honor-id="damanguan">
       <div class="honor__top">
         <span class="honor__index">08 / 16</span>
-        <span class="honor__cat">体验所有排名</span>
+        <span class="honor__cat">名次覆盖率</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">大满贯</div>
-      <div class="honor__desc">Grand Slam · 各排名都拿过</div>
+      <div class="honor__desc">全场名次图鉴 · Grand Slam</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="damanguan">—</span></div>
@@ -695,11 +695,11 @@
     <article class="honor" data-honor-id="lianshengewang">
       <div class="honor__top">
         <span class="honor__index">09 / 16</span>
-        <span class="honor__cat">连续好排名</span>
+        <span class="honor__cat">上半区连段</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">连胜王</div>
-      <div class="honor__desc">Win Streak · 连续上半区</div>
+      <div class="honor__name">连段王</div>
+      <div class="honor__desc">连续压在上半区 · Top-Half Streak</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="lianshengewang">—</span></div>
@@ -710,11 +710,11 @@
     <article class="honor" data-honor-id="foxiwanjia">
       <div class="honor__top">
         <span class="honor__index">10 / 16</span>
-        <span class="honor__cat">总是中游</span>
+        <span class="honor__cat">队内支点</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">佛系玩家</div>
-      <div class="honor__desc">Middle Path · 中庸之道</div>
+      <div class="honor__name">团队中轴</div>
+      <div class="honor__desc">持续强于队友均值 · Team Anchor</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="foxiwanjia">—</span></div>
@@ -725,11 +725,11 @@
     <article class="honor" data-honor-id="liyuwang">
       <div class="honor__top">
         <span class="honor__index">11 / 16</span>
-        <span class="honor__cat">惊天逆转</span>
+        <span class="honor__cat">低谷翻盘</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">鲤鱼王</div>
-      <div class="honor__desc">Underdog Comeback · 后程发力</div>
+      <div class="honor__name">逆转核心</div>
+      <div class="honor__desc">从低位带起后程 · Comeback Core</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="liyuwang">—</span></div>
@@ -740,11 +740,11 @@
     <article class="honor" data-honor-id="buzhanguo">
       <div class="honor__top">
         <span class="honor__index">12 / 16</span>
-        <span class="honor__cat">从不垫底</span>
+        <span class="honor__cat">队伍保底</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">不粘锅</div>
-      <div class="honor__desc">Teflon · 永不末游</div>
+      <div class="honor__name">保底核心</div>
+      <div class="honor__desc">不垫底且托住队友 · Safety Net</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="buzhanguo">—</span></div>
@@ -755,11 +755,11 @@
     <article class="honor" data-honor-id="shandianxia">
       <div class="honor__top">
         <span class="honor__index">13 / 16</span>
-        <span class="honor__cat">变化频繁</span>
+        <span class="honor__cat">队伍节奏</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">闪电侠</div>
-      <div class="honor__desc">The Flash · 名次变化最多</div>
+      <div class="honor__name">节奏核心</div>
+      <div class="honor__desc">推动队伍持续领先 · Tempo Core</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="shandianxia">—</span></div>
@@ -770,11 +770,11 @@
     <article class="honor" data-honor-id="ranjinwang">
       <div class="honor__top">
         <span class="honor__index">14 / 16</span>
-        <span class="honor__cat">持续低迷</span>
+        <span class="honor__cat">后程燃尽</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">燃尽王</div>
-      <div class="honor__desc">Burnout · 状态持续下滑</div>
+      <div class="honor__desc">前段尚可后段坠落 · Burnout Arc</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="ranjinwang">—</span></div>
@@ -785,11 +785,11 @@
     <article class="honor" data-honor-id="qichayizhao">
       <div class="honor__top">
         <span class="honor__index">15 / 16</span>
-        <span class="honor__cat">差点登顶</span>
+        <span class="honor__cat">无冠二游</span>
         <span class="honor__status">—</span>
       </div>
       <div class="honor__name">棋差一着</div>
-      <div class="honor__desc">So Close · 屡屡第二</div>
+      <div class="honor__desc">二游很多但没有头游 · So Close</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="qichayizhao">—</span></div>
@@ -800,11 +800,11 @@
     <article class="honor" data-honor-id="xiaochou">
       <div class="honor__top">
         <span class="honor__index">16 / 16</span>
-        <span class="honor__cat">无冠最菜</span>
+        <span class="honor__cat">低谷反弹</span>
         <span class="honor__status">—</span>
       </div>
-      <div class="honor__name">🤡</div>
-      <div class="honor__desc">The Clown · 0头游+末段</div>
+      <div class="honor__name">抗压王</div>
+      <div class="honor__desc">低位承压后反弹最多 · Pressure Rebound</div>
       <div class="honor__recipient">
         <div class="honor__avatar honor__avatar--empty">?</div>
         <div class="honor__player"><span class="honor__playername" id="xiaochou">—</span></div>
@@ -880,7 +880,7 @@
 
   <!-- ============== FOOTER ============== -->
   <footer class="footer">
-    <div class="footer__brand">GD&nbsp;LIVE · BROADCAST EDITORIAL · v10</div>
+    <div class="footer__brand">GD&nbsp;LIVE · CONSOLE · v10</div>
     <div class="footer__meta" id="footerMeta">
       <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
       · MADE WITH ❤️ BY XINGFAN XIA

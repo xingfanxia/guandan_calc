@@ -35,8 +35,14 @@ captchas, MFA, account recovery flows.
 | When | What |
 |---|---|
 | `POST /api/rooms/create` | Server generates a 32-byte random `authToken`, stores it in the room object in KV, and returns it ONCE in the response. Host must persist it (currently in-memory in `roomManager.js`; survives via the URL `?auth=<token>` parameter for re-joins). |
-| `GET /api/rooms/<code>` | Always strips `authToken` from the response payload. Viewers can read game state but never see the host token. |
+| `GET /api/rooms/<code>` | Always strips `authToken` from the response payload and returns a reconciled `state.gameStatus` based on the stored history. Viewers can read game state but never see the host token. If a Bearer token is supplied, `hostVerified: true` is returned only when the room already has a stored token and it matches. |
 | `PUT /api/rooms/<code>` | Requires `Authorization: Bearer <token>` header. Token is constant-time-compared against the stored token. Returns 403 on mismatch. |
+
+The client treats a successful room-create response without `authToken` as a
+failed create contract and does not generate a fallback host token locally.
+Room creation also initializes server-owned room metadata: `isFavorite` is
+always false, favorite timestamps are discarded, and active/archived vote
+stores start empty regardless of client-supplied fields.
 
 **Trust-on-first-use (TOFU) for legacy rooms.** Rooms created before the audit
 have no `authToken` field stored. The first PUT to such a room accepts whatever
@@ -44,11 +50,14 @@ token the client sends and pins it as the host token. Subsequent PUTs require
 the same token. This avoids breaking 24h in-flight rooms without weakening
 the going-forward security posture.
 
-**Fail-open if no token at all.** For legacy TOFU rooms, a PUT with no
-`Authorization` header is rejected (403). The client always sends a token
-(generated client-side in `roomManager.js` if the server didn't issue one),
-so the only way to hit this path is a hand-crafted request — exactly what
-we want to block.
+TOFU applies only to state-changing PUTs. GET does not treat an arbitrary Bearer
+token as verified host auth for a legacy no-token room.
+
+**Fail-closed if no token at all.** For legacy TOFU rooms, a PUT with no
+`Authorization` header is rejected (403). Current room creation requires the
+server-issued token; the client no longer generates a replacement token when a
+create response is missing `authToken`. Legacy room URLs that already carry an
+`auth` query parameter can still pin that token on their first PUT.
 
 ### Admin endpoints (`api/players/*`)
 
@@ -57,6 +66,8 @@ The following endpoints require admin authentication:
 - `POST /api/players/delete` — permanent player deletion
 - `POST /api/players/reset-stats` — clear stats but keep identity
 - `POST /api/players/migrate-modes` — mass-rewrite all players in KV
+- `POST /api/players/migrate-single` — rewrite one player's mode stats
+- `POST /api/players/backfill-duration` — mutate one player's recent-game durations
 - `PUT /api/players/<handle>` with `mode: 'PROFILE_UPDATE'` — change displayName /
   emoji / tagline / photoBase64
 
@@ -153,6 +164,9 @@ The stats handler accepts ANY of three credentials, in priority order:
    `authToken` on the room identified by `gameResult.roomCode` AND the target
    handle is in that room's `players[]` — host writing for a participant of
    their own room
+   - Participant matching accepts both modern `players[].handle` and legacy
+     `players[].profileHandle`; `session` placeholders and invalid handle
+     strings do not authorize profile writes.
 
 Without one of those, writes 403. The room-host check is the primary
 production path — host's `syncProfileStats` passes its room token to every
@@ -199,19 +213,84 @@ handler now reads vote counts from authoritative server storage:
 3. Authoritative values overwrite `gameResult.mvpVoteCount` /
    `burdenVoteCount` for the rest of the handler — `votingHistory` deltas
    compute against truth, not claim
+4. Profile `votingHistory` keys are derived from authoritative room state as
+   vote-session keys, not only the bare room code. Reset/new voting windows in
+   the same room therefore do not overwrite or subtract a previous window's
+   lifetime vote contribution. First-epoch legacy `roomCode` keys are preserved
+   only when already present, avoiding double-counting data synced before the
+   vote-session key migration.
 
 For LOCAL games (no shared room storage), client values are still trusted
 because there's no alternative source. This is acceptable because the auth
 gate already restricts LOCAL writes to owner-Bearer (player's own
 profile from their own device) — worst case is self-spam, not cross-player
-inflation.
+inflation. LOCAL games also send a client-derived vote-session key with the
+completed session stats so repeated local sessions do not all collapse into a
+single `LOCAL` votingHistory entry.
 
-### Vote fingerprint array is unbounded
+Complete profile-session stats use a separate game-session idempotency key and
+`player.stats.sessionHistory`. Unlike vote-session keys, the game-session key
+does not include the vote reset epoch. If the host repeats the final profile
+sync, the handler only applies the idempotent voting delta and returns
+`duplicateSessionIgnored: true`; it does not add another session, streak,
+partner/opponent edge, honor, mode-stat entry, or recent game.
 
-`api/rooms/vote/[code].js` appends to `room.endGameVotes.fingerprints` with no
-cap. After thousands of votes, JSON serialization cost grows linearly and the
-KV value bloats. Cap to last 1000 fingerprints, or move dedup to a separate KV
-key with TTL.
+### Vote fingerprint cap (resolved 2026-05)
+
+`api/rooms/vote/[code].js` caps `room.endGameVotes.fingerprints` to the last
+1000 entries. This keeps duplicate-vote detection bounded so the room JSON
+record does not grow without limit.
+Fingerprints are internal duplicate-vote state only: both
+`GET /api/rooms/vote/<code>` and `GET /api/rooms/<code>` return public vote
+totals/epochs without exposing current or archived fingerprint lists.
+Because `GET /api/rooms/<code>` is public, `PUT /api/rooms/<code>` does not
+trust client-supplied active vote state while the room is ended; it preserves
+the authoritative vote totals/fingerprints already in KV. When the host
+reopens a room through reset/rollback sync, the same PUT path clears the active
+vote store so stale fingerprints cannot block the next voting window.
+
+### Vote reset clears authoritative vote state (resolved 2026-06-10)
+
+`POST /api/rooms/reset-vote/<code>` now clears the authoritative
+`room.endGameVotes` store used by the live vote endpoints, including
+fingerprints. Previous results are archived in a bounded
+`room.endGameVotesHistory` array before the store is reset to empty. This
+prevents a host reset from leaving stale vote counts visible or causing
+viewers to be rejected as duplicate voters in the next voting window.
+`reset-vote` also bumps `room.lastUpdated`, so viewer polling observes the new
+vote epoch. Frontend local duplicate-vote markers and profile `votingHistory`
+both use vote-session keys that include the archived vote epoch.
+
+### Vote payload validation (resolved 2026-06-10)
+
+`POST /api/rooms/vote/<code>` now validates the vote against authoritative
+room data before mutating `room.endGameVotes`:
+
+- MVP and burden IDs are normalized and must be distinct after normalization
+- Both IDs must exist in `room.players[]`
+- A non-empty viewer fingerprint is required and normalized before duplicate
+  checks; missing or oversized fingerprints are rejected with
+  `invalid_fingerprint`
+- Voting is accepted only after `state.gameStatus.ended === true`, with a
+  legacy history-note fallback for older rooms
+
+This prevents forged votes for non-participants and prevents pre-end-game
+vote writes from bypassing the viewer UI lock. Requiring a server-validated
+fingerprint also prevents direct POSTs without fingerprints from bypassing the
+duplicate-vote guard.
+
+### Room write endpoints (resolved 2026-06-10)
+
+Room state mutations require the room host Bearer token:
+
+- `PUT /api/rooms/<code>` — update game state
+- `POST /api/rooms/reset-vote/<code>` — archive/reset voting state
+- `POST /api/rooms/favorite/<code>` — make a room permanent
+- `DELETE /api/rooms/favorite/<code>` — remove permanent favorite status
+
+All API endpoints now return a real `204` CORS preflight response for
+`OPTIONS`; success-response CORS headers alone are not enough for browser
+preflight.
 
 ---
 
@@ -291,11 +370,34 @@ glyphs). No additional escaping needed there.
 ## Input validation
 
 `api/players/_utils.js` `validatePlayerData` validates:
-- handle: 3-20 chars, `[a-zA-Z0-9_]`
+- handle: 3-20 chars, `[a-zA-Z0-9_]`, excluding object-prototype keys
+  (`__proto__`, `prototype`, `constructor`) because handles are also used as
+  relationship-map keys in profile stats
 - playStyle: enum of 9 values
 - displayName: max 40 chars (added 2026-05-06 alongside the toast notification system — unbounded names would break toast layout and enable griefing in shared rooms)
 - tagline: max 50 chars
 - photoBase64: must start with `data:image/`, max ~150KB
+
+All player mutation and maintenance endpoints that accept a handle now reuse
+`validateHandle` before reading or writing KV, including admin-only delete,
+reset, single-player migration, duration backfill, and public `touch`.
+
+Player and room JSON mutation endpoints reject malformed, `null`, array, or
+otherwise non-object JSON bodies with 400 before auth, business logic, or KV
+access. This includes admin-only maintenance endpoints such as mode migration
+and duration backfill.
+Public player list/search reads parse each KV record independently and skip
+malformed legacy records, so one bad profile cannot turn the whole list into a
+500 response.
+
+`api/players/<handle>` stats updates normalize session fields before profile
+mutation: ranking, team, session counts/duration, relation handles, session
+keys, vote booleans, and `honorsEarned`. Session and vote idempotency keys
+reject object-prototype keys (`__proto__`, `prototype`, `constructor`) before
+they can become `sessionHistory` / `votingHistory` object properties.
+`honorsEarned` must be an array of current honor titles, is capped to the
+current honor catalog size, and is deduplicated before incrementing lifetime
+honor counters.
 
 `api/rooms/[code].js` validates:
 - roomCode: `^[A-Z0-9]{6}$`
@@ -314,11 +416,17 @@ glyphs). No additional escaping needed there.
 |---|---|
 | `api/rooms/create.js` | Server-side token generation |
 | `api/rooms/[code].js` | Bearer auth on PUT, strip token from GET, TOFU |
+| `api/rooms/_auth.js` | Shared room host Bearer validation |
+| `api/rooms/favorite/[code].js` | Host auth on favorite/unfavorite |
+| `api/rooms/reset-vote/[code].js` | Host auth on vote reset |
+| `api/_cors.js` | Shared CORS preflight handling |
 | `api/players/_utils.js` | `validateAdminToken` helper (constant-time) |
-| `api/players/delete.js` | Use validateAdminToken |
-| `api/players/reset-stats.js` | Use validateAdminToken |
+| `api/players/delete.js` | Use validateAdminToken + validateHandle |
+| `api/players/reset-stats.js` | Use validateAdminToken + validateHandle |
 | `api/players/migrate-modes.js` | Add admin gate (was public) |
-| `api/players/[handle].js` | Admin gate on PROFILE_UPDATE |
+| `api/players/migrate-single.js` | Add admin gate (was public) + validateHandle |
+| `api/players/backfill-duration.js` | POST-only admin gate (was public GET mutation) + validateHandle |
+| `api/players/[handle].js` | Admin gate on PROFILE_UPDATE; public GET migration disabled |
 | `src/core/utils.js` | `escapeHtml` helper |
 | `src/player/playerSearch.js` | Apply escapeHtml |
 | `src/player/playerEditModal.js` | Apply escapeHtml |

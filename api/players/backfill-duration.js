@@ -1,37 +1,68 @@
 // Backfill game duration from room timestamps
-// GET /api/players/backfill-duration?handle=xxx
+// POST /api/players/backfill-duration with { handle, adminToken }
 
 import { kv } from '@vercel/kv';
+import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
+import { parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
+import { parseRoomRecord } from '../rooms/_record.js';
+
+const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
+
+function calculateRoomDurationSeconds(createdAt, finishedAt) {
+  if (typeof createdAt !== 'string' || typeof finishedAt !== 'string') {
+    return null;
+  }
+
+  const createdTime = new Date(createdAt).getTime();
+  const finishedTime = new Date(finishedAt).getTime();
+  if (!Number.isFinite(createdTime) || !Number.isFinite(finishedTime)) {
+    return null;
+  }
+
+  const duration = Math.floor((finishedTime - createdTime) / 1000);
+  return duration >= 0 ? duration : null;
+}
 
 export default async function handler(request) {
-  if (request.method !== 'GET') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  const preflight = handleCorsPreflight(request, 'POST, OPTIONS');
+  if (preflight) return preflight;
+
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, { ...RESPONSE_OPTIONS, status: 405 });
   }
 
   try {
-    const url = new URL(request.url);
-    const handle = url.searchParams.get('handle');
+    const parsedBody = await parseJsonBody(request);
+    if (!parsedBody.ok) {
+      return jsonResponse({ error: parsedBody.error }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+
+    const { handle, adminToken } = parsedBody.data;
+
+    if (!validateAdminToken(adminToken)) {
+      return jsonResponse({
+        error: 'Unauthorized - Invalid admin token'
+      }, { ...RESPONSE_OPTIONS, status: 403 });
+    }
 
     if (!handle) {
-      return new Response(JSON.stringify({ error: 'Missing handle parameter' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Missing handle' }, { ...RESPONSE_OPTIONS, status: 400 });
+    }
+
+    if (!validateHandle(handle)) {
+      return jsonResponse({ error: 'Invalid handle format' }, { ...RESPONSE_OPTIONS, status: 400 });
     }
 
     // Get player
     const playerData = await kv.get(`player:${handle.toLowerCase()}`);
     if (!playerData) {
-      return new Response(JSON.stringify({ error: 'Player not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
 
-    const player = typeof playerData === 'string' ? JSON.parse(playerData) : playerData;
+    const player = parsePlayerRecord(playerData);
+    if (!player) {
+      return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
+    }
 
     let updated = 0;
     let failed = 0;
@@ -56,13 +87,21 @@ export default async function handler(request) {
             continue;
           }
 
-          const room = typeof roomData === 'string' ? JSON.parse(roomData) : roomData;
+          const room = parseRoomRecord(roomData);
+          if (!room) {
+            results.push({ roomCode, status: 'invalid_room_record' });
+            failed++;
+            continue;
+          }
 
           // Calculate duration from timestamps
           if (room.createdAt && room.finishedAt) {
-            const duration = Math.floor(
-              (new Date(room.finishedAt).getTime() - new Date(room.createdAt).getTime()) / 1000
-            );
+            const duration = calculateRoomDurationSeconds(room.createdAt, room.finishedAt);
+            if (duration === null) {
+              results.push({ roomCode, status: 'invalid_timestamps' });
+              failed++;
+              continue;
+            }
 
             // Update game duration
             game.duration = duration;
@@ -89,29 +128,20 @@ export default async function handler(request) {
       }
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       handle,
       updated,
       failed,
       results
-    }), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    });
+    }, RESPONSE_OPTIONS);
 
   } catch (error) {
     console.error('Backfill error:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: 'Backfill failed',
       details: error.message
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { ...RESPONSE_OPTIONS, status: 500 });
   }
 }
 
