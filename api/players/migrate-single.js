@@ -3,7 +3,14 @@
 
 import { kv } from '@vercel/kv';
 import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
-import { initializePlayerStats, normalizeRecordMap, parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
+import {
+  applyStorageHandle,
+  initializePlayerStats,
+  normalizeRecordMap,
+  parsePlayerRecord,
+  validateAdminToken,
+  validateHandle
+} from './_utils.js';
 import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
 import { normalizeHonorCounter } from '../../shared/honorCatalog.js';
 
@@ -40,7 +47,8 @@ export default async function handler(request) {
     }
 
     // Get player
-    const playerData = await kv.get(`player:${handle.toLowerCase()}`);
+    const normalizedHandle = handle.toLowerCase();
+    const playerData = await kv.get(`player:${normalizedHandle}`);
     if (!playerData) {
       return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
@@ -49,6 +57,7 @@ export default async function handler(request) {
     if (!player) {
       return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
+    applyStorageHandle(player, normalizedHandle);
     const honorsBefore = JSON.stringify(player.stats?.honors || null);
     let statsInitialized = false;
     if (!player.stats || typeof player.stats !== 'object') {
@@ -64,7 +73,7 @@ export default async function handler(request) {
     // Check if already migrated
     if (player.stats.stats4P && player.stats.stats4P.sessionsPlayed !== undefined) {
       if (statsInitialized || honorsChanged || sessionHistoryChanged) {
-        await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
+        await kv.set(`player:${normalizedHandle}`, JSON.stringify(player));
       }
       return jsonResponse({
         success: true,
@@ -90,7 +99,7 @@ export default async function handler(request) {
     }
 
     // Save
-    await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
+    await kv.set(`player:${normalizedHandle}`, JSON.stringify(player));
 
     return jsonResponse({
       success: true,

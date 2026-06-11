@@ -3,7 +3,14 @@
 
 import { kv } from '@vercel/kv';
 import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
-import { initializePlayerStats, parsePlayerRecord, validateAdminToken, validateHandle, sanitizePlayer } from './_utils.js';
+import {
+  applyStorageHandle,
+  initializePlayerStats,
+  parsePlayerRecord,
+  validateAdminToken,
+  validateHandle,
+  sanitizePlayer
+} from './_utils.js';
 
 const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
@@ -58,6 +65,7 @@ export default async function handler(request) {
         error: 'Player not found'
       }, { ...RESPONSE_OPTIONS, status: 404 });
     }
+    applyStorageHandle(player, normalizedHandle);
 
     // Reset stats and game history while keeping identity
     player.stats = initializePlayerStats();

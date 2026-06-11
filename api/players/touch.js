@@ -3,7 +3,7 @@
 
 import { kv } from '@vercel/kv';
 import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
-import { parsePlayerRecord, validateHandle } from './_utils.js';
+import { applyStorageHandle, parsePlayerRecord, validateHandle } from './_utils.js';
 
 const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 
@@ -51,6 +51,7 @@ export default async function handler(request) {
         error: 'Player not found'
       }, { ...RESPONSE_OPTIONS, status: 404 });
     }
+    applyStorageHandle(player, handle);
 
     // Update lastActiveAt
     player.lastActiveAt = new Date().toISOString();

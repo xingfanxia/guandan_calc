@@ -124,6 +124,12 @@ const records = new Map([
   ['player:streaky', JSON.stringify(legacyStreakPlayer)],
   ['player:dirtyrec', JSON.stringify(dirtyRecentGamesPlayer)],
   ['player:dirtyman', JSON.stringify(dirtyManualMigrationPlayer)],
+  ['player:keyfix', JSON.stringify({
+    ...validPlayer,
+    id: 'PLR_KEYFIX',
+    handle: 'ghost',
+    recentGames: []
+  })],
   ['player:corrupt', 'not-json'],
   ['room:BADJSN', 'not-json'],
   ['room:BADTIM', JSON.stringify({
@@ -193,6 +199,30 @@ try {
   const { default: resetStatsHandler } = await import('../../api/players/reset-stats.js');
   const { default: migrateSingleHandler } = await import('../../api/players/migrate-single.js');
   const { default: backfillDurationHandler } = await import('../../api/players/backfill-duration.js');
+
+  const keyScopedProfileResponse = await profileHandler(new Request('https://example.test/api/players/keyfix', {
+    method: 'GET'
+  }));
+  assert.equal(keyScopedProfileResponse.status, 200);
+  const keyScopedProfileBody = await keyScopedProfileResponse.json();
+  assert.equal(
+    keyScopedProfileBody.player.handle,
+    'keyfix',
+    'player profile GET should return the storage-key handle instead of stale embedded handle values'
+  );
+
+  const keyScopedTouchResponse = await touchHandler(new Request('https://example.test/api/players/touch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ handle: 'keyfix' })
+  }));
+  assert.equal(keyScopedTouchResponse.status, 200);
+  const keyScopedTouchWrite = writes.find(write => write.operation === 'set' && write.key === 'player:keyfix');
+  assert.equal(
+    keyScopedTouchWrite?.value.handle,
+    'keyfix',
+    'player touch should persist the storage-key handle instead of stale embedded handle values'
+  );
 
   for (const [name, request, handler] of [
     ['profile GET', new Request('https://example.test/api/players/corrupt', { method: 'GET' }), profileHandler],

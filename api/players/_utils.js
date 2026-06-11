@@ -313,6 +313,15 @@ export function parsePlayerRecord(value) {
   }
 }
 
+export function applyStorageHandle(player, handle) {
+  if (!player || typeof player !== 'object' || Array.isArray(player) || !validateHandle(handle)) {
+    return player;
+  }
+
+  player.handle = handle.toLowerCase();
+  return player;
+}
+
 export function normalizeRecordMap(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 }

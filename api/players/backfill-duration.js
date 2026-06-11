@@ -3,7 +3,7 @@
 
 import { kv } from '@vercel/kv';
 import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
-import { parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
+import { applyStorageHandle, parsePlayerRecord, validateAdminToken, validateHandle } from './_utils.js';
 import { parseRoomRecord } from '../rooms/_record.js';
 
 const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
@@ -54,7 +54,8 @@ export default async function handler(request) {
     }
 
     // Get player
-    const playerData = await kv.get(`player:${handle.toLowerCase()}`);
+    const normalizedHandle = handle.toLowerCase();
+    const playerData = await kv.get(`player:${normalizedHandle}`);
     if (!playerData) {
       return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
@@ -63,6 +64,7 @@ export default async function handler(request) {
     if (!player) {
       return jsonResponse({ error: 'Player not found' }, { ...RESPONSE_OPTIONS, status: 404 });
     }
+    applyStorageHandle(player, normalizedHandle);
 
     let updated = 0;
     let failed = 0;
@@ -124,7 +126,7 @@ export default async function handler(request) {
 
       // Save updated player data
       if (updated > 0) {
-        await kv.set(`player:${handle.toLowerCase()}`, JSON.stringify(player));
+        await kv.set(`player:${normalizedHandle}`, JSON.stringify(player));
       }
     }
 

@@ -25,6 +25,7 @@ import {
   extractBearerToken,
   sanitizePlayer,
   parsePlayerRecord,
+  applyStorageHandle,
   normalizeRecordMap,
   constantTimeEqual,
   generateOwnershipToken,
@@ -664,6 +665,7 @@ export default async function handler(request) {
           error: 'Player not found'
         }, { ...RESPONSE_OPTIONS, status: 404 });
       }
+      applyStorageHandle(player, handle);
       if (!player.stats || typeof player.stats !== 'object') {
         player.stats = initializePlayerStats();
       } else {
@@ -704,6 +706,7 @@ export default async function handler(request) {
             error: 'Player not found'
           }, { ...RESPONSE_OPTIONS, status: 404 });
         }
+        applyStorageHandle(player, handle);
 
         // Auth: admin token (body) OR ownership Bearer (header).
         // Admin always overrides; owner only works if the player record was created
@@ -781,6 +784,7 @@ export default async function handler(request) {
             error: 'Player not found'
           }, { ...RESPONSE_OPTIONS, status: 404 });
         }
+        applyStorageHandle(player, handle);
 
         const adminOk = validateAdminToken(requestData.adminToken);
         let ownerOk = false;
@@ -844,6 +848,7 @@ export default async function handler(request) {
           error: 'Player not found'
         }, { ...RESPONSE_OPTIONS, status: 404 });
       }
+      applyStorageHandle(player, handle);
       if (!player.stats || typeof player.stats !== 'object') {
         player.stats = initializePlayerStats();
       }

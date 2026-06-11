@@ -3,7 +3,13 @@
 
 import { kv } from '@vercel/kv';
 import { handleCorsPreflight, jsonResponse, parseJsonBody } from '../_cors.js';
-import { initializePlayerStats, normalizeRecordMap, parsePlayerRecord, validateAdminToken } from './_utils.js';
+import {
+  applyStorageHandle,
+  initializePlayerStats,
+  normalizeRecordMap,
+  parsePlayerRecord,
+  validateAdminToken
+} from './_utils.js';
 import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
 import { normalizeHonorCounter } from '../../shared/honorCatalog.js';
 
@@ -121,6 +127,9 @@ export default async function handler(request) {
           });
           continue;
         }
+
+        const keyHandle = key.replace(/^player:/, '');
+        applyStorageHandle(player, keyHandle);
 
         const migrationResult = migratePlayerToModeStats(player);
 
