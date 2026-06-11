@@ -56,10 +56,22 @@ const favoriteData = buildFavoriteRoomData(
 );
 assert.equal(favoriteData.isFavorite, true);
 assert.equal(favoriteData.favoritedAt, '2026-06-10T12:00:00.000Z');
+assert.equal(favoriteData.roomCode, 'ROOM12');
 assert.equal(
   Object.hasOwn(favoriteData, 'unfavoritedAt'),
   false,
   'favoriting should remove stale unfavoritedAt metadata'
+);
+
+const routeScopedFavoriteData = buildFavoriteRoomData(
+  { roomCode: 'WRONG1', isFavorite: false },
+  '2026-06-10T12:00:00.000Z',
+  { roomCode: 'ROOM12' }
+);
+assert.equal(
+  routeScopedFavoriteData.roomCode,
+  'ROOM12',
+  'favoriting should persist the route/storage roomCode over stale embedded roomCode values'
 );
 
 const unfavoriteData = buildUnfavoriteRoomData(
@@ -72,10 +84,22 @@ const unfavoriteData = buildUnfavoriteRoomData(
 );
 assert.equal(unfavoriteData.isFavorite, false);
 assert.equal(unfavoriteData.unfavoritedAt, '2026-06-10T12:30:00.000Z');
+assert.equal(unfavoriteData.roomCode, 'ROOM12');
 assert.equal(
   Object.hasOwn(unfavoriteData, 'favoritedAt'),
   false,
   'unfavoriting should remove stale favoritedAt metadata'
+);
+
+const routeScopedUnfavoriteData = buildUnfavoriteRoomData(
+  { roomCode: 'WRONG1', isFavorite: true },
+  '2026-06-10T12:30:00.000Z',
+  { roomCode: 'ROOM12' }
+);
+assert.equal(
+  routeScopedUnfavoriteData.roomCode,
+  'ROOM12',
+  'unfavoriting should persist the route/storage roomCode over stale embedded roomCode values'
 );
 
 console.log('room favorite index checks passed');

@@ -87,7 +87,10 @@ export function publicVoteStoreForRoom(room) {
 }
 
 export async function saveRoomWithFavoriteTtl(kvClient, roomCode, room) {
-  const value = JSON.stringify(room);
+  const value = JSON.stringify({
+    ...room,
+    roomCode
+  });
   if (room?.isFavorite) {
     await kvClient.set(`room:${roomCode}`, value);
     return;

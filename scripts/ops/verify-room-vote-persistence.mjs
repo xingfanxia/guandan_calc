@@ -15,6 +15,7 @@ const fakeKv = {
 
 await saveRoomWithFavoriteTtl(fakeKv, 'ABC123', { roomCode: 'ABC123', isFavorite: true });
 await saveRoomWithFavoriteTtl(fakeKv, 'DEF456', { roomCode: 'DEF456', isFavorite: false });
+await saveRoomWithFavoriteTtl(fakeKv, 'KEY123', { roomCode: 'WRONG1', isFavorite: false });
 
 assert.equal(calls[0].method, 'set');
 assert.equal(calls[0].key, 'room:ABC123');
@@ -24,6 +25,14 @@ assert.equal(calls[1].method, 'setex');
 assert.equal(calls[1].key, 'room:DEF456');
 assert.equal(calls[1].ttl, 31536000);
 assert.equal(calls[1].value.isFavorite, false);
+
+assert.equal(calls[2].method, 'setex');
+assert.equal(calls[2].key, 'room:KEY123');
+assert.equal(
+  calls[2].value.roomCode,
+  'KEY123',
+  'room storage writes should persist the storage-key roomCode instead of stale embedded roomCode values'
+);
 
 const roomWithVotes = {
   roomCode: 'FAV123',
@@ -59,8 +68,8 @@ assert.deepEqual(roomWithVotes.voting.currentRound, {
 });
 
 await saveResetRoomVotingState(fakeKv, 'FAV123', roomWithVotes);
-assert.equal(calls[2].method, 'set');
-assert.equal(calls[2].key, 'room:FAV123');
-assert.deepEqual(calls[2].value.endGameVotes, { mvp: {}, burden: {}, fingerprints: [] });
+assert.equal(calls[3].method, 'set');
+assert.equal(calls[3].key, 'room:FAV123');
+assert.deepEqual(calls[3].value.endGameVotes, { mvp: {}, burden: {}, fingerprints: [] });
 
 console.log('room vote persistence checks passed');

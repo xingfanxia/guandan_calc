@@ -35,19 +35,21 @@ export function removeFavoriteIndexEntry(indexValue, roomCode) {
     .filter(fav => fav.roomCode !== roomCode);
 }
 
-export function buildFavoriteRoomData(roomData, favoritedAt = new Date().toISOString()) {
+export function buildFavoriteRoomData(roomData, favoritedAt = new Date().toISOString(), fallback = {}) {
   const { unfavoritedAt, ...roomWithoutUnfavoriteTime } = roomData;
   return {
     ...roomWithoutUnfavoriteTime,
+    ...(fallback.roomCode ? { roomCode: fallback.roomCode } : {}),
     isFavorite: true,
     favoritedAt
   };
 }
 
-export function buildUnfavoriteRoomData(roomData, unfavoritedAt = new Date().toISOString()) {
+export function buildUnfavoriteRoomData(roomData, unfavoritedAt = new Date().toISOString(), fallback = {}) {
   const { favoritedAt, ...roomWithoutFavoriteTime } = roomData;
   return {
     ...roomWithoutFavoriteTime,
+    ...(fallback.roomCode ? { roomCode: fallback.roomCode } : {}),
     isFavorite: false,
     unfavoritedAt
   };
@@ -81,7 +83,7 @@ export default async function handler(request) {
     if (request.method === 'POST') {
       // Add room to favorites (make permanent)
       // Mark as favorite and make permanent
-      const favoriteData = buildFavoriteRoomData(parsedData);
+      const favoriteData = buildFavoriteRoomData(parsedData, undefined, { roomCode });
 
       // Store without expiration (permanent)
       await kv.set(`room:${roomCode}`, JSON.stringify(favoriteData));
@@ -105,7 +107,7 @@ export default async function handler(request) {
     } else if (request.method === 'DELETE') {
       // Remove from favorites (revert to 1-year TTL)
       // Remove favorite status and set 1-year expiration
-      const unfavoriteData = buildUnfavoriteRoomData(parsedData);
+      const unfavoriteData = buildUnfavoriteRoomData(parsedData, undefined, { roomCode });
 
       await kv.setex(`room:${roomCode}`, 31536000, JSON.stringify(unfavoriteData)); // 1 year
 
