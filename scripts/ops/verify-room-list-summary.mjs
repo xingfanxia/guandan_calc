@@ -185,6 +185,16 @@ assert.deepEqual(
 const unlistableSummary = summarizeRoomForList({ ...malformedRoom, roomCode: '<bad>' }, { roomCode: '../BAD' });
 assert.equal(unlistableSummary.roomCode, null);
 
+const indexedSummaryWithStaleEmbeddedCode = summarizeRoomForList(
+  { ...room, roomCode: 'WRONG1' },
+  { roomCode: 'KEY123' }
+);
+assert.equal(
+  indexedSummaryWithStaleEmbeddedCode.roomCode,
+  'KEY123',
+  'room summary should prefer the lookup/index roomCode over stale embedded roomCode values'
+);
+
 const malformedPlayersSummary = summarizeRoomForList({
   ...room,
   players: {
@@ -267,6 +277,32 @@ globalThis.fetch = async (url, options = {}) => {
 };
 
 try {
+  roomRecords['rooms:index'] = [
+    { roomCode: 'KEY123', createdAt: '2026-06-10T10:50:00.000Z' }
+  ];
+  roomRecords['room:KEY123'] = {
+    ...room,
+    roomCode: 'WRONG1',
+    createdAt: '2026-06-10T10:50:00.000Z',
+    lastUpdated: '2026-06-10T10:50:00.000Z',
+    players: [{ handle: 'alice' }]
+  };
+
+  const staleEmbeddedCodeResponse = await roomListHandler(
+    new Request('https://example.test/api/rooms/list?page=1&limit=1', { method: 'GET' })
+  );
+  const staleEmbeddedCodeBody = await staleEmbeddedCodeResponse.json();
+  assert.equal(
+    staleEmbeddedCodeResponse.status,
+    200,
+    'room list should keep responding when an indexed room has a stale embedded roomCode'
+  );
+  assert.deepEqual(
+    staleEmbeddedCodeBody.rooms.map(listedRoom => listedRoom.roomCode),
+    ['KEY123'],
+    'room list should return the lookup/index roomCode used to fetch the record'
+  );
+
   roomRecords['rooms:index'] = [
     { roomCode: 'BAD123', createdAt: 'not-a-date' },
     { roomCode: 'ABC123', createdAt: '2026-06-10T10:00:00.000Z' },

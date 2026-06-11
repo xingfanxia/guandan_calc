@@ -99,7 +99,8 @@ export function summarizeRoomForList(roomData, fallback = {}) {
     gameStatus.ended ||
     (!hasExplicitGameStatus && (state.gameEnded || parsed.finishedAt))
   );
-  const roomCode = normalizeRoomCode(parsed.roomCode) || normalizeRoomCode(fallback.roomCode);
+  const fallbackRoomCode = normalizeRoomCode(fallback.roomCode);
+  const roomCode = fallbackRoomCode || normalizeRoomCode(parsed.roomCode);
 
   return {
     roomCode,
