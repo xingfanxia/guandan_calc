@@ -453,6 +453,25 @@ test('A-level last-place checks normalize numeric game modes', () => {
   assert.match(preview.aNote, /胜方含末游/);
 });
 
+test('strict A demotes a winning own-A team to 2 after the third last-place failure', () => {
+  reset();
+  state.setTeamLevel('t1', 'A');
+  state.setTeamAFail('t1', 2);
+  state.setTeamLevel('t2', 'K');
+  state.setRoundLevel('A');
+  state.setRoundOwner('t1');
+
+  const result = applyRound({ winner: 't1', ranks: [1, 4] });
+
+  assert.equal(result.finalWin, false);
+  assert.equal(state.getTeamLevel('t1'), '2');
+  assert.equal(state.getTeamAFail('t1'), 0);
+  assert.equal(state.getGameStatus().ended, false);
+  assert.match(result.historyEntry.aNote, /胜方含末游/);
+  assert.match(result.historyEntry.aNote, /累计3次失败/);
+  assert.equal(checkGameEnded(), null);
+});
+
 test('lenient A own-round win with last place is not misread as a clear', () => {
   reset();
   config.setPreference('strictA', false);
