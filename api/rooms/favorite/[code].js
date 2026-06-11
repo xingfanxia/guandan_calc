@@ -93,7 +93,7 @@ export default async function handler(request) {
       // Add to favorites if not already there
       const favorites = addFavoriteIndexEntry(
         existingFavorites,
-        buildFavoriteIndexEntry(favoriteData, favoriteData.favoritedAt)
+        buildFavoriteIndexEntry(favoriteData, favoriteData.favoritedAt, { roomCode })
       );
       await kv.set(favoritesKey, JSON.stringify(favorites));
 

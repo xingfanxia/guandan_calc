@@ -118,9 +118,10 @@ export function summarizeRoomForList(roomData, fallback = {}) {
   };
 }
 
-export function buildFavoriteIndexEntry(roomData, favoritedAt) {
+export function buildFavoriteIndexEntry(roomData, favoritedAt, fallback = {}) {
   const parsed = parseRoomData(roomData);
   const summary = summarizeRoomForList(parsed, {
+    ...fallback,
     isFavorite: true,
     favoritedAt
   });

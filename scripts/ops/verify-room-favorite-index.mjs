@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 const {
   addFavoriteIndexEntry,
+  buildFavoriteIndexEntry,
   buildFavoriteRoomData,
   buildUnfavoriteRoomData,
   parseFavoriteIndex,
@@ -30,6 +31,18 @@ assert.deepEqual(
   [{ roomCode: 'NEW222', favoritedAt: next.favoritedAt }],
   'favorite index writes should not preserve malformed existing entries'
 );
+
+const routeScopedFavoriteEntry = buildFavoriteIndexEntry(
+  { roomCode: 'WRONG1', favoritedAt: next.favoritedAt },
+  next.favoritedAt,
+  { roomCode: 'NEW222' }
+);
+assert.equal(
+  routeScopedFavoriteEntry.roomCode,
+  'NEW222',
+  'favorite index entries should prefer the route/storage roomCode over stale embedded roomCode values'
+);
+
 assert.deepEqual(removeFavoriteIndexEntry(JSON.stringify([...existing, next]), 'OLD111'), [next]);
 assert.deepEqual(removeFavoriteIndexEntry([...existing, next], 'NEW222'), existing);
 
