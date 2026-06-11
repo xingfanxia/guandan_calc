@@ -163,6 +163,13 @@ const roomsByKey = new Map([
     players: [],
     createdAt: '2026-06-10T10:00:00.000Z'
   }],
+  ['room:ROUTE1', {
+    roomCode: 'WRONG1',
+    settings: {},
+    state: {},
+    players: [],
+    createdAt: '2026-06-10T10:00:00.000Z'
+  }],
   ['room:HOSTOK', {
     roomCode: 'HOSTOK',
     authToken: 'stored-host-token',
@@ -298,6 +305,15 @@ try {
     Object.hasOwn(legacyBody.data, 'authToken'),
     false,
     'legacy no-token room GET should still keep authToken out of the response'
+  );
+
+  const routeScopedResponse = await roomDetailHandler(new Request('https://example.test/api/rooms/ROUTE1'));
+  assert.equal(routeScopedResponse.status, 200);
+  const routeScopedBody = await routeScopedResponse.json();
+  assert.equal(
+    routeScopedBody.data.roomCode,
+    'ROUTE1',
+    'room detail GET should return the route/storage roomCode instead of stale embedded roomCode values'
   );
 
   const staleResponse = await roomDetailHandler(new Request('https://example.test/api/rooms/STALE1'));

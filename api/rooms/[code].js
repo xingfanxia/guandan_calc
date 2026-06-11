@@ -30,8 +30,11 @@ function publicEndGameVotesHistory(history) {
     });
 }
 
-function publicRoomSnapshot(roomData) {
+function publicRoomSnapshot(roomData, fallback = {}) {
   const { authToken, ...publicRoomData } = canonicalizeRoomSnapshotPayload(roomData);
+  if (fallback.roomCode) {
+    publicRoomData.roomCode = fallback.roomCode;
+  }
 
   if (publicRoomData.endGameVotes !== undefined) {
     publicRoomData.endGameVotes = publicVoteStoreForRoom(publicRoomData);
@@ -170,7 +173,7 @@ export default async function handler(request) {
 
       // SECURITY: strip server-private fields from response. Viewers must NEVER
       // see the host token or vote fingerprints.
-      const publicRoomData = publicRoomSnapshot(parsedData);
+      const publicRoomData = publicRoomSnapshot(parsedData, { roomCode });
 
       return jsonResponse({
         success: true,
