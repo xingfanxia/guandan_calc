@@ -173,7 +173,7 @@ globalThis.fetch = async (url, options = {}) => {
   if (command[0] === 'keys') {
     assert.deepEqual(command, ['keys', 'player:*']);
     return new Response(JSON.stringify({
-      result: ['player:timeless', 'player:alice', 'player:padded', 'player:nickonly', 'player:malformed', 'player:broken-json', 'player:bob']
+      result: ['player:wrong_key', 'player:timeless', 'player:alice', 'player:padded', 'player:nickonly', 'player:malformed', 'player:broken-json', 'player:bob']
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
@@ -192,6 +192,16 @@ globalThis.fetch = async (url, options = {}) => {
         playStyle: 'steady',
         tagline: 'clean',
         lastActiveAt: '2026-06-10T12:00:00.000Z',
+        stats: initializePlayerStats()
+      },
+      'player:wrong_key': {
+        id: 'PLR_WRONG_KEY',
+        handle: 'ghost',
+        displayName: 'Wrong Key Ghost',
+        emoji: 'G',
+        playStyle: 'mystery',
+        tagline: 'key does not match handle',
+        lastActiveAt: '2026-06-10T14:00:00.000Z',
         stats: initializePlayerStats()
       },
       'player:nickonly': {

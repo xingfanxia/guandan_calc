@@ -21,6 +21,25 @@ function hasListableHandle(player) {
   return typeof player?.handle === 'string' && validateHandle(player.handle);
 }
 
+function normalizePlayerKeyHandle(key) {
+  if (typeof key !== 'string' || !key.startsWith('player:')) return null;
+  const keyHandle = key.slice('player:'.length).toLowerCase();
+  return validateHandle(keyHandle) ? keyHandle : null;
+}
+
+function normalizeRecordHandle(player) {
+  if (!hasListableHandle(player)) return null;
+  return player.handle.toLowerCase();
+}
+
+function parseListEntry(entry) {
+  const keyHandle = normalizePlayerKeyHandle(entry?.key);
+  if (!keyHandle) return null;
+
+  const player = parsePlayerRecord(entry.value);
+  return normalizeRecordHandle(player) === keyHandle ? player : null;
+}
+
 function getSortablePlayerTimestamp(player) {
   const rawValue = player?.lastActiveAt || player?.createdAt;
   if (typeof rawValue !== 'string' || rawValue.trim() === '') return 0;
@@ -55,13 +74,16 @@ export default async function handler(request) {
     const playerKeys = await kv.keys('player:*');
 
     // Fetch all players
-    const playerPromises = playerKeys.map(key => kv.get(key));
-    const playerData = await Promise.all(playerPromises);
+    const playerPromises = playerKeys.map(async key => ({
+      key,
+      value: await kv.get(key)
+    }));
+    const playerEntries = await Promise.all(playerPromises);
 
     // Parse and filter players
-    let players = playerData
-      .map(parsePlayerRecord)
-      .filter(hasListableHandle);
+    let players = playerEntries
+      .map(parseListEntry)
+      .filter(Boolean);
 
     // Apply search filter if query provided
     if (searchQuery) {
