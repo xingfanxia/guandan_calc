@@ -1,0 +1,110 @@
+/*
+ * Design tokens — DESIGN.md §2-§4 的唯一实现处.
+ * Light values on :root; dark overrides on :root[data-theme="dark"].
+ * The inline bootstrap in each entry HTML sets data-theme before stylesheets
+ * resolve (localStorage `gd_v9_theme`, fallback prefers-color-scheme).
+ *
+ * Token names follow the TOKEN_SPEC contract in src/styles/tokenSpec.js —
+ * every name there must resolve, components reference ONLY these vars.
+ */
+
+:root {
+  /* ===== palette — light ===== */
+  --bg: #F4F6F3;
+  --bg-deep: #ECEFEA;
+  --surface: #FFFFFF;
+  --surface-2: #ECEFEA;
+  --surface-3: #E2E6E0;
+
+  --ink: #1B221E;
+  --ink-dim: #5A655E;
+  --ink-dimmer: #8A948D;
+
+  --rule: rgba(27, 34, 30, 0.12);
+  --rule-soft: rgba(27, 34, 30, 0.07);
+
+  --accent: #15694B;
+  --accent-pressed: #0F523A;
+  --on-accent: #FFFFFF;
+  --accent-soft: rgba(21, 105, 75, 0.10);
+  --accent-line: rgba(21, 105, 75, 0.45);
+  --accent-glow: rgba(21, 105, 75, 0.18);
+
+  --team-blue: #2A5DB0;
+  --team-blue-soft: rgba(42, 93, 176, 0.12);
+  --team-blue-line: rgba(42, 93, 176, 0.45);
+  --team-red: #B6403B;
+  --team-red-soft: rgba(182, 64, 59, 0.12);
+  --team-red-line: rgba(182, 64, 59, 0.45);
+
+  --gold-a: #A37412;
+  --danger: #B6403B;
+  --win: #15694B;
+  --loss: #B6403B;
+
+  --bar-shadow: 0 -4px 24px rgba(0, 0, 0, 0.08);
+
+  /* ===== type ===== */
+  --font-display: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif;
+  --font-body: -apple-system, "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  /* ===== spacing (8px grid, --s1 is the half-step) ===== */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 48px;
+  --s8: 64px;
+  --gutter: 16px;
+
+  /* ===== shape ===== */
+  --radius-none: 0;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+
+  /* ===== touch ===== */
+  --touch-min: 44px;
+  --touch-bar: 48px;
+}
+
+:root[data-theme="dark"] {
+  --bg: #111613;
+  --bg-deep: #0C100D;
+  --surface: #1A201C;
+  --surface-2: #242B26;
+  --surface-3: #2E372F;
+
+  --ink: #F0F3EF;
+  --ink-dim: #9AA69E;
+  --ink-dimmer: #6E7A72;
+
+  --rule: rgba(240, 243, 239, 0.14);
+  --rule-soft: rgba(240, 243, 239, 0.08);
+
+  --accent: #46B98D;
+  --accent-pressed: #37A179;
+  --on-accent: #0E1411;
+  --accent-soft: rgba(70, 185, 141, 0.14);
+  --accent-line: rgba(70, 185, 141, 0.5);
+  --accent-glow: rgba(70, 185, 141, 0.22);
+
+  --team-blue: #7CACFF;
+  --team-blue-soft: rgba(124, 172, 255, 0.16);
+  --team-blue-line: rgba(124, 172, 255, 0.5);
+  --team-red: #FF8077;
+  --team-red-soft: rgba(255, 128, 119, 0.16);
+  --team-red-line: rgba(255, 128, 119, 0.5);
+
+  --gold-a: #E5B254;
+  --danger: #FF8077;
+  --win: #46B98D;
+  --loss: #FF8077;
+
+  --bar-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+}

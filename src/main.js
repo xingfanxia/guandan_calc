@@ -68,14 +68,8 @@ import { initRulesDrawerSync, renderRulesDrawerChips } from './ui/rulesDrawerSyn
 import { initSetupVisibility } from './ui/setupVisibility.js';
 import { resolveInitialPlayerCountMode } from './core/playerCountMode.js';
 
-// Theme system
-import * as themeManager from './themes/_shared/themeManager.js';
-import * as broadcastTheme from './themes/broadcast/index.js';
-import * as linearTheme from './themes/linear/index.js';
-import * as tradingTheme from './themes/trading/index.js';
-import * as atelierTheme from './themes/atelier/index.js';
-import * as teatableTheme from './themes/teatable/index.js';
-import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js';
+// Theme toggle (light/dark — replaces the old multi-theme manager)
+import { mountThemeToggle } from './ui/themeToggle.js';
 
 /**
  * Initialize application
@@ -83,14 +77,6 @@ import { mountPicker as mountThemePicker } from './themes/_shared/ThemePicker.js
 async function init() {
 
   try {
-    // Register all themes, then mount whichever the user picked last (or default).
-    themeManager.register(broadcastTheme);
-    themeManager.register(linearTheme);
-    themeManager.register(tradingTheme);
-    themeManager.register(atelierTheme);
-    themeManager.register(teatableTheme);
-    await themeManager.mount(themeManager.resolveBootTheme('linear'));
-
     // Check for room in URL first
     const isRoomMode = await checkURLForRoom();
 
@@ -170,9 +156,8 @@ function initializeUI() {
   // Render initial honors
   renderHonors();
 
-  // Mount theme picker (single theme today; placeholder UI until Phase 2 ships Linear)
-  const pickerMount = $('themePickerMount');
-  if (pickerMount) mountThemePicker(pickerMount);
+  // Mount the light/dark toggle in the topnav
+  mountThemeToggle($('themeToggleMount'));
 
   // Wire ticker to live game state (M2 fix)
   initTickerSync();
@@ -281,7 +266,7 @@ function setupModuleEventHandlers() {
       const winnerDisplay = $('winnerDisplay');
 
       if (headline) headline.textContent = `已排名 ${check.progress.filled} / ${check.progress.total} 位玩家`;
-      if (explain) explain.textContent = '请继续拖拽剩余玩家到排名位置';
+      if (explain) explain.textContent = '按完成顺序继续点剩下的玩家';
       if (winnerDisplay) winnerDisplay.textContent = '—';
     }
   });
@@ -297,7 +282,7 @@ function setupModuleEventHandlers() {
     const winnerDisplay = $('winnerDisplay');
 
     if (headline) headline.textContent = '等待排名';
-    if (explain) explain.textContent = '请将玩家拖到排名位置';
+    if (explain) explain.textContent = '按完成顺序点玩家记名次';
     if (winnerDisplay) winnerDisplay.textContent = '—';
   });
 
@@ -502,7 +487,7 @@ function renderInitialState() {
   const winnerDisplay = $('winnerDisplay');
 
   if (headline) headline.textContent = '等待排名';
-  if (explain) explain.textContent = '请将玩家拖到排名位置';
+  if (explain) explain.textContent = '按完成顺序点玩家记名次';
   if (winnerDisplay) winnerDisplay.textContent = '—';
 }
 

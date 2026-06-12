@@ -8,24 +8,10 @@ import { $, escapeHtml } from '../core/utils.js';
 import { getPlayers, getPlayersByTeam, normalizeTeamNumber } from '../player/playerManager.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { emit, on as onEvent, off as offEvent } from '../core/events.js';
+import { emit } from '../core/events.js';
 import { renderHonors } from './honors.js';
 import { findMVPAndBurden } from './mvpBurden.js';
-import { getManifest } from '../themes/_shared/themeManager.js';
-import { renderRankingSparkline } from '../themes/_shared/sparkline.js';
-import { resolveStatsSparklinePlayerCount } from './statsMode.js';
 import { applyRankingToPlayerStats } from './statisticsUpdater.js';
-
-// Re-render the stats table when the theme changes so the sparkline column
-// appears/disappears mid-session as featureManifest.sparklines toggles.
-const onThemeChange = () => {
-  if ($('playerStatsBody')) renderPlayerStatsTable();
-};
-onEvent('theme:changed', onThemeChange);
-// Tear down on Vite HMR replace so listeners don't stack across hot reloads.
-if (typeof import.meta !== 'undefined' && import.meta.hot) {
-  import.meta.hot.dispose(() => offEvent('theme:changed', onThemeChange));
-}
 
 /**
  * Update player statistics from current ranking
@@ -65,14 +51,11 @@ export function renderPlayerStatsTable() {
   const tbody = $('playerStatsBody');
   if (!tbody) return;
 
-  const showSpark = !!getManifest().sparklines;
-  syncSparklineHeader(tbody, showSpark);
-
-  tbody.innerHTML = '';
+  tbody.replaceChildren();
 
   const players = getPlayers();
   const playerStats = state.getPlayerStats();
-  const colCount = showSpark ? 7 : 6;
+  const colCount = 6;
 
   // Collect player data with stats
   const playerData = [];
@@ -105,8 +88,6 @@ export function renderPlayerStatsTable() {
     return a.avgRank - b.avgRank;
   });
 
-  const mode = resolveStatsSparklinePlayerCount($('mode')?.value, players.length);
-
   // Render rows
   playerData.forEach(data => {
     const { player, stats, avgRank } = data;
@@ -132,61 +113,8 @@ export function renderPlayerStatsTable() {
       <td>${stats.lastPlaceCount || 0}</td>
     `;
 
-    if (showSpark) {
-      tr.appendChild(buildSparklineCell(stats.rankings || [], mode, teamColor));
-    }
-
     tbody.appendChild(tr);
   });
-}
-
-/**
- * Build a sparkline `<td>` for one player's ranking history.
- *
- * @param {number[]} rankings
- * @param {number} mode
- * @param {string} teamColor
- * @returns {HTMLTableCellElement}
- */
-function buildSparklineCell(rankings, mode, teamColor) {
-  const td = document.createElement('td');
-  td.className = 'stats-table__spark';
-  const svg = renderRankingSparkline(rankings, mode, {
-    width: 120,
-    height: 24,
-    color: teamColor || 'var(--accent, currentColor)',
-  });
-  if (svg) {
-    td.appendChild(svg);
-  } else {
-    td.classList.add('stats-table__spark--empty');
-    td.textContent = '—';
-  }
-  return td;
-}
-
-/**
- * Add or remove the sparkline column header to match the active manifest.
- * Idempotent — running with the same flag twice is a no-op.
- *
- * @param {HTMLElement} tbody
- * @param {boolean} showSpark
- */
-function syncSparklineHeader(tbody, showSpark) {
-  const table = tbody.closest('table.stats-table');
-  if (!table) return;
-  const headRow = table.querySelector('thead tr');
-  if (!headRow) return;
-  const existing = headRow.querySelector('.stats-table__th--spark');
-  if (showSpark && !existing) {
-    const th = document.createElement('th');
-    th.scope = 'col';
-    th.className = 'stats-table__th--spark';
-    th.textContent = '近况';
-    headRow.appendChild(th);
-  } else if (!showSpark && existing) {
-    existing.remove();
-  }
 }
 
 /**

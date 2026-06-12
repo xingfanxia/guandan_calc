@@ -45,12 +45,14 @@ function avatarChar(player) {
   return Array.from(name)[0];
 }
 
+// Unranked players carry NO tag (an empty tag collapses via CSS :empty) —
+// the tag only appears once a rank is recorded: 「头游 #1」…「末游 #8」.
 function rosterTagFor(player) {
-  if (!player) return { text: 'POOL', modifier: '' };
+  if (!player) return { text: '', modifier: '' };
   const ranking = getRanking();
   const modeEl = $('mode');
   const mode = normalizePlayerCountMode(modeEl ? modeEl.value : 8);
-  if (!mode) return { text: 'POOL', modifier: '' };
+  if (!mode) return { text: '', modifier: '' };
   const names = RANK_NAMES[mode] || RANK_NAMES[8];
 
   for (let rank = 1; rank <= mode; rank++) {
@@ -62,7 +64,7 @@ function rosterTagFor(player) {
       };
     }
   }
-  return { text: 'POOL', modifier: '' };
+  return { text: '', modifier: '' };
 }
 
 function makeEmptyZoneLabel(text) {

@@ -107,6 +107,37 @@ function el(tag, className, text) {
   return node;
 }
 
+/**
+ * Tap-to-rank (primary entry interaction, DESIGN.md §6): tapping a pool chip
+ * places that player into the lowest-numbered empty slot; tapping a filled
+ * slot clears that rank. Drag-drop remains as the secondary path — browsers
+ * suppress click after a real HTML5 drag, and touchHandler.js only
+ * preventDefaults once its 200ms long-press drag actually starts, so short
+ * taps arrive here as plain clicks on both desktop and mobile.
+ */
+function placePlayerAtNextRank(player) {
+  const area = $('rankingArea');
+  if (!area || !player) return;
+
+  const ranking = getRanking();
+  const openRanks = Array.from(area.querySelectorAll('.rank-slot'))
+    .map(slot => normalizeRankSlotDataset(slot.dataset.rank))
+    .filter(rank => rank !== null && ranking[rank] == null)
+    .sort((a, b) => a - b);
+
+  if (openRanks.length === 0) return;
+
+  setRankPosition(openRanks[0], player.id);
+  emit('ranking:updated');
+}
+
+function unrankSlot(rank) {
+  const ranking = getRanking();
+  if (ranking[rank] == null) return;
+  clearRankPosition(rank);
+  emit('ranking:updated');
+}
+
 const rankingTouchBindings = new WeakMap();
 
 function clearRankingTouchHandlers(node) {
@@ -418,13 +449,17 @@ function paintFilledSlot(slot, player, rank, mode) {
   slot.dataset.playerData = JSON.stringify({ id: player.id });
 
   slot.replaceChildren(
-    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__index', `第${rank}名`),
     el('span', 'slot__rank-cn', rankCn(rank, mode)),
     el('div', 'slot__avatar', avatarChar(player)),
     el('span', 'slot__name', player.name || ''),
     el('span', 'slot__handle', handleText(player)),
-    el('span', 'slot__check', '✓')
+    el('span', 'slot__check', '×')
   );
+  slot.title = '点一下取消该名次';
+
+  // Tap a filled slot to clear that rank (tap-to-rank primary interaction)
+  slot.onclick = () => unrankSlot(rank);
 
   // Wire drag for the filled slot (slot itself is now draggable)
   attachSlotDragHandlers(slot, player);
@@ -437,15 +472,17 @@ function paintTargetSlot(slot, rank, mode) {
   clearRankingTouchHandlers(slot);
   slot.className = 'rank-slot slot slot--target';
   slot.draggable = false;
+  slot.onclick = null;
+  slot.title = '';
   delete slot.dataset.playerId;
   delete slot.dataset.playerData;
   bindRankSlotDropHandlers(slot);
 
   slot.replaceChildren(
-    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__index', `第${rank}名`),
     el('span', 'slot__rank-cn', rankCn(rank, mode)),
     el('span', 'slot__target-icon', '↓'),
-    el('span', 'slot__target-label', 'drop here')
+    el('span', 'slot__target-label', '点玩家填入')
   );
 }
 
@@ -456,15 +493,17 @@ function paintEmptySlot(slot, rank, mode) {
   clearRankingTouchHandlers(slot);
   slot.className = 'rank-slot slot slot--empty';
   slot.draggable = false;
+  slot.onclick = null;
+  slot.title = '';
   delete slot.dataset.playerId;
   delete slot.dataset.playerData;
   bindRankSlotDropHandlers(slot);
 
   slot.replaceChildren(
-    el('span', 'slot__index', `POS · ${rank}`),
+    el('span', 'slot__index', `第${rank}名`),
     el('span', 'slot__rank-cn', rankCn(rank, mode)),
     el('div', 'slot__placeholder'),
-    el('span', 'slot__placeholder-label', 'empty')
+    el('span', 'slot__placeholder-label', '待定')
   );
 }
 
@@ -525,6 +564,10 @@ function createPoolTile(player) {
 
   tile.appendChild(avatar);
   tile.appendChild(body);
+
+  // Tap to place into the next open rank (primary interaction)
+  tile.onclick = () => placePlayerAtNextRank(player);
+  tile.title = '点一下记入下一个名次';
 
   // Desktop drag events
   tile.ondragstart = (e) => {

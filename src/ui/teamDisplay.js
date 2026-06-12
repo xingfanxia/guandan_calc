@@ -23,6 +23,22 @@ function rankPositionFor(level) {
   return `${pad2(idx + 1)}/${LEVELS.length}`;
 }
 
+/**
+ * Write a level digit, replaying the 240ms flip animation when the value
+ * actually changes — the app's single orchestrated animation (DESIGN.md §7).
+ */
+function setLevelDigit(el, value) {
+  if (!el) return;
+  const next = String(value ?? '');
+  if (el.textContent === next) return;
+  el.textContent = next;
+  const card = el.closest('.board__level');
+  if (!card) return;
+  card.classList.remove('board__level--flip');
+  void card.offsetWidth; // restart the CSS animation
+  card.classList.add('board__level--flip');
+}
+
 function hexToRgb(hex) {
   let h = hex.replace('#', '');
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
@@ -51,9 +67,11 @@ export function applyTeamStyles() {
   const t1Config = config.getTeam('t1');
   const t2Config = config.getTeam('t2');
 
+  // Board team names render as plain text — color comes from the
+  // .board__team--blue/--red CSS tokens so both light/dark modes resolve
+  // correctly (config colors only feed inline-styled surfaces like the
+  // stats-table tint and canvas exports).
   if (t1Chip) {
-    t1Chip.style.background = t1Config.color;
-    t1Chip.style.color = '#fff';
     t1Chip.replaceChildren();
     const b = document.createElement('b');
     b.textContent = t1Config.name;
@@ -61,8 +79,6 @@ export function applyTeamStyles() {
   }
 
   if (t2Chip) {
-    t2Chip.style.background = t2Config.color;
-    t2Chip.style.color = '#fff';
     t2Chip.replaceChildren();
     const b = document.createElement('b');
     b.textContent = t2Config.name;
@@ -113,8 +129,20 @@ export function renderTeams() {
 
   const aFailEnabled = config.getPreference('strictA');
 
-  if (t1Lvl) t1Lvl.textContent = t1Level;
-  if (t2Lvl) t2Lvl.textContent = t2Level;
+  setLevelDigit(t1Lvl, t1Level);
+  setLevelDigit(t2Lvl, t2Level);
+
+  // Board hero state classes: gold digits at A-level, accent underline on
+  // the roundOwner side (DESIGN.md §5).
+  const t1LvlCard = $('t1LvlCard');
+  const t2LvlCard = $('t2LvlCard');
+  if (t1LvlCard) t1LvlCard.classList.toggle('board__level--gold', String(t1Level) === 'A');
+  if (t2LvlCard) t2LvlCard.classList.toggle('board__level--gold', String(t2Level) === 'A');
+
+  const boardTeam1 = $('boardTeam1');
+  const boardTeam2 = $('boardTeam2');
+  if (boardTeam1) boardTeam1.classList.toggle('board__team--owner', roundOwner === 't1');
+  if (boardTeam2) boardTeam2.classList.toggle('board__team--owner', roundOwner === 't2');
   if (t1A) t1A.textContent = t1AFail || 0;
   if (t2A) t2A.textContent = t2AFail || 0;
 
@@ -190,10 +218,9 @@ function renderActiveGameHeaderLine(roundLevel, ownerTeamName, ownerSide) {
 
   headLine.replaceChildren();
 
-  // Plain "本局：" prefix
-  headLine.appendChild(document.createTextNode('本局：'));
+  // 牌桌行话 eyebrow: 「本局打 X · 蓝队的级」
+  headLine.appendChild(document.createTextNode('本局打 '));
 
-  // Accent glyph (orange Fraunces 28px)
   const glyph = document.createElement('span');
   glyph.className = 'glyph accent';
   glyph.id = 'curRoundLvlMirror';
