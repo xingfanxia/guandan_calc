@@ -292,6 +292,22 @@ button:hover { background: var(--surface-2); }
 button:active { transform: scale(0.98); }
 button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+/* Anchor tags reused as buttons (profile hero, error states) get the same
+ * chrome as real <button>s. :where() keeps specificity at (0,1,0) so the
+ * .btn-* variant rules below still win for colors. */
+:where(a).btn-primary, :where(a).btn-secondary, :where(a).btn-tertiary,
+:where(a).btn-accent, :where(a).btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 0 var(--s3);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-size: 15px;
+}
+
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -2139,6 +2155,11 @@ details + details { margin-top: var(--s2); }
   flex-direction: column;
   gap: 2px;
 }
+
+/* Odd tile counts leave a hole in the 1px-gap grid — stretch the last
+ * tile across the remaining columns (7-tile grid: fills both 2-col mobile
+ * and 4-col desktop layouts). */
+.career-stat-tile:last-child:nth-child(odd) { grid-column: -3 / -1; }
 
 .career-stat-tile .tile-label {
   font-size: 12px;

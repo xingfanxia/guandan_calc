@@ -8,8 +8,8 @@ Kill 5-theme system → light/dark only. Zero functional regression. Game logic 
 
 | Phase | Scope | Status | Commit |
 |---|---|---|---|
-| RD-1 | DESIGN.md + tokens.css + new style.css + index.html restructure + theme system removal (themeToggle replaces themeManager/ThemePicker; statistics/honors/main.js de-themed; tokenSpec+themePalette relocated to src/styles/) | pending | — |
-| RD-2 | Tap-to-rank entry (click pool chip → next slot; click filled slot → unrank); hint copy updates | pending | — |
+| RD-1 | DESIGN.md + tokens.css + new style.css + index.html restructure + theme system removal (themeToggle replaces themeManager/ThemePicker; statistics/honors/main.js de-themed; tokenSpec+themePalette relocated to src/styles/) | done | dd8239a |
+| RD-2 | Tap-to-rank entry (click pool chip → next slot; click filled slot → unrank); hint copy updates | done | dd8239a (combined with RD-1) |
 | RD-3 | rooms.html restyle | pending | — |
 | RD-4 | players.html restyle | pending | — |
 | RD-5 | player-profile.html restyle | pending | — |

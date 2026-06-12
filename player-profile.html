@@ -110,6 +110,7 @@
 <script type="module">
 import { getPlayer, getPlayStyleLabel } from '/src/api/playerApi.js';
 import { mountThemeToggle } from '/src/ui/themeToggle.js';
+import { on as onEvent } from '/src/core/events.js';
 mountThemeToggle(document.getElementById('themeToggleMount'));
 import { ACHIEVEMENTS, ACHIEVEMENT_COUNT } from '/src/stats/achievements.js';
 import { Chart, registerables } from 'chart.js';
@@ -119,6 +120,29 @@ import { escapeHtml } from '/src/core/utils.js';
 import { CURRENT_HONOR_TITLES, normalizeHonorCounter } from '/shared/honorCatalog.js';
 
 Chart.register(...registerables);
+
+// Read design tokens at chart-build time (canvas can't resolve CSS vars).
+// Charts re-render on theme:changed so both modes get correct colors.
+function tok(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+function chartPalette() {
+  return {
+    accent: tok('--accent', '#15694B'),
+    accentSoft: tok('--accent-soft', 'rgba(21,105,75,0.10)'),
+    win: tok('--win', '#15694B'),
+    blue: tok('--team-blue', '#2A5DB0'),
+    danger: tok('--danger', '#B6403B'),
+    surface: tok('--surface', '#FFFFFF'),
+    surface2: tok('--surface-2', '#ECEFEA'),
+    ink: tok('--ink', '#1B221E'),
+    inkDim: tok('--ink-dim', '#5A655E'),
+    inkDimmer: tok('--ink-dimmer', '#8A948D'),
+    rule: tok('--rule', 'rgba(27,34,30,0.12)'),
+    ruleSoft: tok('--rule-soft', 'rgba(27,34,30,0.07)')
+  };
+}
 
 function toFiniteNumber(value, fallback = 0) {
   const number = Number(value);
@@ -223,20 +247,20 @@ function renderPartnerRivalStats(player) {
   return `
     <div class="section-rule" style="margin-top:var(--s5);">
       <span class="section-rule__bar"></span>
-      <span class="section-rule__label">队友与对手 · Partners &amp; Rivals</span>
+      <span class="section-rule__label">队友与对手</span>
       <span class="section-rule__line"></span>
       <span class="section-rule__meta">WIN RATE · CLICK TO VIEW PROFILE</span>
     </div>
     <div class="card">
       <div class="rels-grid">
         <div>
-          <div class="rels-col-title">队友 · Partners (${partnerStats.length})</div>
+          <div class="rels-col-title">队友 (${partnerStats.length})</div>
           ${bestPartner ? relRow(bestPartner.handle, bestPartner.winRate, '大佬带我躺赢', 'rels-row-bar-fill--win') : ''}
           ${worstPartner && worstPartner.handle !== bestPartner?.handle
               ? relRow(worstPartner.handle, worstPartner.winRate, '偷着乐吧', 'rels-row-bar-fill--loss') : ''}
         </div>
         <div>
-          <div class="rels-col-title">对手 · Opponents (${opponentStats.length})</div>
+          <div class="rels-col-title">对手 (${opponentStats.length})</div>
           ${hardestOpponent ? relRow(hardestOpponent.handle, hardestOpponent.winRate, '既生瑜何生亮', 'rels-row-bar-fill--loss') : ''}
           ${easiestOpponent && easiestOpponent.handle !== hardestOpponent?.handle
               ? relRow(easiestOpponent.handle, easiestOpponent.winRate, '这是送分来的', 'rels-row-bar-fill--win') : ''}
@@ -246,7 +270,7 @@ function renderPartnerRivalStats(player) {
       ${partnerStats.length > 0 ? `
         <div class="section-rule" style="margin-top:var(--s5);">
           <span class="section-rule__bar"></span>
-          <span class="section-rule__label">所有队友 · All Partners</span>
+          <span class="section-rule__label">所有队友</span>
           <span class="section-rule__line"></span>
         </div>
         <div class="chart-sort-row">
@@ -265,7 +289,7 @@ function renderPartnerRivalStats(player) {
       ${opponentStats.length > 0 ? `
         <div class="section-rule" style="margin-top:var(--s5);">
           <span class="section-rule__bar"></span>
-          <span class="section-rule__label">所有对手 · All Opponents</span>
+          <span class="section-rule__label">所有对手</span>
           <span class="section-rule__line"></span>
         </div>
         <div class="chart-sort-row">
@@ -340,6 +364,7 @@ function renderRecentRankingsChart(recentRankings) {
   }
 
   const rankings = [...recentRankings].reverse();
+  const pal = chartPalette();
   recentRankingsChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'line',
     data: {
@@ -347,13 +372,13 @@ function renderRecentRankingsChart(recentRankings) {
       datasets: [{
         label: '排名',
         data: rankings,
-        borderColor: '#e07a3a',
-        backgroundColor: 'rgba(224, 122, 58, 0.08)',
+        borderColor: pal.accent,
+        backgroundColor: pal.accentSoft,
         borderWidth: 2,
         pointRadius: 4,
         pointHoverRadius: 6,
-        pointBackgroundColor: rankings.map(r => r === 1 ? '#4a9456' : r <= 3 ? '#4a82d8' : '#cf3a3f'),
-        pointBorderColor: '#1c1f29',
+        pointBackgroundColor: rankings.map(r => r === 1 ? pal.win : r <= 3 ? pal.blue : pal.danger),
+        pointBorderColor: pal.surface,
         pointBorderWidth: 2,
         fill: true,
         tension: 0.3
@@ -367,11 +392,11 @@ function renderRecentRankingsChart(recentRankings) {
         legend: { display: false },
         tooltip: {
           callbacks: { label: (ctx) => `排名: #${ctx.parsed.y}` },
-          backgroundColor: 'rgba(19,22,32,0.92)',
+          backgroundColor: pal.surface2,
           padding: 10,
-          titleColor: '#f3f0e9',
-          bodyColor: '#adaaa3',
-          borderColor: '#444751',
+          titleColor: pal.ink,
+          bodyColor: pal.inkDim,
+          borderColor: pal.rule,
           borderWidth: 1
         }
       },
@@ -379,11 +404,11 @@ function renderRecentRankingsChart(recentRankings) {
         y: {
           reverse: true,
           min: 1, max: 8,
-          ticks: { stepSize: 1, color: '#76736d', callback: (v) => '#' + v },
-          grid: { color: '#393c46', drawBorder: false }
+          ticks: { stepSize: 1, color: pal.inkDimmer, callback: (v) => '#' + v },
+          grid: { color: pal.ruleSoft, drawBorder: false }
         },
         x: {
-          ticks: { color: '#76736d', maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+          ticks: { color: pal.inkDimmer, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
           grid: { display: false }
         }
       },
@@ -402,6 +427,7 @@ function renderPartnersChart(stats, sortBy) {
   else sorted.sort((a, b) => b.winRate - a.winRate);
 
   if (window.partnersChartInstance) window.partnersChartInstance.destroy();
+  const pal = chartPalette();
   window.partnersChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -410,10 +436,9 @@ function renderPartnersChart(stats, sortBy) {
         label: '胜率',
         data: sorted.map(p => Number(formatRatePercent(p.winRate))),
         backgroundColor: sorted.map(p =>
-          p.winRate >= 0.6 ? 'rgba(74,148,86,0.8)' :
-          p.winRate >= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
+          p.winRate >= 0.6 ? pal.win : p.winRate >= 0.5 ? pal.blue : pal.danger),
         borderColor: sorted.map(p =>
-          p.winRate >= 0.6 ? '#4a9456' : p.winRate >= 0.5 ? '#4a82d8' : '#cf3a3f'),
+          p.winRate >= 0.6 ? pal.win : p.winRate >= 0.5 ? pal.blue : pal.danger),
         borderWidth: 1
       }]
     },
@@ -433,19 +458,19 @@ function renderPartnersChart(stats, sortBy) {
               return [`胜率: ${ctx.parsed.x}%`, `场次: ${d.games}场`, `胜场: ${d.wins}胜`];
             }
           },
-          backgroundColor: 'rgba(19,22,32,0.92)', padding: 12,
-          titleColor: '#f3f0e9', bodyColor: '#adaaa3',
-          borderColor: '#444751', borderWidth: 1
+          backgroundColor: pal.surface2, padding: 12,
+          titleColor: pal.ink, bodyColor: pal.inkDim,
+          borderColor: pal.rule, borderWidth: 1
         }
       },
       scales: {
         x: {
           min: 0, max: 100,
-          ticks: { color: '#76736d', callback: (v) => v + '%' },
-          grid: { color: '#393c46', drawBorder: false }
+          ticks: { color: pal.inkDimmer, callback: (v) => v + '%' },
+          grid: { color: pal.ruleSoft, drawBorder: false }
         },
         y: {
-          ticks: { color: '#76736d', font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
+          ticks: { color: pal.inkDimmer, font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
           grid: { display: false }
         }
       }
@@ -463,6 +488,7 @@ function renderOpponentsChart(stats, sortBy) {
   else sorted.sort((a, b) => a.winRate - b.winRate);
 
   if (window.opponentsChartInstance) window.opponentsChartInstance.destroy();
+  const pal = chartPalette();
   window.opponentsChartInstance = new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
@@ -471,10 +497,9 @@ function renderOpponentsChart(stats, sortBy) {
         label: '对手胜率',
         data: sorted.map(p => Number(formatRatePercent(p.winRate))),
         backgroundColor: sorted.map(p =>
-          p.winRate <= 0.4 ? 'rgba(74,148,86,0.8)' :
-          p.winRate <= 0.5 ? 'rgba(74,130,216,0.8)' : 'rgba(207,58,63,0.8)'),
+          p.winRate <= 0.4 ? pal.win : p.winRate <= 0.5 ? pal.blue : pal.danger),
         borderColor: sorted.map(p =>
-          p.winRate <= 0.4 ? '#4a9456' : p.winRate <= 0.5 ? '#4a82d8' : '#cf3a3f'),
+          p.winRate <= 0.4 ? pal.win : p.winRate <= 0.5 ? pal.blue : pal.danger),
         borderWidth: 1
       }]
     },
@@ -494,19 +519,19 @@ function renderOpponentsChart(stats, sortBy) {
               return [`你的胜率: ${ctx.parsed.x}%`, `场次: ${d.games}场`, `胜场: ${d.wins}胜`];
             }
           },
-          backgroundColor: 'rgba(19,22,32,0.92)', padding: 12,
-          titleColor: '#f3f0e9', bodyColor: '#adaaa3',
-          borderColor: '#444751', borderWidth: 1
+          backgroundColor: pal.surface2, padding: 12,
+          titleColor: pal.ink, bodyColor: pal.inkDim,
+          borderColor: pal.rule, borderWidth: 1
         }
       },
       scales: {
         x: {
           min: 0, max: 100,
-          ticks: { color: '#76736d', callback: (v) => v + '%' },
-          grid: { color: '#393c46', drawBorder: false }
+          ticks: { color: pal.inkDimmer, callback: (v) => v + '%' },
+          grid: { color: pal.ruleSoft, drawBorder: false }
         },
         y: {
-          ticks: { color: '#76736d', font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
+          ticks: { color: pal.inkDimmer, font: { size: sorted.length > 10 ? 10 : 12 }, autoSkip: false, maxRotation: 0 },
           grid: { display: false }
         }
       }
@@ -540,14 +565,17 @@ const handle = urlParams.get('handle');
 if (!handle) {
   document.getElementById('profileContent').innerHTML = `
     <div class="card" style="text-align:center;padding:var(--s8);">
-      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.18em;color:var(--loss);text-transform:uppercase;margin-bottom:var(--s4);">错误 · Error</div>
-      <div style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--ink);margin-bottom:var(--s4);">缺少玩家参数</div>
+      <div style="font-size:12px;letter-spacing:1px;color:var(--loss);margin-bottom:var(--s4);">出错了</div>
+      <div style="font-weight:700;font-size:24px;color:var(--ink);margin-bottom:var(--s4);">缺少玩家参数</div>
       <p style="color:var(--ink-dim);">URL 中需要 <code>?handle=xxx</code> 参数</p>
       <p style="margin-top:var(--s5);"><a href="/players.html" class="btn-primary" style="text-decoration:none;">浏览所有玩家</a></p>
     </div>
   `;
 } else {
   loadProfile(handle);
+  // Charts bake token colors at build time — rebuild on theme toggle so
+  // both light/dark modes render with the right palette.
+  onEvent('theme:changed', () => loadProfile(handle));
 }
 
 async function loadProfile(handle) {
@@ -577,7 +605,7 @@ async function loadProfile(handle) {
     const heroFormBadge = document.getElementById('heroFormBadge');
     if (heroFormBadge) {
       const sessions = player.stats.sessionsPlayed || 0;
-      heroFormBadge.textContent = sessions > 0 ? sessions + ' SESSIONS PLAYED' : 'NEW PLAYER';
+      heroFormBadge.textContent = sessions > 0 ? '已打 ' + sessions + ' 场' : '新玩家';
     }
     const profileHero = document.getElementById('profileHero');
     if (profileHero) profileHero.style.display = 'grid';
@@ -597,9 +625,9 @@ async function loadProfile(handle) {
     const recentRankingsSection = (player.stats.recentRankings && player.stats.recentRankings.length > 0) ? `
       <div class="section-rule" style="margin-top:var(--s5);">
         <span class="section-rule__bar"></span>
-        <span class="section-rule__label">近期排名走势 · Recent Performance</span>
+        <span class="section-rule__label">近期排名走势</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">LAST ${player.stats.recentRankings.length} SESSIONS</span>
+        <span class="section-rule__meta" style="display:inline">近 ${player.stats.recentRankings.length} 场</span>
       </div>
       <div class="card">
         <div class="chart-wrap">
@@ -611,7 +639,7 @@ async function loadProfile(handle) {
     const honorsSection = `
       <div class="section-rule" style="margin-top:var(--s5);">
         <span class="section-rule__bar"></span>
-        <span class="section-rule__label">荣誉收藏 · Honors Earned</span>
+        <span class="section-rule__label">荣誉</span>
         <span class="section-rule__line"></span>
         <span class="section-rule__meta">${totalHonorCount} TOTAL</span>
       </div>
@@ -638,9 +666,9 @@ async function loadProfile(handle) {
     const achievementsSection = `
       <div class="section-rule" style="margin-top:var(--s5);">
         <span class="section-rule__bar"></span>
-        <span class="section-rule__label">成就徽章 · Achievements</span>
+        <span class="section-rule__label">成就</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">${player.achievements ? player.achievements.length : 0} / ${ACHIEVEMENT_COUNT} UNLOCKED</span>
+        <span class="section-rule__meta" style="display:inline">${player.achievements ? player.achievements.length : 0} / ${ACHIEVEMENT_COUNT}</span>
       </div>
       <div class="card">
         ${player.achievements && player.achievements.length > 0 ? `
@@ -662,9 +690,9 @@ async function loadProfile(handle) {
     const recentGamesSection = `
       <div class="section-rule" style="margin-top:var(--s5);">
         <span class="section-rule__bar"></span>
-        <span class="section-rule__label">最近游戏 · Recent Games</span>
+        <span class="section-rule__label">最近游戏</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">${player.recentGames.length} RECORDS</span>
+        <span class="section-rule__meta" style="display:inline">${player.recentGames.length} 条</span>
       </div>
       <div class="card">
         ${player.recentGames.length > 0 ? `<div>
@@ -703,46 +731,46 @@ async function loadProfile(handle) {
       <!-- CAREER STATS -->
       <div class="section-rule">
         <span class="section-rule__bar"></span>
-        <span class="section-rule__label">生涯统计 · Career Stats</span>
+        <span class="section-rule__label">生涯统计</span>
         <span class="section-rule__line"></span>
         <span class="section-rule__meta" id="statsTitle">全部模式 · ALL MODES</span>
       </div>
 
       <div class="career-stats-section">
         <div class="stats-header">
-          <span class="stats-header-title">场次数据 · Sessions</span>
+          <span class="stats-header-title">场次数据</span>
         </div>
         <div class="career-stats-grid">
           <div class="career-stat-tile">
-            <div class="tile-label">游戏场次 · Sessions</div>
+            <div class="tile-label">游戏场次</div>
             <div class="tile-val" id="statSessions">${formatInteger(player.stats.sessionsPlayed || player.stats.gamesPlayed, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">获胜场次 · Won</div>
+            <div class="tile-label">获胜场次</div>
             <div class="tile-val" id="statWins">${formatInteger(player.stats.sessionsWon || player.stats.wins, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">胜率 · Win Rate</div>
+            <div class="tile-label">胜率</div>
             <div class="tile-val" id="statWinRate">${formatPercent(player.stats.sessionWinRate || player.stats.winRate)}<span class="sub">%</span></div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">场均排名 · Avg Rank</div>
+            <div class="tile-label">场均排名</div>
             <div class="tile-val" id="statAvgRank">${formatFixed(player.stats.avgRankingPerSession || player.stats.avgRanking)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">场均局数 · Avg Rounds</div>
+            <div class="tile-label">场均局数</div>
             <div class="tile-val" id="statAvgRounds">${formatInteger(player.stats.avgRoundsPerSession, 30)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">最长局数 · Longest</div>
+            <div class="tile-label">最长局数</div>
             <div class="tile-val" id="statLongestRounds">${formatInteger(player.stats.longestSessionRounds, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">当前连胜 · Streak</div>
+            <div class="tile-label">当前连胜</div>
             <div class="tile-val" id="statCurrentStreak">${formatInteger(player.stats.currentWinStreak, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">最长连胜 · Best Streak</div>
+            <div class="tile-label">最长连胜</div>
             <div class="tile-val" id="statWinStreak">${formatInteger(player.stats.longestWinStreak, 0)}</div>
           </div>
         </div>
@@ -750,35 +778,35 @@ async function loadProfile(handle) {
 
       <div class="career-stats-section" style="margin-top:var(--s3);">
         <div class="stats-header">
-          <span class="stats-header-title">单局 &amp; 时长 · Rounds &amp; Time</span>
+          <span class="stats-header-title">单局与时长</span>
         </div>
         <div class="career-stats-grid">
           <div class="career-stat-tile">
-            <div class="tile-label">总轮次 · Rounds</div>
+            <div class="tile-label">总轮次</div>
             <div class="tile-val" id="statRounds">${formatInteger(player.stats.roundsPlayed, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">局均排名 · Per-round Rank</div>
+            <div class="tile-label">局均排名</div>
             <div class="tile-val" id="statAvgRankRound">${formatFixed(player.stats.avgRankingPerRound || player.stats.avgRanking)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">总游戏时长 · Total Time</div>
+            <div class="tile-label">总游戏时长</div>
             <div class="tile-val" id="statTotalTime">${formatDuration(player.stats.totalPlayTimeSeconds)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">最长对局 · Longest</div>
+            <div class="tile-label">最长对局</div>
             <div class="tile-val" id="statLongestTime">${formatDuration(player.stats.longestSessionSeconds)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">场均时长 · Avg Session</div>
+            <div class="tile-label">场均时长</div>
             <div class="tile-val" id="statAvgTime">${formatDuration(player.stats.avgSessionSeconds)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">最C得票 · MVP Votes</div>
+            <div class="tile-label">最C得票</div>
             <div class="tile-val" style="color:var(--win);">${formatInteger(player.stats.mvpVotes, 0)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">最闹得票 · Burden Votes</div>
+            <div class="tile-label">最闹得票</div>
             <div class="tile-val" style="color:var(--loss);">${formatInteger(player.stats.burdenVotes, 0)}</div>
           </div>
         </div>
@@ -891,8 +919,8 @@ async function loadProfile(handle) {
     console.error('Failed to load profile:', error);
     document.getElementById('profileContent').innerHTML = `
       <div class="card" style="text-align:center;padding:var(--s8);">
-        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.18em;color:var(--loss);text-transform:uppercase;margin-bottom:var(--s4);">加载失败 · Load Error</div>
-        <div style="font-family:var(--font-display);font-weight:900;font-size:28px;color:var(--ink);margin-bottom:var(--s4);">无法加载玩家资料</div>
+        <div style="font-size:12px;letter-spacing:1px;color:var(--loss);margin-bottom:var(--s4);">加载失败</div>
+        <div style="font-weight:700;font-size:24px;color:var(--ink);margin-bottom:var(--s4);">无法加载玩家资料</div>
         <p style="color:var(--ink-dim);">${escapeHtml(error.message || '未知错误')}</p>
         <p style="margin-top:var(--s5);"><a href="/players.html" class="btn-primary" style="text-decoration:none;">浏览所有玩家</a></p>
       </div>
