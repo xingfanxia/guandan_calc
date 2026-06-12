@@ -167,15 +167,15 @@
 
 #### `rules.js` - Game Rules Engine
 **Exports**:
-- `checkALevelRules(winner, ranks, mode)` - A-level logic
+- `checkALevelRules(winner, ranks, mode)` - thin wrapper since 2026-06-11: gathers state/config and delegates to the pure algorithm in `shared/aLevelLogic.js` (zero host deps, vendored by the guandan-scorer-wxapp sibling repo — edit the shared file, never re-inline the logic here)
 - `applyGameResult(calcResult, winner, playerData)` - Apply round
-  - Lines 139-244: Complete game flow
+  - Complete game flow orchestration (still state-coupled, NOT vendored)
   - Updates team levels
   - Checks A-level rules
-  - Creates history entry with **sessionDuration** (line 213)
+  - Creates history entry with **sessionDuration**
   - Emits events
 
-**A-Level Logic**: Strict vs lenient mode handling
+**A-Level Logic**: Strict vs lenient mode handling — algorithm in `shared/aLevelLogic.js`
 
 #### `history.js` - History Management
 **Exports**:
