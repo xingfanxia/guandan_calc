@@ -39,7 +39,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 **Game Logic (3 modules)**: Core game mechanics
 - `game/calculator.js` - Pure calculation functions (parseRanks, calculateUpgrade, nextLevel)
-- `game/rules.js` - A-level logic and rule application (checkALevelRules, applyGameResult)
+- `game/rules.js` - Rule application orchestration (applyGameResult, advanceToNextRound); checkALevelRules is now a thin wrapper — the A-level algorithm lives in `shared/aLevelLogic.js` (pure, zero host deps, vendored by guandan-scorer-wxapp along with `shared/playerCountMode.js`; `src/core/playerCountMode.js` is a re-export shim). 改 A 级规则改 `shared/aLevelLogic.js`，改完在 wxapp repo 跑 `npm run sync:shared` 重新 vendor
 - `game/history.js` - History rendering, rollback, and reset
 
 **Player System (4 modules)**: Player management and interaction

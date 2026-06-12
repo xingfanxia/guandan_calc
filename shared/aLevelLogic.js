@@ -47,7 +47,7 @@ export function checkALevelRules({
   strictA,
   aFailCounts = { t1: 0, t2: 0 },
   teamNames = DEFAULT_TEAM_NAMES
-} = {}) {
+}) {
   const aFailEnabled = strictA;
   const getTeamName = (team) => teamNames?.[team] || DEFAULT_TEAM_NAMES[team] || String(team);
 
@@ -154,11 +154,11 @@ export function checkALevelRules({
   }
 
   if (!finalWin && ownerOwnARound && roundOwner !== winnerKey) {
+    // Covers the losing team's own-A round too: roundOwner === loserKey at A implies
+    // ownerOwnARound, so no separate loser branch is needed (one existed pre-extraction
+    // in rules.js but was unreachable).
     aTeam = roundOwner;
     applyFailTo(roundOwner, '在自己的A级未取胜');
-  } else if (!finalWin && loserStartedAtA && isRoundAtA && roundOwner === loserKey) {
-    aTeam = loserKey;
-    applyFailTo(loserKey, '在自己的A级未取胜');
   } else if (!finalWin && loserStartedAtA && roundOwner !== loserKey) {
     const loserName = getTeamName(loserKey);
     const tail = aFailEnabled ? '，A失败不计' : '';

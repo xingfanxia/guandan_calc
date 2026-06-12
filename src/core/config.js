@@ -7,16 +7,13 @@
 import { load, save, KEYS } from './storage.js';
 import { emit } from './events.js';
 import { DEFAULT_RULES, sanitizeRulesConfig } from '../../shared/ruleConfig.js';
+import { DEFAULT_TEAM_NAMES } from '../../shared/aLevelLogic.js';
 
 // Singleton instance
 let instance = null;
 const DEFAULT_TEAM_COLORS = {
   t1: '#3b82f6',
   t2: '#ef4444'
-};
-const DEFAULT_TEAM_NAMES = {
-  t1: '蓝队',
-  t2: '红队'
 };
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const PREFERENCE_KEYS = ['must1', 'autoNext', 'autoApply', 'strictA'];
