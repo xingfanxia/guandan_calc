@@ -16,6 +16,7 @@ import { now } from '../core/utils.js';
 import { normalizePlayerCountMode } from '../core/playerCountMode.js';
 import { resolveGameStatus } from './gameStatus.js';
 import { isValidRoomSnapshotPayload } from '../../shared/roomSnapshotValidation.js';
+import { checkALevelRules as evaluateALevelRules } from '../../shared/aLevelLogic.js';
 
 const VALID_WINNER_KEYS = new Set(['t1', 't2']);
 
@@ -35,143 +36,34 @@ function isValidWinnerRanks(ranks, mode) {
 
 /**
  * Check A-level rules and conditions
+ * Thin wrapper: gathers state/config and delegates to the pure algorithm in
+ * shared/aLevelLogic.js (single source of truth, vendored by the wxapp sibling repo).
  * @param {string} winnerKey - Winning team key ('t1' or 't2')
  * @param {number[]} ranks - Winning team's ranking positions
  * @param {string|number} mode - Game mode ('4', '6', or '8')
  * @returns {{aNote: string, finalWin: boolean, winnerNewLevel?: string, loserNewLevel?: string, aTeam?: string}}
  */
 export function checkALevelRules(winnerKey, ranks, mode) {
-  const teamLevels = {
-    t1: state.getTeamLevel('t1'),
-    t2: state.getTeamLevel('t2')
-  };
-  const roundOwner = state.getRoundOwner();
-  const roundLevel = state.getRoundLevel();
-  const strictA = config.getPreference('strictA');
-  const aFailEnabled = strictA;
-
-  const notes = [];
-  let finalWin = false;
-  let aTeam = null;
-  let winnerNewLevel = null;
-  let loserNewLevel = null;
-  const aFailUpdates = {};
-  const loserKey = winnerKey === 't1' ? 't2' : 't1';
-  const winnerStartedAtA = teamLevels[winnerKey] === 'A';
-  const loserStartedAtA = teamLevels[loserKey] === 'A';
-  const roundOwnerStartedAtA = roundOwner ? teamLevels[roundOwner] === 'A' : false;
-  const normalizedMode = normalizePlayerCountMode(mode);
-  if (!normalizedMode) {
-    return {
-      aNote: '模式无效',
-      finalWin: false,
-      aFailUpdates: {},
-      error: 'invalid_mode'
-    };
-  }
-
-  // No team at A-level → no special rules apply
-  if (!winnerStartedAtA && !loserStartedAtA) {
-    return { aNote: '', finalWin };
-  }
-
-  const lastRank = normalizedMode;
-  const winnerHasLast = ranks.indexOf(lastRank) >= 0;
-  // Guard roundOwner === null (first-round / brand-new game)
-  const roundOwnerName = roundOwner ? config.getTeamName(roundOwner) : '未定';
-  const isRoundAtA = roundLevel === 'A';
-  const winnerOwnARound = winnerStartedAtA && isRoundAtA && roundOwner === winnerKey;
-  const ownerOwnARound = isRoundAtA && roundOwner && roundOwnerStartedAtA;
-
-  /**
-   * Preview the next A-fail counter for a team. Returns the new count + whether
-   * the team is demoted. Outside strict mode this is a no-op (returns null).
-   * The actual state write happens in applyGameResult(), keeping this rule
-   * checker safe for previews and tests.
-   */
-  function previewAFail(team) {
-    if (!aFailEnabled) return null;
-    const current = state.getTeamAFail(team);
-    const next = current + 1;
-    if (next >= 3) {
-      aFailUpdates[team] = 0;
-      return { count: next, demoted: true };
+  return evaluateALevelRules({
+    winnerKey,
+    ranks,
+    mode,
+    teamLevels: {
+      t1: state.getTeamLevel('t1'),
+      t2: state.getTeamLevel('t2')
+    },
+    roundOwner: state.getRoundOwner(),
+    roundLevel: state.getRoundLevel(),
+    strictA: config.getPreference('strictA'),
+    aFailCounts: {
+      t1: state.getTeamAFail('t1'),
+      t2: state.getTeamAFail('t2')
+    },
+    teamNames: {
+      t1: config.getTeamName('t1'),
+      t2: config.getTeamName('t2')
     }
-    aFailUpdates[team] = next;
-    return { count: next, demoted: false };
-  }
-
-  function applyFailTo(team, reason) {
-    const teamName = config.getTeamName(team);
-    const fail = previewAFail(team);
-
-    if (fail) {
-      let note = `${teamName} A级失败（${reason}）→ A${fail.count}`;
-      if (fail.demoted) {
-        note += '｜累计3次失败，仅该队重置到2';
-        if (team === winnerKey) {
-          winnerNewLevel = '2';
-        } else {
-          loserNewLevel = '2';
-        }
-      } else if (team === winnerKey) {
-        winnerNewLevel = teamLevels[team];
-      }
-      notes.push(note);
-      return;
-    }
-
-    if (team === winnerKey) {
-      winnerNewLevel = teamLevels[team];
-    }
-    notes.push(`${teamName} ${reason}，不通关，继续打到通关`);
-  }
-
-  if (winnerStartedAtA) {
-    const winnerName = config.getTeamName(winnerKey);
-    aTeam = winnerKey;
-
-    if (winnerHasLast) {
-      if (winnerOwnARound) {
-        applyFailTo(winnerKey, '在自己的A级胜方含末游');
-      } else {
-        winnerNewLevel = teamLevels[winnerKey];
-        const tail = aFailEnabled ? '但A失败不计' : '继续打到通关';
-        notes.push(`${winnerName} 在对方回合（${roundOwnerName}的级）胜但含末游，不通关，${tail}`);
-      }
-    } else if (!winnerOwnARound) {
-      if (roundLevel !== 'A') {
-        notes.push(`${winnerName} A级胜利（但本局级牌为${roundLevel}，需在自己的A级获胜才能通关）`);
-      } else {
-        notes.push(`${winnerName} A级胜利（但在${roundOwnerName}的回合，需在自己的A级获胜才能通关）`);
-      }
-      winnerNewLevel = teamLevels[winnerKey];
-    } else {
-      finalWin = true;
-      notes.push(`${winnerName} A级通关（胜方无末游，在自己的A级）`);
-    }
-  }
-
-  if (!finalWin && ownerOwnARound && roundOwner !== winnerKey) {
-    aTeam = roundOwner;
-    applyFailTo(roundOwner, '在自己的A级未取胜');
-  } else if (!finalWin && loserStartedAtA && isRoundAtA && roundOwner === loserKey) {
-    aTeam = loserKey;
-    applyFailTo(loserKey, '在自己的A级未取胜');
-  } else if (!finalWin && loserStartedAtA && roundOwner !== loserKey) {
-    const loserName = config.getTeamName(loserKey);
-    const tail = aFailEnabled ? '，A失败不计' : '';
-    notes.push(`${loserName} 在对方回合（${roundOwnerName}的级）未胜${tail}`);
-  }
-
-  return {
-    aNote: notes.join('｜'),
-    finalWin,
-    winnerNewLevel,
-    loserNewLevel,
-    aTeam,
-    aFailUpdates
-  };
+  });
 }
 
 /**
