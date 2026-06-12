@@ -1,4 +1,8 @@
-# Theme Switching Architecture
+# Theme Switching Architecture (HISTORICAL — system removed 2026-06-12)
+
+> ⚠️ The 5-theme system this document designed was REMOVED on 2026-06-12 and replaced by the
+> light/dark design system in root `DESIGN.md` (wxapp port). This file is kept as historical
+> reference only — nothing in it describes current code.
 
 > Production design for a 5-theme system (A Broadcast · C Tea-Table · D Trading · E Linear · F Atelier) where each theme owns its layout, not just its CSS variables.
 > Generated 2026-05-03 alongside the v3 wireframe demos.

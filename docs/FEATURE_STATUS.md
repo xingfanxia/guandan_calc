@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-06 (Phase 5 Tea-Table theme with ink-brush honor portraits shipped)
-**Architecture**: 40 ES6 modules + 10 player APIs + 7 room APIs + 5 themes + visual regression CI (83 baselines)
+**Last Updated**: 2026-06-12 (wxapp-style light/dark redesign — 5-theme system removed, see root DESIGN.md)
+**Architecture**: ~40 ES6 modules + 10 player APIs + 7 room APIs + light/dark design system (root DESIGN.md) + local visual gate (21 baselines, `npm run test:visual`)
 **Version**: v10.0
 
 ---
@@ -87,11 +87,11 @@ labels from being treated as full-session awards:
 - [x] Desktop PNG (wide format)
 - [x] Mobile PNG (600px, optimized)
 - [x] All 16 honors in exports
-- [x] Theme-aware PNG palette (2026-05-05) — exports use the active theme's CSS custom properties
+- [x] Mode-aware PNG palette — exports read the active light/dark tokens via `src/styles/themePalette.js`
 
 ### Visual Regression CI (100%) 🆕
 - [x] `npm run test:visual` runs pixelmatch against 65 baseline PNGs across 7 capture scripts
-- [x] Coverage: 4 themes (broadcast / linear / trading / atelier) + victory-modal cross-theme + PNG-export + sparklines
+- [x] Coverage (2026-06-12): 4 pages × light/dark × mobile/desktop + ranking/session/victory states + PNG exports (21 baselines)
 - [x] Deterministic captures via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + `setDeterministicPlayerStats` + event re-render)
 - [x] Sparkline determinism via `FIXED_RANKINGS_8` matrix state-injection (replaces unseedable `#randomRanking` flow; 2026-05-05 `c6da03a`)
 - [x] Per-directory threshold overrides in `diff-baselines.mjs` for canvas-rendered PNG exports (font subpixel-rendering noise; 2026-05-05 `f768ba7`)
@@ -99,10 +99,10 @@ labels from being treated as full-session awards:
 - [x] Diff PNGs (red overlay) auto-uploaded as PR artifacts on failure
 
 ### Cross-Page Theme Bootstrap (100%) 🆕
-- [x] Inline synchronous `<script>` block in <head> of all 4 entry HTMLs (index/players/player-profile/rooms) reads `gd_v9_theme` from localStorage and sets `data-theme` BEFORE stylesheet cascade resolves
-- [x] Eliminates the FOUC where saved non-default themes flashed Broadcast on every page navigation
-- [x] `themeBootstrap.js` module deleted — was loaded as `<script type="module">` (deferred), ran AFTER stylesheets, caused the FOUC
-- [x] Test script `scripts/visual/test-cross-page-theme.mjs` verifies 17 cases (3 themes × 4 pages + default fallback + invalid-payload rejection)
+- [x] Inline synchronous `<script>` block in <head> of all 4 entry HTMLs reads `gd_v9_theme` (`light`/`dark`; legacy values → system preference) and sets `data-theme` BEFORE stylesheet cascade resolves
+- [x] Eliminates dark-mode FOUC on navigation
+- [x] Theme switching: `src/ui/themeToggle.js` light/dark toggle on every page (replaced the 5-theme manager/picker 2026-06-12)
+- [x] Test script `scripts/visual/test-theme-toggle.mjs` verifies 14 cases (toggle, persistence, legacy fallback, TOKEN_SPEC both modes, all 4 pages)
 - [x] Adding a new theme requires ONE line edit per HTML in the validation array (`['broadcast','linear','trading','atelier']`) + one stylesheet `<link>` per HTML — same maintenance shape as existing per-page theme link list
 
 ### XSS Hardening (100%) 🆕

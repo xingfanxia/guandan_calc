@@ -419,116 +419,54 @@ rankings before any award is emitted; otherwise cards remain in-progress.
 
 ---
 
-### Theme System (`src/themes/` + `src/ui/*Sync.js` modules) - All 5 phases shipped (last: Phase 5 Tea-Table 2026-05-06)
+### Design System (`src/styles/` + `src/ui/themeToggle.js`) — 2026-06-12 redesign
 
-5-theme architecture per `docs/design/THEME-ARCHITECTURE.md`. **All five themes registered and shipped**: Broadcast (A · default), Linear (E), Trading (D), Atelier (F), Tea-Table (G). Tea-Table is the only theme with real image assets — 17 ink-brush portrait JPGs at `public/themes/teatable/honors/<honor-id>.jpg` generated via gpt-image-2 (Azure). Other themes are CSS-only restyles of the shared DOM.
+The 5-theme system (Broadcast/Linear/Trading/Atelier/Tea-Table, `src/themes/`, ~12.8k lines of
+theme CSS + themeManager/ThemePicker/featureManifest/sparkline) was REMOVED on 2026-06-12 and
+replaced by a wxapp-ported light/dark token architecture. Source of truth: root `DESIGN.md`.
+Historical design rationale for the old system: `docs/design/THEME-ARCHITECTURE.md` (banner'd).
 
-**Phase 1.5 (Broadcast editorial closure)** — drove from ~40% to ~92% match vs `docs/design/demos/demo-broadcast-v3.png`:
-- DOM rewrite of all 4 HTML pages (`index.html`, `players.html`, `rooms.html`, `player-profile.html`) — top nav + ticker + scoreboard + active-game + history + honors + sample + profile + footer.
-- ~840 inline `<style>` lines migrated into `theme.css`, scoped under `:root[data-theme="broadcast"]`. theme.css ≈3500 lines.
-- All 130+ JavaScript-bound element IDs preserved.
-- New live-data sync modules: `ui/calcPreviewSync.js`, `ui/rulesDrawerSync.js`, `ui/profileSnippetSync.js`. Existing `ui/tickerSync.js` extended to 6 fields. `game/history.js` rewritten as flexbox rows. `stats/honors.js` rewritten with team-colored recipient blocks. `player/playerRenderer.js` extended with `.roster-row` mode for scoreboard team zones. `ui/teamDisplay.js` extended with RANK NN/13 + active-game header line accents.
-- ARIA preserved across rewrite. Removed the duplicate "我的资料 / PROFILE" topnav tab — returns when session identity ships in Phase 2.5.
+#### `src/styles/tokens.css` — Token Values
+The ONLY file with color literals. Light values on `:root`, dark overrides on
+`:root[data-theme="dark"]`. Felt-green accent, neutral grey-green surfaces, hairline rules,
+8px spacing grid, system font stack, 44px touch minimums. Loaded as the first stylesheet in
+every entry HTML.
 
-**Phase 2 (Linear / Vercel Console)** — shipped 2026-05-03:
-- Second registered theme. Same DOM + renderers as Broadcast; CSS-only transformation.
-- Geist + Geist Mono, deep-neutral oklch base, single Linear-purple accent, density-first scale.
-- `src/themes/linear/theme.css` (~990 lines, every rule scoped under `:root[data-theme="linear"]`).
-- Capture baselines: `docs/reports/phase2-linear/`.
-- Phase 2.5 follow-up: Linear sidebar layout via `layout.mount()` + state preservation across theme switches.
-
-#### `themes/_shared/tokenSpec.js` - Token Contract
+#### `src/styles/tokenSpec.js` — Token Contract (moved from `themes/_shared/`)
 **Exports**: `TOKEN_SPEC` (frozen Object: color/font/scale/radius lists),
-`cssVar(category, key)` (builds `--<name>` CSS custom-property names),
-`verifyTokensPresent(rootEl)` (runtime contract check across all categories).
+`cssVar(category, key)`, `verifyTokensPresent(rootEl)` (runtime contract check — exercised by
+`scripts/visual/test-theme-toggle.mjs` in both modes).
 
-#### `themes/_shared/themeManager.js` - Theme Orchestration
-**Functions**:
-- `register(theme)` - Register a theme (tolerates `export default` shape)
-- `mount(themeName)` - Set `data-theme` attr, run `layout.mount`, persist to localStorage, emit `theme:changed`
-- `switchTo(themeName)` - No-op when current === target; otherwise `mount`
-- `listThemes()` / `getCurrent()` / `getManifest()` / `resolveBootTheme(default)`
+#### `src/styles/themePalette.js` — Canvas Export Palette (moved from `themes/_shared/`)
+`getActiveThemePalette()` reads computed token values off `document.documentElement` for the
+canvas PNG exports (`src/export/exportMobile.js` + `exportHandlers.js`) — canvas can't resolve
+CSS vars. Hex fallbacks inside are the documented exception to the no-color-literals rule.
 
-**Storage**: `gd_v9_theme` localStorage key (matches `gd_v9_*` convention).
+#### `src/ui/themeToggle.js` — Light/Dark Toggle
+`mountThemeToggle(host)` renders the ☀️/🌙 button into `#themeToggleMount` (all 4 pages;
+index via `main.js`, the other pages via their inline module scripts). `applyTheme`/`toggleTheme`
+set `data-theme`, persist `'light' | 'dark'` to `gd_v9_theme`, emit `theme:changed`
+(consumed by player-profile.html to re-render Chart.js charts with fresh token colors).
+Legacy 5-theme localStorage values are treated as unset → `prefers-color-scheme` (handled by the
+inline bootstrap `<script>` at the top of each entry HTML).
 
-#### `themes/_shared/featureManifest.js` - Cross-Theme Behavior Contract
-Declares per-theme rendering choices: `navigation`, `rankingInteraction`,
-`victorySurface`, `sparklines`, `commandPalette`, `honorPortraits`,
-`customRulesUI`, `liveCalcStrip`. `resolveManifest(themeManifest)` merges
-with `DEFAULT_MANIFEST` for missing keys.
+#### `src/style.css` — All Component Styles
+Single stylesheet for all 4 pages, tokens only, mobile-first (base 390px;
+`@media (min-width: 768px)` widens). Notable sections: `.board` hero (72/96px level digits,
+roundOwner underline, gold-A, 240ms flip animation — the app's single orchestrated animation),
+`.pool-tile`/`.rank-slot` tap-to-rank chips and slots, two-line `.history__row`, `.honor` cards,
+`.victory-modal*`, `.toast*`, players/rooms/profile page components, mobile fixed `.manualbtns`
+action bar.
 
-#### `themes/_shared/ThemePicker.js` - Settings-Drawer Picker
-XSS-safe (createElement + textContent, no innerHTML). Renders a status row
-when only one theme is registered; flips to a radio group when 2+ exist.
-Captures and releases its `theme:changed` subscription across re-mounts.
+#### Live-data sync modules (kept from the old system, restyled)
+- `ui/tickerSync.js` — status-strip fields (房间/模式/局/级/级主/用时) + LIVE/SYNC indicator
+- `ui/calcPreviewSync.js` — 升级预览 segments (红/蓝/差距 per ranking state)
+- `ui/rulesDrawerSync.js` — c4/t6/p6/t8/flags rule chips
+- `ui/teamDisplay.js` — board hero state: level digits + flip + owner underline + gold-A +
+  eyebrow 「本局打 X · 蓝队的级」(`renderActiveGameHeaderLine`)
+- `ui/profileSnippetSync.js` — legacy bottom-of-page profile card binder (its DOM section was
+  removed from index.html in the 2026-05-03 cleanup; module retained for reference)
 
-#### `themes/_shared/sparkline.js` - Pure SVG Sparkline Renderer (Phase 3.5)
-Shipped 2026-05-04. Returns a `<svg>` element from a numeric data series
-(`renderSparkline({ data, width, height, range, invertY, color, ... })`)
-plus a ranking-specific helper (`renderRankingSparkline(rankings, mode)`)
-that auto-inverts Y so rank 1 plots at the top. Class-based grid lines
-(`.sparkline__grid`) and a `--last` dot let themes restyle via CSS without
-re-rendering. Wired into `src/stats/statistics.js` — appears as a 近况
-column in the stats-table when `getManifest().sparklines === true` (Trading
-flipped this on; Broadcast / Linear stay false and render unchanged).
-
-#### `themes/broadcast/theme.css` - Broadcast Palette + Typography + Component Styles
-Activates under `:root[data-theme="broadcast"]`. Each oklch() value is
-paired with a sRGB hex/rgb fallback so Safari iOS 15.0–15.3 (parsers that
-reject oklch) still gets a valid color. **~3650 lines** post-Phase-1.5. Defines:
-- 22 color tokens (bg/surface/ink/accent/team/win/loss/rule families)
-- 3 font tokens (Fraunces / Inter Tight / DM Mono)
-- 8 spacing tokens (`--s1` through `--s8`)
-- 5 radius tokens
-- Backward-compat aliases (`--card`/`--muted`/`--stroke`/`--chip`) for unmigrated rules
-- All Phase 1.5 component styles: `.topnav`, `.ticker`, `.modeselect`, `.scorer`, `.team`, `.card-level`, `.versus`, `.activegame`, `.pool`, `.slots`, `.calcpreview`, `.toggles`, `.manualbtns`, `.btn` family, `.rules-drawer`, `.history`, `.honors`, `.honor`, `.sample`, `.profile`, `.footer`
-- Page-specific sections (clearly marked with `/* === PAGE: PLAYERS BROWSER === */` etc.) for `.player-card`, `.players-grid`, `.rooms-grid`, `.room-card`, `.profile-page-hero`, `.career-stat-tile`, `.mode-tab`, `.filter-tab`, `.players-pagination`, etc.
-- `@media (max-width: 768px)` responsive block stacks scoreboard columns, collapses pool/slots, scales card-level glyph from 200px → 140px
-
-Phase 2 follow-up: split into `theme.tokens.css` + `theme.layout.css` + `theme.components.css` (deferred — see HANDOFF.md "Phase 1.5 follow-ups" section).
-
-#### `themes/broadcast/featureManifest.js` / `index.js`
-Broadcast's explicit manifest values + the theme barrel (name, displayName,
-description, stylesheet path, layout placeholder).
-
-#### `themes/linear/theme.css` - Linear / Vercel Console Theme (Phase 2)
-Activates under `:root[data-theme="linear"]`. ~990 lines.
-- Geist + Geist Mono, oklch deep-neutral 270° base, single Linear-purple accent
-- Density-first scale (`--s1` through `--s8` are 4/6/10/14/20/28/40/56 px)
-- Equal-lightness surfaces (14/18/22/26%) with 1px borders for depth
-- Compact level glyph (36px) replaces Broadcast's 200px editorial; no decorative card-suit symbols
-- 4-column honors grid, monospace history table, custom checkbox styling
-
-#### `themes/linear/featureManifest.js` / `index.js`
-Linear's manifest (`commandPalette: true`, `liveCalcStrip: 'monospace'`,
-`honorPortraits: 'tagged'`) + theme barrel.
-
-#### `ui/tickerSync.js` - Live Ticker Binding
-Six-field ticker (`#tickerRoom`, `#tickerMode`, `#tickerRound`, `#tickerLevel`,
-`#tickerOwner`, `#tickerElapsed`) plus a LIVE/SYNC indicator. Reads room code
-from URL hash or `state.getRoomCode()`. Drives an interval timer for the
-elapsed counter. Listens to `ui:modeChanged`, round-level/owner/history events,
-`state:hydrated`, `state:gameReset`, `state:allReset`, `room:updated`,
-`room:joined`, `room:left`, `config:teamChanged`.
-
-#### `ui/calcPreviewSync.js` - LIVE CALC Editorial Strip (NEW Phase 1.5)
-Renders three editorial segments — 红 / 蓝 / 差距 — based on current ranking
-state. For 4-player: combination lookup with c4 table. For 6/8: per-team partial
-sums + score difference + threshold hint. Mode-aware slot count. Subscribes to
-ranking events + `ui:modeChanged`.
-
-#### `ui/rulesDrawerSync.js` - Rules Chip Strip (NEW Phase 1.5)
-Renders the compact `<summary>` chip strip on the Custom Rules drawer:
-`c4: 3-2-1 · t6: 7/4/1 · p6: 5-4-3-3-1-0 · t8: 11/5/0 · flags: ...`. Listens to
-`config:settingChanged`, `config:rulesUpdated`, `config:preferenceChanged`,
-`config:preferencesChanged`.
-
-#### `ui/profileSnippetSync.js` - Bottom-of-Page Profile Card (NEW Phase 1.5)
-Binds the editorial profile snippet to the active player profile. Active
-player resolved via `gd_active_profile_handle` localStorage key (set when user
-selects a player) or first profile-player in current session. Renders avatar,
-name, handle, badge, 6-stat grid (Sessions/Won/Rounds/AvgRank/PlayTime/最C·最闹),
-top-partner + top-rival progress bars. Empty-state fallback for guest.
 
 ### Share & Room Features (`src/share/`)
 
