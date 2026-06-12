@@ -158,7 +158,8 @@ function updateHonorArticle(article, honorData, meta) {
 
       const handle = document.createElement('span');
       handle.className = 'honor__handle';
-      handle.textContent = p.handle ? `@${p.handle}` : (p.emoji || '');
+      // Session players: avatar already shows the emoji — no second line.
+      handle.textContent = p.handle ? `@${p.handle}` : '';
       playerBlock.appendChild(handle);
     }
 

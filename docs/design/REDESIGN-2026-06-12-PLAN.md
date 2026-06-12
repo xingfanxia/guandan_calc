@@ -10,9 +10,9 @@ Kill 5-theme system → light/dark only. Zero functional regression. Game logic 
 |---|---|---|---|
 | RD-1 | DESIGN.md + tokens.css + new style.css + index.html restructure + theme system removal (themeToggle replaces themeManager/ThemePicker; statistics/honors/main.js de-themed; tokenSpec+themePalette relocated to src/styles/) | done | dd8239a |
 | RD-2 | Tap-to-rank entry (click pool chip → next slot; click filled slot → unrank); hint copy updates | done | dd8239a (combined with RD-1) |
-| RD-3 | rooms.html restyle | pending | — |
-| RD-4 | players.html restyle | pending | — |
-| RD-5 | player-profile.html restyle | pending | — |
+| RD-3 | rooms.html restyle | done | ff18751 |
+| RD-4 | players.html restyle | done | ff18751 |
+| RD-5 | player-profile.html restyle (incl. Chart.js token wiring) | done | ff18751 |
 | RD-6 | Mobile+desktop screenshot QC (iPhone 14 Pro / Pixel 7 / desktop, light+dark), victory modal + export smoke | pending | — |
 | RD-7 | Tests: rewrite smoke test (light/dark), new capture script, regenerate VR baselines, CI workflow update | pending | — |
 | RD-8 | Docs sync: CLAUDE.md, README, memory; delete dead theme docs refs | pending | — |

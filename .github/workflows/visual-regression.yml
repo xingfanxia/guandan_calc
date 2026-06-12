@@ -1,9 +1,20 @@
-# Visual regression test — runs the same `npm run test:visual` that local
-# dev runs, against the committed PNG baselines under docs/reports/.
+# Visual smoke — runs the capture suite + theme-toggle assertions on CI.
+#
+# Pixel comparison against the committed baselines is a LOCAL gate
+# (`npm run test:visual`): the design system uses the system font stack, so
+# macOS-generated baselines are not pixel-comparable with Linux renders.
+# (The pre-2026-06 pixel-compare job was red for a month for exactly this
+# class of cross-OS divergence.)
+#
+# What CI verifies instead:
+#   1. test-theme-toggle.mjs — light/dark toggle, persistence, legacy-value
+#      fallback, TOKEN_SPEC resolution in both modes, all 4 pages
+#   2. capture-redesign.mjs + capture-png-exports.mjs run to completion with
+#      ZERO page/console errors and produce the full expected PNG set —
+#      catches broken imports, runtime errors, missing renders on Linux
 #
 # Trigger conditions are scoped to changes that can plausibly affect
-# rendering (themes, capture scripts, source code, baseline PNGs). Avoid
-# running on doc-only PRs since they can't change visuals.
+# rendering. Avoid running on doc-only PRs since they can't change visuals.
 #
 # Security note: no `${{ github.event.* }}` inputs are interpolated into
 # `run:` shell commands; the only ${{...}} used is `github.ref` for the
@@ -15,9 +26,12 @@ on:
   pull_request:
     paths:
       - 'src/**'
+      - 'shared/**'
       - 'index.html'
+      - 'players.html'
+      - 'rooms.html'
+      - 'player-profile.html'
       - 'scripts/visual/**'
-      - 'docs/reports/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/visual-regression.yml'
@@ -25,9 +39,12 @@ on:
     branches: [main]
     paths:
       - 'src/**'
+      - 'shared/**'
       - 'index.html'
+      - 'players.html'
+      - 'rooms.html'
+      - 'player-profile.html'
       - 'scripts/visual/**'
-      - 'docs/reports/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/visual-regression.yml'
@@ -39,7 +56,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  visual-regression:
+  visual-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -77,8 +94,6 @@ jobs:
       # bundled production output exposes only /assets/*.js, not raw /src
       # paths. CI therefore runs the dev server, not preview.
       - name: Start dev server
-        env:
-          GD_NO_API_PROXY: '1'
         run: |
           npm run dev > /tmp/dev.log 2>&1 &
           echo $! > /tmp/dev.pid
@@ -93,20 +108,31 @@ jobs:
           cat /tmp/dev.log
           exit 1
 
-      - name: Run visual regression
-        env:
-          KEEP_SNAPSHOT: '1'
-          DIFF_OUT: '1'
-          SNAPSHOT_DIR: '/tmp/visual-snapshot'
-        run: npm run test:visual
+      - name: Theme toggle smoke
+        run: node scripts/visual/test-theme-toggle.mjs
 
-      # Always upload artifacts (snapshot + diffs) so failed runs leave
-      # inspectable PNGs. `if: always()` runs even after a failed step.
-      - name: Upload snapshot + diff PNGs
+      - name: Capture suite (structural smoke)
+        run: |
+          mkdir -p /tmp/visual-snapshot
+          VISUAL_REPORT_BASE=/tmp/visual-snapshot node scripts/visual/capture-redesign.mjs
+          VISUAL_REPORT_BASE=/tmp/visual-snapshot node scripts/visual/capture-png-exports.mjs
+
+      - name: Verify capture set is complete
+        run: |
+          expected=21
+          actual=$(find /tmp/visual-snapshot -name '*.png' | wc -l)
+          echo "captured $actual PNGs (expected $expected)"
+          if [ "$actual" -ne "$expected" ]; then
+            find /tmp/visual-snapshot -name '*.png'
+            exit 1
+          fi
+
+      # Always upload artifacts so runs leave inspectable PNGs.
+      - name: Upload snapshot PNGs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: visual-regression-snapshot
+          name: visual-smoke-snapshot
           path: /tmp/visual-snapshot/
           retention-days: 14
           if-no-files-found: warn

@@ -1481,12 +1481,23 @@ details + details { margin-top: var(--s2); }
 .honor__avatar--empty { color: var(--ink-dimmer); }
 
 .honor__player { font-size: 13px; font-weight: 600; }
+.honor__player .honor__handle:empty { display: none; }
+.honor__handle {
+  font-size: 11px;
+  color: var(--ink-dimmer);
+  margin-left: var(--s1);
+}
 .honor__stat {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s1);
   font-size: 12px;
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
 }
 .honor__stat--placeholder { color: var(--ink-dimmer); }
+.honor__stat--big { font-weight: 600; color: var(--ink); }
+.honor__stat-label { color: var(--ink-dimmer); }
 
 /* ============================================================
  * VOTING (人民的声音 — hidden since 2026-05-04, styles kept minimal)
