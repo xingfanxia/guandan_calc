@@ -23,17 +23,6 @@ import { $, on } from '../core/utils.js';
 import state from '../core/state.js';
 import { on as onEvent } from '../core/events.js';
 
-function gameInProgress() {
-  if (typeof state.getHistory === 'function' && state.getHistory().length > 0) return true;
-  if (typeof state.getCurrentRanking === 'function') {
-    const ranking = state.getCurrentRanking();
-    for (const k in ranking) {
-      if (ranking[k] != null) return true;
-    }
-  }
-  return false;
-}
-
 /**
  * @param {{ isRoomMode: boolean, isSharedMode: boolean }} ctx
  */
@@ -56,7 +45,7 @@ export function initRoomGate({ isRoomMode, isSharedMode } = {}) {
   function apply() {
     // The gate is only for the blank, not-in-a-room, fresh-load state. In a
     // room or shared snapshot, or with a game already in progress, show the app.
-    const showGate = !isRoomMode && !isSharedMode && !gameInProgress();
+    const showGate = !isRoomMode && !isSharedMode && !state.isGameInProgress();
     wrap.classList.toggle('wrap--gated', showGate);
     // The status strip (ticker) sits outside main.wrap and would otherwise
     // show a meaningless "房间 LOCAL · 第1局" above the gate — hide it too.

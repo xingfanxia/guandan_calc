@@ -521,6 +521,21 @@ class GameState {
     return clonePlainData(this.currentRanking);
   }
 
+  /**
+   * True when a game has started — at least one completed round in history OR
+   * any rank placed in the current round. Single source of truth for the
+   * "blank vs in-progress" distinction used by the room gate, setup-section
+   * visibility, and the create-room reset confirm.
+   */
+  isGameInProgress() {
+    if (Array.isArray(this.history) && this.history.length > 0) return true;
+    const ranking = this.currentRanking || {};
+    for (const k in ranking) {
+      if (ranking[k] != null) return true;
+    }
+    return false;
+  }
+
   setCurrentRanking(ranking) {
     const nextRanking = ranking || {};
     if (!validateCurrentRankingPayload(this.players, nextRanking)) {

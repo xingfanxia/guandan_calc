@@ -16,16 +16,8 @@ import { $ } from '../core/utils.js';
 import { on as onEvent } from '../core/events.js';
 import state from '../core/state.js';
 
-function gameHasBegun() {
-  if (typeof state.getHistory === 'function' && state.getHistory().length > 0) return true;
-  if (typeof state.getCurrentRanking === 'function') {
-    const ranking = state.getCurrentRanking();
-    for (const k in ranking) {
-      if (ranking[k] != null) return true;
-    }
-  }
-  return false;
-}
+// Single source of truth lives on the state singleton (state.isGameInProgress).
+const gameHasBegun = () => state.isGameInProgress();
 
 function pairToggle(content, hidden) {
   if (!content) return;
