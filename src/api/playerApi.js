@@ -123,11 +123,12 @@ function normalizeSuccessfulWriteResult(result) {
  * @param {number} limit - Max results (default 20)
  * @returns {Promise<{players: Array, total: number, hasMore: boolean}>}
  */
-export async function searchPlayers(query = '', limit = 20) {
+export async function searchPlayers(query = '', limit = 20, sort = 'recent') {
   try {
     const params = new URLSearchParams();
     if (query) params.set('q', query);
     params.set('limit', limit.toString());
+    if (sort === 'ladder') params.set('sort', 'ladder');
 
     const response = await fetch(`${API_BASE}/api/players/list?${params}`);
 

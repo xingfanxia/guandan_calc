@@ -80,6 +80,10 @@
       <button id="createPlayerButton" class="btn-secondary">创建玩家</button>
       <button id="adminModeButton" class="btn-danger">🔒 管理模式</button>
     </div>
+    <div class="sort-toggle" role="tablist" aria-label="排序方式">
+      <button id="sortLadder" type="button" class="sort-toggle__btn sort-toggle__btn--active" role="tab" aria-selected="true">🏆 天梯榜</button>
+      <button id="sortRecent" type="button" class="sort-toggle__btn" role="tab" aria-selected="false">🕐 最近活跃</button>
+    </div>
   </div>
 
   <!-- Admin token panel (JS shows/hides) -->
@@ -141,6 +145,8 @@ let allPlayers = [];
 let filteredPlayers = [];
 let isAdminMode = false;
 let adminToken = '';
+let currentSort = 'ladder';   // players page defaults to the 天梯榜 leaderboard
+let currentQuery = '';
 
 function toFiniteNumber(value, fallback = 0) {
   const number = Number(value);
@@ -215,9 +221,26 @@ if (adminTokenInput) {
   });
 }
 
+// Sort toggle: 天梯榜 (ladder leaderboard) vs 最近活跃 (recent activity)
+const sortLadderBtn = document.getElementById('sortLadder');
+const sortRecentBtn = document.getElementById('sortRecent');
+function setSort(sort) {
+  if (currentSort === sort) return;
+  currentSort = sort;
+  const ladderActive = sort === 'ladder';
+  sortLadderBtn?.classList.toggle('sort-toggle__btn--active', ladderActive);
+  sortRecentBtn?.classList.toggle('sort-toggle__btn--active', !ladderActive);
+  sortLadderBtn?.setAttribute('aria-selected', String(ladderActive));
+  sortRecentBtn?.setAttribute('aria-selected', String(!ladderActive));
+  loadPlayers(currentQuery);
+}
+sortLadderBtn?.addEventListener('click', () => setSort('ladder'));
+sortRecentBtn?.addEventListener('click', () => setSort('recent'));
+
 async function loadPlayers(query = '') {
   try {
-    const result = await searchPlayers(query, 100);
+    currentQuery = query;
+    const result = await searchPlayers(query, 100, currentSort);
     allPlayers = result.players;
     filteredPlayers = allPlayers;
 
@@ -244,8 +267,14 @@ function renderPlayers() {
     return;
   }
 
-  container.innerHTML = playersToShow.map(player => {
+  container.innerHTML = playersToShow.map((player, i) => {
     const playerStats = player.stats || {};
+    const ladder = playerStats.ladder || {};
+    const ladderRanked = toFiniteNumber(ladder.sessions) > 0;
+    // Server returns the list already sorted by rating, so the slice index is the
+    // leaderboard position — shown only for ranked players in 天梯榜 mode.
+    const rank = (currentSort === 'ladder' && ladderRanked) ? (start + i + 1) : null;
+    const rankMedal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : (rank ? `#${rank}` : '');
 
     return `
       <div
@@ -255,6 +284,7 @@ function renderPlayers() {
         data-profile-handle="${escapeHtml(player.handle)}"
       >
         <div class="player-card__head">
+          ${rankMedal ? `<span class="player-card__rank${rank <= 3 ? ' player-card__rank--top' : ''}">${rankMedal}</span>` : ''}
           <div class="player-card__avatar-wrap">
             ${renderProfileAvatar(player, 56)}
           </div>
@@ -267,6 +297,7 @@ function renderPlayers() {
         ${player.tagline ? `<p class="player-card__tagline">${escapeHtml(player.tagline)}</p>` : ''}
 
         <div class="player-card__stats">
+          <span class="stat-badge stat-badge--ladder">🪜 天梯 ${ladderRanked ? formatInteger(ladder.rating) : '未上榜'}</span>
           <span class="stat-badge">🎮 ${formatInteger(playerStats.sessionsPlayed || playerStats.gamesPlayed, 0)} 场</span>
           <span class="stat-badge">🏆 ${formatInteger(playerStats.sessionsWon || playerStats.wins, 0)} 胜</span>
           <span class="stat-badge">胜率 ${formatPercent(playerStats.sessionWinRate || playerStats.winRate)}%</span>

@@ -48,6 +48,29 @@ function getSortablePlayerTimestamp(player) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+function getLadderRating(player) {
+  const rating = Number(player?.stats?.ladder?.rating);
+  return Number.isFinite(rating) ? rating : 0;
+}
+
+function getLadderSessions(player) {
+  const sessions = Number(player?.stats?.ladder?.sessions);
+  return Number.isFinite(sessions) && sessions > 0 ? sessions : 0;
+}
+
+// 天梯榜: ranked players (≥1 ladder session) first, by rating DESC; never-ranked
+// players fall to the bottom in recency order so the board reads as a leaderboard.
+function compareByLadder(a, b) {
+  const aRanked = getLadderSessions(a) > 0;
+  const bRanked = getLadderSessions(b) > 0;
+  if (aRanked !== bRanked) return aRanked ? -1 : 1;
+  if (aRanked && bRanked) {
+    const byRating = getLadderRating(b) - getLadderRating(a);
+    if (byRating !== 0) return byRating;
+  }
+  return getSortablePlayerTimestamp(b) - getSortablePlayerTimestamp(a);
+}
+
 export default async function handler(request) {
   const preflight = handleCorsPreflight(request, 'GET, OPTIONS');
   if (preflight) return preflight;
@@ -61,6 +84,7 @@ export default async function handler(request) {
     // Parse query parameters
     const url = new URL(request.url);
     const searchQuery = normalizeSearchText(url.searchParams.get('q') || '');
+    const sortBy = url.searchParams.get('sort') === 'ladder' ? 'ladder' : 'recent';
     const pagination = parseListPagination(url.searchParams);
 
     // Validate parameters
@@ -90,10 +114,10 @@ export default async function handler(request) {
       players = players.filter(player => matchesSearch(player, searchQuery));
     }
 
-    // Sort by lastActiveAt DESC (most recently active first), fallback to createdAt
-    players.sort((a, b) => {
-      return getSortablePlayerTimestamp(b) - getSortablePlayerTimestamp(a);
-    });
+    // Sort: ladder leaderboard, or lastActiveAt DESC (default).
+    players.sort(sortBy === 'ladder'
+      ? compareByLadder
+      : (a, b) => getSortablePlayerTimestamp(b) - getSortablePlayerTimestamp(a));
 
     // Get total count before pagination
     const total = players.length;
