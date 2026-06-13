@@ -64,6 +64,15 @@ All keys use prefixes for namespace organization and efficient querying.
     currentLossStreak: 0,
     longestLossStreak: 4,
 
+    // Ladder rating (天梯, simplified Elo — algorithm in shared/ladderLogic.js).
+    // Applied server-side in the per-player session PUT for real-room games.
+    // sessions===0 → never ranked (seeded from web history on first apply).
+    ladder: { rating: 1180, sessions: 37, peak: 1205 },
+    // Ladder idempotency: gameSessionKey → applied delta (same key as sessionHistory)
+    ladderHistory: {
+      "A1B2C3:game:12:t1:2024-12-08T20%3A30%3A00.000Z": 14
+    },
+
     // Completed-profile-session idempotency
     sessionHistory: {
       "A1B2C3:game:12:t1:2024-12-08T20%3A30%3A00.000Z": {

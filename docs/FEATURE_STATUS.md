@@ -3,13 +3,19 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-06-12 (wxapp-style light/dark redesign — 5-theme system removed, see root DESIGN.md)
+**Last Updated**: 2026-06-13 (天梯 ladder rating + honor anti-sweep cap — see root CLAUDE.md)
 **Architecture**: ~40 ES6 modules + 10 player APIs + 7 room APIs + light/dark design system (root DESIGN.md) + local visual gate (21 baselines, `npm run test:visual`)
 **Version**: v10.0
 
 ---
 
 ## Completed Features
+
+### Ladder + Honors (2026-06-13, 100%)
+- [x] 天梯 ladder rating — per-session simplified Elo (`shared/ladderLogic.js`), applied server-side in the per-player session sync; 天梯榜 leaderboard (`?sort=ladder`) + profile tiles
+- [x] Honor anti-sweep cap — max 2 positive honors/player (two-pass soft cap), stops one player winning every positive honor
+- [x] 保底核心 honor shows its own stat (0/N 垫底), no longer cloning 团队中轴
+- [x] Test fixtures (`test_*`) filtered from the public player list + 天梯榜
 
 ### Core Architecture (100%)
 - [x] Modular refactoring: 38 ES6 modules with clean separation

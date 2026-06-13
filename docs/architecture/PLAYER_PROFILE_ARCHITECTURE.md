@@ -1038,29 +1038,36 @@ rollupOptions: {
 
 ---
 
+## Ladder rating (天梯, added 2026-06-13)
+
+Per-session simplified-Elo rating stored on the profile as
+`stats.ladder = {rating, sessions, peak}` (+ `stats.ladderHistory` for
+idempotency). Algorithm: `shared/ladderLogic.js` (canonical, vendored by the
+wxapp sibling). Applied **server-side inside the per-player session PUT**
+(`api/players/[handle].js applyLadderForSession`) for real-room games — reads
+every participant's frozen pre-session rating for the team average, writes only
+the one profile. Surfaced as a 天梯榜 leaderboard (`GET /api/players/list?sort=ladder`)
+on `players.html` + tiles on `player-profile.html`. Full design: root `CLAUDE.md`
+→ "Ladder System".
+
 ## Testing
 
-**Test Data**: 10 players with `test_` prefix
-- @test_hao, @test_fan, @test_xiao, etc.
-- All stats reset to 0
-- Ready for production testing
+**Test players** use the `test_` handle prefix and are filtered out of the public
+list + 天梯榜 (`api/players/list.js`, mirroring `api/rooms/list.js`); they remain
+reachable by exact handle for dev. Hard-delete fixtures from KV with
+`scripts/ops/delete-test-players.mjs` (dry-run by default; `--apply` to delete).
 
 **Test Endpoints**:
 ```bash
 # Create player
 curl -X POST https://gd.ax0x.ai/api/players/create -d '{...}'
 
-# Get player
+# Get player (test_ players reachable by exact handle, not via list)
 curl https://gd.ax0x.ai/api/players/test_hao
 
-# Search
-curl "https://gd.ax0x.ai/api/players/list?q=test"
-
-# Reset stats
-curl -X POST https://gd.ax0x.ai/api/players/reset-stats -d '{"handle":"test_hao"}'
-
-# Delete
-curl -X POST https://gd.ax0x.ai/api/players/delete -d '{"handle":"test_hao"}'
+# Reset stats / delete (admin token required)
+curl -X POST https://gd.ax0x.ai/api/players/reset-stats -d '{"handle":"test_hao","adminToken":"<ADMIN_TOKEN>"}'
+curl -X POST https://gd.ax0x.ai/api/players/delete -d '{"handle":"test_hao","adminToken":"<ADMIN_TOKEN>"}'
 ```
 
 ---

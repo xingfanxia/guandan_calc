@@ -306,15 +306,20 @@
 }
 ```
 
-#### `honors.js` - Honor Calculation
-**Purpose**: Calculate 16 full-session honors from session data
+#### `shared/honorLogic.js` / `src/stats/honors.js` - Honor Calculation
+**Purpose**: Calculate 16 full-session honors. Algorithm + the anti-sweep cap
+live in `shared/honorLogic.js` (pure, vendored by the wxapp sibling);
+`src/stats/honors.js` is the web display layer (`HONOR_META.fmtStat`) + re-export.
 
 **Function**: `calculateHonors(totalPlayers)`
 **Returns**: Object with honor winners
 **Eligibility**: Full-session honors require at least 5 rounds of valid
 rankings before any award is emitted; otherwise cards remain in-progress.
+**Anti-sweep cap (2026-06-13)**: scoring picks each honor's top scorer, then a
+two-pass assignment caps each player at 2 POSITIVE honors so one strong player
+can't win them all (`{ applyCap: false }` returns the raw uncapped winners).
 
-**Algorithms** (lines 38-328):
+**Algorithms**:
 - **吕布** (MVP): Most first places + tie-breaker
 - **阿斗** (Burden): Most last places
 - **石佛** (Stable): Low avg + low variance
@@ -331,6 +336,19 @@ rankings before any award is emitted; otherwise cards remain in-progress.
 - **燃尽王** (Burnout): Early-to-late collapse after a solid start
 - **棋差一着** (Almost): Repeated second place without wins
 - **抗压王** (Resilient): Rebounds after bottom-tier pressure rounds
+
+#### `shared/ladderLogic.js` - Ladder Rating (天梯, NEW 2026-06-13)
+**Purpose**: Per-session simplified-Elo rating. Pure module (canonical; vendored
+by the wxapp sibling as ESM + CJS-into-cloudfunctions).
+**Functions**: `computeLadderDeltas` (team Elo K=24 + personal-perf K=28, winner
+floor +1 / loser cap +6) · `seedLadderRating` (first rating from web history) ·
+`applyLadderDelta` (`{rating, sessions, peak}`).
+**Application**: server-side in `api/players/[handle].js applyLadderForSession`,
+inside the per-player session PUT (real-room games only) — reads every
+participant's frozen rating for the team average, writes only the one profile,
+idempotent per `gameSessionKey` via `stats.ladderHistory`. Leaderboard:
+`GET /api/players/list?sort=ladder`. Display: `players.html` 天梯榜 +
+`player-profile.html` tiles. Tests: `scripts/ops/verify-ladder-{algorithms,sync}.mjs`.
 
 #### `shared/achievementLogic.js` / `src/stats/achievements.js` - Achievement System (NEW)
 **Purpose**: Define and check 17 active achievement badges from one shared implementation. `src/stats/achievements.js` re-exports the shared catalog for existing frontend imports.

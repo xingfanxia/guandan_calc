@@ -591,18 +591,28 @@ Calculated in `playerApi.js` by sorting all players by avgRank.
 
 ### Testing
 
-**Test Data**: 10 players with `test_` prefix (easy cleanup)
-- All stats reset to 0 as of 2025-12-10
-- Use for development/testing
-- Delete before production launch
+**Test players** use the `test_` handle prefix. They are **filtered out** of the
+public surfaces — both `api/players/list.js` (player list + 天梯榜) and
+`api/rooms/list.js` drop `test_*` — but stay in KV and remain reachable by exact
+handle (`GET /api/players/test_foo`) for development. The KV fixtures were
+hard-deleted on 2026-06-13 (`scripts/ops/delete-test-players.mjs`).
+
+**Cleanup script** — hard-delete `test_*` fixtures from KV (mirrors
+`api/players/delete.js`; needs KV creds, not the admin token):
+```bash
+vercel env pull --environment=production /tmp/gd.env   # get KV_REST_API_URL/TOKEN
+set -a; . /tmp/gd.env; set +a
+node scripts/ops/delete-test-players.mjs            # dry-run (lists, deletes nothing)
+node scripts/ops/delete-test-players.mjs --apply    # delete
+```
 
 **Test Commands**:
 ```bash
 # Create test player
 curl -X POST https://gd.ax0x.ai/api/players/create -d '{...}'
 
-# Reset all test_ players
-curl -X POST https://gd.ax0x.ai/api/players/reset-stats -d '{"handle":"test_hao"}'
+# Reset a test_ player's stats (admin token required)
+curl -X POST https://gd.ax0x.ai/api/players/reset-stats -d '{"handle":"test_hao","adminToken":"<ADMIN_TOKEN>"}'
 ```
 
 ### Common Issues

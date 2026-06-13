@@ -12,7 +12,8 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
   - Persistent player identities with unique @handles
   - Career statistics tracking (sessions + individual rounds)
   - Time tracking: Total playtime, longest session, averages
-  - All 16 honors synced to profiles automatically
+  - All 16 honors synced to profiles automatically (capped at 2 positive honors/player so no one sweeps)
+  - 天梯 ladder rating (simplified Elo) with a 天梯榜 leaderboard
   - 17 active achievement badges with auto-unlock system
   - Partner/rival relationship tracking with win rates
   - Recent rankings history (last 10 sessions)
