@@ -15,7 +15,12 @@ import {
   deriveVoteProfileHistoryKey
 } from '../../shared/voteSessionKey.js';
 import { getHistoryEntries, resolveGameStatus } from '../../shared/gameStatus.js';
-import { LADDER_BASE } from '../../shared/ladderLogic.js';
+import {
+  LADDER_BASE,
+  computeLadderDeltas,
+  seedLadderRating,
+  applyLadderDelta
+} from '../../shared/ladderLogic.js';
 import { publicVoteStoreForRoom } from '../rooms/_votes.js';
 import {
   validateHandle,
@@ -516,6 +521,86 @@ function normalizeLadderShape(ladder) {
     sessions: normalizeNonNegativeInteger(cur.sessions, 0),
     peak: Math.max(rating, normalizeNonNegativeNumber(cur.peak, rating))
   };
+}
+
+function roomLadderHandle(roomPlayer) {
+  const raw = roomPlayer?.handle ?? roomPlayer?.profileHandle;
+  return typeof raw === 'string' && raw ? raw.toLowerCase() : null;
+}
+
+/**
+ * The frozen pre-session ladder a profile brings into a match: its accumulated
+ * rating once it has played a ladder session, otherwise a one-time seed derived
+ * from web history (sessions===0 → never ranked). Defensive against raw/legacy
+ * stats shapes (other participants are read straight from KV, unnormalized).
+ */
+function frozenLadderState(stats) {
+  const l = stats && isPlainRecord(stats.ladder) ? stats.ladder : {};
+  const sessions = Number(l.sessions) || 0;
+  const rating = Number(l.rating);
+  if (sessions > 0 && Number.isFinite(rating)) {
+    const peak = Number(l.peak);
+    return { rating, sessions, peak: Number.isFinite(peak) ? peak : rating };
+  }
+  const seed = seedLadderRating(stats);
+  return { rating: seed, sessions: 0, peak: seed };
+}
+
+/**
+ * Apply this session's ladder delta to ONE profile (the PUT target). Reads every
+ * participant's frozen rating to compute team averages, but writes only `player`
+ * — other profiles are read-only here, so concurrent per-player PUTs never
+ * clobber each other. Idempotent per sessionKey (the same gate as sessionHistory).
+ * Mutates player.stats.ladder + player.stats.ladderHistory in place; no-op when
+ * the room has no authoritative winner (宁可不动不可错判方向).
+ */
+async function applyLadderForSession(player, handle, room, targetRoomPlayer, sessionKey) {
+  if (!room || !targetRoomPlayer || !sessionKey) return;
+
+  const history = getHistoryEntries(room?.state);
+  const status = resolveGameStatus(room?.state?.gameStatus, history);
+  if (!status.ended || !status.winnerKey) return;
+  const winnerTeam = status.winnerKey === 't1' ? 1 : status.winnerKey === 't2' ? 2 : 0;
+  if (winnerTeam !== 1 && winnerTeam !== 2) return;
+
+  player.stats.ladderHistory = normalizeRecordMap(player.stats.ladderHistory);
+  if (Object.prototype.hasOwnProperty.call(player.stats.ladderHistory, sessionKey)) return;
+
+  const roomPlayers = Array.isArray(room.players) ? room.players : [];
+  const roomStats = isPlainRecord(room.playerStats) ? room.playerStats : {};
+  const avgRankingOf = (id) => {
+    const st = roomStats[String(id)] ?? roomStats[id];
+    const games = Number(st?.games);
+    return st && games > 0 ? Number(st.totalRank) / games : null;
+  };
+
+  // Frozen ratings, keyed by handle. The target uses its already-loaded profile;
+  // other handle-bound players are fetched read-only. No-handle guests fall
+  // through to computeLadderDeltas' LADDER_BASE default in the team average.
+  const ratingByHandle = new Map([[handle, frozenLadderState(player.stats).rating]]);
+  const otherHandles = [...new Set(
+    roomPlayers.map(roomLadderHandle).filter(h => h && h !== handle)
+  )];
+  await Promise.all(otherHandles.map(async (h) => {
+    const profile = parsePlayerRecord(await kv.get(`player:${h}`));
+    ratingByHandle.set(h, profile ? frozenLadderState(profile.stats || {}).rating : LADDER_BASE);
+  }));
+
+  const rosterInput = roomPlayers.map((p) => {
+    const h = roomLadderHandle(p);
+    return {
+      id: String(p.id),
+      team: Number(p.team),
+      avgRanking: avgRankingOf(p.id),
+      rating: h ? ratingByHandle.get(h) : undefined
+    };
+  });
+
+  const deltas = computeLadderDeltas({ mode: roomPlayers.length, winnerTeam, players: rosterInput });
+  const delta = deltas.get(String(targetRoomPlayer.id)) || 0;
+
+  player.stats.ladder = applyLadderDelta(frozenLadderState(player.stats), delta);
+  player.stats.ladderHistory[sessionKey] = delta;
 }
 
 // Migrate historical games to mode-specific stats (runs once per player)
@@ -1041,6 +1126,14 @@ export default async function handler(request) {
             duplicateSessionIgnored: true
           }, RESPONSE_OPTIONS);
         }
+
+        // Ladder rating (simplified Elo, see shared/ladderLogic.js). Run BEFORE
+        // the session-stat increments so the first-session seed reads PRE-session
+        // web history (sessionsPlayed/avgRanking), not this session. Real-room
+        // sessions only — derives the authoritative winner + roster from the room
+        // snapshot, reads every participant's frozen rating for the team average,
+        // and writes only this profile. Same session key → never double-applies.
+        await applyLadderForSession(player, handle, _room, _targetRoomPlayer, gameSessionHistoryKey);
 
         // ===== UPDATE OVERALL STATS =====
         // Snapshot the OLD count BEFORE incrementing — running averages must use N_old.
