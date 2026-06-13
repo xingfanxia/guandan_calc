@@ -249,7 +249,7 @@ function renderPartnerRivalStats(player) {
       <span class="section-rule__bar"></span>
       <span class="section-rule__label">队友与对手</span>
       <span class="section-rule__line"></span>
-      <span class="section-rule__meta">WIN RATE · CLICK TO VIEW PROFILE</span>
+      <span class="section-rule__meta" style="display:inline">点击查看资料</span>
     </div>
     <div class="card">
       <div class="rels-grid">
@@ -641,7 +641,7 @@ async function loadProfile(handle) {
         <span class="section-rule__bar"></span>
         <span class="section-rule__label">荣誉</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta">${totalHonorCount} TOTAL</span>
+        <span class="section-rule__meta" style="display:inline">共 ${totalHonorCount} 项</span>
       </div>
       <div class="card">
         ${topHonors.length > 0 ? `
@@ -733,7 +733,7 @@ async function loadProfile(handle) {
         <span class="section-rule__bar"></span>
         <span class="section-rule__label">生涯统计</span>
         <span class="section-rule__line"></span>
-        <span class="section-rule__meta" id="statsTitle">全部模式 · ALL MODES</span>
+        <span class="section-rule__meta" id="statsTitle" style="display:inline">全部模式</span>
       </div>
 
       <div class="career-stats-section">
@@ -870,7 +870,7 @@ async function loadProfile(handle) {
 
         const statsTitle = document.getElementById('statsTitle');
         if (statsTitle) {
-          const modeLabel = { 'all': '全部模式 · ALL MODES', '4P': '4人模式 · 4P', '6P': '6人模式 · 6P', '8P': '8人模式 · 8P' }[selectedMode];
+          const modeLabel = { 'all': '全部模式', '4P': '4人模式', '6P': '6人模式', '8P': '8人模式' }[selectedMode];
           statsTitle.textContent = modeLabel;
         }
 

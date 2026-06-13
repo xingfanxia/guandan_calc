@@ -177,11 +177,12 @@ assert.equal(config.getPreference('autoNext'), false);
 assert.equal(config.getPreference('autoApply'), true);
 assert.equal(config.getTeamName('t1'), '蓝队');
 assert.equal(config.getTeamName('t2'), 'Red');
-assert.equal(config.getTeamColor('t1'), '#3b82f6');
+// Default team colors are the DESIGN.md palette (DEFAULT_TEAM_COLORS, 2026-06-12).
+assert.equal(config.getTeamColor('t1'), '#2a5db0');
 assert.equal(config.getTeamColor('t2'), '#aabbcc');
 assert.equal(config.getAll().t1.name, '蓝队');
 assert.equal(config.getAll().t2.name, 'Red');
-assert.equal(config.getAll().t1.color, '#3b82f6');
+assert.equal(config.getAll().t1.color, '#2a5db0');
 assert.equal(config.getAll().t2.color, '#aabbcc');
 assert.deepEqual(config.get4PlayerRules(), { '1,2': 7, '1,3': 2, '1,4': 1 });
 assert.deepEqual(config.get6PlayerRules(), {
