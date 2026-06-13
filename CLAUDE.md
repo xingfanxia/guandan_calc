@@ -10,11 +10,12 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 ### Modern Modular Implementation ✅ v10.0
 
-**ES6 Modular Architecture**: 40 modules + 5 registered themes with clean separation of concerns
-- Entry: `index.html` → `src/main.js` (509 lines, -69% from refactoring)
+**ES6 Modular Architecture**: ~40 modules + light/dark design system (root `DESIGN.md`)
+- Entry: `index.html` → `src/main.js`
 - Build: `npm run build` → `dist/`
-- Development: `npm run dev` (port 5173)
-- Storage: Fresh `gd_v9_*` localStorage keys + Vercel KV
+- Development: `npm run dev` (vite.config port 3000; falls back to 3001+ when taken — capture
+  scripts accept `GD_BASE_URL`)
+- Storage: `gd_v9_*` + legacy `gd_v7_5_1_*` localStorage keys + Vercel KV
 
 **Legacy Reference**: `src/app.js` (1,947 lines)
 - Original monolithic IIFE preserved for reference
@@ -80,32 +81,74 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 **Export (1 module)**: Data export functionality
 - `export/exportHandlers.js` - TXT/CSV/PNG export functions
 
-**Theme System**: Token-based multi-theme architecture (Phases 0+1+1.5 + 2 + 3 all shipped 2026-05-03)
-- `themes/_shared/tokenSpec.js` - Token name contract + verifyTokensPresent()
-- `themes/_shared/themeManager.js` - register/mount/switchTo, persists to `gd_v9_theme`
-- `themes/_shared/featureManifest.js` - Per-theme feature manifest contract
-- `themes/_shared/ThemePicker.js` - Settings-drawer picker UI (XSS-safe createElement)
-- `themes/_shared/sparkline.js` - Pure SVG sparkline renderer (Phase 3.5; gated by `featureManifest.sparklines`)
-- `themes/broadcast/` - A · Broadcast Editorial (default theme): Fraunces + Inter Tight + DM Mono, oklch palette with orange accent, editorial maximalism
-- `themes/linear/` - E · Linear / Vercel Console: Geist + Geist Mono, density-first oklch with single Linear purple accent, no decorative card suits
-- `themes/trading/` - D · Trading Terminal: JetBrains Mono everywhere (IBM Plex Sans for prose only), near-black `oklch(12% 0.005 240)` base, amber HUD accent, sharp 1px borders (radius collapsed to 0/2px), ASCII bracket flair (`// SECTION`, `[CATEGORY]`, `> SLOT 一`), fixed-attachment 80px grid background overlay
-- Live data wiring (Phase 1.5):
-  - `ui/tickerSync.js` - 6 ticker fields (Room/Mode/Round/Level/Owner/Elapsed) + LIVE/SYNC indicator
-  - `ui/calcPreviewSync.js` - LIVE CALC editorial segments (red/blue/差距 with thresholds)
-  - `ui/rulesDrawerSync.js` - Compact rules chip strip (c4/t6/p6/t8/flags)
-  - `ui/profileSnippetSync.js` - Bottom-of-page personal data card with 6-stat grid + partner/rival
-  - `ui/teamDisplay.js` - RANK NN/13 + accent-colored active-game header line
-  - `player/playerRenderer.js` - `.roster-row` markup in scoreboard team zones
-  - `game/history.js` - Flexbox `.history__row` with mini level cards + winner badges
-  - `stats/honors.js` - Status-badge cards with team-colored avatar + handle + stat
-- Visual baselines: `docs/reports/phase1-5-final/` (Broadcast ~92%) + `docs/reports/phase2-linear/` (Linear) + `docs/reports/phase3-trading/` (Trading desktop + mobile) + `docs/reports/phase3-5-sparklines/` (Phase 3.5 stats-card cross-theme verification)
-- Phase 3.5 (sparkline renderer) shipped 2026-05-04 — `src/themes/_shared/sparkline.js` is wired into `src/stats/statistics.js` via `getManifest().sparklines`, and Trading's manifest flipped to `true`. Stats-table grows a 近况 column in Trading with per-team-colored rank-trajectory SVGs; Broadcast / Linear / Atelier stay `false` and render unchanged.
-- Phase 4 (Atelier Console) shipped 2026-05-04 — fourth registered theme. Warm graphite oklch 60° hue with Anthropic-tan undertone, clay/caramel accent at hue 65°, Fraunces serif display + Inter body + JetBrains Mono mono. Vintage card-stock pcards (cream paper with serif rank glyph + corner suit symbols on dark). Editorial sample/championship state. CSS-only restyle, same DOM as siblings. Visual baseline: `docs/reports/phase4-atelier/`. Capture script: `scripts/visual/capture-atelier-theme.mjs`.
-- Atelier polish iter 1 + iter 2 + iter 3 + iter 4 shipped 2026-05-05 (`a392e15` + `c852766` + `06c1137` + `52c9504`) — root-cause fix on history grid (renderer emits 8 cells/row but Atelier had 5 columns → broken 2-row layout); capture script swap to `renderStatistics()` so stats card + team-honors actually populate; hero head-line 28→40px; topnav brand-mark `Ⓐ` + 22→28px padding; scoreboard `.team__role` italic Fraunces; team-honors underline-only badges; pool/slots `__sub` captions mono uppercase → italic Fraunces. **Iter 3** refactored the victoryModal markup (`index.html` line 885+) from inline styles to class-based (`.victory-modal__inner / __eyebrow / __title / __teamname / __lede / __voting / __actions`) so per-theme CSS can finally reach it; added complete `.victory-modal` rule sets to all 4 themes (broadcast/linear/trading/atelier) + a cross-theme verification script `scripts/visual/capture-victory-cross-theme.mjs` producing 4 themes × 2 viewports = 8 PNGs in `docs/reports/victory-cross-theme/`. **Iter 4** rewrote `.calcpreview` (heavy panel → editorial single-row aside: label inline-left, italic Fraunces content middle, mono numerics, hint right-aligned, border-left clay only) and `.slot` (squat horizontal → vertical playing-card aspect 90/130) plus first-time theming of all filled-slot inner classes (`.slot__index`, `.slot__rank-cn`, `.slot__avatar`, `.slot__name`, `.slot__handle`, `.slot__check`) — these were never styled in atelier (only `.slot__target-*` and `.slot__placeholder-*` had rules), which was the root cause of the generic-looking filled state through iter 1+2+3. Aggregate ~70% → ~96% per section, no remaining floor. Combined handoff: `docs/design/HANDOFF-2026-05-05-atelier-polish-iter-1.md`. **Mobile calcpreview** shipped 2026-05-05 (`9fc4294`) — closes the deferred 94% mobile gap by switching `.calcpreview` to `flex-direction: column` at `@media (max-width: 768px)`. Three discrete visual layers (LIVE CALC eyebrow / italic-Fraunces segments paragraph / right-aligned hint caption) replace the cramped wrapped row at 390px. Capture script gains per-section `calcpreview-mobile.png` so future polish can audit this component in isolation. **VictoryModal contract**: hero markup in `index.html` is class-based as of 2026-05-05; new themes MUST add `.victory-modal*` rules or the championship state falls back to unstyled. **Visual regression CI shipped 2026-05-05** (`402bb87` + `2fa1b84` + `c9ddf62` + `1d2cf8b`) and extended same day (`f768ba7` + `c6da03a`) — pixelmatch-based, **65 baseline PNGs across 7 capture scripts** (4 themes + victory-cross + png-exports + sparklines), deterministic via `scripts/visual/_fixtures.mjs` (freezeTime + setDeterministicPlayers + setDeterministicPlayerStats + event re-render). Sparkline determinism via `FIXED_RANKINGS_8` matrix injected directly into `state.playerStats`, sidestepping the unseedable `#randomRanking` Math.random path. Per-directory threshold overrides in `scripts/visual/diff-baselines.mjs` (`THRESHOLD_OVERRIDES = { 'png-export-themes/': 250 }`) absorb the 100-160 px canvas font subpixel-rendering noise on 1.2 MP images while real changes still trigger 1000s+ px diffs. Run locally with `npm run test:visual`; CI runs on PR via `.github/workflows/visual-regression.yml`. **Cross-page theme bootstrap inlined 2026-05-05** (`4a3d7e6`) — every entry HTML (index/players/player-profile/rooms) carries an inline `<script>` ABOVE all stylesheets that reads `gd_v9_theme` from localStorage and sets `data-theme` synchronously, eliminating the FOUC where users with a saved non-default theme briefly saw Broadcast on each navigation; `themeBootstrap.js` module deleted (logic was deferred-by-default and ran AFTER cascade resolution). **Phase 2.5 shipped 2026-05-05** — Linear's `layout.mount/unmount` now moves the live `<nav class="topnav">` into an `<aside class="linear-sidebar">` wrapper (move-not-clone preserves event listeners + theme picker slot); `themeManager.mount()` calls `current.layout?.unmount()` before swapping (closes a latent DOM-leak bug that Phase 2's no-op layouts had hidden); CSS-only `display: contents` mobile fallback so @media (max-width:768px) reverts to default sticky-top row. State preservation is structural (state.js singleton survives DOM mutations) — the architecture-doc `getSnapshot/restore` pseudocode was illustrative, not literal. 20-assertion smoke test at `scripts/visual/test-theme-switch.mjs` verifies mount + unmount + remount + state survival across full 4-theme cycle. Phase 5 (Tea-Table) gated on commissioned ink illustrations. Demo-grade multi-section sidebar with status indicators (per `demos/demo-linear-v2.png`) deferred to Phase 2.6 polish. **Phase 2.6 shipped 2026-05-06** (`a92576d`) — Linear's `layout.mount()` injects two transient nodes after the topnav move (`<div class="linear-sidebar__section-label">导航 NAVIGATION</div>` before `.topnav__tabs`, and `<span class="linear-sidebar__status-dot">` inside the user avatar); `layout.unmount()` strips them BEFORE restoring topnav so the original DOM is byte-identical. Active-tab accent bar is pure CSS (`::before` on `.topnav__tab--active`). Mobile (<769px) hides both injected nodes via `display: none`. Decorative ⌘1/⌘2/⌘3 shortcut chips were considered and rejected — Cmd+1/2/3 are browser-reserved, so non-functional chips would be aspirational lying. Phase 5 (Tea-Table) is now the only outstanding theme item. See `docs/design/THEME-ARCHITECTURE.md` for the full 5-phase plan.
+**Design System (2026-06-12 redesign — replaces the 5-theme system)**: wxapp-style mobile-first
+light/dark token architecture. Source of truth: root `DESIGN.md` (ported from sibling repo
+`guandan-scorer-wxapp`); plan + state: `docs/design/REDESIGN-2026-06-12-PLAN.md`.
+- `src/styles/tokens.css` - the ONLY place with color literals: light values on `:root`, dark
+  overrides on `:root[data-theme="dark"]`. Felt-green accent (#15694B/#46B98D), hairline rules,
+  8px grid, system font stack (no webfonts). Satisfies every TOKEN_SPEC name.
+- `src/styles/tokenSpec.js` - token name contract + `verifyTokensPresent()` (moved from `themes/_shared/`)
+- `src/styles/themePalette.js` - runtime computed-token reader for canvas PNG exports (documented
+  exception to the no-color-literals rule: hex fallbacks only)
+- `src/ui/themeToggle.js` - light/dark toggle, persists `'light'|'dark'` to `gd_v9_theme`, emits
+  `theme:changed`. Mounted into `#themeToggleMount` on all 4 pages (index via main.js; the other
+  3 pages import it in their inline module scripts).
+- Inline bootstrap `<script>` in every entry HTML (ABOVE stylesheets) reads `gd_v9_theme`; any
+  non-light/dark value (incl. legacy 5-theme names) falls back to `prefers-color-scheme`.
+- `src/style.css` - ALL component styling for all 4 pages, single file, tokens only. Mobile-first
+  (base = 390px, `@media (min-width: 768px)` widens). Signature element: `.board` hero with
+  72/96px team-colored level digits + roundOwner accent underline + gold-A state.
+- 排名录入 is tap-to-rank (wxapp pattern): tap a pool chip → fills the lowest empty slot; tap a
+  filled slot → unranks. Implemented in `rankingRenderer.js` (`placePlayerAtNextRank`/`unrankSlot`)
+  on top of `rankingManager.setRankPosition`/`clearRankPosition`. Drag-drop + 200ms long-press
+  touch drag remain as the secondary path (touchHandler only preventDefaults once a drag starts,
+  so short taps arrive as plain clicks).
+- **Entry flow — room-by-default (2026-06-12)**: a new game starts a room. A fresh blank load
+  (no room in URL, no game in progress) shows the one-tap room gate (`src/ui/roomGate.js` +
+  `#roomGate`) instead of local setup; tapping 创建房间 creates the room and redirects into host
+  mode. `main.wrap.wrap--gated` shows only the gate and hides every sibling; `body.app-gated`
+  hides the status strip. The gate is reactive (mirrors `setupVisibility.js`'s watch list) and a
+  saved in-progress LOCAL game still renders (backward compat). `roomControls.js` skips the reset
+  confirm when no game is in progress. This also fixes the profile-sync 403s: LOCAL games could
+  only write profiles the device owned, but room games sync every participant via the host token
+  (`updatePlayerStats(handle, result, roomAuthToken)`).
+- All inline-styled JS surfaces are tokenized (no hardcoded hex outside tokens.css /
+  themePalette fallbacks): search results, create/edit profile modals, compact roster, victory MVP
+  tagline + team colors (via `config.isDefaultTeamColor` → `--team-*` tokens), share modal, sync
+  status, remove-button ring. (Exception tracked: votingManager viewer card — needs a live room to
+  verify.) Empty honors read 「本场无人达成 / 无人符合条件」 when computed-but-unqualified vs
+  「数据采集中」 while still collecting (`sessionHasEnoughData` in `honors.js`).
+- Chart.js charts (player-profile.html) read tokens at build time via `chartPalette()` and
+  re-render on `theme:changed` — canvas can't resolve CSS vars.
+- Live data wiring (kept from the old system, restyled):
+  - `ui/tickerSync.js` - status strip fields (房间/模式/局/级/级主/用时) + LIVE/SYNC indicator
+  - `ui/calcPreviewSync.js` - 升级预览 segments (红/蓝/差距 with thresholds)
+  - `ui/rulesDrawerSync.js` - compact rules chip strip (c4/t6/p6/t8/flags)
+  - `ui/teamDisplay.js` - board hero state (level digits + flip animation + owner underline + gold-A + eyebrow 「本局打 X · 蓝队的级」)
+  - `player/playerRenderer.js` - `.roster-row` chips in team zones (rank tag only when ranked)
+  - `game/history.js` - two-line `.history__row`: 「第N局 胜方 升N级」 + per-rank chips 1.🐸名 2.🍎名…
+  - `stats/honors.js` - compact honor cards (gold name + recipient + stat)
+- REMOVED with the theme system (2026-06-12): `src/themes/` (5 themes + themeManager + ThemePicker
+  + featureManifest + sparkline), `public/themes/` teatable portraits, the stats-table sparkline
+  column, honor portrait injection, Google Fonts loading. The old architecture doc
+  `docs/design/THEME-ARCHITECTURE.md` is historical reference only.
 
-**Achievement toast notifications shipped 2026-05-06** (`d24d9f6`) — `src/ui/toast.js` (new module) provides a generic stack-based toast manager (max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss). Theme-agnostic: rules in `src/style.css` reference TOKEN_SPEC vars (`--surface`, `--accent`, `--rule`, `--ink*`) so every theme inherits without per-theme rules. XSS-safe by construction (createElement + textContent only — no innerHTML). `src/api/playerApi.js` `syncProfileStats()` consumes `result.newAchievements` per player (server returns this from `api/players/[handle].js` line 873) and stages a toast per unlock with 600ms stagger. Server-side `displayName` length cap (40 chars) added to `api/players/_utils.js` to prevent layout abuse via long names.
+**Visual testing (rebuilt 2026-06-12)**:
+- `npm run test:visual` — LOCAL pixel gate: `capture-redesign.mjs` (19 baselines: 4 pages ×
+  light/dark × mobile/desktop, incl. ranking/session/victory states) + `capture-png-exports.mjs`
+  (2 canvas exports) diffed against `docs/reports/redesign/` + `docs/reports/png-export/`.
+  Deterministic via `_fixtures.mjs` + route-mocked APIs (predicate match on `/api/` pathname so
+  `/src/api/*.js` module loads pass through — a glob like `**/api/**` breaks Vite module loading).
+- `node scripts/visual/test-theme-toggle.mjs` — 14-assertion light/dark smoke (toggle, persistence,
+  legacy-value fallback, TOKEN_SPEC resolution both modes, all 4 pages).
+- CI (`.github/workflows/visual-regression.yml`) runs the toggle smoke + capture suite as a
+  STRUCTURAL check (zero page errors, full 21-PNG set) — NOT pixel-compare: the system font stack
+  makes macOS-generated baselines non-comparable on Linux (the old pixel-compare job was red from
+  2026-05-11 to 2026-06-12 for exactly this reason).
+- Capture scripts honor `GD_BASE_URL` (default `http://localhost:3000`; pass
+  `GD_BASE_URL=http://localhost:3001` when port 3000 is taken).
 
-**Phase 5 — Tea-Table Console shipped 2026-05-06** (`6454326` + `1d09538`). Fifth registered theme. Deep warm-graphite oklch (60° hue) with vermillion seal accent at hue 25°, Noto Serif SC + Noto Sans SC, generous letter-spacing (0.32-0.4em) for editorial CJK rhythm. The theme's distinguishing feature is the honors gallery: 17 ink-brush portraits (16 honor archetypes mapping to `HONOR_META` keys + 1 neutral profile fallback) generated via gpt-image-2 (Azure), stored under `public/themes/teatable/honors/<honor-id>.jpg`. Tea-Table is the first theme using the previously-declarative `featureManifest.honorPortraits === 'photo'` value; `src/stats/honors.js renderHonors()` reads it and injects/removes `<img class="honor__portrait">` per article. Other themes (gradient/ink/tagged) leave articles unchanged. Generation script: `scripts/teatable/generate-portraits.py` — gpt-image-2 batch generator with `--skip-existing/--only/--concurrency` flags; loads creds from `~/.config/gpt-image/credentials`. Source images at 1024×1536, resized via `sips -Z 600` to ~100KB each (1.7MB total — 96% smaller than raw). Theme picker dropdown shows 茶席 (Tea-Table). VR coverage extended: 65 → 83 baselines (16 new in `phase5-teatable/` + 2 new `victory-cross-theme/victory-teatable*`). Smoke test grew 20 → 21 assertions (5-theme cycle). All theme phases shipped — no theme work outstanding.
+**Achievement toast notifications shipped 2026-05-06** (`d24d9f6`) — `src/ui/toast.js` provides a generic stack-based toast manager (max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss). Rules in `src/style.css` reference TOKEN_SPEC vars so both modes inherit. XSS-safe by construction (createElement + textContent only — no innerHTML). `src/api/playerApi.js` `syncProfileStats()` consumes `result.newAchievements` per player (server returns this from `api/players/[handle].js`) and stages a toast per unlock with 600ms stagger. Server-side `displayName` length cap (40 chars) in `api/players/_utils.js` prevents layout abuse via long names.
 
 **Image generation routing**: per the project memory `feedback_image_gen_routing.md`, default to `gpt-image` for ANY image generation task on this project (and AX's other projects unless overridden). Overrides the global routing in `~/.claude/CLAUDE.md` that sends illustration / hand-drawn / Chinese ink-brush style to nanobanana. Only fall back to nanobanana for multi-image reference editing (gpt-image doesn't support that surface).
 
@@ -272,7 +315,7 @@ All algorithms scale properly for 4/6/8 player modes.
 - `gd_v7_5_1_state` - Current game state, team levels, A-fail counters, history
 - `gd_players` - Player info (names, emojis, team assignments)
 - `gd_player_stats` - Performance statistics for honor calculations
-- `gd_v9_theme` - Active theme name; one of `'broadcast'` (default) | `'linear'` | `'trading'`
+- `gd_v9_theme` - Color mode: `'light'` | `'dark'` (legacy 5-theme values fall back to system preference)
 
 ### Drag and Drop System (lines 188-599 in src/app.js)
 
@@ -326,11 +369,11 @@ All algorithms scale properly for 4/6/8 player modes.
 
 Two browser MCPs are installed at user scope (`chrome-devtools` + `claude-in-chrome`). Full disambiguation table lives in `~/.claude/CLAUDE.md` → "Frontend Inspection & Testing Tooling Routing". Project-specific call-outs:
 
-- **Mobile QC before declaring done** (root cause of the 2026-05-04 multi-commit failure pattern): always run `chrome-devtools-mcp emulate_device` against the active theme + the championship state. Standard sweep: iPhone 14 Pro, Pixel 7, iPad. "Looks fine on desktop" is not mobile QC.
-- **Theme perf characterization**: when "feels slow on phone" surfaces (likely candidates: Atelier's Fraunces serif loading, Trading's fixed-attachment 80px grid background, Linear sidebar transitions), use `chrome-devtools-mcp performance_start_trace` for wall-clock paint/composite numbers — not vibes.
-- **Live Chrome interaction** (drag-drop player tile flow, voting submission UX, room-share QR scan, victory-modal championship dialog): `claude-in-chrome` MCP attaches to the running Chrome profile and can record GIFs for handoff docs.
-- **Theme visual baselines remain Playwright-based**: `scripts/visual/capture-*.mjs` (Phase 1.5/2/3/3.5/4 + Atelier polish iter 3 cross-theme victory baselines under `docs/reports/victory-cross-theme/`) are the source of truth. chrome-devtools-mcp is for ad-hoc inspection, NOT for regenerating baselines.
-- **VictoryModal cross-theme contract** (per memory): every theme must style `.victory-modal*` or championship state falls back unstyled. When adding a new theme, verify both desktop AND mobile-emulated rendering of the championship dialog before claiming theme parity.
+- **Mobile QC before declaring done** (root cause of the 2026-05-04 multi-commit failure pattern): always run `chrome-devtools-mcp emulate_device` against BOTH light and dark modes + the championship state. Standard sweep: iPhone 14 Pro, Pixel 7, iPad. "Looks fine on desktop" is not mobile QC.
+- **Perf characterization**: when "feels slow on phone" surfaces, use `chrome-devtools-mcp performance_start_trace` for wall-clock paint/composite numbers — not vibes. (The webfont-loading and fixed-background suspects died with the 5-theme system; the current design is system-font + flat surfaces.)
+- **Live Chrome interaction** (tap-to-rank flow, voting submission UX, room-share QR scan, victory-modal championship dialog): `claude-in-chrome` MCP attaches to the running Chrome profile and can record GIFs for handoff docs.
+- **Visual baselines remain Playwright-based**: `scripts/visual/capture-redesign.mjs` + `capture-png-exports.mjs` writing `docs/reports/redesign/` + `docs/reports/png-export/` are the source of truth. chrome-devtools-mcp is for ad-hoc inspection, NOT for regenerating baselines.
+- **VictoryModal contract**: the championship dialog is styled by the `.victory-modal*` rules in `src/style.css` — verify both desktop AND mobile-emulated rendering in both modes when touching it.
 
 ## Deployment
 

@@ -192,9 +192,16 @@ assert.ok(
 );
 
 const honorsSource = readFileSync(resolve(repoRoot, 'src/stats/honors.js'), 'utf8');
+// The pure calc moved to shared/honorLogic.js (commit 00f6ef6) and honors.js
+// re-exports it; assert both halves of that contract rather than an inline def.
+const honorLogicSource = readFileSync(resolve(repoRoot, 'shared/honorLogic.js'), 'utf8');
 assert.ok(
-  honorsSource.includes('export function calculateHonorsFromData'),
-  'honors module should expose a pure data-based calculation for snapshots'
+  honorLogicSource.includes('export function calculateHonorsFromData'),
+  'shared honor logic should define the pure data-based calculation'
+);
+assert.ok(
+  honorsSource.includes('export { calculateHonorsFromData'),
+  'honors module should re-expose the pure data-based calculation for snapshots'
 );
 assert.ok(
   honorsSource.includes('return calculateHonorsFromData(players, allStats, totalPlayers);'),

@@ -61,27 +61,27 @@ export function showEditModal(player) {
   const playStyles = getPlayStyles();
 
   modalElement.innerHTML = `
-    <div style="background: #1a1a1a; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid #333;">
+    <div style="background: var(--surface); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--rule);">
       <h2 style="margin-top: 0; margin-bottom: 20px;">编辑玩家资料</h2>
 
       <!-- Read-only Handle Display -->
-      <div style="background: #0b0b0c; border: 1px solid #333; border-radius: 6px; padding: 12px; margin-bottom: 20px;">
-        <div style="color: #888; font-size: 0.85em; margin-bottom: 4px;">用户名 (不可修改)</div>
-        <div style="font-size: 18px; font-weight: bold; color: #3b82f6;">@${escapeHtml(player.handle)}</div>
+      <div style="background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; margin-bottom: 20px;">
+        <div style="color: var(--ink-dim); font-size: 0.85em; margin-bottom: 4px;">用户名 (不可修改)</div>
+        <div style="font-size: 18px; font-weight: bold; color: var(--accent);">@${escapeHtml(player.handle)}</div>
       </div>
 
       <form id="editPlayerForm">
         <!-- Display Name -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            昵称 <span style="color: #ef4444;">*</span>
+            昵称 <span style="color: var(--danger);">*</span>
           </label>
           <input
             type="text"
             id="displayNameInput"
             placeholder="小明"
             value="${escapeHtml(player.displayName || '')}"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           />
         </div>
@@ -89,22 +89,22 @@ export function showEditModal(player) {
         <!-- Emoji & Photo -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            头像表情 <span style="color: #ef4444;">*</span>
+            头像表情 <span style="color: var(--danger);">*</span>
           </label>
 
           <!-- Emoji selector (always visible, required) -->
-          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
+          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px;">
             ${ANIMAL_EMOJIS.map(emoji => {
               const isSelected = emoji === player.emoji;
               return `
-                <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: ${isSelected ? '#1a2e1a' : 'transparent'}; border: 2px solid ${isSelected ? '#22c55e' : 'transparent'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: ${isSelected ? 'var(--accent-soft)' : 'transparent'}; border: 2px solid ${isSelected ? 'var(--accent)' : 'transparent'}; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
                   ${emoji}
                 </button>
               `;
             }).join('')}
           </div>
           <input type="hidden" id="emojiInput" value="${escapeHtml(player.emoji || '')}" required />
-          <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 6px;">
             必选 - 用于游戏中显示，也是照片加载失败时的备用头像
           </div>
         </div>
@@ -118,12 +118,12 @@ export function showEditModal(player) {
           <!-- Current photo (if exists) -->
           ${currentAvatarPhoto ? `
             <div id="currentPhotoSection" style="text-align: center; margin-bottom: 12px;">
-              <img id="currentPhotoImg" src="${escapeHtml(currentAvatarPhoto)}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <img id="currentPhotoImg" src="${escapeHtml(currentAvatarPhoto)}" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover;" />
               <div style="margin-top: 8px; display: flex; gap: 8px; justify-content: center;">
-                <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
+                <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink-dim); cursor: pointer;">
                   更换照片
                 </button>
-                <button type="button" id="removePhotoBtn" style="padding: 6px 12px; background: #2a1a1a; border: 1px solid #ef4444; border-radius: 6px; color: #ef4444; cursor: pointer;">
+                <button type="button" id="removePhotoBtn" style="padding: 6px 12px; background: var(--team-red-soft); border: 1px solid var(--danger); border-radius: 6px; color: var(--danger); cursor: pointer;">
                   🗑️ 移除照片
                 </button>
               </div>
@@ -133,19 +133,19 @@ export function showEditModal(player) {
           <!-- Photo upload section -->
           <div id="photoUploadContainer" style="${currentAvatarPhoto ? 'display: none;' : ''}">
             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
-            <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
+            <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: var(--surface-2); border: 2px dashed var(--rule); border-radius: 6px; color: var(--ink-dim); cursor: pointer; transition: all 0.2s;">
               📁 ${currentAvatarPhoto ? '选择新照片' : '上传照片'} (1:1比例)
             </button>
-            <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+            <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 6px;">
               仅接受正方形图片，将自动压缩至400x400
             </div>
 
             <!-- Photo preview (shown after new upload) -->
             <div id="photoPreview" style="margin-top: 12px; display: none; text-align: center;">
-              <div style="color: #22c55e; margin-bottom: 8px;">✓ 新照片已准备</div>
-              <img id="photoPreviewImg" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <div style="color: var(--accent); margin-bottom: 8px;">✓ 新照片已准备</div>
+              <img id="photoPreviewImg" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover;" />
               <div style="margin-top: 8px;">
-                <button type="button" id="cancelNewPhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
+                <button type="button" id="cancelNewPhotoBtn" style="padding: 6px 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink-dim); cursor: pointer;">
                   取消
                 </button>
               </div>
@@ -156,11 +156,11 @@ export function showEditModal(player) {
         <!-- Play Style -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            游戏风格 <span style="color: #ef4444;">*</span>
+            游戏风格 <span style="color: var(--danger);">*</span>
           </label>
           <select
             id="playStyleInput"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           >
             <option value="">选择风格...</option>
@@ -173,7 +173,7 @@ export function showEditModal(player) {
         <!-- Tagline -->
         <div style="margin-bottom: 20px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            个性签名 <span style="color: #ef4444;">*</span>
+            个性签名 <span style="color: var(--danger);">*</span>
           </label>
           <input
             type="text"
@@ -181,10 +181,10 @@ export function showEditModal(player) {
             placeholder="运筹帷幄，决胜千里"
             maxlength="50"
             value="${escapeHtml(player.tagline || '')}"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           />
-          <div style="color: #888; font-size: 0.85em; margin-top: 4px;">
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 4px;">
             最多50个字符，会在胜利时显示
           </div>
         </div>
@@ -194,36 +194,36 @@ export function showEditModal(player) {
              Owner-on-same-device path is silent; cross-device or token-cleared users
              fall back to admin override. -->
         <div id="adminTokenFallback" style="margin-bottom: 16px; display: ${getOwnershipToken(player.handle) ? 'none' : 'block'};">
-          <label style="display: block; margin-bottom: 6px; color: #ef4444; font-weight: bold;">
-            ⚠️ 管理员密码 <span style="color: #888; font-weight: normal;">(本设备未保存所有权令牌)</span>
+          <label style="display: block; margin-bottom: 6px; color: var(--danger); font-weight: bold;">
+            ⚠️ 管理员密码 <span style="color: var(--ink-dim); font-weight: normal;">(本设备未保存所有权令牌)</span>
           </label>
           <input
             type="password"
             id="adminTokenInput"
             placeholder="输入管理员密码以修改此资料..."
-            style="width: 100%; padding: 8px 12px; background: #2a1a1a; border: 1px solid #ef4444; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--team-red-soft); border: 1px solid var(--danger); border-radius: 6px; color: var(--ink);"
           />
-          <div style="color: #888; font-size: 0.8em; margin-top: 4px;">
+          <div style="color: var(--ink-dim); font-size: 0.8em; margin-top: 4px;">
             原创建人在本设备保存了令牌则无需输入
           </div>
         </div>
 
         <!-- Error Message -->
-        <div id="formError" style="color: #ef4444; margin-bottom: 16px; display: none;"></div>
+        <div id="formError" style="color: var(--danger); margin-bottom: 16px; display: none;"></div>
 
         <!-- Buttons -->
         <div style="display: flex; gap: 12px;">
           <button
             type="button"
             id="cancelEditButton"
-            style="flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;"
+            style="flex: 1; padding: 12px; background: var(--surface-3); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; font-size: 16px;"
           >
             取消
           </button>
           <button
             type="submit"
             id="submitEditButton"
-            style="flex: 1; padding: 12px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;"
+            style="flex: 1; padding: 12px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;"
           >
             保存更改
           </button>
@@ -233,18 +233,18 @@ export function showEditModal(player) {
              only meaningful when a token exists locally; admin-only sessions
              have nothing to rotate or forget. -->
         ${getOwnershipToken(player.handle) ? `
-          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333; text-align: center; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--rule); text-align: center; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;">
             <button
               type="button"
               id="rotateTokenButton"
-              style="background: none; border: none; color: #888; font-size: 0.85em; cursor: pointer; text-decoration: underline;"
+              style="background: none; border: none; color: var(--ink-dim); font-size: 0.85em; cursor: pointer; text-decoration: underline;"
             >
               重新生成令牌
             </button>
             <button
               type="button"
               id="forgetDeviceButton"
-              style="background: none; border: none; color: #888; font-size: 0.85em; cursor: pointer; text-decoration: underline;"
+              style="background: none; border: none; color: var(--ink-dim); font-size: 0.85em; cursor: pointer; text-decoration: underline;"
             >
               登出本设备 (清除编辑权限)
             </button>
@@ -284,8 +284,8 @@ function setupModalHandlers() {
       });
 
       // Highlight selected
-      option.style.borderColor = '#22c55e';
-      option.style.background = '#1a2e1a';
+      option.style.borderColor = 'var(--accent)';
+      option.style.background = 'var(--accent-soft)';
 
       // Set hidden input value
       if (emojiInput) {

@@ -280,9 +280,12 @@ assert.match(
 resetFixture();
 state.setCurrentRanking({ 4: 1 });
 const row = createRosterRow(state.getPlayers()[0]);
+// Unranked players carry NO tag (the decorative 'POOL' label was removed
+// 2026-06-12); a tag only appears once a rank is recorded. An invalid mode
+// must not partial-parse into a bogus rank tag either → empty.
 assert.equal(
   collectText(row.children[2]),
-  'POOL',
+  '',
   'team roster tags should not label ranks using a partially parsed invalid mode'
 );
 

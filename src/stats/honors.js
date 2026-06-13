@@ -5,7 +5,6 @@
 
 import { getPlayers } from '../player/playerManager.js';
 import state from '../core/state.js';
-import { getManifest } from '../themes/_shared/themeManager.js';
 import { resolveAvatarPhoto } from '../player/photoRenderer.js';
 
 import { calculateHonorsFromData, resolveHonorPlayerCount, MIN_HONOR_GAMES } from '../../shared/honorLogic.js';
@@ -75,12 +74,6 @@ export function buildHonorExportRows(honors = {}, allStats = {}) {
   });
 }
 
-const HONOR_PORTRAIT_IDS = {
-  // xiaochou is kept as the DOM/asset slot for compatibility with old themes,
-  // but the current honor uses the neutral profile portrait.
-  xiaochou: '_profile'
-};
-
 function avatarChar(player) {
   if (!player) return '?';
   // Profile players (with @handle): use first char of display name (Chinese surname feel).
@@ -100,10 +93,16 @@ function teamColorClass(player) {
 
 /**
  * Update one honor article with awarded data or empty placeholder.
+ *
+ * @param {boolean} sessionHasEnoughData - true once at least one honor has a
+ *   winner this session, i.e. someone has played ≥ MIN_HONOR_GAMES rounds.
+ *   Distinguishes "still collecting data" from "computed, nobody qualified" so
+ *   the empty-state copy reads correctly even after a long session.
  */
-function updateHonorArticle(article, honorData, meta) {
-  // Status badge — only shown when there's NO clear winner (i.e., honor is still calculating).
-  // When a winner exists, the recipient row already conveys leadership; the badge is noise.
+function updateHonorArticle(article, honorData, meta, sessionHasEnoughData) {
+  // Status badge — only shown when there's NO clear winner. With enough data
+  // an unawarded honor means "nobody met the criteria this session", not "still
+  // calculating", so the badge wording flips accordingly.
   const statusEl = article.querySelector('.honor__status');
   if (statusEl) {
     statusEl.classList.remove('honor__status--leading', 'honor__status--inprog', 'honor__status--locked');
@@ -113,7 +112,7 @@ function updateHonorArticle(article, honorData, meta) {
       statusEl.textContent = '';
     } else {
       statusEl.hidden = false;
-      statusEl.textContent = '进行中';
+      statusEl.textContent = sessionHasEnoughData ? '本场无人' : '进行中';
       statusEl.classList.add('honor__status--inprog');
     }
   }
@@ -165,7 +164,8 @@ function updateHonorArticle(article, honorData, meta) {
 
       const handle = document.createElement('span');
       handle.className = 'honor__handle';
-      handle.textContent = p.handle ? `@${p.handle}` : (p.emoji || '');
+      // Session players: avatar already shows the emoji — no second line.
+      handle.textContent = p.handle ? `@${p.handle}` : '';
       playerBlock.appendChild(handle);
     }
 
@@ -199,11 +199,12 @@ function updateHonorArticle(article, honorData, meta) {
       const nm = document.createElement('span');
       nm.className = 'honor__playername honor__playername--placeholder';
       nm.id = playerName?.id || meta.idForName;
-      nm.textContent = '数据采集中';
+      // Computed-but-empty (enough games, no qualifier) vs still-collecting.
+      nm.textContent = sessionHasEnoughData ? '本场无人达成' : '数据采集中';
       playerBlock.appendChild(nm);
       const handle = document.createElement('span');
       handle.className = 'honor__handle';
-      handle.textContent = '需更多数据';
+      handle.textContent = sessionHasEnoughData ? '无人符合条件' : `打满 ${MIN_HONOR_GAMES} 局解锁`;
       playerBlock.appendChild(handle);
     }
     if (stat) {
@@ -220,7 +221,11 @@ function updateHonorArticle(article, honorData, meta) {
 export function renderHonors() {
   const honors = calculateHonors(getActiveHonorPlayerCount());
   const articles = document.querySelectorAll('.honor[data-honor-id]');
-  const portraitsMode = getManifest().honorPortraits;
+
+  // If ANY honor has a winner, at least one player cleared MIN_HONOR_GAMES, so
+  // the session has enough data — unawarded honors then mean "nobody qualified"
+  // rather than "still collecting".
+  const sessionHasEnoughData = Object.values(honors).some(h => h && h.player);
 
   articles.forEach(article => {
     const honorId = article.dataset.honorId;
@@ -228,40 +233,6 @@ export function renderHonors() {
     if (!meta) return;
     meta.idForName = honorId;
     const data = honors[meta.honorKey];
-    syncHonorPortrait(article, honorId, portraitsMode);
-    updateHonorArticle(article, data, meta);
+    updateHonorArticle(article, data, meta, sessionHasEnoughData);
   });
-}
-
-/**
- * Inject or remove the ink-brush honor portrait based on the active theme's
- * feature manifest. When manifest.honorPortraits === 'photo', the article
- * gets a leading <img> referencing public/themes/teatable/honors/<id>.jpg.
- * Other manifest values strip the portrait so theme switches are clean.
- *
- * Idempotent — safe to call on every render. The image element is reused
- * across renders (only its src is updated if needed) so the browser doesn't
- * re-fetch every time honors recalculate.
- */
-function syncHonorPortrait(article, honorId, portraitsMode) {
-  const existing = article.querySelector(':scope > .honor__portrait');
-  if (portraitsMode !== 'photo') {
-    if (existing) existing.remove();
-    return;
-  }
-  const portraitId = HONOR_PORTRAIT_IDS[honorId] || honorId;
-  const src = `/themes/teatable/honors/${portraitId}.jpg`;
-  if (existing) {
-    if (existing.getAttribute('src') !== src) existing.setAttribute('src', src);
-    return;
-  }
-  const img = document.createElement('img');
-  img.className = 'honor__portrait';
-  img.alt = '';
-  img.setAttribute('aria-hidden', 'true');
-  img.loading = 'lazy';
-  img.decoding = 'async';
-  img.setAttribute('src', src);
-  // Insert as the first child so the .honor flex layout puts it at the left.
-  article.insertBefore(img, article.firstChild);
 }

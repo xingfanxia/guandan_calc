@@ -30,11 +30,11 @@ const PIXELMATCH_THRESHOLD = 0.1;  // per-pixel color tolerance (0..1)
 
 // Per-directory threshold overrides for known-noisy baselines. Keyed by
 // path prefix; the longest matching prefix wins. Canvas-rendered PNG exports
-// (`png-export-themes/`) show 100-160 px of font subpixel-rendering noise on
+// (`png-export/`) show 100-160 px of font subpixel-rendering noise on
 // 1.2 MP images even on identical-input back-to-back captures, which pushes
 // past the global 100 px floor. Real visual changes there measure 1000s+ px.
 const THRESHOLD_OVERRIDES = {
-  'png-export-themes/': 250,
+  'png-export/': 250,
 };
 
 function thresholdFor(rel, defaultThreshold) {

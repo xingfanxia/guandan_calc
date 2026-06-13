@@ -11,9 +11,12 @@ import { DEFAULT_TEAM_NAMES } from '../../shared/aLevelLogic.js';
 
 // Singleton instance
 let instance = null;
+// Light-palette team colors (DESIGN.md §2). Inline-style consumers only
+// (stats tint, canvas exports use themePalette tokens) — board colors come
+// from CSS tokens.
 const DEFAULT_TEAM_COLORS = {
-  t1: '#3b82f6',
-  t2: '#ef4444'
+  t1: '#2A5DB0',
+  t2: '#B6403B'
 };
 const HEX_COLOR_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 const PREFERENCE_KEYS = ['must1', 'autoNext', 'autoApply', 'strictA'];
@@ -223,6 +226,15 @@ class GameConfig {
    */
   getTeamColor(teamKey) {
     return normalizeTeamColor(this.config[teamKey]?.color, fallbackTeamColor(teamKey));
+  }
+
+  /**
+   * True when the team still uses its DEFAULT_TEAM_COLORS value (i.e. the user
+   * hasn't customized it). Inline-styled consumers use this to decide between
+   * the live `--team-*` CSS token (light/dark aware) and the stored custom hex.
+   */
+  isDefaultTeamColor(teamKey) {
+    return this.getTeamColor(teamKey).toLowerCase() === fallbackTeamColor(teamKey).toLowerCase();
   }
 
   /**

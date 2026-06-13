@@ -1,21 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="linear">
+<html lang="zh-CN">
 <head>
 <script>
-  // Theme bootstrap — must be inline + synchronous + ABOVE stylesheets so
-  // the cascade resolves with the user's chosen theme on first paint, not
-  // with `data-theme="linear"` (the static fallback). Saved value list
-  // is the source of truth for valid theme names; sync with main.js.
-  try { var t = localStorage.getItem('gd_v9_theme');
-    if (t && ['broadcast','linear','trading','atelier','teatable'].indexOf(t) !== -1)
-      document.documentElement.setAttribute('data-theme', t);
-  } catch(e) {}
+  // Theme bootstrap — inline + synchronous + ABOVE stylesheets. Values:
+  // 'light' | 'dark' (gd_v9_theme); anything else follows the system
+  // preference. Sync with src/ui/themeToggle.js.
+  (function () {
+    var t = null;
+    try { t = localStorage.getItem('gd_v9_theme'); } catch (e) {}
+    if (t !== 'light' && t !== 'dark') {
+      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
 </script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>房间浏览器 - 掼蛋计分器</title>
+<title>房间 · 闹掼计分器</title>
 
-<meta name="theme-color" content="#1c1f29">
+<meta name="theme-color" content="#15694B">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="掼蛋计分器">
@@ -26,17 +29,9 @@
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=DM+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600;700&display=swap">
-
+<!-- Design system: root DESIGN.md. System font stack — no webfonts. -->
+<link rel="stylesheet" href="/src/styles/tokens.css">
 <link rel="stylesheet" href="/src/style.css">
-<link rel="stylesheet" href="/src/themes/broadcast/theme.css">
-<link rel="stylesheet" href="/src/themes/linear/theme.css">
-<link rel="stylesheet" href="/src/themes/trading/theme.css">
-<link rel="stylesheet" href="/src/themes/atelier/theme.css">
-<link rel="stylesheet" href="/src/themes/teatable/theme.css">
-
 </head>
 <body>
 
@@ -44,68 +39,50 @@
 <nav class="topnav" aria-label="主导航">
   <div class="container topnav__inner">
     <div class="topnav__brand">
-      <div class="topnav__brand-mark">A</div>
-      <span class="topnav__brand-text">GD&nbsp;LIVE<span class="topnav__brand-version">CONSOLE · v10</span></span>
+      <div class="topnav__brand-mark">掼</div>
+      <span class="topnav__brand-text">闹掼计分<span class="topnav__brand-version">v10</span></span>
     </div>
     <div class="topnav__tabs">
       <a class="topnav__tab" href="/">
-        <span class="topnav__tab-cn">游戏</span>
-        <span class="topnav__tab-meta">GAME</span>
+        <span class="topnav__tab-cn">计分</span>
       </a>
       <a class="topnav__tab" href="/players.html">
         <span class="topnav__tab-cn">玩家</span>
-        <span class="topnav__tab-meta">PLAYERS</span>
       </a>
       <a class="topnav__tab topnav__tab--active" href="/rooms.html" aria-current="page">
         <span class="topnav__tab-cn">房间</span>
-        <span class="topnav__tab-meta">ROOMS</span>
       </a>
     </div>
-    <div class="topnav__user">
-      <div class="topnav__user-avatar">玩</div>
-      <div class="topnav__user-meta">
-        <span class="topnav__user-name">访客</span>
-        <span class="topnav__user-handle">@guest</span>
-      </div>
-    </div>
+    <div id="themeToggleMount" class="topnav__picker"></div>
   </div>
 </nav>
 
-<!-- PAGE TICKER -->
+<!-- STATUS STRIP -->
 <div class="ticker">
   <div class="container ticker__inner">
     <div class="ticker__items">
       <div class="ticker__item">
-        <span class="ticker__item-label">Browser</span>
-        <span class="ticker__item-value">ACTIVE ROOMS</span>
-      </div>
-      <div class="ticker__sep"></div>
-      <div class="ticker__item">
-        <span class="ticker__item-label">Total</span>
+        <span class="ticker__item-label">房间数</span>
         <span class="ticker__item-value ticker__item-value--accent" id="tickerRoomCount">—</span>
       </div>
       <div class="ticker__sep"></div>
       <div class="ticker__item">
-        <span class="ticker__item-label">Filter</span>
+        <span class="ticker__item-label">筛选</span>
         <span class="ticker__item-value" id="tickerFilter">全部</span>
       </div>
-    </div>
-    <div class="ticker__sync">
-      <div class="ticker__dot"></div>
-      <span class="ticker__item-label">CONSOLE</span>
     </div>
   </div>
 </div>
 
 <!-- MAIN -->
-<main class="container wrap">
+<main class="container wrap wrap--wide">
 
   <!-- PAGE HEADING -->
   <div class="section-rule">
     <span class="section-rule__bar"></span>
-    <span class="section-rule__label">房间浏览器 · Active Rooms</span>
+    <span class="section-rule__label">活跃房间</span>
     <span class="section-rule__line"></span>
-    <span class="section-rule__meta">GAME NIGHT CONSOLE</span>
+    <span class="section-rule__meta"></span>
   </div>
 
   <!-- FILTER ROW -->
@@ -149,16 +126,19 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <div class="footer__brand">GD&nbsp;LIVE · CONSOLE · v10</div>
+    <div class="footer__brand">闹掼计分 · v10</div>
     <div class="footer__meta">
-      <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GITHUB</a>
-      · MADE WITH ❤️ BY XINGFAN XIA
+      <a href="https://github.com/xingfanxia/guandan_calc" target="_blank" rel="noopener noreferrer" style="color:inherit; text-decoration:none;">GitHub</a>
+      · Made by Xingfan Xia
     </div>
   </footer>
 
 </main>
 
 <script type="module">
+import { mountThemeToggle } from '/src/ui/themeToggle.js';
+mountThemeToggle(document.getElementById('themeToggleMount'));
+
 let currentPage = 1;
 let currentFilter = 'all';
 let playerFilter = '';
@@ -185,9 +165,9 @@ function formatRoomStatusText(room, isFinished) {
   const statusText = normalizeString(room.statusText);
   if (statusText) return statusText;
 
-  if (!isFinished) return 'LIVE';
+  if (!isFinished) return '进行中';
   const winnerName = normalizeString(room.winnerName);
-  return winnerName ? winnerName + '通关' : 'FINISHED';
+  return winnerName ? winnerName + '通关' : '已结束';
 }
 
 function formatNonNegativeInteger(value, fallback = 0) {
@@ -366,7 +346,7 @@ function buildRoomCard(room) {
     row.className = 'room-card__meta-row';
     const key = document.createElement('span');
     key.className = 'room-card__meta-key';
-    key.textContent = 'Teams';
+    key.textContent = '队伍';
     const val = document.createElement('span');
     val.textContent = teamNames.join(' vs ');
     row.appendChild(key);
@@ -378,7 +358,7 @@ function buildRoomCard(room) {
   playersRow.className = 'room-card__meta-row';
   const playersKey = document.createElement('span');
   playersKey.className = 'room-card__meta-key';
-  playersKey.textContent = 'Players';
+  playersKey.textContent = '人数';
   const playersVal = document.createElement('span');
   playersVal.textContent = playerCount + ' 人';
   playersRow.appendChild(playersKey);
@@ -416,7 +396,7 @@ function buildRoomCard(room) {
   foot.appendChild(time);
 
   const btn = document.createElement('button');
-  btn.className = isFinished ? 'btn-secondary' : 'btn-accent';
+  btn.className = isFinished ? 'btn-tertiary' : 'btn-secondary';
   btn.textContent = isFinished ? '查看' : '加入';
   btn.addEventListener('click', (e) => { e.stopPropagation(); joinRoom(normalizedRoomCode); });
   foot.appendChild(btn);

@@ -330,7 +330,7 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
-**Visual regression testing:** PRs that touch UI code (`src/**`, `index.html`, themes, capture scripts, baseline PNGs, or `package.json`) automatically run `npm run test:visual` via GitHub Actions. The test pixel-diffs 65 baseline PNGs across all four themes (incl. sparkline + PNG-export + cross-theme victory-modal coverage). Run locally with the same command before pushing — see [docs/guides/DEVELOPMENT_METHODOLOGY.md](docs/guides/DEVELOPMENT_METHODOLOGY.md#testing-methodology) for details.
+**Visual testing:** `npm run test:visual` is the LOCAL pixel gate — 21 baseline PNGs (4 pages × light/dark × mobile/desktop + canvas PNG exports) under `docs/reports/redesign/` + `docs/reports/png-export/`. CI (`visual-regression.yml`) runs the capture suite + a 14-assertion theme-toggle smoke as a structural check (zero page errors, full PNG set) — pixel comparison is local-only because the system-font stack renders differently across OSes. See [docs/guides/DEVELOPMENT_METHODOLOGY.md](docs/guides/DEVELOPMENT_METHODOLOGY.md#testing-methodology).
 
 ## Author
 

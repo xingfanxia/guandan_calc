@@ -87,6 +87,12 @@ await page.route('**/api/players/list**', async route => {
 });
 
 await page.goto(pageUrl);
+// The room gate hides the player-search UI on a blank index load (search
+// lives inside a room in the new flow); lift it so the test can drive it.
+await page.evaluate(() => {
+  document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+  document.body.classList.remove('app-gated');
+});
 await page.locator('#playerSearchInput').fill('stats');
 await page.locator('#playerSearchButton').click();
 await page.waitForSelector('.player-search-item');
@@ -171,6 +177,12 @@ await page.route('**/api/players/list**', async route => {
 });
 
 await page.goto(pageUrl);
+// The room gate hides the player-search UI on a blank index load (search
+// lives inside a room in the new flow); lift it so the test can drive it.
+await page.evaluate(() => {
+  document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+  document.body.classList.remove('app-gated');
+});
 await page.locator('#playerSearchInput').fill('fast');
 await page.locator('#playerSearchButton').click();
 await page.waitForSelector('.player-search-item:has-text("fast Result")');
@@ -197,6 +209,12 @@ await page.route('**/api/players/list**', async route => {
 });
 
 await page.goto(pageUrl);
+// The room gate hides the player-search UI on a blank index load (search
+// lives inside a room in the new flow); lift it so the test can drive it.
+await page.evaluate(() => {
+  document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+  document.body.classList.remove('app-gated');
+});
 await page.waitForSelector('#playerSearchResults', { state: 'attached' });
 await page.waitForTimeout(100);
 
@@ -228,6 +246,12 @@ await page.route('**/api/players/list**', async route => {
 });
 
 await page.goto(pageUrl);
+// The room gate hides the player-search UI on a blank index load (search
+// lives inside a room in the new flow); lift it so the test can drive it.
+await page.evaluate(() => {
+  document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+  document.body.classList.remove('app-gated');
+});
 await page.waitForSelector('#playerSearchResults', { state: 'attached' });
 await page.waitForTimeout(100);
 

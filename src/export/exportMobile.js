@@ -10,7 +10,7 @@ import { getPlayers, getPlayersByTeam, normalizeTeamNumber } from '../player/pla
 import { resolveAvatarPhoto } from '../player/photoRenderer.js';
 import { readOptionalJsonResponse } from '../api/httpResponse.js';
 import { findMVPAndBurden } from '../stats/mvpBurden.js';
-import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
+import { getActiveThemePalette } from '../styles/themePalette.js';
 import { getRoomInfo } from '../share/roomManager.js';
 import { findPlayerByVoteId, normalizeVoteApiResults } from '../share/voteResults.js';
 import { EXPORT_FILE_SUFFIX, EXPORT_VERSION_LABEL } from './exportVersion.js';

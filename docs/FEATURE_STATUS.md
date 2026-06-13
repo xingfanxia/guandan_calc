@@ -3,8 +3,8 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-05-06 (Phase 5 Tea-Table theme with ink-brush honor portraits shipped)
-**Architecture**: 40 ES6 modules + 10 player APIs + 7 room APIs + 5 themes + visual regression CI (83 baselines)
+**Last Updated**: 2026-06-12 (wxapp-style light/dark redesign — 5-theme system removed, see root DESIGN.md)
+**Architecture**: ~40 ES6 modules + 10 player APIs + 7 room APIs + light/dark design system (root DESIGN.md) + local visual gate (21 baselines, `npm run test:visual`)
 **Version**: v10.0
 
 ---
@@ -87,11 +87,11 @@ labels from being treated as full-session awards:
 - [x] Desktop PNG (wide format)
 - [x] Mobile PNG (600px, optimized)
 - [x] All 16 honors in exports
-- [x] Theme-aware PNG palette (2026-05-05) — exports use the active theme's CSS custom properties
+- [x] Mode-aware PNG palette — exports read the active light/dark tokens via `src/styles/themePalette.js`
 
 ### Visual Regression CI (100%) 🆕
 - [x] `npm run test:visual` runs pixelmatch against 65 baseline PNGs across 7 capture scripts
-- [x] Coverage: 4 themes (broadcast / linear / trading / atelier) + victory-modal cross-theme + PNG-export + sparklines
+- [x] Coverage (2026-06-12): 4 pages × light/dark × mobile/desktop + ranking/session/victory states + PNG exports (21 baselines)
 - [x] Deterministic captures via `scripts/visual/_fixtures.mjs` (`freezeTime` + `setDeterministicPlayers` + `setDeterministicPlayerStats` + event re-render)
 - [x] Sparkline determinism via `FIXED_RANKINGS_8` matrix state-injection (replaces unseedable `#randomRanking` flow; 2026-05-05 `c6da03a`)
 - [x] Per-directory threshold overrides in `diff-baselines.mjs` for canvas-rendered PNG exports (font subpixel-rendering noise; 2026-05-05 `f768ba7`)
@@ -99,11 +99,11 @@ labels from being treated as full-session awards:
 - [x] Diff PNGs (red overlay) auto-uploaded as PR artifacts on failure
 
 ### Cross-Page Theme Bootstrap (100%) 🆕
-- [x] Inline synchronous `<script>` block in <head> of all 4 entry HTMLs (index/players/player-profile/rooms) reads `gd_v9_theme` from localStorage and sets `data-theme` BEFORE stylesheet cascade resolves
-- [x] Eliminates the FOUC where saved non-default themes flashed Broadcast on every page navigation
-- [x] `themeBootstrap.js` module deleted — was loaded as `<script type="module">` (deferred), ran AFTER stylesheets, caused the FOUC
-- [x] Test script `scripts/visual/test-cross-page-theme.mjs` verifies 17 cases (3 themes × 4 pages + default fallback + invalid-payload rejection)
-- [x] Adding a new theme requires ONE line edit per HTML in the validation array (`['broadcast','linear','trading','atelier']`) + one stylesheet `<link>` per HTML — same maintenance shape as existing per-page theme link list
+- [x] Inline synchronous `<script>` block in <head> of all 4 entry HTMLs reads `gd_v9_theme` (`light`/`dark`; legacy values → system preference) and sets `data-theme` BEFORE stylesheet cascade resolves
+- [x] Eliminates dark-mode FOUC on navigation
+- [x] Theme switching: `src/ui/themeToggle.js` light/dark toggle on every page (replaced the 5-theme manager/picker 2026-06-12)
+- [x] Test script `scripts/visual/test-theme-toggle.mjs` verifies 14 cases (toggle, persistence, legacy fallback, TOKEN_SPEC both modes, all 4 pages)
+- [x] Theme add/remove workflow is moot since 2026-06-12 — the multi-theme system was replaced by a single light/dark token set (root `DESIGN.md`)
 
 ### XSS Hardening (100%) 🆕
 - [x] `escapeHtml()` from `core/utils.js` now applied uniformly to all player-data render sites (2026-05-05 `0bf1b90`)
@@ -112,40 +112,13 @@ labels from being treated as full-session awards:
 - [x] Verified by visual regression — 65/65 baselines pass with zero pixel diff (escaping CJK + emoji is byte-identical)
 - See `docs/SECURITY.md` for the complete escape convention + threat model
 
-### Phase 2.5 — Linear Sidebar Layout (100%) 🆕
-- [x] `themeManager.mount()` now unmounts the previous theme's layout before swapping — prevents DOM leak when switching from Linear (sidebar) → Broadcast/Trading/Atelier
-- [x] `linear/index.js` ships a real `layout.mount/unmount` that moves the live `<nav class="topnav">` into a new `<aside class="linear-sidebar">` wrapper (move-not-clone preserves event listeners + the `#themePickerMount` slot)
-- [x] CSS-only mobile fallback: `display: contents` on the sidebar wrapper at `@media (max-width: 768px)` — children render in normal flow, topnav reverts to default sticky-top row, no JS resize listener needed
-- [x] `linear/featureManifest.js` declares `navigation: 'sidebar'`
-- [x] State preservation is structural — `state.js` singleton survives DOM mutations; the architecture-doc `getSnapshot/restore` pseudocode was illustrative, not literal
-- [x] 20-assertion smoke test `scripts/visual/test-theme-switch.mjs` verifies mount + unmount + remount + state-survival across 4-theme cycle (broadcast → trading → atelier → linear)
-- [x] VR baselines regenerated for Linear desktop (sidebar visible in `phase2-linear/*.png`)
-- See `docs/design/THEME-ARCHITECTURE.md` Section 7 row "2.5" for full implementation notes
-
-### Phase 2.6 — Linear Sidebar Polish (100%) 🆕
-- [x] Section label "导航 NAVIGATION" injected before tabs at mount, stripped at unmount (uppercase mono, ink-dimmer, letter-spaced — matches `demos/demo-linear-v2.png` section-label treatment)
-- [x] Active-tab accent bar — 2px purple vertical line on the left edge of the active sidebar item via `::before` pseudo (no DOM mutation needed)
-- [x] User-card status dot — small green online indicator anchored to bottom-right of the avatar; injected at mount, stripped at unmount
-- [x] Mobile (<769px) hides both injected nodes via `display: none`; sidebar reverts to Phase 2.5 mobile fallback (`display: contents`, default topnav row)
-- [x] `layout.unmount()` strips injections BEFORE restoring topnav so the original DOM is byte-identical to pre-mount state
-- [x] Decorative ⌘1/⌘2/⌘3 shortcut chips were considered and rejected — Cmd+1/2/3 are browser-reserved, so non-functional chips would be aspirational lying
-- [x] 20-assertion smoke test still passes (mount + unmount + remount + 4-theme cycle)
-- [x] Phase 5 (Tea-Table) is now the only outstanding theme item
-
-### Phase 5 — Tea-Table Console Theme (100%) 🆕
-- [x] Fifth registered theme — contemplative scholar's-table aesthetic
-- [x] Deep warm-graphite oklch (60° hue) surfaces, vermillion seal accent at hue 25°, Noto Serif SC + Noto Sans SC
-- [x] Real ink-brush honor portraits — 17 JPGs (16 honor archetypes + 1 profile fallback) generated via gpt-image-2 (Azure)
-- [x] `featureManifest.honorPortraits === 'photo'` first real usage (was previously declarative-only across other themes)
-- [x] `src/stats/honors.js renderHonors()` injects/removes `<img class="honor__portrait">` per article based on active manifest; idempotent across re-renders, theme-switch-safe
-- [x] Layout uses absolute-positioned portrait + flow body so CJK characters wrap normally (flex-on-article would vertically stack characters)
-- [x] Portraits sized 1024×1536 raw, resized via `sips -Z 600` to ~100KB each (1.7MB total, 96% smaller than raw)
-- [x] Generation script `scripts/teatable/generate-portraits.py` — gpt-image-2 batch generator with `--skip-existing/--only/--concurrency` flags
-- [x] Inline FOUC bootstrap whitelist extended to allow 'teatable' across all 4 entry HTMLs
-- [x] VR coverage: `phase5-teatable/` (16 baselines) + 2 new `victory-cross-theme/victory-teatable*` baselines
-- [x] Smoke test grew from 20 → 21 assertions (5-theme state-survival cycle)
-- See `docs/design/THEME-ARCHITECTURE.md` Section 7 row "5" for full implementation notes
-- **All planned theme phases shipped — Phase 5 was the final remaining item**
+### Theme System — REMOVED 2026-06-12 (was: 5 themes, all shipped)
+- [x] The 5-theme system (Broadcast/Linear/Trading/Atelier/Tea-Table, Phases 0-5, incl. the Linear
+  sidebar layout, Tea-Table ink-brush portraits, sparklines, themeManager/ThemePicker/featureManifest)
+  was REMOVED and replaced by a light/dark token system (root `DESIGN.md`,
+  `src/styles/tokens.css`, `src/ui/themeToggle.js`). See `docs/design/REDESIGN-2026-06-12-PLAN.md`.
+  Pre-removal details live in git history (main @ 00f6ef6) and the historical-banner'd
+  `docs/design/THEME-ARCHITECTURE.md`.
 
 ### Achievement Toast Notifications (100%) 🆕
 - [x] `src/ui/toast.js` (new module) — generic stack-based toast manager: max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss

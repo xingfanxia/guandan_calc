@@ -24,12 +24,6 @@ const RANK_NAMES = {
 const VALID_LEVELS = new Set(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']);
 const VALID_TEAM_KEYS = new Set(['t1', 't2']);
 
-function pad2(n) {
-  const x = Number(n);
-  if (Number.isFinite(x)) return String(x).padStart(2, '0');
-  return String(n);
-}
-
 function makeSpan(className, text) {
   const span = document.createElement('span');
   if (className) span.className = className;
@@ -300,7 +294,7 @@ export function renderHistory() {
     row.className = 'history__row';
 
     // 本局 (round number)
-    row.appendChild(makeSpan('history__round', `R${pad2(index + 1)}`));
+    row.appendChild(makeSpan('history__round', `第${index + 1}局`));
 
     // 级牌 (round level when this round was played)
     row.appendChild(makeSpan('history__levelcard', entry.round || '—'));

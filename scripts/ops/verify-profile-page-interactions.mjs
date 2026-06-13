@@ -74,11 +74,11 @@ await page.waitForSelector('.profile-honor-card');
 
 const honorsTotalText = await page
   .locator('.section-rule')
-  .filter({ hasText: '荣誉收藏' })
+  .filter({ hasText: '荣誉' })
   .locator('.section-rule__meta')
   .first()
   .textContent();
-assert.equal(honorsTotalText?.trim(), '9 TOTAL');
+assert.equal(honorsTotalText?.trim(), '共 9 项');
 
 const relRow = page.locator('.rels-row').first();
 const recentGameRow = page.locator('.recent-game-row').first();

@@ -7,7 +7,7 @@
 import { $, now } from '../core/utils.js';
 import state from '../core/state.js';
 import config from '../core/config.js';
-import { getActiveThemePalette } from '../themes/_shared/themePalette.js';
+import { getActiveThemePalette } from '../styles/themePalette.js';
 import { EXPORT_FILE_SUFFIX, EXPORT_VERSION_LABEL } from './exportVersion.js';
 import {
   getHistoryWinnerKey,

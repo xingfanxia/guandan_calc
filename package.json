@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "capture:visual": "node scripts/visual/capture-broadcast.mjs",
+    "capture:visual": "node scripts/visual/capture-redesign.mjs && node scripts/visual/capture-png-exports.mjs",
     "test:visual": "node scripts/visual/regression-test.mjs"
   },
   "devDependencies": {

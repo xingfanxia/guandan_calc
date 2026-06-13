@@ -38,21 +38,16 @@ const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
 
 // Capture scripts to run, in order. Each writes to a hardcoded subdir under
-// VISUAL_REPORT_BASE. Adding a new theme = add the capture script here AND
-// update it to (1) honor VISUAL_REPORT_BASE and (2) import freezeTime +
-// setDeterministicPlayers from _fixtures.mjs.
+// VISUAL_REPORT_BASE. Adding a capture = add the script here AND make it
+// (1) honor VISUAL_REPORT_BASE, (2) honor GD_BASE_URL, and (3) import
+// freezeTime + setDeterministicPlayers from _fixtures.mjs for determinism.
+//
+// Pixel baselines are a LOCAL gate (system-font stack → macOS/Linux renders
+// are not pixel-comparable; CI runs captures as a structural smoke only —
+// see .github/workflows/visual-regression.yml).
 const CAPTURES = [
-  'capture-phase1-5-final.mjs',       // Broadcast theme — phase1-5-final/
-  'capture-linear-theme.mjs',         // Linear theme    — phase2-linear/
-  'capture-trading-theme.mjs',        // Trading theme   — phase3-trading/
-  'capture-atelier-theme.mjs',        // Atelier theme   — phase4-atelier/
-  'capture-teatable-theme.mjs',       // Tea-Table theme — phase5-teatable/
-  'capture-victory-cross-theme.mjs',  // VictoryModal contract across 5 themes
-  'capture-png-exports.mjs',          // PNG export theme-awareness across 4 themes
-  'capture-phase3-5-sparklines.mjs',  // Sparkline rendering across 3 themes (uses
-                                      // FIXED_RANKINGS_8 fixture; was excluded
-                                      // through 2026-05-05 due to unseedable
-                                      // #randomRanking — now state-injected).
+  'capture-redesign.mjs',     // all 4 pages × light/dark × mobile/desktop — redesign/
+  'capture-png-exports.mjs',  // canvas PNG export under light + dark — png-export/
 ];
 
 const BASELINE_DIR = path.resolve(ROOT, process.env.BASELINE_DIR || 'docs/reports');

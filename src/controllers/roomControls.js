@@ -112,7 +112,9 @@ export function setupRoomControls() {
   // Create room
   if (createRoomBtn) {
     on(createRoomBtn, 'click', async () => {
-      if (!confirm('创建房间将重置当前游戏数据，确定继续？')) {
+      // Only warn about discarding data when there's actually an in-progress
+      // game — a fresh blank start (the room-gate path) creates silently.
+      if (state.isGameInProgress() && !confirm('创建房间将重置当前游戏数据，确定继续？')) {
         return;
       }
 

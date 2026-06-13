@@ -1,5 +1,10 @@
 # Guandan Scorer — UX Flows (companion to GAME-TRUTH.md)
 
+> ⚠️ The per-theme navigation/layout tables below (Broadcast/Linear/Trading/Atelier) are HISTORICAL —
+> the 5-theme system was removed 2026-06-12 (light/dark only now, root `DESIGN.md`). The flow analysis
+> (mid-ranking is 95% of session time, ranking-first layout) remains valid and informed the redesign.
+> Note: as of 2026-06-12 a new game starts a room by default (one-tap room gate, no local-only mode).
+
 > Generated 2026-05-03 after demo-v2 review caught critical UX surface omissions.
 > v1/v2 demos showed only the post-victory state. **95% of session time is mid-ranking** — that's what v3 must lead with.
 > Read alongside GAME-TRUTH.md before any visual proposal.

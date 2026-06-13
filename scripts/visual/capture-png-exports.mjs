@@ -1,16 +1,14 @@
-// Capture cross-theme PNG export baselines.
+// Capture light/dark PNG export baselines.
 //
-// Verifies that `src/export/exportMobile.js` actually produces different
-// looking exports under each theme after the 2026-05-05 palette-aware
-// refactor. Runs the export in-page (monkey-patches `<a>.click()` to
-// capture the dataURL instead of triggering a download), then writes
-// 4 PNGs to docs/reports/png-export-themes/ — one per registered theme.
+// Verifies that `src/export/exportMobile.js` reads the active mode's tokens
+// (via src/styles/themePalette.js) when drawing the canvas. Runs the export
+// in-page (monkey-patches `<a>.click()` to capture the dataURL instead of
+// triggering a download), then writes one PNG per mode to
+// docs/reports/png-export/.
 //
-// Failure mode this catches: regressions to the hardcoded-hex pre-refactor
-// state. Visual diff between the four outputs should be obvious — Atelier
-// shows clay accent + warm graphite bg, Linear shows purple accent on
-// cool graphite, Trading shows amber on near-black, Broadcast shows the
-// editorial orange-on-deep-black baseline.
+// Failure mode this catches: regressions to hardcoded-hex canvas colors —
+// the light export must show off-white paper + felt-green accent, the dark
+// export green-tinted near-black.
 
 import { chromium } from 'playwright';
 import path from 'path';
@@ -21,14 +19,21 @@ import { setDeterministicPlayers, freezeTime } from './_fixtures.mjs';
 const __filename = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__filename), '..', '..');
 const REPORT_BASE = process.env.VISUAL_REPORT_BASE || path.join(ROOT, 'docs/reports');
-const REPORT_DIR = path.join(REPORT_BASE, 'png-export-themes');
+const REPORT_DIR = path.join(REPORT_BASE, 'png-export');
 mkdirSync(REPORT_DIR, { recursive: true });
 
-const URL = process.env.GD_PROD ? 'http://localhost:4173/' : 'http://localhost:3000/';
-const THEMES = ['broadcast', 'linear', 'trading', 'atelier'];
+const URL = (process.env.GD_BASE_URL || 'http://localhost:3000') + '/';
+const THEMES = ['light', 'dark'];
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+// Index's player-search block calls /api/players/list on load — no backend
+// under `vite dev`, so fulfill with an empty set (predicate, not glob, so
+// /src/api/*.js module loads are untouched).
+await ctx.route(
+  (url) => url.pathname.startsWith('/api/'),
+  (route) => route.fulfill({ json: { success: true, players: [], rooms: [], total: 0, pagination: { total: 0, hasNext: false } } })
+);
 const page = await ctx.newPage();
 
 const consoleErrors = [];
@@ -43,17 +48,30 @@ await freezeTime(page);
 
 for (const theme of THEMES) {
   await page.goto(URL, { waitUntil: 'domcontentloaded' });
-  // Clear all gd_v9_* state (history, ranking, players) but set the new
-  // theme — without this, the second iteration's mode selector is disabled
-  // because the prior fixture set history.length > 0.
+  // Clear ALL persisted state (history lives under gd_v7_5_1_*, players
+  // under gd_players) but set the new theme — without this, the second
+  // iteration's mode selector is disabled because the prior fixture set
+  // history.length > 0.
   await page.evaluate((t) => {
-    Object.keys(localStorage).filter(k => k.startsWith('gd_v9_')).forEach(k => localStorage.removeItem(k));
+    localStorage.clear();
     localStorage.setItem('gd_v9_theme', t);
   }, theme);
   await page.reload({ waitUntil: 'networkidle' });
-  await page.waitForSelector('#mode:not([disabled])', { timeout: 5000 });
+  // A blank load shows the room gate, which hides the setup UI. This capture
+  // drives the local setup directly, so lift the gate first.
+  await page.evaluate(() => {
+    document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+    document.body.classList.remove('app-gated');
+  });
+  // The native #mode select is visually hidden (the seg control drives it),
+  // so wait for attachment and drive it via the DOM instead of selectOption.
+  await page.waitForSelector('#mode:not([disabled])', { timeout: 5000, state: 'attached' });
 
-  await page.selectOption('#mode', '6');
+  await page.evaluate(() => {
+    const sel = document.getElementById('mode');
+    sel.value = '6';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  });
   await page.waitForTimeout(150);
   await page.click('#generatePlayers');
   await page.waitForTimeout(300);
@@ -131,8 +149,11 @@ for (const theme of THEMES) {
   }
 }
 
+await browser.close();
+
 if (consoleErrors.length) {
-  console.log('CONSOLE/PAGE ERRORS:', consoleErrors);
+  console.error('CONSOLE/PAGE ERRORS:');
+  consoleErrors.forEach(e => console.error('  ' + e));
+  process.exit(1);
 }
 console.log('SAVED:', REPORT_DIR);
-await browser.close();
