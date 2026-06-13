@@ -184,6 +184,13 @@ async function snap(page, name, { fullPage = true } = {}) {
 
 /** Generate the deterministic 8-player roster (no ranking yet). */
 async function seedPlayers(page) {
+  // These captures represent in-game states, which in real usage only exist
+  // inside a room (where the room gate is off). On a blank dev load the gate is
+  // on and hides #generatePlayers, so lift it before driving the setup UI.
+  await page.evaluate(() => {
+    document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+    document.body.classList.remove('app-gated');
+  });
   await page.click('#generatePlayers');
   await page.waitForTimeout(200);
   await setDeterministicPlayers(page, 8);
@@ -200,10 +207,10 @@ async function seedPartialRanking(page) {
   await page.waitForTimeout(300);
 }
 
-// ---------- index: setup state ----------
+// ---------- index: room gate (the blank-load entry screen, 2026-06-12) ----------
 for (const [theme, viewport] of [['light', 'mobile'], ['dark', 'mobile'], ['light', 'desktop']]) {
   const { ctx, page } = await openPage('/', theme, viewport);
-  await snap(page, `index-setup-${theme}-${viewport}`);
+  await snap(page, `index-gate-${theme}-${viewport}`);
   await ctx.close();
 }
 

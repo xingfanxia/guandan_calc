@@ -103,6 +103,18 @@
 <!-- MAIN CONTAINER (preserves .wrap for legacy CSS hooks) -->
 <main class="container wrap">
 
+  <!-- ============== ROOM GATE (one-tap entry; shown when blank & not in a room) ============== -->
+  <section class="card room-gate" id="roomGate">
+    <div class="room-gate__mark">掼</div>
+    <h1 class="room-gate__title">开始记分</h1>
+    <p class="room-gate__sub">创建房间，牌友扫码实时看分，战绩自动入库</p>
+    <button class="btn-primary room-gate__create" id="gateCreateRoom">创建房间 · 开新局</button>
+    <div class="room-gate__alt">
+      <button class="btn-secondary" id="gateJoinRoom">加入 / 围观房间</button>
+      <button class="btn-tertiary" id="gateBrowseRooms">浏览房间</button>
+    </div>
+  </section>
+
   <!-- ============== 级牌记分牌 (hero — DESIGN.md §5) ============== -->
   <section class="card board">
     <div class="board__eyebrow">

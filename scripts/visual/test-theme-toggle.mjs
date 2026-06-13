@@ -81,7 +81,13 @@ for (const mode of ['light', 'dark']) {
 }
 
 // --- 6. board hero renders in both modes ---
+// A blank load shows the room gate (which hides the board), so lift it — the
+// board renders inside a room/game, which is what we're checking here.
 console.log('5. board hero renders');
+await page.evaluate(() => {
+  document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+  document.body.classList.remove('app-gated');
+});
 for (const mode of ['light', 'dark']) {
   await page.evaluate((m) => document.documentElement.setAttribute('data-theme', m), mode);
   const levelVisible = await page.evaluate(() => {

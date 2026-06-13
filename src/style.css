@@ -539,6 +539,66 @@ details + details { margin-top: var(--s2); }
 .newroom-cta { width: 100%; margin-top: var(--s3); }
 
 /* ============================================================
+ * ROOM GATE — one-tap entry (src/ui/roomGate.js)
+ * When main.wrap has .wrap--gated, show ONLY the gate and hide every sibling.
+ * ============================================================ */
+
+.room-gate { display: none; }
+/* The status strip lives outside main.wrap — hide it on the gate screen. */
+body.app-gated .ticker { display: none; }
+.wrap--gated > .room-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.wrap--gated > *:not(.room-gate) { display: none; }
+
+.room-gate {
+  padding: var(--s7) var(--s4);
+  margin-top: var(--s6);
+  gap: var(--s3);
+}
+
+.room-gate__mark {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.room-gate__title { font-size: 28px; font-weight: 800; }
+
+.room-gate__sub {
+  font-size: 15px;
+  color: var(--ink-dim);
+  margin: 0;
+  max-width: 22em;
+}
+
+.room-gate__create {
+  width: 100%;
+  max-width: 360px;
+  min-height: var(--touch-bar);
+  margin-top: var(--s3);
+  font-size: 17px;
+}
+
+.room-gate__alt {
+  display: flex;
+  gap: var(--s2);
+  width: 100%;
+  max-width: 360px;
+}
+.room-gate__alt button { flex: 1; }
+
+/* ============================================================
  * MODE SEG (人数选择)
  * ============================================================ */
 

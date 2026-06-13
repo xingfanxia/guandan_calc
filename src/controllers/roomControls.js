@@ -14,6 +14,18 @@ import {
 } from '../share/roomManager.js';
 import { clearRoomUI } from '../share/roomUI.js';
 
+/** True when a game has started (history recorded or a rank placed). */
+function gameInProgress() {
+  if (typeof state.getHistory === 'function' && state.getHistory().length > 0) return true;
+  if (typeof state.getCurrentRanking === 'function') {
+    const ranking = state.getCurrentRanking();
+    for (const k in ranking) {
+      if (ranking[k] != null) return true;
+    }
+  }
+  return false;
+}
+
 export function getFavoriteButtonViewModel(roomInfo) {
   if (!roomInfo?.roomCode || !roomInfo.isHost) {
     return {
@@ -112,7 +124,9 @@ export function setupRoomControls() {
   // Create room
   if (createRoomBtn) {
     on(createRoomBtn, 'click', async () => {
-      if (!confirm('创建房间将重置当前游戏数据，确定继续？')) {
+      // Only warn about discarding data when there's actually an in-progress
+      // game — a fresh blank start (the room-gate path) creates silently.
+      if (gameInProgress() && !confirm('创建房间将重置当前游戏数据，确定继续？')) {
         return;
       }
 

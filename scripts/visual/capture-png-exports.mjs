@@ -57,6 +57,12 @@ for (const theme of THEMES) {
     localStorage.setItem('gd_v9_theme', t);
   }, theme);
   await page.reload({ waitUntil: 'networkidle' });
+  // A blank load shows the room gate, which hides the setup UI. This capture
+  // drives the local setup directly, so lift the gate first.
+  await page.evaluate(() => {
+    document.querySelector('main.wrap')?.classList.remove('wrap--gated');
+    document.body.classList.remove('app-gated');
+  });
   // The native #mode select is visually hidden (the seg control drives it),
   // so wait for attachment and drive it via the DOM instead of selectOption.
   await page.waitForSelector('#mode:not([disabled])', { timeout: 5000, state: 'attached' });
