@@ -452,6 +452,7 @@ Transforms the app from session-based to a **persistent gaming platform** with:
 - Time tracking (total, longest, average)
 - All 16 honors synced to profiles
 - 17 active achievement badges (auto-unlock)
+- 天梯 ladder rating (simplified Elo) + 天梯榜 leaderboard (see Ladder System below)
 - Community voting integration
 - Partner/rival relationship tracking
 - Player browser and profile pages
@@ -502,9 +503,48 @@ Transforms the app from session-based to a **persistent gaming platform** with:
   // Recent performance
   recentRankings: [1, 2, 1, 3],  // Relative positions (1-8)
 
+  // Ladder rating (天梯, simplified Elo — see Ladder System below)
+  ladder: { rating: 1000, sessions: 0, peak: 1000 },
+  ladderHistory: { [gameSessionKey]: appliedDelta },  // per-session idempotency
+
   // Honors + Streaks + Legacy fields...
 }
 ```
+
+### Ladder System (天梯, 2026-06-13)
+
+Per-session simplified-Elo rating ported from `guandan-scorer-wxapp` (spec: that
+repo's `docs/PLAN.md` WXAPP-9). Surfaced as a 天梯榜 leaderboard on `players.html`
++ headline tiles on `player-profile.html`.
+
+- **Algorithm**: `shared/ladderLogic.js` (pure ESM, imported by the edge API +
+  display). `computeLadderDeltas` = team Elo term (K=24, expected-win-rate from
+  team-average ratings) + personal-performance term (K=28, weighted ABOVE win/loss
+  — losing with a good rank still rewards), winner floor +1, loser gain cap +6.
+  `seedLadderRating` folds web history into a first rating (only when sessions===0).
+  `applyLadderDelta` accumulates `{rating, sessions, peak}` (rating floor 0).
+  ALGORITHMICALLY IDENTICAL to wxapp `core/ladder.js` + its CJS cloudfunction
+  mirrors — 改算法两个 repo 都要同步。
+- **Application** lives INSIDE the per-player session PUT (`api/players/[handle].js`
+  `applyLadderForSession`), NOT a separate endpoint: for real-room sessions it
+  derives the authoritative winner + roster from the room snapshot, reads every
+  participant's FROZEN pre-session rating (seed if never ranked) to compute team
+  averages, applies this player's delta, but WRITES ONLY this profile — so
+  concurrent per-player PUTs can't clobber each other (the web stores whole player
+  docs in KV; a batch endpoint would be unsafe). Runs BEFORE the session-stat
+  increments so the seed reads pre-session web history. Idempotent per
+  `gameSessionKey` via `ladderHistory`. No-handle guests count at base 1000 in the
+  team average; missing room playerStats → perf term 0; ambiguous/no winner or
+  LOCAL game → no-op (宁可不动不可错判方向). Per-player application can read a
+  teammate's post-session rating (≤1pt team-average drift) — acceptable; the web
+  ladder is its own rating population (not numerically synced with wxapp).
+- **Leaderboard**: `GET /api/players/list?sort=ladder` (ranked players by rating
+  DESC, never-ranked fall to recency). `summarizeLadderForList` exposes ladder in
+  the list payload.
+- **Tests**: `scripts/ops/verify-ladder-algorithms.mjs` (mirrors wxapp's 11 cases)
+  + `verify-ladder-sync.mjs` (seed→delta vs the pure fn, idempotency, single-write).
+- Follow-up option: vendor `shared/ladderLogic.js` into wxapp to dedupe its
+  hand-written `ladder.js`.
 
 ### How Stats Sync Works
 
