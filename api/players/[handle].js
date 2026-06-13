@@ -15,6 +15,7 @@ import {
   deriveVoteProfileHistoryKey
 } from '../../shared/voteSessionKey.js';
 import { getHistoryEntries, resolveGameStatus } from '../../shared/gameStatus.js';
+import { LADDER_BASE } from '../../shared/ladderLogic.js';
 import { publicVoteStoreForRoom } from '../rooms/_votes.js';
 import {
   validateHandle,
@@ -489,7 +490,32 @@ function normalizeProfileStatsShape(stats) {
     }
   });
 
+  // Ladder rating shape ({rating, sessions, peak}) + its idempotency record map.
+  const ladder = normalizeLadderShape(stats.ladder);
+  if (!isPlainRecord(stats.ladder) ||
+      stats.ladder.rating !== ladder.rating ||
+      stats.ladder.sessions !== ladder.sessions ||
+      stats.ladder.peak !== ladder.peak) {
+    stats.ladder = ladder;
+    changed = true;
+  }
+  const ladderHistory = normalizeRecordMap(stats.ladderHistory);
+  if (stats.ladderHistory !== ladderHistory) {
+    stats.ladderHistory = ladderHistory;
+    changed = true;
+  }
+
   return changed;
+}
+
+function normalizeLadderShape(ladder) {
+  const cur = isPlainRecord(ladder) ? ladder : {};
+  const rating = normalizeNonNegativeNumber(cur.rating, LADDER_BASE);
+  return {
+    rating,
+    sessions: normalizeNonNegativeInteger(cur.sessions, 0),
+    peak: Math.max(rating, normalizeNonNegativeNumber(cur.peak, rating))
+  };
 }
 
 // Migrate historical games to mode-specific stats (runs once per player)

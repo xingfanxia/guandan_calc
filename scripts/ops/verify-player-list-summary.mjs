@@ -17,7 +17,8 @@ Object.assign(fullStats, {
   partners: { alice: { games: 12, wins: 7, winRate: 7 / 12 } },
   opponents: { bob: { games: 10, wins: 4, winRate: 0.4 } },
   votingHistory: { ABC123: { mvp: 3, burden: 2 } },
-  recentRankings: [1, 2, 3]
+  recentRankings: [1, 2, 3],
+  ladder: { rating: 1180, sessions: 9, peak: 1205 }
 });
 
 const summary = summarizePlayerForList({
@@ -65,7 +66,8 @@ assert.deepEqual(summary.stats, {
   gamesPlayed: 12,
   wins: 7,
   winRate: 7 / 12,
-  avgRanking: 3.25
+  avgRanking: 3.25,
+  ladder: { rating: 1180, peak: 1205, sessions: 9 }
 });
 
 assert.deepEqual(summarizePlayerForList(null), null);
@@ -89,7 +91,8 @@ assert.deepEqual(
     gamesPlayed: 0,
     wins: 0,
     winRate: 0,
-    avgRanking: 0
+    avgRanking: 0,
+    ladder: { rating: 1000, peak: 1000, sessions: 0 }
   },
   'player list summaries should tolerate null stats from legacy/corrupt KV records'
 );
@@ -121,7 +124,8 @@ assert.deepEqual(
     gamesPlayed: 4,
     wins: 0,
     winRate: 0.5,
-    avgRanking: 0
+    avgRanking: 0,
+    ladder: { rating: 1000, peak: 1000, sessions: 0 }
   },
   'player list summaries should coerce only finite non-negative numeric stats'
 );

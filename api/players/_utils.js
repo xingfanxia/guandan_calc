@@ -1,6 +1,7 @@
 // Utility functions for player profile APIs
 // UTF-8 encoding for Chinese characters
 import { createHonorCounter } from '../../shared/honorCatalog.js';
+import { LADDER_BASE } from '../../shared/ladderLogic.js';
 
 /**
  * Generate unique player ID in format PLR_XXXXXX
@@ -165,7 +166,14 @@ export function initializePlayerStats() {
 
     // Completed-session idempotency
     sessionHistory: {},
-    
+
+    // Ladder rating (simplified Elo, per-session — see shared/ladderLogic.js).
+    // sessions===0 marks a never-seeded ladder; the ladder-sync endpoint seeds
+    // the first rating from web history. ladderHistory is the per-session
+    // idempotency gate (gameSessionKey → applied delta), parallel to sessionHistory.
+    ladder: { rating: LADDER_BASE, sessions: 0, peak: LADDER_BASE },
+    ladderHistory: {},
+
     // Partner/Opponent tracking (aggregated)
     partners: {},
     opponents: {},
@@ -331,6 +339,16 @@ function toNonNegativeFiniteNumber(value) {
   return Number.isFinite(numeric) && numeric >= 0 ? numeric : 0;
 }
 
+export function summarizeLadderForList(ladder) {
+  const safe = normalizeRecordMap(ladder);
+  const rating = Number.isFinite(Number(safe.rating)) ? Math.round(Number(safe.rating)) : LADDER_BASE;
+  return {
+    rating,
+    peak: Number.isFinite(Number(safe.peak)) ? Math.round(Number(safe.peak)) : rating,
+    sessions: toNonNegativeFiniteNumber(safe.sessions)
+  };
+}
+
 function summarizeStatsForList(stats = {}) {
   const safeStats = normalizeRecordMap(stats);
   return {
@@ -341,7 +359,8 @@ function summarizeStatsForList(stats = {}) {
     gamesPlayed: toNonNegativeFiniteNumber(safeStats.gamesPlayed ?? safeStats.sessionsPlayed),
     wins: toNonNegativeFiniteNumber(safeStats.wins ?? safeStats.sessionsWon),
     winRate: toNonNegativeFiniteNumber(safeStats.winRate ?? safeStats.sessionWinRate),
-    avgRanking: toNonNegativeFiniteNumber(safeStats.avgRanking ?? safeStats.avgRankingPerSession)
+    avgRanking: toNonNegativeFiniteNumber(safeStats.avgRanking ?? safeStats.avgRankingPerSession),
+    ladder: summarizeLadderForList(safeStats.ladder)
   };
 }
 
