@@ -133,21 +133,30 @@ assert.equal(
 );
 
 // Anti-sweep cap (default behavior). 万年二 (id6) tops 石佛/团队中轴/保底核心/连段王 by
-// score, but the cap (MAX_POSITIVE_HONORS_PER_PLAYER) lets them keep only two —
-// 团队中轴 redistributes to the next teammate-outperformer (id4) and no eligible
-// player exceeds the cap.
+// score, but the cap lets them keep only two, so 团队中轴 redistributes to the next
+// teammate-outperformer (id4). This 6p synthetic is a near-degenerate roster (the
+// consistency honors all resolve to a tiny qualifier pool), so the soft second pass
+// over-caps one player rather than leave a qualified honor empty — that's the
+// graceful-degradation path, NOT the 8p strict-cap path (see verify-honor-spread).
 const cappedHonors = calculateHonors(players.length);
 assert.equal(cappedHonors.mvp?.player.id, 1, '吕布 (flagship) stays truthful under the anti-sweep cap');
 assert.notEqual(
   cappedHonors.median?.player.id, 6,
   '团队中轴 should redistribute off id6 once the cap claims their other consistency honors'
 );
-for (const [id, count] of Object.entries(positiveHonorCounts(cappedHonors))) {
-  assert.ok(
-    count <= MAX_POSITIVE_HONORS_PER_PLAYER,
-    `player ${id} holds ${count} positive honors, exceeding the cap of ${MAX_POSITIVE_HONORS_PER_PLAYER}`
-  );
-}
+// The cap redistributes winners but never starves a qualified honor: the SET of
+// awarded positive honors is identical capped vs uncapped (no false 本场无人).
+const awardedPositive = h => POSITIVE_HONOR_KEYS.filter(key => h[key]?.player).sort();
+assert.deepEqual(
+  awardedPositive(cappedHonors),
+  awardedPositive(honors),
+  'the cap must not leave any qualified positive honor unawarded'
+);
+// And it spreads positives across at least as many players as the uncapped result.
+assert.ok(
+  Object.keys(positiveHonorCounts(cappedHonors)).length >= Object.keys(positiveHonorCounts(honors)).length,
+  'the cap should spread positive honors across no fewer players than the uncapped result'
+);
 
 const invalidPlayerCountHonors = calculateHonorsFromData(
   players,

@@ -72,7 +72,10 @@ export function resolveHonorPlayerCount(modeValue, fallbackCount = 8) {
  *   e.g. to test scoring independent of assignment.
  */
 export function calculateHonorsFromData(players = [], allStats = {}, totalPlayers = 8, options = {}) {
-  const applyCap = options.applyCap !== false;
+  // Match the null-tolerant contract of every other input (corrupted snapshots
+  // may pass null/garbage): the default param only substitutes for undefined.
+  const opts = options && typeof options === 'object' ? options : {};
+  const applyCap = opts.applyCap !== false;
   const positiveHonorCap = applyCap ? MAX_POSITIVE_HONORS_PER_PLAYER : Infinity;
   const playerList = Array.isArray(players) ? players : [];
   const statsByPlayer = allStats && typeof allStats === 'object' && !Array.isArray(allStats)
@@ -543,8 +546,8 @@ export function calculateHonorsFromData(players = [], allStats = {}, totalPlayer
   //      honor exhausts that player's cap; ties broken by declared spec order;
   //   3. uncapped (negative / neutral) honors, order irrelevant.
   // Without (2), a narrow honor processed late can find all its qualifiers
-  // already capped and — under the hard cap — be needlessly left unawarded,
-  // when claiming its scarce qualifier first would have kept it on the board.
+  // already capped and be needlessly deferred to pass 2 (over-capping a player),
+  // when claiming its scarce qualifier first would have spread it cleanly.
   const qualifierCount = new Map(
     honorSpecs.map(spec => [spec.key, eligible.filter(spec.filter).length])
   );
@@ -563,32 +566,49 @@ export function calculateHonorsFromData(players = [], allStats = {}, totalPlayer
     ...otherSpecs
   ];
 
-  // Positive honors track how many each player already holds; once a player hits
-  // the cap they're excluded from every remaining positive honor, which then
-  // falls to the next-best uncapped qualifier. The cap is HARD: if every
-  // qualifier for a positive honor is already capped, that honor is left
-  // unawarded rather than handed to a player who would exceed the cap. "no
-  // player holds more than MAX_POSITIVE_HONORS_PER_PLAYER positive honors" is a
-  // strict invariant. (Most-constrained-first ordering keeps this from starving
-  // honors in realistic sessions — a player is only sole-qualifier for several
-  // honors in degenerate synthetic data.)
+  // Two-pass assignment so the cap SPREADS without ever producing a false
+  // "本场无人" on an honor that real players earned:
+  //
+  //   Pass 1 — assign each honor to its best UNCAPPED qualifier. Once a player
+  //     holds the cap they're skipped, so positive honors spread across players.
+  //     A positive honor whose every qualifier is already capped is DEFERRED.
+  //   Pass 2 — award each deferred honor to its best qualifier, ignoring the
+  //     cap. This only fires when a roster can't fill an honor within the cap
+  //     (e.g. a 4-player two-pair game where all five "strength" honors resolve
+  //     to the same two players) — there, a real already-decorated winner beats
+  //     a misleading empty card. In a healthy 8-player session pass 2 never
+  //     fires and the cap holds strictly.
+  //
+  // With applyCap === false the cap is Infinity, so nothing is ever deferred and
+  // each honor simply goes to its top scorer — identical to the pre-cap behavior.
   const positiveHonorsHeld = new Map();
+  const heldCount = id => positiveHonorsHeld.get(id) || 0;
+  const recordHonor = id => positiveHonorsHeld.set(id, heldCount(id) + 1);
+  const deferredPositives = [];
+
   for (const spec of assignmentOrder) {
     const qualified = eligible.filter(spec.filter);
     if (qualified.length === 0) continue;
 
-    let winner;
-    if (spec.positive) {
-      const uncapped = qualified.filter(
-        m => (positiveHonorsHeld.get(m.player.id) || 0) < positiveHonorCap
-      );
-      if (uncapped.length === 0) continue; // hard cap — leave unawarded, never over-cap
-      winner = bestBy(uncapped, spec.compare);
-      positiveHonorsHeld.set(winner.player.id, (positiveHonorsHeld.get(winner.player.id) || 0) + 1);
-    } else {
-      winner = bestBy(qualified, spec.compare);
+    if (!spec.positive) {
+      const winner = bestBy(qualified, spec.compare);
+      assign(spec.key, winner, spec.score(winner));
+      continue;
     }
 
+    const uncapped = qualified.filter(m => heldCount(m.player.id) < positiveHonorCap);
+    if (uncapped.length === 0) {
+      deferredPositives.push({ spec, qualified }); // every qualifier capped — fill in pass 2
+      continue;
+    }
+    const winner = bestBy(uncapped, spec.compare);
+    recordHonor(winner.player.id);
+    assign(spec.key, winner, spec.score(winner));
+  }
+
+  for (const { spec, qualified } of deferredPositives) {
+    const winner = bestBy(qualified, spec.compare);
+    recordHonor(winner.player.id);
     assign(spec.key, winner, spec.score(winner));
   }
 

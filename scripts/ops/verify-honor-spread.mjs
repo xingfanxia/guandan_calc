@@ -40,6 +40,13 @@ function positiveCounts(honors) {
   return counts;
 }
 
+// Set of positive honor keys actually awarded. A honor has a qualifier iff the
+// UNCAPPED computation awards it, so comparing capped-vs-uncapped awarded sets
+// detects "false empty" — a qualified honor the cap wrongly starved to 「本场无人」.
+function awardedPositiveKeys(honors) {
+  return POSITIVE_HONOR_KEYS.filter(key => honors[key]?.player);
+}
+
 function buildStats(rankingsById, totalPlayers) {
   return Object.fromEntries(
     Object.entries(rankingsById).map(([id, ranks]) => [id, statsFromRankings(ranks, totalPlayers)])
@@ -81,11 +88,12 @@ assert.ok(
   `precondition: the dominant player should sweep ≥4 positive honors uncapped (got ${uncappedCounts[5] || 0}) — otherwise this dataset no longer exercises the cap`
 );
 
-// The cap is a HARD invariant: nobody exceeds it.
+// A healthy 8-player session has enough distinct qualifiers that the cap holds
+// strictly — pass 2 never fires, so nobody exceeds the cap.
 for (const [id, count] of Object.entries(cappedCounts)) {
   assert.ok(
     count <= MAX_POSITIVE_HONORS_PER_PLAYER,
-    `player ${id} holds ${count} positive honors under the cap of ${MAX_POSITIVE_HONORS_PER_PLAYER}`
+    `player ${id} holds ${count} positive honors over the cap of ${MAX_POSITIVE_HONORS_PER_PLAYER}`
   );
 }
 
@@ -94,6 +102,14 @@ assert.equal(
   cappedCounts[5],
   MAX_POSITIVE_HONORS_PER_PLAYER,
   'the dominant player should keep exactly the cap of positive honors, not sweep them all'
+);
+
+// No FALSE empties: the cap redistributes winners, it never starves a qualified
+// honor to 「本场无人」. Every positive honor awarded uncapped is still awarded.
+assert.deepEqual(
+  awardedPositiveKeys(capped),
+  awardedPositiveKeys(uncapped),
+  'the cap must not leave any qualified positive honor unawarded (no false 本场无人)'
 );
 
 // Positive honors spread across more players than the uncapped collapse.
@@ -114,7 +130,12 @@ assert.equal(capped.mvp?.player.id, 5, '吕布 should still be the dominant play
 assert.equal(capped.burden?.player.id, uncapped.burden?.player.id, '阿斗 (flagship, uncapped negative) must be unchanged');
 
 // ---------------------------------------------------------------------------
-// 4-player mode: the cap must hold there too (fewer players → easier to squeeze).
+// 4-player two-pair session (the most common 掼蛋 setup). All five "strength"
+// honors resolve to the same two strong players, so 5 honors cannot fit two
+// players within a cap of 2. The cap must DEGRADE GRACEFULLY here: spread what it
+// can, then award the overflow to a real (already-decorated) winner rather than
+// starve the honor to a false 「本场无人」. Over-cap is expected and acceptable;
+// a false-empty card is the regression we are guarding against.
 // ---------------------------------------------------------------------------
 const players4 = [
   { id: 1, name: 'A', team: 1 }, { id: 2, name: 'B', team: 1 },
@@ -126,13 +147,19 @@ const rankings4 = {
   3: [3, 4, 3, 4, 3, 4, 3, 4],
   4: [4, 3, 4, 3, 4, 3, 4, 3]
 };
-const capped4 = calculateHonorsFromData(players4, buildStats(rankings4, 4), 4);
-for (const [id, count] of Object.entries(positiveCounts(capped4))) {
-  assert.ok(
-    count <= MAX_POSITIVE_HONORS_PER_PLAYER,
-    `4-player: player ${id} holds ${count} positive honors over the cap of ${MAX_POSITIVE_HONORS_PER_PLAYER}`
-  );
-}
+const stats4 = buildStats(rankings4, 4);
+const uncapped4 = calculateHonorsFromData(players4, stats4, 4, { applyCap: false });
+const capped4 = calculateHonorsFromData(players4, stats4, 4);
+
 assert.ok(capped4.mvp?.player, '4-player session should still award 吕布');
+assert.deepEqual(
+  awardedPositiveKeys(capped4),
+  awardedPositiveKeys(uncapped4),
+  '4-player: the cap must not starve a qualified strength honor to a false 本场无人 even when only two players qualify for all of them'
+);
+assert.ok(
+  awardedPositiveKeys(capped4).length >= 3,
+  '4-player: the strength honors that have qualifiers should still be on the board'
+);
 
 console.log('honor anti-sweep spread checks passed');
