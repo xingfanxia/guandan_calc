@@ -37,6 +37,9 @@
 </head>
 <body>
 
+<!-- STICKY HEADER (topnav + mini-scoreboard) -->
+<header class="app-header">
+
 <!-- TOP NAVIGATION -->
 <nav class="topnav" aria-label="主导航">
   <div class="container topnav__inner">
@@ -58,6 +61,29 @@
     <div id="themeToggleMount" class="topnav__picker"></div>
   </div>
 </nav>
+
+<!-- MINI SCOREBOARD — appears in the sticky header once the board hero scrolls
+     out of view (src/ui/stickyScore.js toggles body.board-offscreen). Live
+     levels/score/round are written by src/ui/teamDisplay.js renderTeams(). -->
+<div class="topnav-score" id="topnavScore">
+  <div class="container topnav-score__inner">
+    <span class="topnav-score__eyebrow" id="miniEyebrow">本局打 —</span>
+    <span class="topnav-score__board">
+      <span class="topnav-score__team topnav-score__team--blue">
+        <span class="topnav-score__name" id="miniT1Name">蓝队</span>
+        <b class="topnav-score__lvl" id="miniT1Lvl">2</b>
+      </span>
+      <span class="topnav-score__sep">:</span>
+      <span class="topnav-score__team topnav-score__team--red">
+        <b class="topnav-score__lvl" id="miniT2Lvl">2</b>
+        <span class="topnav-score__name" id="miniT2Name">红队</span>
+      </span>
+    </span>
+    <span class="topnav-score__round" id="miniRound">第1局</span>
+  </div>
+</div>
+
+</header>
 
 <!-- STATUS STRIP -->
 <div class="ticker">

@@ -67,6 +67,7 @@ import { initCalcPreviewSync, renderCalcPreview } from './ui/calcPreviewSync.js'
 import { initRulesDrawerSync, renderRulesDrawerChips } from './ui/rulesDrawerSync.js';
 import { initSetupVisibility } from './ui/setupVisibility.js';
 import { initRoomGate } from './ui/roomGate.js';
+import { initStickyScore } from './ui/stickyScore.js';
 import { resolveInitialPlayerCountMode } from './core/playerCountMode.js';
 
 // Theme toggle (light/dark — replaces the old multi-theme manager)
@@ -110,6 +111,9 @@ async function init() {
     // one-tap "create a room to begin" entry instead of local setup. Runs after
     // setupEventListeners so the gate buttons can delegate to #createRoom etc.
     initRoomGate({ isRoomMode, isSharedMode });
+
+    // Sticky mini-scoreboard reveal once the board hero scrolls out of view.
+    initStickyScore();
 
     // Show room UI if in room mode
     if (isRoomMode) {
