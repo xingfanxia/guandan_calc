@@ -525,7 +525,12 @@ function normalizeLadderShape(ladder) {
 
 function roomLadderHandle(roomPlayer) {
   const raw = roomPlayer?.handle ?? roomPlayer?.profileHandle;
-  return typeof raw === 'string' && raw ? raw.toLowerCase() : null;
+  if (typeof raw !== 'string') return null;
+  // Validate before it reaches a `player:${h}` KV key — the room snapshot only
+  // type-checks handles, so a host could otherwise smuggle junk into the lookup.
+  // Trimming + validating also matches the PUT target handle (already lowercased).
+  const handle = raw.trim().toLowerCase();
+  return validateHandle(handle) ? handle : null;
 }
 
 /**

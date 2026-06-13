@@ -7,9 +7,9 @@
  *
  * Pure ESM, zero host deps. The web ladder-sync endpoint + display import this
  * directly. ALGORITHMICALLY IDENTICAL to the guandan-scorer-wxapp sibling's
- * `miniprogram/core/ladder.js` (which itself CJS-mirrors into cloudfunctions/
- * {profile_sync,pool_bind,pool_list}) — 改算法两个 repo 都要同步。Spec: wxapp
- * docs/PLAN.md WXAPP-9.
+ * `miniprogram/core/ladder.js`, whose seedLadderRating CJS-mirrors into FOUR
+ * cloudfunctions/{profile_sync, pool_bind, pool_list, profile_get_by_handle}
+ * — 改算法两个 repo 都要同步。Spec: wxapp docs/PLAN.md WXAPP-9.
  */
 
 export const LADDER_BASE = 1000;

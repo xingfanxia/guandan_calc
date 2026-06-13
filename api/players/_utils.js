@@ -342,9 +342,10 @@ function toNonNegativeFiniteNumber(value) {
 export function summarizeLadderForList(ladder) {
   const safe = normalizeRecordMap(ladder);
   const rating = Number.isFinite(Number(safe.rating)) ? Math.round(Number(safe.rating)) : LADDER_BASE;
+  const rawPeak = Number.isFinite(Number(safe.peak)) ? Math.round(Number(safe.peak)) : rating;
   return {
     rating,
-    peak: Number.isFinite(Number(safe.peak)) ? Math.round(Number(safe.peak)) : rating,
+    peak: Math.max(rating, rawPeak), // peak >= rating invariant (matches normalizeLadderShape)
     sessions: toNonNegativeFiniteNumber(safe.sessions)
   };
 }

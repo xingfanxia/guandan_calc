@@ -2597,6 +2597,9 @@ body.app-gated .ticker { display: none; }
   }
 
   .career-stats-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Ladder block keeps its 3 even tiles on desktop too (override the 4-col rule
+   * above, which otherwise wins by source order and leaves an empty 4th column). */
+  .career-stats-grid--ladder { grid-template-columns: repeat(3, 1fr); }
   .achievements-grid { grid-template-columns: repeat(3, 1fr); }
   .profile-honor-grid { grid-template-columns: repeat(3, 1fr); }
   .rels-grid { grid-template-columns: 1fr 1fr; }

@@ -80,9 +80,9 @@
       <button id="createPlayerButton" class="btn-secondary">创建玩家</button>
       <button id="adminModeButton" class="btn-danger">🔒 管理模式</button>
     </div>
-    <div class="sort-toggle" role="tablist" aria-label="排序方式">
-      <button id="sortLadder" type="button" class="sort-toggle__btn sort-toggle__btn--active" role="tab" aria-selected="true">🏆 天梯榜</button>
-      <button id="sortRecent" type="button" class="sort-toggle__btn" role="tab" aria-selected="false">🕐 最近活跃</button>
+    <div class="sort-toggle" role="group" aria-label="排序方式">
+      <button id="sortLadder" type="button" class="sort-toggle__btn sort-toggle__btn--active" aria-pressed="true">🏆 天梯榜</button>
+      <button id="sortRecent" type="button" class="sort-toggle__btn" aria-pressed="false">🕐 最近活跃</button>
     </div>
   </div>
 
@@ -230,8 +230,8 @@ function setSort(sort) {
   const ladderActive = sort === 'ladder';
   sortLadderBtn?.classList.toggle('sort-toggle__btn--active', ladderActive);
   sortRecentBtn?.classList.toggle('sort-toggle__btn--active', !ladderActive);
-  sortLadderBtn?.setAttribute('aria-selected', String(ladderActive));
-  sortRecentBtn?.setAttribute('aria-selected', String(!ladderActive));
+  sortLadderBtn?.setAttribute('aria-pressed', String(ladderActive));
+  sortRecentBtn?.setAttribute('aria-pressed', String(!ladderActive));
   loadPlayers(currentQuery);
 }
 sortLadderBtn?.addEventListener('click', () => setSort('ladder'));
