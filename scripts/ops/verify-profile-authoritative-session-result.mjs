@@ -100,6 +100,11 @@ globalThis.fetch = async (url, options = {}) => {
       if (key === 'room:AUTHW1' || key === 'room:AUTHW6') {
         return { result: JSON.stringify({ ...completedRoom, roomCode: key.slice('room:'.length) }) };
       }
+      // Ladder application reads the other participants' profiles to compute team
+      // averages; this test doesn't seed them, so they resolve to base-rated guests.
+      if (typeof key === 'string' && key.startsWith('player:')) {
+        return { result: null };
+      }
     }
 
     if (normalizedOperation === 'set' && key === 'player:alice') {

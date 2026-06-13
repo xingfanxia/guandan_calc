@@ -37,11 +37,13 @@ const VIEWPORTS = {
 
 // ---------- API mocks (players / rooms / profile) ----------
 
+// Ordered by ladder rating DESC (the list endpoint sorts server-side; the mock
+// returns this order directly), with one never-ranked player to exercise 未上榜.
 const MOCK_PLAYERS = [
-  { handle: 'fufu', displayName: '芙芙', emoji: '🐸', tagline: '稳坐头游，从不翻车', stats: { sessionsPlayed: 42, sessionsWon: 28, sessionWinRate: 0.667, avgRankingPerSession: 3.21 } },
-  { handle: 'yichao', displayName: '超', emoji: '🐢', tagline: '', stats: { sessionsPlayed: 38, sessionsWon: 15, sessionWinRate: 0.395, avgRankingPerSession: 4.55 } },
-  { handle: 'axax', displayName: '帆', emoji: '🐱', tagline: '夜场常驻', stats: { sessionsPlayed: 51, sessionsWon: 30, sessionWinRate: 0.588, avgRankingPerSession: 3.8 } },
-  { handle: 'olivia', displayName: '姐', emoji: '😺', tagline: '', stats: { sessionsPlayed: 12, sessionsWon: 4, sessionWinRate: 0.333, avgRankingPerSession: 4.9 } },
+  { handle: 'fufu', displayName: '芙芙', emoji: '🐸', tagline: '稳坐头游，从不翻车', stats: { sessionsPlayed: 42, sessionsWon: 28, sessionWinRate: 0.667, avgRankingPerSession: 3.21, ladder: { rating: 1218, peak: 1240, sessions: 42 } } },
+  { handle: 'axax', displayName: '帆', emoji: '🐱', tagline: '夜场常驻', stats: { sessionsPlayed: 51, sessionsWon: 30, sessionWinRate: 0.588, avgRankingPerSession: 3.8, ladder: { rating: 1156, peak: 1170, sessions: 51 } } },
+  { handle: 'yichao', displayName: '超', emoji: '🐢', tagline: '', stats: { sessionsPlayed: 38, sessionsWon: 15, sessionWinRate: 0.395, avgRankingPerSession: 4.55, ladder: { rating: 1042, peak: 1100, sessions: 38 } } },
+  { handle: 'olivia', displayName: '姐', emoji: '😺', tagline: '', stats: { sessionsPlayed: 12, sessionsWon: 4, sessionWinRate: 0.333, avgRankingPerSession: 4.9, ladder: { rating: 1000, peak: 1000, sessions: 0 } } },
 ];
 
 const MOCK_PROFILE = {
@@ -58,6 +60,7 @@ const MOCK_PROFILE = {
     roundsPlayed: 504, avgRankingPerRound: 3.4,
     totalPlayTimeSeconds: 86400, longestSessionSeconds: 7200, avgSessionSeconds: 3600,
     currentWinStreak: 3, longestWinStreak: 7,
+    ladder: { rating: 1218, peak: 1240, sessions: 42 },
     mvpVotes: 12, burdenVotes: 2,
     recentRankings: [1, 2, 1, 3, 4, 1, 2],
     honors: { '吕布': 5, '石佛': 3, '大满贯': 1 },

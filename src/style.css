@@ -1967,6 +1967,49 @@ body.app-gated .ticker { display: none; }
   color: var(--ink-dim);
   font-variant-numeric: tabular-nums;
 }
+/* Ladder rating badge — accent-tinted so the 天梯分 reads as the headline stat. */
+.stat-badge--ladder {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Leaderboard rank medal in 天梯榜 mode. */
+.player-card__rank {
+  flex-shrink: 0;
+  min-width: 30px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+.player-card__rank--top { font-size: 22px; }
+
+/* Sort toggle (天梯榜 / 最近活跃). */
+.sort-toggle {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: var(--s2);
+  padding: 2px;
+  background: var(--surface-2);
+  border-radius: var(--radius-pill);
+}
+.sort-toggle__btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px var(--s3);
+  min-height: 34px;
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+.sort-toggle__btn--active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
 
 .player-card__admin {
   display: flex;
@@ -2351,6 +2394,18 @@ body.app-gated .ticker { display: none; }
   color: var(--ink-dimmer);
 }
 
+.career-stats-section .stats-header-meta {
+  font-size: 12px;
+  color: var(--ink-dim);
+}
+
+/* Ladder block: three even tiles in one row, accent the rating tile. */
+.career-stats-grid--ladder { grid-template-columns: repeat(3, 1fr); }
+.career-stats-grid--ladder .career-stat-tile:last-child:nth-child(odd) { grid-column: auto; }
+.career-stat-tile--ladder { background: var(--accent-soft); }
+.career-stat-tile--ladder .tile-label { color: var(--accent); }
+.career-stat-tile--ladder .tile-val { color: var(--accent); }
+
 .profile-loading {
   text-align: center;
   color: var(--ink-dim);
@@ -2542,6 +2597,9 @@ body.app-gated .ticker { display: none; }
   }
 
   .career-stats-grid { grid-template-columns: repeat(4, 1fr); }
+  /* Ladder block keeps its 3 even tiles on desktop too (override the 4-col rule
+   * above, which otherwise wins by source order and leaves an empty 4th column). */
+  .career-stats-grid--ladder { grid-template-columns: repeat(3, 1fr); }
   .achievements-grid { grid-template-columns: repeat(3, 1fr); }
   .profile-honor-grid { grid-template-columns: repeat(3, 1fr); }
   .rels-grid { grid-template-columns: 1fr 1fr; }
