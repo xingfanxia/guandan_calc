@@ -60,7 +60,7 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 **Statistics (3 modules)**: Player stats and achievements
 - `stats/statistics.js` - Session stats tracking, MVP/burden identification
-- `stats/honors.js` - 16 full-session honor calculations with global/trend algorithms
+- `stats/honors.js` - 16 full-session honor display layer (algorithm + anti-sweep cap in `shared/honorLogic.js`)
 - `stats/achievements.js` - 20 achievement badge system
 
 **Player Profile System (6 modules)**: Persistent player identities
@@ -299,7 +299,9 @@ python -m http.server 8000
 
 ### Honor Calculation System (16 Honors)
 
-Implemented in `src/stats/honors.js` with sophisticated algorithms:
+Algorithms live in `shared/honorLogic.js` (pure, vendored by guandan-scorer-wxapp
+via `npm run sync:shared` — 改算法改这里); `src/stats/honors.js` is the web display
+layer (`HONOR_META.fmtStat` per-honor stat formatting) + a re-export.
 - **吕布 / 阿斗**: Full-session dominance and burden scores
 - **石佛 / 波动王 / 节奏核心**: Stability, volatility, and team-leading tempo pressure
 - **奋斗王 / 逆转核心 / 燃尽王**: Late climb, comeback arc, and burnout arc
@@ -308,6 +310,20 @@ Implemented in `src/stats/honors.js` with sophisticated algorithms:
 - **保底核心 / 棋差一着 / 抗压王**: No-last team safety net, repeated second without wins, and rebounds after bottom-tier pressure
 
 All algorithms scale properly for 4/6/8 player modes.
+
+**Anti-sweep cap (2026-06-13)**: scoring (the `eligible` computation) decides who
+SCORES best per honor; a separate assignment pass then caps each player at
+`MAX_POSITIVE_HONORS_PER_PLAYER = 2` POSITIVE honors so one strong player can't win
+them all. Negatives (阿斗/翻车王/燃尽王) and neutral quirks (波动王/赌徒/大满贯/棋差一着)
+stay uncapped. Assignment is two-pass: flagship 吕布 first, then derived positives
+most-constrained-first (MRV) to its best UNCAPPED qualifier; any positive honor whose
+every qualifier is already capped is filled in pass 2 ignoring the cap (so a real
+winner beats a false 「本场无人」 — matters in 4-player two-pair games). In a healthy
+8-player session the cap holds strictly. `calculateHonorsFromData(..., { applyCap: false })`
+returns raw uncapped winners (used to test scoring independent of assignment).
+Tests: `scripts/ops/verify-honor-algorithms.mjs` (scoring + cap invariant) +
+`verify-honor-spread.mjs` (anti-sweep on 8p/4p). A positive honor is empty ONLY when
+it has zero qualifiers — the cap never starves a qualified honor.
 
 ### LocalStorage Keys
 
