@@ -165,7 +165,7 @@ export function setupSettingsControls() {
 
       if (result.success) {
         if (statusEl) {
-          statusEl.style.color = '#22c55e';
+          statusEl.style.color = 'var(--win)';
           statusEl.textContent = `✅ 同步成功！已同步 ${result.totalPlayersSynced || 0} 位玩家的投票数据 | 最高: MVP ${result.mvpPlayer?.name || '无'} (${result.mvpVotes}票), 累赘 ${result.burdenPlayer?.name || '无'} (${result.burdenVotes}票)`;
         }
         syncVotingBtn.textContent = '✅ 已同步';
@@ -175,7 +175,7 @@ export function setupSettingsControls() {
         }, 3000);
       } else {
         if (statusEl) {
-          statusEl.style.color = '#ef4444';
+          statusEl.style.color = 'var(--danger)';
           statusEl.textContent = `❌ 同步失败: ${result.reason || 'unknown'}`;
         }
         syncVotingBtn.disabled = false;

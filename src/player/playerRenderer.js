@@ -280,9 +280,9 @@ export function createPlayerTile(player, onDragStart, onDragEnd) {
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #ef4444;
-      color: white;
-      border: 2px solid #1a1a1a;
+      background: var(--danger);
+      color: var(--on-accent);
+      border: 2px solid var(--surface);
       font-size: 16px;
       line-height: 1;
       cursor: pointer;

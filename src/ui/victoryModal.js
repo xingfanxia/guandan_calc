@@ -23,6 +23,32 @@ export function getVotingResults() {
 }
 
 /**
+ * Resolve a team's display color for inline-styled celebration text.
+ *
+ * If the team still uses its default color, return the live `--team-blue`/
+ * `--team-red` CSS token (which has per-mode light/dark variants) so the text
+ * is readable in both modes. If the user customized the color, honor their hex.
+ * Falls back to `--accent` when the team key is unknown.
+ *
+ * @param {('t1'|'t2'|null)} teamKey
+ * @returns {string} CSS color value
+ */
+function resolveTeamColorToken(teamKey) {
+  const read = (name, fallback) => {
+    if (typeof getComputedStyle !== 'function') return fallback;
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  };
+  if (teamKey !== 't1' && teamKey !== 't2') return read('--accent', '#15694B');
+  const tokenName = teamKey === 't1' ? '--team-blue' : '--team-red';
+  const configColor = config.getTeamColor(teamKey);
+  const isDefault = config.isDefaultTeamColor
+    ? config.isDefaultTeamColor(teamKey)
+    : true; // config without the helper → treat as default and use the token
+  return isDefault ? read(tokenName, configColor) : configColor;
+}
+
+/**
  * Show victory modal with celebration and voting
  * @param {string} teamName - Winning team name
  */
@@ -33,10 +59,14 @@ export async function showVictoryModal(teamName) {
   const modalContent = modal.querySelector('.victory-modal__inner');
   const teamNameEl = $('victoryTeamName');
 
-  // Determine winning team color
-  const winningTeamColor =
-    teamName === config.getTeamName('t1') ? config.getTeamColor('t1') :
-    teamName === config.getTeamName('t2') ? config.getTeamColor('t2') : '#22c55e';
+  // Determine winning team color. Use the team-* CSS tokens (per-mode
+  // light/dark variants) rather than the config hex so the celebration text
+  // stays readable in both modes; only a user-customized non-default color
+  // falls back to the stored hex.
+  const winningTeamKey =
+    teamName === config.getTeamName('t1') ? 't1' :
+    teamName === config.getTeamName('t2') ? 't2' : null;
+  const winningTeamColor = resolveTeamColorToken(winningTeamKey);
 
   // Update modal content
   if (teamNameEl) {
@@ -84,23 +114,18 @@ export async function showVictoryModal(teamName) {
       mvpPlayer = await getPlayerDisplayData(mvpPlayer);
     }
 
-    // Show tagline if MVP has profile
+    // Show tagline if MVP has profile. Color/size/style come from the
+    // .mvp-tagline rule in src/style.css (var(--gold-a)) — no inline color so
+    // it resolves correctly in light AND dark mode.
     if (mvpPlayer && mvpPlayer.tagline) {
       const taglineEl = document.createElement('p');
       taglineEl.className = 'mvp-tagline';
-      taglineEl.style.cssText = `
-        color: #fbbf24;
-        font-size: 20px;
-        margin: 0 0 24px 0;
-        font-style: italic;
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
-      `;
       taglineEl.innerHTML = `
         <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px;">
           ${renderProfileAvatar(mvpPlayer, 64, { marginRight: false })}
           <div style="text-align: left;">
             <div style="color: ${winningTeamColor}; font-weight: bold; font-size: 18px;">MVP ${escapeHtml(mvpPlayer.name)}</div>
-            <div style="color: #888; font-size: 14px;">平均 ${bestAvg.toFixed(2)}名</div>
+            <div style="color: var(--ink-dim); font-size: 14px;">平均 ${bestAvg.toFixed(2)}名</div>
           </div>
         </div>
         <div style="font-style: italic;">"${escapeHtml(mvpPlayer.tagline)}"</div>

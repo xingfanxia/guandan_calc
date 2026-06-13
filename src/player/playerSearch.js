@@ -113,47 +113,25 @@ function renderSearchResults(players, container) {
   players.forEach(player => {
     const playerStats = player.stats || {};
     const playerItem = document.createElement('div');
+    // Styling lives in src/style.css .player-search-item (design tokens) so
+    // the rows resolve correctly in both light and dark mode.
     playerItem.className = 'player-search-item';
-    playerItem.style.cssText = `
-      display: flex;
-      align-items: center;
-      padding: 8px 12px;
-      margin: 4px 0;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    `;
 
     // SECURITY: escape all dynamic strings — names/handles/play-style come from API and
     // could carry HTML-breaking chars or stored XSS via tampered profile data.
     playerItem.innerHTML = `
-      <span style="font-size: 24px; margin-right: 12px;">${escapeHtml(player.emoji)}</span>
-      <div style="flex: 1;">
-        <div style="font-weight: bold; margin-bottom: 2px;">
+      <span class="player-search-item__emoji">${escapeHtml(player.emoji)}</span>
+      <div class="player-search-item__body">
+        <div class="player-search-item__name">
           ${escapeHtml(player.displayName)}
-          <span style="color: #888; font-weight: normal; font-size: 0.9em;">@${escapeHtml(player.handle)}</span>
+          <span class="player-search-item__handle">@${escapeHtml(player.handle)}</span>
         </div>
-        <div style="font-size: 0.85em; color: #888;">
+        <div class="player-search-item__meta">
           ${escapeHtml(getPlayStyleLabel(player.playStyle))} · ${formatInteger(playerStats.sessionsPlayed || playerStats.gamesPlayed, 0)} 场游戏
         </div>
       </div>
-      <button class="select-player-btn" style="padding: 6px 12px; background: #22c55e; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        选择
-      </button>
+      <button class="select-player-btn btn-primary">选择</button>
     `;
-
-    // Hover effect
-    on(playerItem, 'mouseenter', () => {
-      playerItem.style.background = '#252525';
-      playerItem.style.borderColor = '#444';
-    });
-
-    on(playerItem, 'mouseleave', () => {
-      playerItem.style.background = '#1a1a1a';
-      playerItem.style.borderColor = '#333';
-    });
 
     // Click entire row to select
     on(playerItem, 'click', () => {

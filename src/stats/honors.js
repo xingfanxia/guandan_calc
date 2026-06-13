@@ -93,10 +93,16 @@ function teamColorClass(player) {
 
 /**
  * Update one honor article with awarded data or empty placeholder.
+ *
+ * @param {boolean} sessionHasEnoughData - true once at least one honor has a
+ *   winner this session, i.e. someone has played ≥ MIN_HONOR_GAMES rounds.
+ *   Distinguishes "still collecting data" from "computed, nobody qualified" so
+ *   the empty-state copy reads correctly even after a long session.
  */
-function updateHonorArticle(article, honorData, meta) {
-  // Status badge — only shown when there's NO clear winner (i.e., honor is still calculating).
-  // When a winner exists, the recipient row already conveys leadership; the badge is noise.
+function updateHonorArticle(article, honorData, meta, sessionHasEnoughData) {
+  // Status badge — only shown when there's NO clear winner. With enough data
+  // an unawarded honor means "nobody met the criteria this session", not "still
+  // calculating", so the badge wording flips accordingly.
   const statusEl = article.querySelector('.honor__status');
   if (statusEl) {
     statusEl.classList.remove('honor__status--leading', 'honor__status--inprog', 'honor__status--locked');
@@ -106,7 +112,7 @@ function updateHonorArticle(article, honorData, meta) {
       statusEl.textContent = '';
     } else {
       statusEl.hidden = false;
-      statusEl.textContent = '进行中';
+      statusEl.textContent = sessionHasEnoughData ? '本场无人' : '进行中';
       statusEl.classList.add('honor__status--inprog');
     }
   }
@@ -193,11 +199,12 @@ function updateHonorArticle(article, honorData, meta) {
       const nm = document.createElement('span');
       nm.className = 'honor__playername honor__playername--placeholder';
       nm.id = playerName?.id || meta.idForName;
-      nm.textContent = '数据采集中';
+      // Computed-but-empty (enough games, no qualifier) vs still-collecting.
+      nm.textContent = sessionHasEnoughData ? '本场无人达成' : '数据采集中';
       playerBlock.appendChild(nm);
       const handle = document.createElement('span');
       handle.className = 'honor__handle';
-      handle.textContent = '需更多数据';
+      handle.textContent = sessionHasEnoughData ? '无人符合条件' : `打满 ${MIN_HONOR_GAMES} 局解锁`;
       playerBlock.appendChild(handle);
     }
     if (stat) {
@@ -215,12 +222,17 @@ export function renderHonors() {
   const honors = calculateHonors(getActiveHonorPlayerCount());
   const articles = document.querySelectorAll('.honor[data-honor-id]');
 
+  // If ANY honor has a winner, at least one player cleared MIN_HONOR_GAMES, so
+  // the session has enough data — unawarded honors then mean "nobody qualified"
+  // rather than "still collecting".
+  const sessionHasEnoughData = Object.values(honors).some(h => h && h.player);
+
   articles.forEach(article => {
     const honorId = article.dataset.honorId;
     const meta = HONOR_META[honorId];
     if (!meta) return;
     meta.idForName = honorId;
     const data = honors[meta.honorKey];
-    updateHonorArticle(article, data, meta);
+    updateHonorArticle(article, data, meta, sessionHasEnoughData);
   });
 }

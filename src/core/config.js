@@ -229,6 +229,15 @@ class GameConfig {
   }
 
   /**
+   * True when the team still uses its DEFAULT_TEAM_COLORS value (i.e. the user
+   * hasn't customized it). Inline-styled consumers use this to decide between
+   * the live `--team-*` CSS token (light/dark aware) and the stored custom hex.
+   */
+  isDefaultTeamColor(teamKey) {
+    return this.getTeamColor(teamKey).toLowerCase() === fallbackTeamColor(teamKey).toLowerCase();
+  }
+
+  /**
    * Get game preferences
    */
   getPreferences() {

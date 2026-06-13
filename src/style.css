@@ -619,6 +619,37 @@ details + details { margin-top: var(--s2); }
 
 .search-block__results { margin-top: var(--s2); }
 
+.player-search-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  margin: var(--s1) 0;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.player-search-item:hover {
+  background: var(--surface-3);
+  border-color: var(--accent-line);
+}
+.player-search-item__emoji { font-size: 24px; flex-shrink: 0; }
+.player-search-item__body { flex: 1; min-width: 0; }
+.player-search-item__name { font-weight: 600; margin-bottom: 2px; }
+.player-search-item__handle {
+  color: var(--ink-dim);
+  font-weight: 400;
+  font-size: 0.9em;
+}
+.player-search-item__meta { font-size: 13px; color: var(--ink-dim); }
+.player-search-item .select-player-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 var(--s3);
+  font-size: 14px;
+}
+
 /* ============================================================
  * ROSTER — team zones (always visible; drop targets for assignment)
  * ============================================================ */
@@ -1481,6 +1512,7 @@ details + details { margin-top: var(--s2); }
 .honor__avatar--empty { color: var(--ink-dimmer); }
 
 .honor__player { font-size: 13px; font-weight: 600; }
+.honor__playername--placeholder { color: var(--ink-dimmer); font-weight: 500; }
 .honor__player .honor__handle:empty { display: none; }
 .honor__handle {
   font-size: 11px;
@@ -1587,10 +1619,11 @@ details + details { margin-top: var(--s2); }
 }
 
 .mvp-tagline {
-  margin: var(--s3) 0;
-  font-size: 15px;
+  margin: 0 0 var(--s5);
+  font-size: 18px;
   color: var(--gold-a);
-  font-weight: 600;
+  font-style: italic;
+  text-align: center;
 }
 
 .winner-display { font-weight: 700; }

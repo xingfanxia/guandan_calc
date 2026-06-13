@@ -219,7 +219,8 @@ export function showCompactTeamRoster() {
   roster.style.cssText = `
     padding: 12px;
     margin-top: 8px;
-    background: #1a1b1c;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
     border-radius: 8px;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -230,15 +231,15 @@ export function showCompactTeamRoster() {
   const team1Players = getPlayersByTeam(1);
   const team2Players = getPlayersByTeam(2);
 
-  const t1Color = config.getTeamColor('t1');
-  const t2Color = config.getTeamColor('t2');
   const t1Name = config.getTeamName('t1');
   const t2Name = config.getTeamName('t2');
 
+  // Team-header color comes from the team-* tokens (per-mode light/dark
+  // variants) rather than the config hex, so names stay readable in both modes.
   // Team 1 roster
   const team1Div = document.createElement('div');
   team1Div.innerHTML = `
-    <div style="color: ${t1Color}; font-weight: bold; margin-bottom: 6px;">${escapeHtml(t1Name)}</div>
+    <div style="color: var(--team-blue); font-weight: bold; margin-bottom: 6px;">${escapeHtml(t1Name)}</div>
     ${team1Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
       <span style="font-size: 16px;">${escapeHtml(p.emoji)}</span>
       <span>${escapeHtml(p.name)}</span>
@@ -248,7 +249,7 @@ export function showCompactTeamRoster() {
   // Team 2 roster
   const team2Div = document.createElement('div');
   team2Div.innerHTML = `
-    <div style="color: ${t2Color}; font-weight: bold; margin-bottom: 6px;">${escapeHtml(t2Name)}</div>
+    <div style="color: var(--team-red); font-weight: bold; margin-bottom: 6px;">${escapeHtml(t2Name)}</div>
     ${team2Players.map(p => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
       <span style="font-size: 16px;">${escapeHtml(p.emoji)}</span>
       <span>${escapeHtml(p.name)}</span>

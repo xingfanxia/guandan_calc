@@ -50,24 +50,24 @@ export function showCreateModal() {
   const playStyles = getPlayStyles();
 
   modalElement.innerHTML = `
-    <div style="background: #1a1a1a; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid #333;">
+    <div style="background: var(--surface); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; border: 1px solid var(--rule);">
       <h2 style="margin-top: 0; margin-bottom: 20px;">创建玩家资料</h2>
 
       <form id="createPlayerForm">
         <!-- Handle -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            用户名 <span style="color: #ef4444;">*</span>
+            用户名 <span style="color: var(--danger);">*</span>
           </label>
           <input
             type="text"
             id="handleInput"
             placeholder="xiaoming (3-20个字符)"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           />
-          <div id="handleError" style="color: #ef4444; font-size: 0.85em; margin-top: 4px; display: none;"></div>
-          <div style="color: #888; font-size: 0.85em; margin-top: 4px;">
+          <div id="handleError" style="color: var(--danger); font-size: 0.85em; margin-top: 4px; display: none;"></div>
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 4px;">
             只能包含字母、数字和下划线，不能使用系统保留词，显示时会加上 @ 符号
           </div>
         </div>
@@ -75,13 +75,13 @@ export function showCreateModal() {
         <!-- Display Name -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            昵称 <span style="color: #ef4444;">*</span>
+            昵称 <span style="color: var(--danger);">*</span>
           </label>
           <input
             type="text"
             id="displayNameInput"
             placeholder="小明"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           />
         </div>
@@ -89,11 +89,11 @@ export function showCreateModal() {
         <!-- Emoji & Photo -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            头像表情 <span style="color: #ef4444;">*</span>
+            头像表情 <span style="color: var(--danger);">*</span>
           </label>
           
           <!-- Emoji selector (always visible, required) -->
-          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px;">
+          <div id="emojiSelector" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 8px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px;">
             ${ANIMAL_EMOJIS.map(emoji => `
               <button type="button" class="emoji-option" data-emoji="${emoji}" style="font-size: 24px; padding: 8px; background: transparent; border: 2px solid transparent; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
                 ${emoji}
@@ -101,7 +101,7 @@ export function showCreateModal() {
             `).join('')}
           </div>
           <input type="hidden" id="emojiInput" required />
-          <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 6px;">
             必选 - 用于游戏中显示，也是照片加载失败时的备用头像
           </div>
         </div>
@@ -112,26 +112,26 @@ export function showCreateModal() {
             <input type="checkbox" id="enablePhotoUpload" style="width: 18px; height: 18px; cursor: pointer;">
             <span style="font-weight: bold;">📷 上传个人照片 (可选)</span>
           </label>
-          <div style="color: #888; font-size: 0.85em; margin-top: 4px; margin-left: 26px;">
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 4px; margin-left: 26px;">
             照片将显示在玩家浏览器和个人资料页
           </div>
 
           <!-- Photo upload section (hidden until checkbox enabled) -->
           <div id="photoUploadContainer" style="display: none; margin-top: 12px;">
             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/webp" style="display: none;" />
-            <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: #0b0b0c; border: 2px dashed #333; border-radius: 6px; color: #888; cursor: pointer; transition: all 0.2s;">
+            <button type="button" id="selectPhotoBtn" style="width: 100%; padding: 12px; background: var(--surface-2); border: 2px dashed var(--rule); border-radius: 6px; color: var(--ink-dim); cursor: pointer; transition: all 0.2s;">
               📁 选择正方形图片 (1:1比例)
             </button>
-            <div style="color: #888; font-size: 0.85em; margin-top: 6px;">
+            <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 6px;">
               仅接受正方形图片，将自动压缩至400x400
             </div>
             
             <!-- Photo preview (shown after upload) -->
             <div id="photoPreview" style="margin-top: 12px; display: none; text-align: center;">
-              <div style="color: #22c55e; margin-bottom: 8px;">✓ 照片已准备</div>
-              <img id="photoPreviewImg" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid #22c55e; object-fit: cover;" />
+              <div style="color: var(--accent); margin-bottom: 8px;">✓ 照片已准备</div>
+              <img id="photoPreviewImg" style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover;" />
               <div style="margin-top: 8px;">
-                <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: #1a1a1a; border: 1px solid #333; border-radius: 6px; color: #888; cursor: pointer;">
+                <button type="button" id="changePhotoBtn" style="padding: 6px 12px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink-dim); cursor: pointer;">
                   更换照片
                 </button>
               </div>
@@ -142,11 +142,11 @@ export function showCreateModal() {
         <!-- Play Style -->
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            游戏风格 <span style="color: #ef4444;">*</span>
+            游戏风格 <span style="color: var(--danger);">*</span>
           </label>
           <select
             id="playStyleInput"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           >
             <option value="">选择风格...</option>
@@ -159,37 +159,37 @@ export function showCreateModal() {
         <!-- Tagline -->
         <div style="margin-bottom: 20px;">
           <label style="display: block; margin-bottom: 6px; font-weight: bold;">
-            个性签名 <span style="color: #ef4444;">*</span>
+            个性签名 <span style="color: var(--danger);">*</span>
           </label>
           <input
             type="text"
             id="taglineInput"
             placeholder="运筹帷幄，决胜千里"
             maxlength="50"
-            style="width: 100%; padding: 8px 12px; background: #0b0b0c; border: 1px solid #333; border-radius: 6px; color: white;"
+            style="width: 100%; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: 6px; color: var(--ink);"
             required
           />
-          <div style="color: #888; font-size: 0.85em; margin-top: 4px;">
+          <div style="color: var(--ink-dim); font-size: 0.85em; margin-top: 4px;">
             最多50个字符，会在胜利时显示
           </div>
         </div>
 
         <!-- Error Message -->
-        <div id="formError" style="color: #ef4444; margin-bottom: 16px; display: none;"></div>
+        <div id="formError" style="color: var(--danger); margin-bottom: 16px; display: none;"></div>
 
         <!-- Buttons -->
         <div style="display: flex; gap: 12px;">
           <button
             type="button"
             id="cancelCreateButton"
-            style="flex: 1; padding: 12px; background: #333; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;"
+            style="flex: 1; padding: 12px; background: var(--surface-3); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; cursor: pointer; font-size: 16px;"
           >
             取消
           </button>
           <button
             type="submit"
             id="submitCreateButton"
-            style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;"
+            style="flex: 1; padding: 12px; background: var(--accent); color: var(--on-accent); border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold;"
           >
             创建玩家
           </button>
@@ -243,8 +243,8 @@ function setupModalHandlers() {
       });
 
       // Highlight selected
-      option.style.borderColor = '#22c55e';
-      option.style.background = '#1a2e1a';
+      option.style.borderColor = 'var(--accent)';
+      option.style.background = 'var(--accent-soft)';
 
       // Set hidden input value
       if (emojiInput) {

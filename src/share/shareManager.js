@@ -139,19 +139,19 @@ export function showShareModal() {
 
   const content = document.createElement('div');
   content.style.cssText = `
-    background: #1a1b1c; border-radius: 16px; padding: 32px; max-width: 600px;
-    border: 2px solid #3b82f6;
+    background: var(--surface); border-radius: 16px; padding: 32px; max-width: 600px;
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
   `;
 
   content.innerHTML = `
-    <h2 style="color: #fff; margin: 0 0 16px 0;">📤 分享游戏快照</h2>
-    <p style="color: #999; margin-bottom: 20px;">复制此链接，其他人可查看游戏状态（静态快照，不实时更新）</p>
-    <textarea id="shareURLText" readonly style="width: 100%; height: 120px; background: #2a2b2c; color: #fff; border: 1px solid #444;
-      border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; resize: none; margin-bottom: 20px;"></textarea>
+    <h2 style="color: var(--ink); margin: 0 0 16px 0;">📤 分享游戏快照</h2>
+    <p style="color: var(--ink-dim); margin-bottom: 20px;">复制此链接，其他人可查看游戏状态（静态快照，不实时更新）</p>
+    <textarea id="shareURLText" readonly style="width: 100%; height: 120px; background: var(--surface-2); color: var(--ink); border: 1px solid var(--rule);
+      border-radius: 8px; padding: 12px; font-family: var(--font-mono); font-size: 12px; resize: none; margin-bottom: 20px;"></textarea>
     <div style="display: flex; gap: 12px; justify-content: center;">
-      <button id="copyShareURL" style="padding: 12px 20px; background: #22c55e; color: white; border: none;
+      <button id="copyShareURL" style="padding: 12px 20px; background: var(--accent); color: var(--on-accent); border: none;
         border-radius: 8px; cursor: pointer;">📋 复制链接</button>
-      <button id="closeShareModal" style="padding: 12px 20px; background: #666; color: white; border: none;
+      <button id="closeShareModal" style="padding: 12px 20px; background: var(--surface-3); color: var(--ink); border: 1px solid var(--rule);
         border-radius: 8px; cursor: pointer;">关闭</button>
     </div>
   `;

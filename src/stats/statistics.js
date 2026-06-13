@@ -94,14 +94,23 @@ export function renderPlayerStatsTable() {
     const tr = document.createElement('tr');
     const team = normalizeTeamNumber(player.team);
 
-    const teamName = team === 1 ? config.getTeamName('t1') :
-                     (team === 2 ? config.getTeamName('t2') : '未分配');
-    const teamColor = team === 1 ? config.getTeamColor('t1') :
-                      (team === 2 ? config.getTeamColor('t2') : '#666');
+    const teamKey = team === 1 ? 't1' : team === 2 ? 't2' : null;
+    const teamName = teamKey ? config.getTeamName(teamKey) : '未分配';
+    // Default team colors resolve to the light/dark-aware --team-* tokens so
+    // the team text and row tint stay readable in both modes; a user-customized
+    // color keeps its stored hex.
+    const teamColor = !teamKey ? 'var(--ink-dim)'
+      : config.isDefaultTeamColor(teamKey)
+        ? (team === 1 ? 'var(--team-blue)' : 'var(--team-red)')
+        : config.getTeamColor(teamKey);
+    const teamTint = !teamKey ? null
+      : config.isDefaultTeamColor(teamKey)
+        ? (team === 1 ? 'var(--team-blue-soft)' : 'var(--team-red-soft)')
+        : `${config.getTeamColor(teamKey)}14`;
 
     // Subtle team background
-    if (team === 1 || team === 2) {
-      tr.style.background = `linear-gradient(90deg, ${teamColor}08, transparent)`;
+    if (teamTint) {
+      tr.style.background = `linear-gradient(90deg, ${teamTint}, transparent)`;
     }
 
     tr.innerHTML = `
