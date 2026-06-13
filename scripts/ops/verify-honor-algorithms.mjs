@@ -29,6 +29,21 @@ const {
   calculateHonorsFromData,
   resolveHonorPlayerCount
 } = await import('../../src/stats/honors.js');
+const { MAX_POSITIVE_HONORS_PER_PLAYER } = await import('../../shared/honorLogic.js');
+
+// Positive (capped) honor keys — the anti-sweep cap applies only to these.
+const POSITIVE_HONOR_KEYS = [
+  'mvp', 'frequent', 'resilient', 'carp', 'comeback', 'nonstick', 'median', 'streak', 'stable'
+];
+
+function positiveHonorCounts(honors) {
+  const counts = {};
+  for (const key of POSITIVE_HONOR_KEYS) {
+    const id = honors[key]?.player?.id;
+    if (id != null) counts[id] = (counts[id] || 0) + 1;
+  }
+  return counts;
+}
 
 const players = [
   { id: 1, name: '统治者', emoji: 'A', team: 1 },
@@ -89,11 +104,16 @@ assert.deepEqual(
 
 state.resetAll();
 state.setPlayers(players);
-state.setPlayerStats(Object.fromEntries(
+const sessionStats = Object.fromEntries(
   Object.entries(rankings).map(([id, rankList]) => [id, statsFromRankings(rankList, players.length)])
-));
+);
+state.setPlayerStats(sessionStats);
 
-const honors = calculateHonors(players.length);
+// SCORING assertions use the UNCAPPED computation: they verify which player SCORES
+// highest per honor, independent of the anti-sweep cap's assignment-layer
+// redistribution. The capped result (what calculateHonors / the UI returns) is
+// exercised separately below for the cap invariant.
+const honors = calculateHonorsFromData(players, sessionStats, players.length, { applyCap: false });
 
 assert.equal(honors.mvp?.player.id, 1, '吕布 should reward full-session dominance');
 assert.equal(honors.burden?.player.id, 2, '阿斗 should identify the worst full-session burden');
@@ -112,12 +132,30 @@ assert.equal(
   '燃尽王 should stay pending when the only low performer was consistently bad rather than burning out late'
 );
 
+// Anti-sweep cap (default behavior). 万年二 (id6) tops 石佛/团队中轴/保底核心/连段王 by
+// score, but the cap (MAX_POSITIVE_HONORS_PER_PLAYER) lets them keep only two —
+// 团队中轴 redistributes to the next teammate-outperformer (id4) and no eligible
+// player exceeds the cap.
+const cappedHonors = calculateHonors(players.length);
+assert.equal(cappedHonors.mvp?.player.id, 1, '吕布 (flagship) stays truthful under the anti-sweep cap');
+assert.notEqual(
+  cappedHonors.median?.player.id, 6,
+  '团队中轴 should redistribute off id6 once the cap claims their other consistency honors'
+);
+for (const [id, count] of Object.entries(positiveHonorCounts(cappedHonors))) {
+  assert.ok(
+    count <= MAX_POSITIVE_HONORS_PER_PLAYER,
+    `player ${id} holds ${count} positive honors, exceeding the cap of ${MAX_POSITIVE_HONORS_PER_PLAYER}`
+  );
+}
+
 const invalidPlayerCountHonors = calculateHonorsFromData(
   players,
   Object.fromEntries(
     Object.entries(rankings).map(([id, rankList]) => [id, statsFromRankings(rankList, players.length)])
   ),
-  'bad-mode'
+  'bad-mode',
+  { applyCap: false }
 );
 
 assert.equal(
@@ -154,7 +192,7 @@ const corruptedCounterHonors = calculateHonorsFromData(players, {
   4: statsFromRankings([1, 6, 1, 6, 1, 6, 1, 6], players.length),
   5: statsFromRankings([3, 4, 3, 4, 3, 4, 3, 4], players.length),
   6: statsFromRankings([2, 2, 2, 2, 2, 2, 2, 2], players.length)
-}, players.length);
+}, players.length, { applyCap: false });
 
 assert.ok(
   corruptedCounterHonors.mvp,
@@ -173,7 +211,7 @@ const unevenParticipationHonors = calculateHonorsFromData(players, {
   4: statsFromRankings([4, 4, 4, 4, 4], players.length),
   5: statsFromRankings([3, 4, 3, 4, 3], players.length),
   6: statsFromRankings([2, 2, 2, 2, 2], players.length)
-}, players.length);
+}, players.length, { applyCap: false });
 
 assert.equal(
   unevenParticipationHonors.mvp?.player.id,
@@ -192,7 +230,7 @@ const teamContextHonors = calculateHonorsFromData(teamContextPlayers, {
   2: statsFromRankings([2, 2, 1, 2, 1, 2], teamContextPlayers.length),
   3: statsFromRankings([3, 3, 3, 3, 3, 3], teamContextPlayers.length),
   4: statsFromRankings([4, 4, 4, 4, 4, 4], teamContextPlayers.length)
-}, teamContextPlayers.length);
+}, teamContextPlayers.length, { applyCap: false });
 
 assert.equal(
   teamContextHonors.nonstick?.player.id,
@@ -237,7 +275,7 @@ const resilienceQualityHonors = calculateHonorsFromData(players, {
   4: statsFromRankings([4, 3, 4, 3, 4, 3, 4, 3], players.length),
   5: statsFromRankings([5, 5, 5, 5, 5, 5, 5, 5], players.length),
   6: statsFromRankings([6, 5, 6, 5, 6, 5, 6, 5], players.length)
-}, players.length);
+}, players.length, { applyCap: false });
 
 assert.equal(
   resilienceQualityHonors.resilient?.player.id,
@@ -252,7 +290,7 @@ const burnoutArcHonors = calculateHonorsFromData(players, {
   4: statsFromRankings([4, 3, 4, 3, 4, 3, 4, 3], players.length),
   5: statsFromRankings([2, 2, 2, 2, 2, 2, 2, 2], players.length),
   6: statsFromRankings([1, 2, 1, 2, 1, 2, 1, 2], players.length)
-}, players.length);
+}, players.length, { applyCap: false });
 
 assert.equal(
   burnoutArcHonors.burnout?.player.id,
