@@ -112,12 +112,80 @@ a { color: var(--accent); }
  * TOP NAVIGATION
  * ============================================================ */
 
+/* Sticky header wrapper (index only) holds the topnav + mini-scoreboard.
+ * When present, it owns the sticky behavior; .topnav inside it is static. */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.app-header .topnav { position: static; }
+
 .topnav {
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+/* ===== Mini scoreboard (sticky-header second row, index only) ===== */
+.topnav-score {
+  display: none;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  box-shadow: var(--bar-shadow);
+}
+/* Reveal only once the big board hero scrolls out of view, and never on the
+ * room gate (no game yet). The shadow sells the "floating" feel. */
+body.board-offscreen:not(.app-gated) .topnav-score { display: block; }
+
+.topnav-score__inner {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  min-height: 40px;
+  font-variant-numeric: tabular-nums;
+}
+
+.topnav-score__eyebrow {
+  font-size: 12px;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topnav-score__eyebrow .glyph { font-weight: 700; }
+.topnav-score__eyebrow--gold { color: var(--gold-a); }
+
+.topnav-score__board {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.topnav-score__team {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s1);
+}
+.topnav-score__name { font-size: 12px; font-weight: 500; }
+.topnav-score__lvl { font-size: 20px; font-weight: 800; line-height: 1; }
+.topnav-score__team--blue .topnav-score__name,
+.topnav-score__team--blue .topnav-score__lvl { color: var(--team-blue); }
+.topnav-score__team--red .topnav-score__name,
+.topnav-score__team--red .topnav-score__lvl { color: var(--team-red); }
+.topnav-score__lvl--gold { color: var(--gold-a) !important; }
+
+.topnav-score__sep { font-size: 16px; font-weight: 700; color: var(--ink-dimmer); }
+
+.topnav-score__round {
+  font-size: 12px;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .topnav__inner {

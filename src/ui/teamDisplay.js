@@ -143,6 +143,10 @@ export function renderTeams() {
   const boardTeam2 = $('boardTeam2');
   if (boardTeam1) boardTeam1.classList.toggle('board__team--owner', roundOwner === 't1');
   if (boardTeam2) boardTeam2.classList.toggle('board__team--owner', roundOwner === 't2');
+
+  // Sticky-header mini scoreboard (shown once the board hero scrolls off).
+  renderMiniScore(t1Level, t2Level, roundLevel, roundOwner, roundCount);
+
   if (t1A) t1A.textContent = t1AFail || 0;
   if (t2A) t2A.textContent = t2AFail || 0;
 
@@ -203,6 +207,49 @@ export function renderTeams() {
   const nextRoundMirror = $('nextRoundMirror');
   if (nextRoundMirror) {
     nextRoundMirror.textContent = nextRoundBase ? String(nextRoundBase) : '待结算';
+  }
+}
+
+/**
+ * Mirror the board hero into the sticky-header mini scoreboard: team names +
+ * level digits (gold at A), the 「本局打 X · 谁的级」 eyebrow, and the round.
+ * Visibility is handled by stickyScore.js (body.board-offscreen); this only
+ * writes the live values. No-ops on pages without the mini markup.
+ */
+function renderMiniScore(t1Level, t2Level, roundLevel, roundOwner, roundCount) {
+  const miniT1Lvl = $('miniT1Lvl');
+  if (!miniT1Lvl) return; // not on this page
+
+  const miniT2Lvl = $('miniT2Lvl');
+  const miniT1Name = $('miniT1Name');
+  const miniT2Name = $('miniT2Name');
+  const miniEyebrow = $('miniEyebrow');
+  const miniRound = $('miniRound');
+
+  setLevelDigit(miniT1Lvl, t1Level);
+  setLevelDigit(miniT2Lvl, t2Level);
+  miniT1Lvl.classList.toggle('topnav-score__lvl--gold', String(t1Level) === 'A');
+  miniT2Lvl.classList.toggle('topnav-score__lvl--gold', String(t2Level) === 'A');
+
+  if (miniT1Name) miniT1Name.textContent = config.getTeamName('t1');
+  if (miniT2Name) miniT2Name.textContent = config.getTeamName('t2');
+  if (miniRound) miniRound.textContent = `第${roundCount}局`;
+
+  if (miniEyebrow) {
+    const ended = String(t1Level) === 'A' || String(t2Level) === 'A';
+    miniEyebrow.classList.toggle('topnav-score__eyebrow--gold', ended);
+    miniEyebrow.replaceChildren();
+    miniEyebrow.appendChild(document.createTextNode('本局打 '));
+    const glyph = document.createElement('span');
+    glyph.className = 'glyph';
+    glyph.textContent = roundLevel || '—';
+    miniEyebrow.appendChild(glyph);
+    let ownerName = '';
+    if (roundOwner === 't1') ownerName = config.getTeamName('t1');
+    else if (roundOwner === 't2') ownerName = config.getTeamName('t2');
+    if (ownerName) {
+      miniEyebrow.appendChild(document.createTextNode(` · ${ownerName}的级`));
+    }
   }
 }
 
