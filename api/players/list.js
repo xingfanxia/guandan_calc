@@ -21,6 +21,13 @@ function hasListableHandle(player) {
   return typeof player?.handle === 'string' && validateHandle(player.handle);
 }
 
+// Test fixtures use the `test_` handle prefix; keep them out of the public
+// player list + 天梯榜 (mirrors the same filter in api/rooms/list.js). They stay
+// in KV and remain reachable by exact handle for development.
+function isTestPlayerHandle(handle) {
+  return typeof handle === 'string' && handle.toLowerCase().startsWith('test_');
+}
+
 function normalizePlayerKeyHandle(key) {
   if (typeof key !== 'string' || !key.startsWith('player:')) return null;
   const keyHandle = key.slice('player:'.length).toLowerCase();
@@ -104,10 +111,11 @@ export default async function handler(request) {
     }));
     const playerEntries = await Promise.all(playerPromises);
 
-    // Parse and filter players
+    // Parse and filter players (test fixtures excluded from the public list)
     let players = playerEntries
       .map(parseListEntry)
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(player => !isTestPlayerHandle(player.handle));
 
     // Apply search filter if query provided
     if (searchQuery) {
