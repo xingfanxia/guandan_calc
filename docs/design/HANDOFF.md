@@ -1,4 +1,8 @@
-# Theme System Build-Out · Session Handoff
+# Theme System Build-Out · Session Handoff (HISTORICAL — system removed 2026-06-12)
+
+> ⚠️ The 5-theme system this handoff tracked was REMOVED on 2026-06-12 and replaced by the
+> light/dark design system in root `DESIGN.md` (see `docs/design/REDESIGN-2026-06-12-PLAN.md`).
+> Everything below is historical context only.
 
 > Generated 2026-05-03 at the end of a discovery + prototype session.
 > Next session should pick this up and execute the production build per `THEME-ARCHITECTURE.md`.

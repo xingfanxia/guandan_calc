@@ -1,7 +1,12 @@
 # Guandan Calculator — Development TODO
 
-**Last Updated**: 2026-05-06
-**Current Phase**: v10 + Theme System (5 phases all shipped) + Visual Regression CI
+**Last Updated**: 2026-06-12
+**Current Phase**: v10 + wxapp-style light/dark redesign (PR #4) — 5-theme system REMOVED
+
+> **2026-06-12**: the entire 5-theme system below (Broadcast/Linear/Trading/Atelier/Tea-Table)
+> was REMOVED and replaced by a light/dark token system (root `DESIGN.md`). Entry flow is now
+> room-by-default (one-tap room gate). The "Theme System" shipped-log and the theme-polish TODOs
+> are historical — kept for context, not actionable. See `docs/design/REDESIGN-2026-06-12-PLAN.md`.
 
 ---
 
@@ -68,8 +73,11 @@ This file fell behind by ~5 months. Major work shipped between then and now:
 - (none — all five planned theme phases shipped 2026-05-06)
 
 ### Polish-on-demand
-- **Phase 2.6.x — Linear sidebar polish iter 2** — open-ended visual; demo-linear-v2 has additional aspirational details (workspace section, multi-section nav) that weren't shipped in 2.6 to avoid fabricating IA. Consider only after the app actually grows more navigable surface area.
-- **Tea-Table polish iter 2** — current Phase 5 is "minimal-but-real" parity with `demo-teatable-v3.png`. Specific surfaces that could push aggregate match higher: brush-rule dividers between sections (currently rule-soft borders), section-num + section-en pairs in headings (demo has `01 / SECTION` mono labels), pool-block pcard rotation per individual tile (demo has each tile slightly rotated).
+- ~~Phase 2.6.x Linear sidebar polish~~ / ~~Tea-Table polish iter 2~~ — MOOT: the 5-theme system was
+  removed 2026-06-12 (replaced by light/dark, root `DESIGN.md`).
+- **votingManager viewer voting card tokenization** (memory Task #1) — the room-viewer voting card
+  still has hardcoded colors; needs a live host+viewer room to verify. Main `#votingSection` is
+  hidden so low urgency.
 
 ### Medium Priority
 - [ ] **Season system** — monthly/quarterly leaderboards, season achievements, historical data. Large effort
