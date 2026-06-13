@@ -13,9 +13,15 @@ Kill 5-theme system → light/dark only. Zero functional regression. Game logic 
 | RD-3 | rooms.html restyle | done | ff18751 |
 | RD-4 | players.html restyle | done | ff18751 |
 | RD-5 | player-profile.html restyle (incl. Chart.js token wiring) | done | ff18751 |
-| RD-6 | Mobile+desktop screenshot QC (iPhone 14 Pro / Pixel 7 / desktop, light+dark), victory modal + export smoke | pending | — |
-| RD-7 | Tests: rewrite smoke test (light/dark), new capture script, regenerate VR baselines, CI workflow update | pending | — |
-| RD-8 | Docs sync: CLAUDE.md, README, memory; delete dead theme docs refs | pending | — |
+| RD-6 | Mobile+desktop screenshot QC (light+dark), victory modal + export smoke | done | QC pass |
+| RD-7 | Tests: toggle smoke (14 assertions), capture-redesign + capture-png-exports, 21 baselines, CI structural smoke | done | f46e119 |
+| RD-8 | Docs sync: CLAUDE.md, README, architecture, memory; THEME-ARCHITECTURE historical banner | done | 3ef256f |
+| RD-9 | Adversarial multi-agent review → fix 8 confirmed light-mode regressions (search rows, create/edit modals, compact roster, victory MVP tagline, stats team colors, honors placeholder, share/settings/remove-btn) + empty-honors copy (本场无人达成 vs 数据采集中) | done | 629d239 |
+| RD-10 | One-tap room gate: new-game-by-default = create room; skip reset confirm when blank; resolves the local-game profile-sync 403s (room host token authorizes all participants) | done | 15fc224 |
+
+## Outstanding follow-ups
+
+- votingManager viewer voting card tokenization (Task #1) — needs a live host+viewer room to verify; main #votingSection is hidden so low urgency.
 
 ## Hard constraints
 

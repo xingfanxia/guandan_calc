@@ -103,6 +103,21 @@ light/dark token architecture. Source of truth: root `DESIGN.md` (ported from si
   on top of `rankingManager.setRankPosition`/`clearRankPosition`. Drag-drop + 200ms long-press
   touch drag remain as the secondary path (touchHandler only preventDefaults once a drag starts,
   so short taps arrive as plain clicks).
+- **Entry flow — room-by-default (2026-06-12)**: a new game starts a room. A fresh blank load
+  (no room in URL, no game in progress) shows the one-tap room gate (`src/ui/roomGate.js` +
+  `#roomGate`) instead of local setup; tapping 创建房间 creates the room and redirects into host
+  mode. `main.wrap.wrap--gated` shows only the gate and hides every sibling; `body.app-gated`
+  hides the status strip. The gate is reactive (mirrors `setupVisibility.js`'s watch list) and a
+  saved in-progress LOCAL game still renders (backward compat). `roomControls.js` skips the reset
+  confirm when no game is in progress. This also fixes the profile-sync 403s: LOCAL games could
+  only write profiles the device owned, but room games sync every participant via the host token
+  (`updatePlayerStats(handle, result, roomAuthToken)`).
+- All inline-styled JS surfaces are tokenized (no hardcoded hex outside tokens.css /
+  themePalette fallbacks): search results, create/edit profile modals, compact roster, victory MVP
+  tagline + team colors (via `config.isDefaultTeamColor` → `--team-*` tokens), share modal, sync
+  status, remove-button ring. (Exception tracked: votingManager viewer card — needs a live room to
+  verify.) Empty honors read 「本场无人达成 / 无人符合条件」 when computed-but-unqualified vs
+  「数据采集中」 while still collecting (`sessionHasEnoughData` in `honors.js`).
 - Chart.js charts (player-profile.html) read tokens at build time via `chartPalette()` and
   re-render on `theme:changed` — canvas can't resolve CSS vars.
 - Live data wiring (kept from the old system, restyled):
