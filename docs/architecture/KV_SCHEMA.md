@@ -233,6 +233,41 @@ History rollback snapshots may include `prevWinner` and it must be `t1`, `t2`,
 
 ---
 
+## Anti-Cheat Review Queue Keys
+
+### Pending session: `pending_session:{id}`
+
+**Format**: `pending_session:{id}` where `id` = first 32 hex chars of
+`SHA-256(handle|gameSessionKey)` — deterministic, so a host's auto-sync retry
+overwrites the same entry instead of piling duplicates.
+
+**Purpose**: a real-room, non-admin (host-bearer) stats write is parked here
+instead of applying, until an admin approves it (anti-cheat — see
+`docs/SECURITY.md` → "Stat fabrication review queue"). Created/managed by
+`api/players/_pending.js`; listed/approved/rejected via `POST /api/players/pending`.
+
+```javascript
+{
+  id: "a1b2c3...",                 // = derivePendingId(handle, sessionKey)
+  handle: "xiaoming",              // target profile
+  gameResult: { /* allowlisted, server-authoritative projection */ },
+  roomCode: "A1B2C3",
+  mode: "4P",
+  summary: "房间 A1B2C3 · 4P · @xiaoming · 胜 · 12 局 · 均名次 2.3",
+  submittedAt: "2026-06-15T20:30:00.000Z",
+  ladderDelta: 12                  // snapshot from the live room (optional)
+}
+```
+
+**Access Patterns**:
+- Enqueue: `kv.set(`pending_session:${id}`, JSON.stringify(record))` (no TTL —
+  lives until approved/rejected)
+- List: `kv.keys('pending_session:*')` + per-key `kv.get` (admin-only, bounded)
+- Approve/reject: `kv.del(`pending_session:${id}`)` after replaying through the
+  stats handler
+
+---
+
 ## Play Styles Enum
 
 **Valid Values** (8 options):

@@ -68,8 +68,8 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 - `player/playerSearch.js` - Real-time search UI component
 - `player/playerCreateModal.js` - Full profile creation modal with photo upload
 - `share/votingSync.js` - Voting result integration
-- Plus: 10 backend API files in `api/players/`
-- Plus: 3 standalone pages (`players.html`, `player-profile.html`, `rooms.html`)
+- Plus: backend API files in `api/players/` (create / [handle] / list / pending / touch / delete / reset-stats / migrate-* / backfill-duration + `_utils.js` / `_pending.js` / `_modeMigration.js`)
+- Plus: 4 standalone pages (`players.html`, `player-profile.html`, `rooms.html`, `admin.html`)
 
 **UI Components (5 modules)**: User interface elements
 - `ui/teamDisplay.js` - Team styling and display utilities
@@ -90,11 +90,15 @@ light/dark token architecture. Source of truth: root `DESIGN.md` (ported from si
 - `src/styles/tokenSpec.js` - token name contract + `verifyTokensPresent()` (moved from `themes/_shared/`)
 - `src/styles/themePalette.js` - runtime computed-token reader for canvas PNG exports (documented
   exception to the no-color-literals rule: hex fallbacks only)
-- `src/ui/themeToggle.js` - light/dark toggle, persists `'light'|'dark'` to `gd_v9_theme`, emits
-  `theme:changed`. Mounted into `#themeToggleMount` on all 4 pages (index via main.js; the other
-  3 pages import it in their inline module scripts).
-- Inline bootstrap `<script>` in every entry HTML (ABOVE stylesheets) reads `gd_v9_theme`; any
-  non-light/dark value (incl. legacy 5-theme names) falls back to `prefers-color-scheme`.
+- `src/ui/themeToggle.js` - tri-state toggle (auto/light/dark, ported from wxapp 2026-06-15),
+  persists the PREFERENCE `'auto'|'light'|'dark'` to `gd_v9_theme`, sets `data-theme` to the
+  EFFECTIVE light/dark, emits `theme:changed`. `mountThemeToggle` cycles 跟随系统→浅色→深色 (icon =
+  current pref); in `'auto'` a `matchMedia` listener re-applies + re-emits live so canvas/chart
+  consumers track the OS. Mounted into `#themeToggleMount` on all 5 pages (index via main.js; the
+  others — players/rooms/player-profile/admin — import it in their inline module scripts).
+- Inline bootstrap `<script>` in every entry HTML (ABOVE stylesheets) reads `gd_v9_theme`; only
+  `'light'`/`'dark'` are explicit, `'auto'` and any other value (incl. legacy 5-theme names) →
+  `prefers-color-scheme`.
 - `src/style.css` - ALL component styling for all 4 pages, single file, tokens only. Mobile-first
   (base = 390px, `@media (min-width: 768px)` widens). Signature element: `.board` hero with
   72/96px team-colored level digits + roundOwner accent underline + gold-A state.
@@ -182,12 +186,27 @@ light/dark token architecture. Source of truth: root `DESIGN.md` (ported from si
 - Win rate visualization
 
 ### Admin Mode
-- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js`, `migrate-single.js`, and `backfill-duration.js` validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
+- Token-protected admin endpoints — `delete.js`, `reset-stats.js`, `migrate-modes.js`, `migrate-single.js`, `backfill-duration.js`, and `pending.js` validate `adminToken` against the `ADMIN_TOKEN` env var (constant-time compare, fail-closed if env unset)
 - Set `ADMIN_TOKEN=...` in Vercel project env to enable; previous hardcoded password was rotated out 2026-05-02
 - Delete players with confirmation
 - Reset player stats
 - Located on players.html page
 - `[handle].js` PROFILE_UPDATE accepts EITHER admin token OR per-user ownership token (Authorization: Bearer); see `docs/SECURITY.md` for the auth model
+
+### Anti-cheat stat review queue (2026-06-15, ported from wxapp 战绩审核队列)
+- Real-room **non-admin** (host-bearer) stat writes don't apply — they queue at `pending_session:*`
+  for admin approval. Admin-token / LOCAL / vote-only writes bypass. Gate lives in
+  `api/players/[handle].js` (non-vote-only path, after the duplicate check). Helpers in
+  `_pending.js`; admin list/approve/reject via `POST /api/players/pending`; UI = new `admin.html`
+  (reached from players.html admin panel). **改门控逻辑改 `[handle].js` 的 gate + `_pending.js`**.
+- Approval REPLAYS the stored (allowlisted, server-authoritative) `gameResult` through the same
+  `[handle].js` handler with an admin token injected — reuses the hardened apply + `sessionHistory`
+  idempotency, no duplicated logic. A `ladderDelta` snapshotted at enqueue is injected
+  (`_pendingLadderDelta`) so the ladder still applies if the room expired (24h TTL) before review.
+- **Admin-device bypass**: `admin.html` 信任此设备 saves the admin token to `gd_admin_token`;
+  `playerApi.js updatePlayerStats` then includes it so the owner's own games skip the queue.
+  Security tradeoff (the token also grants delete/reset) documented in `docs/SECURITY.md`.
+- Tests: `scripts/ops/verify-pending-queue.mjs` (11 scenarios: gate/dedup/approve-idempotent/admin+LOCAL+vote-only bypass/authoritative-correction/ladder-snapshot/reject/bad-token).
 
 ### Timer System Overhaul
 - Server-side timestamps (createdAt, finishedAt)
@@ -331,7 +350,8 @@ it has zero qualifiers — the cap never starves a qualified honor.
 - `gd_v7_5_1_state` - Current game state, team levels, A-fail counters, history
 - `gd_players` - Player info (names, emojis, team assignments)
 - `gd_player_stats` - Performance statistics for honor calculations
-- `gd_v9_theme` - Color mode: `'light'` | `'dark'` (legacy 5-theme values fall back to system preference)
+- `gd_v9_theme` - Theme preference: `'auto'` | `'light'` | `'dark'` (`'auto'` + legacy 5-theme values fall back to system preference)
+- `gd_admin_token` - (admin device only) admin token saved via `admin.html` 信任此设备; when present, `updatePlayerStats` includes it so the owner's own real-room syncs bypass the review queue. See `docs/SECURITY.md`.
 
 ### Drag and Drop System (lines 188-599 in src/app.js)
 
@@ -461,8 +481,9 @@ Transforms the app from session-based to a **persistent gaming platform** with:
 
 **Backend APIs** (`api/players/`):
 - `create.js` - POST create profiles
-- `[handle].js` - GET/PUT fetch/update with dual modes (full + vote-only)
-- `list.js` - GET search by lastActiveAt
+- `[handle].js` - GET/PUT fetch/update (full stats + vote-only); hosts the anti-cheat review-queue gate
+- `list.js` - GET search by lastActiveAt / `?sort=ladder`
+- `pending.js` - POST admin review queue (list/approve/reject); `_pending.js` - queue store helpers
 - `touch.js`, `delete.js`, `reset-stats.js` - Utilities
 - `_utils.js` - Schema and validation
 

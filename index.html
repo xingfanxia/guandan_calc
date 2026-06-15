@@ -3,16 +3,17 @@
 <head>
 <script>
   // Theme bootstrap — inline + synchronous + ABOVE stylesheets so the cascade
-  // resolves with the user's mode on first paint. Values: 'light' | 'dark'
-  // (gd_v9_theme). Anything else (incl. legacy 5-theme names) falls back to
-  // the system preference. Sync with src/ui/themeToggle.js.
+  // resolves with the user's mode on first paint. gd_v9_theme pref: 'auto' |
+  // 'light' | 'dark'. 'light'/'dark' = explicit override; 'auto' (and anything
+  // else — legacy 5-theme names or no value) follows the system preference.
+  // data-theme is ALWAYS the resolved light/dark. Sync with src/ui/themeToggle.js.
   (function () {
-    var t = null;
-    try { t = localStorage.getItem('gd_v9_theme'); } catch (e) {}
-    if (t !== 'light' && t !== 'dark') {
-      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', t);
+    var pref = null;
+    try { pref = localStorage.getItem('gd_v9_theme'); } catch (e) {}
+    var eff = (pref === 'light' || pref === 'dark')
+      ? pref
+      : ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', eff);
   })();
 </script>
 <meta charset="utf-8">

@@ -39,6 +39,7 @@ import {
 } from './_utils.js';
 import { applyLegacyRecentGamesToModeStats } from './_modeMigration.js';
 import { parseRoomRecord } from '../rooms/_record.js';
+import { enqueuePendingSession } from './_pending.js';
 
 const RESPONSE_OPTIONS = {
   methods: 'GET, PUT, OPTIONS',
@@ -552,24 +553,24 @@ function frozenLadderState(stats) {
 }
 
 /**
- * Apply this session's ladder delta to ONE profile (the PUT target). Reads every
- * participant's frozen rating to compute team averages, but writes only `player`
- * — other profiles are read-only here, so concurrent per-player PUTs never
- * clobber each other. Idempotent per sessionKey (the same gate as sessionHistory).
- * Mutates player.stats.ladder + player.stats.ladderHistory in place; no-op when
- * the room has no authoritative winner (宁可不动不可错判方向).
+ * Compute THIS session's ladder delta for the PUT target from the LIVE room
+ * snapshot — winner + every participant's frozen rating (read-only) + roster
+ * avgRankings. Returns the delta number, or null when the room has no
+ * authoritative winner (宁可不动不可错判方向). Pure read; mutates nothing.
+ *
+ * Captured at enqueue time for the review queue (api/players/_pending.js) so the
+ * delta survives the room's 24h TTL: an admin approving a queued session after
+ * the room has expired still applies the correct rating change via the stored
+ * snapshot (see applyLadderForSession's fallback).
  */
-async function applyLadderForSession(player, handle, room, targetRoomPlayer, sessionKey) {
-  if (!room || !targetRoomPlayer || !sessionKey) return;
+async function computeSessionLadderDelta(player, handle, room, targetRoomPlayer) {
+  if (!room || !targetRoomPlayer) return null;
 
   const history = getHistoryEntries(room?.state);
   const status = resolveGameStatus(room?.state?.gameStatus, history);
-  if (!status.ended || !status.winnerKey) return;
+  if (!status.ended || !status.winnerKey) return null;
   const winnerTeam = status.winnerKey === 't1' ? 1 : status.winnerKey === 't2' ? 2 : 0;
-  if (winnerTeam !== 1 && winnerTeam !== 2) return;
-
-  player.stats.ladderHistory = normalizeRecordMap(player.stats.ladderHistory);
-  if (Object.prototype.hasOwnProperty.call(player.stats.ladderHistory, sessionKey)) return;
+  if (winnerTeam !== 1 && winnerTeam !== 2) return null;
 
   const roomPlayers = Array.isArray(room.players) ? room.players : [];
   const roomStats = isPlainRecord(room.playerStats) ? room.playerStats : {};
@@ -602,7 +603,32 @@ async function applyLadderForSession(player, handle, room, targetRoomPlayer, ses
   });
 
   const deltas = computeLadderDeltas({ mode: roomPlayers.length, winnerTeam, players: rosterInput });
-  const delta = deltas.get(String(targetRoomPlayer.id)) || 0;
+  return deltas.get(String(targetRoomPlayer.id)) || 0;
+}
+
+/**
+ * Apply this session's ladder delta to ONE profile (the PUT target), writing
+ * only `player` so concurrent per-player PUTs never clobber each other.
+ * Idempotent per sessionKey (the same gate as sessionHistory). Live-room writes
+ * compute the delta from the room; a queued session approved AFTER the room's
+ * 24h TTL has no live room, so it falls back to `fallbackDelta` — the delta
+ * snapshotted into the pending record at enqueue time. Mutates
+ * player.stats.ladder + player.stats.ladderHistory in place.
+ */
+async function applyLadderForSession(player, handle, room, targetRoomPlayer, sessionKey, fallbackDelta) {
+  if (!sessionKey) return;
+
+  player.stats.ladderHistory = normalizeRecordMap(player.stats.ladderHistory);
+  if (Object.prototype.hasOwnProperty.call(player.stats.ladderHistory, sessionKey)) return;
+
+  let delta = null;
+  if (room && targetRoomPlayer) {
+    delta = await computeSessionLadderDelta(player, handle, room, targetRoomPlayer);
+  } else if (Number.isFinite(fallbackDelta)) {
+    // Room gone (TTL) — apply the delta captured when the session was queued.
+    delta = fallbackDelta;
+  }
+  if (!Number.isFinite(delta)) return;
 
   player.stats.ladder = applyLadderDelta(frozenLadderState(player.stats), delta);
   player.stats.ladderHistory[sessionKey] = delta;
@@ -1132,13 +1158,45 @@ export default async function handler(request) {
           }, RESPONSE_OPTIONS);
         }
 
+        // ===== ANTI-CHEAT REVIEW QUEUE (ported from wxapp 战绩审核队列) =====
+        // A real-room host's bearer proves they control the room, not that the
+        // session numbers are true — so a host could fabricate stats for any
+        // participant (including themselves). Route real-room, non-admin writes
+        // into a pending queue an admin approves before they apply. Admin-token
+        // writes bypass (trusted); LOCAL games bypass (owner self-stats, the
+        // accepted self-spam case); vote-only bypasses (server-authoritative
+        // votes a host can't inflate). `gameResult` here already carries the
+        // server-authoritative teamWon + vote counts, so the stored payload is
+        // safe to replay through this same handler with an admin token on
+        // approval (api/players/pending.js) — the sessionHistory gameKey gate
+        // keeps that idempotent.
+        if (isRealRoomCode && !_adminOk) {
+          // Snapshot the ladder delta from the still-live room so an admin can
+          // approve later (even after the room's 24h TTL) without losing the
+          // rating change — see applyLadderForSession's fallbackDelta path.
+          const ladderDelta = await computeSessionLadderDelta(player, handle, _room, _targetRoomPlayer);
+          const queued = await enqueuePendingSession({
+            handle,
+            gameResult,
+            sessionKey: gameSessionHistoryKey,
+            ladderDelta
+          });
+          return jsonResponse({
+            success: true,
+            pending: true,
+            pendingId: queued.id,
+            message: '已提交，等管理员审核后入库'
+          }, RESPONSE_OPTIONS);
+        }
+
         // Ladder rating (simplified Elo, see shared/ladderLogic.js). Run BEFORE
         // the session-stat increments so the first-session seed reads PRE-session
-        // web history (sessionsPlayed/avgRanking), not this session. Real-room
-        // sessions only — derives the authoritative winner + roster from the room
-        // snapshot, reads every participant's frozen rating for the team average,
-        // and writes only this profile. Same session key → never double-applies.
-        await applyLadderForSession(player, handle, _room, _targetRoomPlayer, gameSessionHistoryKey);
+        // web history (sessionsPlayed/avgRanking), not this session. Live-room
+        // writes derive the winner + roster from the room snapshot; an approved
+        // queued session whose room has expired falls back to the delta snapshotted
+        // at enqueue time (gameResult._pendingLadderDelta, injected by
+        // api/players/pending.js). Same session key → never double-applies.
+        await applyLadderForSession(player, handle, _room, _targetRoomPlayer, gameSessionHistoryKey, gameResult._pendingLadderDelta);
 
         // ===== UPDATE OVERALL STATS =====
         // Snapshot the OLD count BEFORE incrementing — running averages must use N_old.

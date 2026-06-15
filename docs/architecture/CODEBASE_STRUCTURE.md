@@ -49,6 +49,13 @@
 - 8 sections: Header, Session Stats, Round Stats, Time, Rankings, Honors, Voting, Partners, Achievements, Games
 - Fetches data from `GET /api/players/[handle]`
 
+### `admin.html` (Stat Review Queue, NEW 2026-06-15)
+- Anti-cheat admin page: enter the admin token ("信任此设备" → `gd_admin_token`),
+  then list / approve / reject queued session writes via `POST /api/players/pending`
+- XSS-safe DOM (createElement + textContent only); tristate theme toggle mounted
+- Reached from the players.html admin panel ("🛡 战绩审核队列"); see
+  `docs/SECURITY.md` → "Stat fabrication review queue"
+
 ---
 
 ## Source Code (`src/`)
@@ -460,13 +467,16 @@ every entry HTML.
 canvas PNG exports (`src/export/exportMobile.js` + `exportHandlers.js`) — canvas can't resolve
 CSS vars. Hex fallbacks inside are the documented exception to the no-color-literals rule.
 
-#### `src/ui/themeToggle.js` — Light/Dark Toggle
-`mountThemeToggle(host)` renders the ☀️/🌙 button into `#themeToggleMount` (all 4 pages;
-index via `main.js`, the other pages via their inline module scripts). `applyTheme`/`toggleTheme`
-set `data-theme`, persist `'light' | 'dark'` to `gd_v9_theme`, emit `theme:changed`
-(consumed by player-profile.html to re-render Chart.js charts with fresh token colors).
-Legacy 5-theme localStorage values are treated as unset → `prefers-color-scheme` (handled by the
-inline bootstrap `<script>` at the top of each entry HTML).
+#### `src/ui/themeToggle.js` — Tri-state Theme Toggle (auto/light/dark, ported from wxapp 2026-06-15)
+`mountThemeToggle(host)` renders the 🌗/☀️/🌙 button into `#themeToggleMount` (all 5 pages incl.
+admin.html; index via `main.js`, the others via their inline module scripts). The button cycles
+跟随系统 → 浅色 → 深色; the icon shows the CURRENT preference. `applyTheme(pref)` persists the
+PREFERENCE `'auto' | 'light' | 'dark'` to `gd_v9_theme` and sets `data-theme` to the EFFECTIVE
+light/dark (tokens.css keys off `data-theme="dark"`). In `'auto'`, a `matchMedia` listener
+(`ensureMediaListener`, bound once) re-applies on OS theme change and emits `theme:changed`, so
+the page + canvas/chart consumers track the system live; the button label re-syncs off that same
+bus event (no per-mount matchMedia listener). Legacy 5-theme values and `'auto'` both resolve to
+`prefers-color-scheme` (handled by the inline bootstrap `<script>` at the top of each entry HTML).
 
 #### `src/style.css` — All Component Styles
 Single stylesheet for all 4 pages, tokens only, mobile-first (base 390px;
@@ -616,6 +626,27 @@ action bar.
    - Skip everything else
 
 **Achievement Checking** (lines 16-46): Inline function
+
+**Anti-cheat review-queue gate** (NEW 2026-06-15): inside the non-vote-only path,
+after the duplicate check, a real-room **non-admin** write is routed to the
+pending queue (`enqueuePendingSession`) instead of applying — returns
+`{pending:true}`. Admin-token / LOCAL / vote-only writes bypass. The ladder math
+is split into `computeSessionLadderDelta` (pure, room-derived) + `applyLadderForSession`
+(applies, with a `fallbackDelta` for when the room has expired). See `docs/SECURITY.md`
+→ "Stat fabrication review queue".
+
+#### `_pending.js` - Review Queue Store (NEW 2026-06-15)
+Helpers for `pending_session:{id}` KV entries: `derivePendingId` (deterministic
+SHA-256 id), `enqueuePendingSession` (allowlisted projection + snapshotted
+`ladderDelta`; rejects an empty sessionKey loudly), `listPendingSessions`,
+`getPendingSession`, `removePendingSession`, `summarizePending`.
+
+#### `pending.js` - Review Queue Endpoint (NEW 2026-06-15)
+**POST** `/api/players/pending` (admin-gated). Actions: `list` / `approve` /
+`reject`. `approve` REPLAYS the stored `gameResult` through the `[handle].js`
+default handler with an admin token injected (reuses the hardened apply +
+`sessionHistory` idempotency; injects `_pendingLadderDelta` so the ladder applies
+even if the room has expired). No duplicated apply logic.
 
 #### `list.js` - Search Players
 **GET** `/api/players/list?q=search&limit=20&offset=0`

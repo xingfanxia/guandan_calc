@@ -1,7 +1,7 @@
 # Security Model
 
-Last reviewed: 2026-05-05 (XSS coverage extended via 0bf1b90 + CSV formula-injection guard added — see CSV protections below)
-Prior audit: 2026-05-02 (fa18718)
+Last reviewed: 2026-06-15 (anti-cheat stat-fabrication review queue added — see "Stat fabrication review queue" below)
+Prior reviews: 2026-05-05 (XSS coverage extended via 0bf1b90 + CSV formula-injection guard); 2026-05-02 audit (fa18718)
 
 This document describes how authentication, authorization, and input handling work in
 the Guandan scorer. It exists because a 2026-05 audit found multiple CRITICAL
@@ -68,6 +68,8 @@ The following endpoints require admin authentication:
 - `POST /api/players/migrate-modes` — mass-rewrite all players in KV
 - `POST /api/players/migrate-single` — rewrite one player's mode stats
 - `POST /api/players/backfill-duration` — mutate one player's recent-game durations
+- `POST /api/players/pending` — anti-cheat review queue: list / approve / reject
+  queued session writes (see "Stat fabrication review queue" below)
 - `PUT /api/players/<handle>` with `mode: 'PROFILE_UPDATE'` — change displayName /
   emoji / tagline / photoBase64
 
@@ -195,6 +197,62 @@ without authoritative vote fetching.
   Bearer returns faster than one that triggers the SHA path. This reveals
   "you sent a Bearer" vs "you didn't" — not which path matched. No
   actionable leak; accepted.
+
+### Stat fabrication review queue (added 2026-06-15)
+
+The 3-tier stats auth gate above proves a writer's *identity* (admin / owner /
+room host) but not the *truth* of the numbers. A room host holds the room's
+`authToken`, so the host path lets them write stats for **any** participant in
+their room — including fabricating a win or inflating their own session for any
+player they host. Ported from the wxapp `战绩审核队列`, real-room non-admin
+writes now route into an **admin-approved pending queue** instead of applying
+immediately.
+
+**Gate** (`api/players/[handle].js`, inside the non-vote-only stats path, after
+the duplicate-session check):
+
+```
+if (isRealRoomCode && !adminToken-valid) → enqueue to pending, return {pending:true}
+```
+
+- **Real-room, non-admin (host-bearer) writes → queue.** Nothing applies until an
+  admin approves. The host's client surfaces one "战绩已提交，等管理员审核" toast.
+- **Admin-token writes bypass** (trusted) and apply instantly.
+- **LOCAL games bypass** — owner-bearer self-stats, the accepted self-spam case.
+- **Vote-only bypasses** — vote counts are already server-authoritative, a host
+  can't inflate them.
+
+**Storage:** one KV entry per submission, `pending_session:<id>` where `<id>` is
+`SHA-256(handle|gameSessionKey)` (deterministic — a host's auto-sync retry
+overwrites the same entry rather than piling duplicates). The stored payload is
+an **allowlisted projection** of the server-authoritative `gameResult` (the
+fields the apply path consumes — never the raw client object, never an admin
+token), plus a `ladderDelta` snapshotted from the still-live room. See
+`api/players/_pending.js`.
+
+**Approval** (`api/players/pending.js`, admin-gated `action: 'approve'`) replays
+the stored `gameResult` through the same `[handle].js` handler with an admin
+token injected — reusing the entire hardened apply path + the `sessionHistory`
+gameKey idempotency gate (no duplicated apply logic; double-approve is a no-op).
+Because the room snapshot can expire (24h TTL) before an admin reviews, the
+`ladderDelta` captured at enqueue is fed back in (`_pendingLadderDelta`) so the
+rating change still applies even when the live room is gone — session stats
+preserve the server-authoritative `teamWon`/vote counts that were frozen into the
+record at submit time. `reject` simply deletes the pending entry.
+
+**Admin device bypass (`gd_admin_token`).** So the project owner's own games
+don't all queue for self-review, `admin.html` can save the admin token to
+`localStorage` ("信任此设备"). When present, `playerApi.js updatePlayerStats`
+merges it into the stats PUT body, so that device's real-room syncs bypass the
+queue.
+
+> ⚠ **Tradeoff:** the admin token is the keys-to-the-kingdom secret (it also
+> grants delete / reset / migrate). Saving it on a device places it in the body
+> of every routine stats PUT from that device (same-origin only — it never
+> crosses origin). Only enable 信任此设备 on the owner's own trusted device.
+> Vercel does not log request bodies by default; keep it that way for
+> `/api/players/*`. A non-admin device simply has no token to send — this is
+> exposure surface on a trusted device, never a privilege-escalation path.
 
 ### Vote forgery (resolved 2026-05-03)
 

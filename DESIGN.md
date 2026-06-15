@@ -15,9 +15,12 @@
 
 - 内容色走 CSS 自定义属性：`:root { --token: ... }` 定义 **light** 值；
   `:root[data-theme="dark"] { --token: ... }` 覆盖 dark 值。
-- 每个入口 HTML（index / players / rooms / player-profile）带内联 bootstrap `<script>`（在所有样式表之前）：
-  读 `localStorage.gd_v9_theme`（`'light' | 'dark'`），缺省跟随 `prefers-color-scheme`，同步设置 `data-theme`。
-- 手动切换：`src/ui/themeToggle.js` 挂在顶栏；切换持久化到 `gd_v9_theme` 并 emit `theme:changed`。
+- 每个入口 HTML（index / players / rooms / player-profile / admin）带内联 bootstrap `<script>`（在所有样式表之前）：
+  读 `localStorage.gd_v9_theme`（偏好 `'auto' | 'light' | 'dark'`），`'light'/'dark'` 为显式，`'auto'`
+  及其他值跟随 `prefers-color-scheme`，`data-theme` 始终设为解析出的 light/dark。
+- 手动切换：`src/ui/themeToggle.js`（三态 auto/light/dark，2026-06-15 从 wxapp 搬运）挂在顶栏，循环
+  跟随系统→浅色→深色；偏好持久化到 `gd_v9_theme` 并 emit `theme:changed`。`'auto'` 下 `matchMedia`
+  监听系统主题实时重算（canvas/chart 消费方随之刷新）。
 - **铁律**：组件 CSS 只许引用语义 token（`var(--ink)`），禁止硬编码色值。
   唯一文档化例外：canvas PNG 导出经 `src/styles/themePalette.js` 在运行时读 computed token（非硬编码）。
 - Token 名契约沿用 `src/styles/tokenSpec.js`（TOKEN_SPEC）——既有模块全部引用这些名字，不动。

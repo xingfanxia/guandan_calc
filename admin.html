@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<script>
+  // Theme bootstrap — inline + synchronous + ABOVE stylesheets. gd_v9_theme
+  // pref: 'auto' | 'light' | 'dark'. 'light'/'dark' = explicit; 'auto' (and
+  // anything else) follows the system preference. data-theme is always the
+  // resolved light/dark. Sync with src/ui/themeToggle.js.
+  (function () {
+    var pref = null;
+    try { pref = localStorage.getItem('gd_v9_theme'); } catch (e) {}
+    var eff = (pref === 'light' || pref === 'dark')
+      ? pref
+      : ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', eff);
+  })();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>战绩审核 · 闹掼计分器</title>
+<meta name="theme-color" content="#15694B">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="stylesheet" href="/src/styles/tokens.css">
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+
+<header class="app-header">
+<nav class="topnav" aria-label="主导航">
+  <div class="container topnav__inner">
+    <div class="topnav__brand">
+      <div class="topnav__brand-mark">掼</div>
+      <span class="topnav__brand-text">闹掼计分<span class="topnav__brand-version">v10</span></span>
+    </div>
+    <div class="topnav__tabs">
+      <a class="topnav__tab" href="/"><span class="topnav__tab-cn">计分</span></a>
+      <a class="topnav__tab" href="/players.html"><span class="topnav__tab-cn">玩家</span></a>
+      <a class="topnav__tab" href="/rooms.html"><span class="topnav__tab-cn">房间</span></a>
+    </div>
+    <div id="themeToggleMount" class="topnav__picker"></div>
+  </div>
+</nav>
+</header>
+
+<main class="container wrap wrap--wide">
+
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">战绩审核</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta" id="reviewMeta" style="display:inline"></span>
+  </div>
+
+  <!-- Admin credential -->
+  <div class="admin-panel">
+    <label class="admin-panel__label" for="adminTokenInput">⚠ 管理员口令</label>
+    <div class="row">
+      <input
+        type="password"
+        id="adminTokenInput"
+        class="admin-panel__input"
+        placeholder="输入管理员口令…"
+        autocomplete="off"
+      />
+      <button id="saveTokenBtn" type="button" class="btn-primary">信任此设备</button>
+      <button id="clearTokenBtn" type="button" class="btn-tertiary">清除</button>
+    </div>
+    <p class="admin-panel__hint" id="tokenStatus">非管理员房主的战绩会进审核队列等你审批。口令保存在本设备后，你本人开的局自动入库、无需审核。</p>
+  </div>
+
+  <!-- Pending list -->
+  <div class="section-rule">
+    <span class="section-rule__bar"></span>
+    <span class="section-rule__label">待审战绩</span>
+    <span class="section-rule__line"></span>
+    <span class="section-rule__meta" style="display:inline">
+      <button id="refreshBtn" type="button" class="btn-tertiary">刷新</button>
+    </span>
+  </div>
+
+  <div id="reviewList" class="review-list"></div>
+
+  <footer class="footer">
+    <div class="footer__brand">闹掼计分 · v10</div>
+    <div class="footer__meta">战绩审核队列 · 防房主伪造</div>
+  </footer>
+
+</main>
+
+<script type="module">
+import { mountThemeToggle } from '/src/ui/themeToggle.js';
+import {
+  getStoredAdminToken,
+  setStoredAdminToken,
+  clearStoredAdminToken
+} from '/src/api/playerApi.js';
+
+mountThemeToggle(document.getElementById('themeToggleMount'));
+
+const API_BASE = window.location.origin;
+const $ = (id) => document.getElementById(id);
+const listEl = $('reviewList');
+const metaEl = $('reviewMeta');
+const statusEl = $('tokenStatus');
+
+let busy = false;
+
+function setStatus(text) {
+  if (statusEl) statusEl.textContent = text;
+}
+
+// XSS-safe by construction — createElement + textContent only, no innerHTML.
+function makeEl(parent, tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text != null && text !== '') node.textContent = String(text);
+  parent.appendChild(node);
+  return node;
+}
+
+function renderEmpty(text) {
+  listEl.replaceChildren();
+  makeEl(listEl, 'div', 'review-empty', text);
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  const ts = Date.parse(iso);
+  if (!Number.isFinite(ts)) return '';
+  try {
+    return new Date(ts).toLocaleString('zh-CN', { hour12: false });
+  } catch {
+    return '';
+  }
+}
+
+async function callPending(action, extra = {}) {
+  const adminToken = getStoredAdminToken();
+  if (!adminToken) {
+    setStatus('先输入口令并「信任此设备」。');
+    return { ok: false, status: 0, data: {} };
+  }
+  try {
+    const response = await fetch(`${API_BASE}/api/players/pending`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminToken, action, ...extra })
+    });
+    const data = await response.json().catch(() => ({}));
+    return { ok: response.ok, status: response.status, data };
+  } catch (err) {
+    // Network failure — surface loudly and never leave the caller's busy flag stuck.
+    console.error('pending request failed:', err);
+    return { ok: false, status: 0, data: {}, networkError: true };
+  }
+}
+
+function renderItems(items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    renderEmpty('暂无待审 —— 非管理员房主的战绩入库会进这里等你审批。');
+    metaEl.textContent = '0 条';
+    return;
+  }
+  metaEl.textContent = `${items.length} 条`;
+  listEl.replaceChildren();
+  for (const it of items) {
+    const row = makeEl(listEl, 'div', 'review-item');
+    row.dataset.id = it.id;
+    const main = makeEl(row, 'div', 'review-item__main');
+    makeEl(main, 'div', 'review-item__summary', it.summary || '');
+    const time = formatTime(it.submittedAt);
+    if (time) makeEl(main, 'div', 'review-item__time', time);
+    const ops = makeEl(row, 'div', 'review-item__ops');
+    const ok = makeEl(ops, 'button', 'btn-primary review-item__ok', '通过');
+    ok.type = 'button';
+    ok.dataset.id = it.id;
+    const no = makeEl(ops, 'button', 'btn-danger review-item__no', '拒绝');
+    no.type = 'button';
+    no.dataset.id = it.id;
+  }
+}
+
+async function loadPending() {
+  if (!getStoredAdminToken()) {
+    renderEmpty('输入口令并「信任此设备」后加载待审战绩。');
+    return;
+  }
+  renderEmpty('加载中…');
+  const res = await callPending('list');
+  if (res.status === 403) {
+    setStatus('口令不对 —— 请重新输入。');
+    renderEmpty('口令未通过验证。');
+    return;
+  }
+  if (!res.ok || !res.data || res.data.success !== true) {
+    renderEmpty('读取失败，请稍后重试。');
+    return;
+  }
+  setStatus('✓ 已信任此设备 —— 你本人开的局自动入库，无需审核。');
+  renderItems(res.data.items);
+}
+
+async function approve(id) {
+  if (busy) return;
+  busy = true;
+  try {
+    const res = await callPending('approve', { id });
+    if (res.ok && res.data?.success) {
+      setStatus(res.data.duplicateSessionIgnored ? '该场已入库过（幂等跳过）。' : '已入库。');
+      loadPending();
+    } else if (res.networkError) {
+      setStatus('审批失败：网络错误，请重试。');
+    } else {
+      setStatus(`审批失败：${res.data?.error || res.status}`);
+    }
+  } finally {
+    busy = false;  // never leave the buttons permanently locked on a failure
+  }
+}
+
+async function reject(id) {
+  if (busy) return;
+  if (!window.confirm('拒绝后该提交被丢弃，不入库。确定？')) return;
+  busy = true;
+  try {
+    const res = await callPending('reject', { id });
+    if (res.ok && res.data?.success) {
+      setStatus('已拒绝。');
+      loadPending();
+    } else if (res.networkError) {
+      setStatus('操作失败：网络错误，请重试。');
+    } else {
+      setStatus(`操作失败：${res.data?.error || res.status}`);
+    }
+  } finally {
+    busy = false;
+  }
+}
+
+listEl.addEventListener('click', (e) => {
+  const okBtn = e.target.closest('.review-item__ok');
+  const noBtn = e.target.closest('.review-item__no');
+  if (okBtn) approve(okBtn.dataset.id);
+  else if (noBtn) reject(noBtn.dataset.id);
+});
+
+$('saveTokenBtn').addEventListener('click', () => {
+  const input = $('adminTokenInput');
+  const value = (input.value || '').trim();
+  if (!value) {
+    setStatus('先输入口令再保存。');
+    return;
+  }
+  setStoredAdminToken(value);
+  input.value = '';
+  loadPending();
+});
+
+$('clearTokenBtn').addEventListener('click', () => {
+  clearStoredAdminToken();
+  $('adminTokenInput').value = '';
+  metaEl.textContent = '';
+  setStatus('已清除本设备口令。你本人开的局也将进入审核队列。');
+  renderEmpty('输入口令并「信任此设备」后加载待审战绩。');
+});
+
+$('refreshBtn').addEventListener('click', loadPending);
+
+// Auto-load if a token is already trusted on this device.
+if (getStoredAdminToken()) {
+  setStatus('✓ 已信任此设备 —— 你本人开的局自动入库，无需审核。');
+  loadPending();
+} else {
+  renderEmpty('输入口令并「信任此设备」后加载待审战绩。');
+}
+</script>
+
+</body>
+</html>

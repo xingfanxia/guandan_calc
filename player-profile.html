@@ -2,16 +2,17 @@
 <html lang="zh-CN">
 <head>
 <script>
-  // Theme bootstrap — inline + synchronous + ABOVE stylesheets. Values:
-  // 'light' | 'dark' (gd_v9_theme); anything else follows the system
-  // preference. Sync with src/ui/themeToggle.js.
+  // Theme bootstrap — inline + synchronous + ABOVE stylesheets. gd_v9_theme
+  // pref: 'auto' | 'light' | 'dark'. 'light'/'dark' = explicit; 'auto' (and
+  // anything else) follows the system preference. data-theme is always the
+  // resolved light/dark. Sync with src/ui/themeToggle.js.
   (function () {
-    var t = null;
-    try { t = localStorage.getItem('gd_v9_theme'); } catch (e) {}
-    if (t !== 'light' && t !== 'dark') {
-      t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    }
-    document.documentElement.setAttribute('data-theme', t);
+    var pref = null;
+    try { pref = localStorage.getItem('gd_v9_theme'); } catch (e) {}
+    var eff = (pref === 'light' || pref === 'dark')
+      ? pref
+      : ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', eff);
   })();
 </script>
 <meta charset="utf-8">

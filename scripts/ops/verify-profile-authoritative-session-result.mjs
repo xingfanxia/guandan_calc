@@ -4,6 +4,11 @@ import { hashToken, initializePlayerStats } from '../../api/players/_utils.js';
 
 process.env.KV_REST_API_URL ||= 'https://kv.example.test';
 process.env.KV_REST_API_TOKEN ||= 'test-kv-token';
+// Admin-authorize the PUTs so they bypass the anti-cheat review queue and
+// exercise the apply path directly (an approved session applies the same way:
+// api/players/pending.js replays it with an admin token). The authoritative
+// teamWon/vote overrides run regardless of which credential authorized.
+process.env.ADMIN_TOKEN ||= 'authoritative-session-admin-secret';
 
 const ownerToken = 'alice-owner-token';
 
@@ -139,6 +144,7 @@ try {
       firstPlaces: 0,
       lastPlaces: 1,
       sessionDuration: 1200,
+      adminToken: process.env.ADMIN_TOKEN,
       gameSessionKey: 'client-stale-session-key',
       teammates: ['carol'],
       opponents: ['bob', 'dave'],
@@ -194,6 +200,7 @@ try {
       firstPlaces: 0,
       lastPlaces: 0,
       sessionDuration: 900,
+      adminToken: process.env.ADMIN_TOKEN,
       gameSessionKey: 'AUTHW6:game:1:t2:2026-06-10T20%3A15%3A00.000Z',
       teammates: ['carol'],
       opponents: ['bob', 'dave'],
@@ -268,6 +275,7 @@ try {
       firstPlaces: 0,
       lastPlaces: 0,
       sessionDuration: 900,
+      adminToken: process.env.ADMIN_TOKEN,
       gameSessionKey: 'AUTHW6:game:2:t2:2026-06-10T20%3A15%3A00.000Z',
       teammates: ['carol'],
       opponents: ['bob', 'dave'],
