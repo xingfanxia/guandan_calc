@@ -3,13 +3,19 @@
 ## Project Status
 
 **Phase**: Production + Active Development
-**Last Updated**: 2026-06-13 (天梯 ladder rating + honor anti-sweep cap — see root CLAUDE.md)
-**Architecture**: ~40 ES6 modules + 10 player APIs + 7 room APIs + light/dark design system (root DESIGN.md) + local visual gate (21 baselines, `npm run test:visual`)
+**Last Updated**: 2026-06-15 (anti-cheat stat review queue + tri-state theme, ported from wxapp)
+**Architecture**: ~40 ES6 modules + 11 player APIs + 7 room APIs + light/dark/auto design system (root DESIGN.md) + local visual gate (21 baselines, `npm run test:visual`)
 **Version**: v10.0
 
 ---
 
 ## Completed Features
+
+### Anti-cheat review queue + tri-state theme (2026-06-15, 100%, ported from wxapp)
+- [x] 战绩审核队列 — real-room non-admin (host-bearer) stat writes queue to `pending_session:*` for admin approval; admin-token / LOCAL / vote-only bypass (`api/players/_pending.js` + `pending.js` + `admin.html`)
+- [x] Approval replays the stored payload through the hardened `[handle].js` handler with an admin token (reuses apply + idempotency); ladder delta snapshotted at enqueue so it survives the room's 24h TTL
+- [x] Opt-in admin-device bypass via `gd_admin_token` (`admin.html` 信任此设备) — documented tradeoff in `docs/SECURITY.md`
+- [x] Tri-state theme toggle (auto/light/dark) — "auto" follows the OS live via `matchMedia`; `gd_v9_theme` persists the preference
 
 ### Ladder + Honors (2026-06-13, 100%)
 - [x] 天梯 ladder rating — per-session simplified Elo (`shared/ladderLogic.js`), applied server-side in the per-player session sync; 天梯榜 leaderboard (`?sort=ladder`) + profile tiles

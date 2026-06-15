@@ -2047,6 +2047,55 @@ body.app-gated .ticker { display: none; }
   margin: var(--s2) 0 0;
 }
 
+/* ===== Anti-cheat review queue (admin.html) ===== */
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  margin: var(--s3) 0;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-md);
+}
+
+.review-item__main { min-width: 0; flex: 1; }
+
+.review-item__summary {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.review-item__time {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: var(--s1);
+}
+
+.review-item__ops {
+  display: flex;
+  gap: var(--s2);
+  flex-shrink: 0;
+}
+
+.review-empty {
+  color: var(--ink-dim);
+  font-size: 13px;
+  text-align: center;
+  padding: var(--s5) var(--s4);
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-md);
+}
+
 .players-pagination,
 .pagination-row {
   display: flex;

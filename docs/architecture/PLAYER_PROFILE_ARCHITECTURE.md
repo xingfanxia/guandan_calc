@@ -307,7 +307,16 @@ syncProfileStats(historyEntry, roomCode, players, sessionStats, sessionHonors, v
    - Check voting results
    - Build gameResult object
    - Call updatePlayerStats API
-3. Log sync progress
+3. Log sync progress; if any write came back `{pending:true}`, show ONE
+   "战绩已提交，等管理员审核" toast for the session.
+
+> **Anti-cheat review queue (2026-06-15):** for **real-room** games, the server
+> does NOT apply a host's writes immediately — non-admin (host-bearer) writes are
+> queued for admin approval (`pending_session:*`), so a host can't forge records.
+> Admin-token (`gd_admin_token` saved on a trusted device) / LOCAL / vote-only
+> writes still apply instantly. An admin approves via `admin.html` →
+> `POST /api/players/pending`, which replays the stored payload through the same
+> stats handler. See `docs/SECURITY.md` → "Stat fabrication review queue".
 
 ---
 

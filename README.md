@@ -20,6 +20,12 @@ A comprehensive web-based scoring and player tracking platform for Guandan (掼�
   - Player browser with search and pagination
   - Community voting integration (MVP/burden votes)
   - Profile pages with 8 comprehensive stat sections
+  - 🛡 Anti-cheat review queue: real-room non-admin (host-bearer) stat writes are
+    queued for admin approval before they apply, so a host can't forge their own
+    records (`admin.html`). Admin-token / LOCAL / vote-only writes apply instantly.
+
+- **🌗 Light / Dark / Auto theme** — one-tap toggle cycling 跟随系统 → 浅色 → 深色;
+  "auto" follows the OS preference live. Persists to `gd_v9_theme`.
 
 - **🏠 Room Browser** ⭐ **NEW in v10.0**
   - Browse all active and recent rooms
@@ -165,6 +171,11 @@ The calculator supports customizable scoring rules:
   - 玩家浏览器：搜索与分页功能
   - 社区投票集成（MVP/闹王投票）
   - 档案页面：8大综合统计版块
+  - 🛡 战绩审核队列：真实房间里非管理员（房主）的战绩入库会进队列，管理员在
+    `admin.html` 审批后才入库，防房主伪造自家战绩。管理员口令 / 本地局 / 纯投票直接入库。
+
+- **🌗 浅色 / 深色 / 跟随系统外观** — 一键切换 跟随系统 → 浅色 → 深色；
+  「跟随系统」实时跟随系统主题。偏好存 `gd_v9_theme`。
 
 - **🏠 房间浏览器** ⭐ **v10.0 新功能**
   - 浏览所有活跃和近期房间

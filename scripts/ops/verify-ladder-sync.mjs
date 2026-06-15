@@ -11,6 +11,10 @@ import { computeLadderDeltas, seedLadderRating, applyLadderDelta } from '../../s
 
 process.env.KV_REST_API_URL ||= 'https://kv.example.test';
 process.env.KV_REST_API_TOKEN ||= 'test-kv-token';
+// Admin-authorize the PUT so it bypasses the anti-cheat review queue and
+// exercises the ladder APPLY path directly — exactly how an approved session
+// applies in production (api/players/pending.js replays with an admin token).
+process.env.ADMIN_TOKEN ||= 'ladder-sync-admin-secret';
 
 const ownerToken = 'room-host-token';
 
@@ -129,6 +133,7 @@ function putAlice() {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ownerToken}` },
     body: JSON.stringify({
+      adminToken: process.env.ADMIN_TOKEN,  // bypass review queue → test apply path
       roomCode: room.roomCode,
       mode: '4P',
       ranking: 2.5,

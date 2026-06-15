@@ -44,6 +44,36 @@ function voteResultMatchesPlayer(votePlayerId, playerId) {
 // Per-handle key isolates tokens — useful if multiple players share a device.
 const OWNER_TOKEN_PREFIX = 'gd_owner_token_';
 
+// ===== Admin token storage (anti-cheat review-queue bypass) =====
+// Saved ONLY on a trusted admin device via admin.html "信任此设备". When present,
+// updatePlayerStats includes it so this host's real-room syncs skip the review
+// queue and apply instantly (the admin is trusted). Devices without it queue
+// their real-room syncs for admin approval. Security tradeoff is documented in
+// docs/SECURITY.md — the admin token also grants delete/reset powers, so it
+// belongs only on the project owner's own device.
+const ADMIN_TOKEN_KEY = 'gd_admin_token';
+
+export function getStoredAdminToken() {
+  try {
+    return localStorage.getItem(ADMIN_TOKEN_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAdminToken(token) {
+  try {
+    if (token) localStorage.setItem(ADMIN_TOKEN_KEY, token);
+    else localStorage.removeItem(ADMIN_TOKEN_KEY);
+  } catch (err) {
+    console.warn('Failed to persist admin token:', err);
+  }
+}
+
+export function clearStoredAdminToken() {
+  setStoredAdminToken(null);
+}
+
 export function mapSessionHonorsToPlayerHonors(sessionHonors = {}) {
   const playerHonors = {};
 
@@ -354,10 +384,18 @@ export async function updatePlayerStats(handle, gameResult, roomAuthToken = null
       if (ownerToken) headers['Authorization'] = `Bearer ${ownerToken}`;
     }
 
+    // Opt-in admin bypass: on a trusted admin device (token saved via admin.html
+    // "信任此设备"), include it so this host's real-room syncs skip the review
+    // queue and apply instantly. Non-admin devices have no token → their
+    // real-room syncs queue. See the anti-cheat gate in api/players/[handle].js.
+    const body = { ...gameResult };
+    const adminToken = getStoredAdminToken();
+    if (adminToken && body.adminToken === undefined) body.adminToken = adminToken;
+
     const response = await fetch(playerProfileUrl(handle), {
       method: 'PUT',
       headers,
-      body: JSON.stringify(gameResult)
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -450,6 +488,10 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
   // Map current session honor keys to profile-facing honor names.
   const playerHonors = mapSessionHonorsToPlayerHonors(honorsByKey);
 
+  // Collect the per-player sync promises so a queued (pending review) result can
+  // surface ONE toast for the session rather than one per participant.
+  const sessionSyncs = [];
+
   // Iterate through players who actually have stats in this completed session.
   for (const player of sessionPlayers) {
     // Only update if player has a profile handle
@@ -506,9 +548,13 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
 
     // Non-blocking stats update — host token authorizes writes for every
     // participant of this room; LOCAL games fall back to per-player owner token.
-    updatePlayerStats(playerHandle, gameResult, roomAuthToken).then(result => {
+    sessionSyncs.push(updatePlayerStats(playerHandle, gameResult, roomAuthToken).then(result => {
       if (result.success) {
-        console.log(`✅ Session stats synced for @${playerHandle}`);
+        if (result.pending) {
+          console.log(`⏳ Session for @${playerHandle} queued for admin review`);
+        } else {
+          console.log(`✅ Session stats synced for @${playerHandle}`);
+        }
         const unlocked = Array.isArray(result.newAchievements) ? result.newAchievements : [];
         if (unlocked.length > 0) {
           const displayLabel = player.displayName ? `${player.displayName} @${playerHandle}` : `@${playerHandle}`;
@@ -530,10 +576,28 @@ export async function syncProfileStats(historyEntry, roomCode = 'LOCAL', players
       } else {
         console.warn(`❌ Failed to sync session for @${playerHandle}`);
       }
+      return result;
     }).catch(err => {
       console.error(`Error syncing session for @${playerHandle}:`, err);
-    });
+      return { success: false };
+    }));
   }
+
+  // If the host wasn't a trusted admin, the server queued this session's writes
+  // for review (anti-cheat). Surface that once for the whole session — the host
+  // should know the stats aren't lost, just pending an admin's approval.
+  Promise.allSettled(sessionSyncs).then(settled => {
+    const anyPending = settled.some(s => s.status === 'fulfilled' && s.value && s.value.pending);
+    if (anyPending) {
+      showToast({
+        variant: 'default',
+        badge: '⏳',
+        title: '战绩已提交',
+        name: '等管理员审核后入库',
+        desc: '房主非管理员时，本场战绩进审核队列'
+      });
+    }
+  });
 }
 
 /**
