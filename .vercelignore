@@ -1,0 +1,3 @@
+# Local-only — never deploy (codegraph index dir holds a unix socket that
+# breaks `vercel --prod` file upload). Git auto-deploy never sees it anyway.
+.codegraph/
