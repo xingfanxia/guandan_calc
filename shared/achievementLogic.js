@@ -83,7 +83,11 @@ export function checkAchievements(playerStats = {}, lastSession = null) {
   const earned = [];
   const sessionsPlayed = playerStats.sessionsPlayed ?? playerStats.gamesPlayed ?? 0;
   const sessionsWon = playerStats.sessionsWon ?? playerStats.wins ?? 0;
-  const winRate = playerStats.sessionWinRate ?? playerStats.winRate ?? 0;
+  const sessionsUnfinished = Math.max(0, Number(playerStats.sessionsUnfinished) || 0);
+  const championSessions = Math.max(0, Number(sessionsPlayed) || 0) + sessionsUnfinished;
+  const championWinRate = championSessions > 0
+    ? Math.max(0, Number(sessionsWon) || 0) / championSessions
+    : 0;
 
   // Milestone achievements
   if (sessionsPlayed >= 1) earned.push('newbie');
@@ -95,7 +99,7 @@ export function checkAchievements(playerStats = {}, lastSession = null) {
   if (sessionsWon >= 1) earned.push('first_win');
   if (playerStats.longestWinStreak >= 5) earned.push('streak_5');
   if (playerStats.longestWinStreak >= 10) earned.push('streak_10');
-  if (sessionsPlayed >= 20 && winRate >= 0.7) {
+  if (championSessions >= 20 && championWinRate >= 0.7) {
     earned.push('champion');
   }
 
