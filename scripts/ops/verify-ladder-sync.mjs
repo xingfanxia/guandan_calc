@@ -1,27 +1,21 @@
 /**
- * Ladder application inside the per-player PUT (api/players/[handle].js).
- * Verifies: first session seeds from web history, the applied delta matches the
- * pure shared/ladderLogic computation over frozen ratings, idempotency per
- * session key, and that ONLY the target profile is written (other participants
- * are read-only — no cross-profile clobber).
+ * D5 web 天梯冻结回归：正常战绩仍入库，但 live/admin/pending replay 都不得再
+ * 改 rating/peak/sessions/ladderHistory；页面必须明确旧分与小程序不互通、已停更。
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { hashToken, initializePlayerStats } from '../../api/players/_utils.js';
-import { computeLadderDeltas, seedLadderRating, applyLadderDelta } from '../../shared/ladderLogic.js';
 
 process.env.KV_REST_API_URL ||= 'https://kv.example.test';
 process.env.KV_REST_API_TOKEN ||= 'test-kv-token';
-// Admin-authorize the PUT so it bypasses the anti-cheat review queue and
-// exercises the ladder APPLY path directly — exactly how an approved session
-// applies in production (api/players/pending.js replays with an admin token).
+// Admin-authorize the PUT so it bypasses the anti-cheat review queue and exercises
+// the same stats path an approved pending session replays.
 process.env.ADMIN_TOKEN ||= 'ladder-sync-admin-secret';
 
 const ownerToken = 'room-host-token';
 
-// alice: strong web history, never ranked on the ladder → seeds on first session.
+// Alice 已有旧版 web 分；冻结后必须逐字段保持不变。
 const aliceWeb = { sessionsPlayed: 18, sessionsWon: 13, avgRankingPerSession: 3.2 };
-const aliceSeed = seedLadderRating(aliceWeb);
-assert.ok(aliceSeed > 1050, `precondition: alice should seed above 1000 (got ${aliceSeed})`);
 
 function playerWith(handle, { web = {}, ladder } = {}) {
   const stats = initializePlayerStats();
@@ -45,7 +39,7 @@ function playerWith(handle, { web = {}, ladder } = {}) {
 
 // Other participants already ranked (sessions>0) so their frozen ratings are explicit.
 const profiles = {
-  alice: playerWith('alice', { web: aliceWeb }),
+  alice: playerWith('alice', { web: aliceWeb, ladder: { rating: 1088, sessions: 7, peak: 1120 } }),
   bob: playerWith('bob', { ladder: { rating: 1000, sessions: 4, peak: 1020 } }),
   carol: playerWith('carol', { ladder: { rating: 1100, sessions: 6, peak: 1120 } }),
   dave: playerWith('dave', { ladder: { rating: 1050, sessions: 5, peak: 1060 } })
@@ -85,19 +79,7 @@ const room = {
   createdAt: '2026-06-10T10:00:00.000Z'
 };
 
-// Independent expectation: the pure algorithm over the same frozen ratings.
-const expectedDeltas = computeLadderDeltas({
-  mode: 4,
-  winnerTeam: 1,
-  players: [
-    { id: '1', team: 1, rating: aliceSeed, avgRanking: 2.5 },
-    { id: '2', team: 2, rating: 1000, avgRanking: 3.5 },
-    { id: '3', team: 1, rating: 1100, avgRanking: 2.8 },
-    { id: '4', team: 2, rating: 1050, avgRanking: 3.2 }
-  ]
-});
-const expectedAliceDelta = expectedDeltas.get('1');
-const expectedAliceLadder = applyLadderDelta({ rating: aliceSeed, sessions: 0, peak: aliceSeed }, expectedAliceDelta);
+const frozenLadder = structuredClone(profiles.alice.stats.ladder);
 
 let savedAlice = null;
 const writes = [];
@@ -118,7 +100,7 @@ globalThis.fetch = async (url, options = {}) => {
     }
     if (op === 'set') {
       writes.push(key);
-      assert.equal(key, 'player:alice', `ladder application must write ONLY the target profile, not ${key}`);
+      assert.equal(key, 'player:alice', `stats application must write ONLY the target profile, not ${key}`);
       savedAlice = JSON.parse(args[0]);
       return { result: 'OK' };
     }
@@ -149,34 +131,43 @@ function putAlice() {
   }));
 }
 
-// First sync — seeds + applies the delta.
+// First sync — stats applies, ladder stays frozen.
 const res1 = await putAlice();
 assert.equal(res1.status, 200, await res1.text());
 assert.ok(savedAlice, 'alice profile should be written');
 assert.deepEqual(
   savedAlice.stats.ladder,
-  expectedAliceLadder,
-  `ladder should seed from web history then apply the pure delta (expected ${JSON.stringify(expectedAliceLadder)})`
+  frozenLadder,
+  'frozen web ladder must preserve rating/sessions/peak exactly'
 );
-assert.equal(savedAlice.stats.ladder.sessions, 1, 'first ladder session → sessions=1');
-const ladderHistoryKeys = Object.keys(savedAlice.stats.ladderHistory);
-assert.equal(ladderHistoryKeys.length, 1, 'one ladder session recorded');
-assert.equal(
-  savedAlice.stats.ladderHistory[ladderHistoryKeys[0]],
-  expectedAliceDelta,
-  'ladderHistory should record the applied delta for the session key'
-);
+assert.deepEqual(savedAlice.stats.ladderHistory, {}, 'freeze must not append ladderHistory');
+assert.equal(savedAlice.stats.sessionsPlayed, 19, 'career stats must continue after ladder freeze');
 assert.ok(writes.every(k => k === 'player:alice'), 'only the target profile was written (no clobber of other participants)');
 
-// Second sync (same session) — idempotent, no double application.
-const ladderAfterFirst = { ...savedAlice.stats.ladder };
+// Second sync (same session) — session idempotency remains, ladder still exact.
 const res2 = await putAlice();
 assert.equal(res2.status, 200, await res2.text());
 assert.deepEqual(
   savedAlice.stats.ladder,
-  ladderAfterFirst,
-  're-syncing the same session must not move the ladder rating'
+  frozenLadder,
+  're-syncing the same session must not move frozen ladder state'
 );
-assert.equal(Object.keys(savedAlice.stats.ladderHistory).length, 1, 'no extra ladder session on re-sync');
+assert.deepEqual(savedAlice.stats.ladderHistory, {}, 'no ladder history may appear on retry');
+assert.equal(savedAlice.stats.sessionsPlayed, 19, 'duplicate session must not double-apply career stats');
 
-console.log('ladder sync (per-player application) checks passed');
+const statsSource = readFileSync(new URL('../../api/players/[handle].js', import.meta.url), 'utf8');
+const pendingSource = readFileSync(new URL('../../api/players/_pending.js', import.meta.url), 'utf8');
+const approvalSource = readFileSync(new URL('../../api/players/pending.js', import.meta.url), 'utf8');
+const playersPage = readFileSync(new URL('../../players.html', import.meta.url), 'utf8');
+const profilePage = readFileSync(new URL('../../player-profile.html', import.meta.url), 'utf8');
+
+assert.match(statsSource, /WEB LADDER FREEZE · 2026-08-10/);
+assert.doesNotMatch(statsSource, /applyLadderForSession|computeSessionLadderDelta/, 'no settlement helper may remain callable');
+assert.doesNotMatch(pendingSource, /record\.ladderDelta|ladderDelta\s*\}/, 'new pending records must not snapshot ladder deltas');
+assert.doesNotMatch(approvalSource, /_pendingLadderDelta/, 'legacy pending deltas must not be replayed');
+for (const page of [playersPage, profilePage]) {
+  assert.match(page, /与小程序.*不互通/);
+  assert.match(page, /已停更/);
+}
+
+console.log('web ladder freeze checks passed');

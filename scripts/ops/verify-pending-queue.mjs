@@ -189,7 +189,12 @@ const approveData = await approveRes.json();
 assert.equal(approveRes.status, 200, JSON.stringify(approveData));
 assert.equal(approveData.approved, true, 'approve succeeds');
 assert.equal(getProfile('alice').stats.sessionsPlayed, 1, 'approval applied the session exactly once');
-assert.equal(getProfile('alice').stats.ladder.sessions, 1, 'approval applied the ladder too');
+assert.deepEqual(
+  getProfile('alice').stats.ladder,
+  { rating: 1000, sessions: 0, peak: 1000 },
+  'approval must preserve the frozen web ladder'
+);
+assert.deepEqual(getProfile('alice').stats.ladderHistory, {}, 'approval must not append ladder history');
 assert.equal(pendingKeys().length, 0, 'approved entry removed from the queue');
 
 const approveAgain = await adminPost({ action: 'approve', id: queuedData1.pendingId });
@@ -272,13 +277,17 @@ assert.equal(bob.stats.sessionsPlayed, 1, 'approved session applied');
 assert.equal(bob.stats.sessionsWon, 0, 'corrected loss applied (host lie rejected)');
 assert.equal(bob.stats.mvpVotes, 0, 'inflated vote count rejected');
 
-// ===== 10: ladder snapshot — approval after the room's 24h TTL still applies =====
+// ===== 10: web ladder freeze survives approval after the room's 24h TTL =====
 await seedStore();
 const ladderQueue = await putStats('alice', baseSession(1), { bearer: HOST_TOKEN });
 const ladderQueueData = await ladderQueue.json();
 assert.equal(ladderQueueData.pending, true);
 const ladderRecord = JSON.parse(store.get(`pending_session:${ladderQueueData.pendingId}`));
-assert.ok(Number.isFinite(ladderRecord.ladderDelta), 'enqueue snapshots a finite ladder delta from the live room');
+assert.equal(
+  Object.hasOwn(ladderRecord, 'ladderDelta'),
+  false,
+  'new pending records must not snapshot a frozen ladder delta'
+);
 // Room expires (24h TTL) before the admin reviews.
 store.delete(`room:${room.roomCode}`);
 const ladderApprove = await adminPost({ action: 'approve', id: ladderQueueData.pendingId });
@@ -286,12 +295,12 @@ const ladderApproveData = await ladderApprove.json();
 assert.equal(ladderApprove.status, 200, JSON.stringify(ladderApproveData));
 const aliceLadder = getProfile('alice');
 assert.equal(aliceLadder.stats.sessionsPlayed, 1, 'stats apply even with the room gone');
-assert.equal(aliceLadder.stats.ladder.sessions, 1, 'ladder applies from the snapshot even with the room gone');
-assert.equal(
-  aliceLadder.stats.ladder.rating,
-  1000 + ladderRecord.ladderDelta,
-  'applied rating matches the snapshotted delta (1000 base + snapshot)'
+assert.deepEqual(
+  aliceLadder.stats.ladder,
+  { rating: 1000, sessions: 0, peak: 1000 },
+  'room expiry + approval must not move the frozen web ladder'
 );
+assert.deepEqual(aliceLadder.stats.ladderHistory, {}, 'late approval must not append ladder history');
 
 // ===== 11: bad admin token rejected =====
 const badAuth = await adminPost({ action: 'list' }, 'wrong-token');

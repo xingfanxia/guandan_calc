@@ -2011,6 +2011,19 @@ body.app-gated .ticker { display: none; }
   color: var(--on-accent);
 }
 
+.ladder-freeze-note {
+  margin: var(--s2) 0 0;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-control);
+  background: var(--surface-2);
+  color: var(--ink-dim);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.ladder-freeze-note strong { color: var(--ink); }
+.ladder-freeze-note--profile { margin-bottom: var(--s3); }
+
 .player-card__admin {
   display: flex;
   gap: var(--s2);

@@ -22,10 +22,8 @@ const RESPONSE_OPTIONS = { methods: 'POST, OPTIONS' };
 // so it applies through exactly the same validated path the live PUT uses.
 async function replayApprovedSession(record, adminToken) {
   const replayBody = { ...record.gameResult, adminToken };
-  // If the room has expired since the session was queued, the handler can't
-  // recompute the ladder from a live snapshot — feed it the delta captured at
-  // enqueue time so the rating change still applies (api/players/[handle].js).
-  if (Number.isFinite(record.ladderDelta)) replayBody._pendingLadderDelta = record.ladderDelta;
+  // Legacy pending records may still contain ladderDelta, but web 天梯已冻结；
+  // replay 只入 stats，绝不把旧评分增量重新注入 handler。
   const replayRequest = new Request(
     `https://internal/api/players/${encodeURIComponent(record.handle)}`,
     {

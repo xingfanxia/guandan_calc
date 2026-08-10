@@ -82,9 +82,10 @@
       <button id="adminModeButton" class="btn-danger">🔒 管理模式</button>
     </div>
     <div class="sort-toggle" role="group" aria-label="排序方式">
-      <button id="sortLadder" type="button" class="sort-toggle__btn sort-toggle__btn--active" aria-pressed="true">🏆 天梯榜</button>
+      <button id="sortLadder" type="button" class="sort-toggle__btn sort-toggle__btn--active" aria-pressed="true">🏆 旧版天梯</button>
       <button id="sortRecent" type="button" class="sort-toggle__btn" aria-pressed="false">🕐 最近活跃</button>
     </div>
+    <p class="ladder-freeze-note" role="note"><strong>旧版网页天梯已停更</strong> · 与小程序天梯不互通 · 分数仅作历史留档（2026-08-10 起）</p>
   </div>
 
   <!-- Admin token panel (JS shows/hides) -->
@@ -299,7 +300,7 @@ function renderPlayers() {
         ${player.tagline ? `<p class="player-card__tagline">${escapeHtml(player.tagline)}</p>` : ''}
 
         <div class="player-card__stats">
-          <span class="stat-badge stat-badge--ladder">🪜 天梯 ${ladderRanked ? formatInteger(ladder.rating) : '未上榜'}</span>
+          <span class="stat-badge stat-badge--ladder">🪜 旧分 ${ladderRanked ? formatInteger(ladder.rating) : '未记录'}</span>
           <span class="stat-badge">🎮 ${formatInteger(playerStats.sessionsPlayed || playerStats.gamesPlayed, 0)} 场</span>
           <span class="stat-badge">🏆 ${formatInteger(playerStats.sessionsWon || playerStats.wins, 0)} 胜</span>
           <span class="stat-badge">胜率 ${formatPercent(playerStats.sessionWinRate || playerStats.winRate)}%</span>

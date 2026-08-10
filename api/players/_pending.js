@@ -66,16 +66,15 @@ function buildSummary(handle, gameResult) {
 /**
  * Persist a pending submission. Stores an allowlisted projection of the
  * server-authoritative gameResult (teamWon + vote counts already overridden by
- * the handler) — never the raw client object, never an admin token. The ladder
- * delta is snapshotted from the still-live room here so replay-on-approval stays
- * correct (stats AND ladder) even after the room's 24h TTL expires.
+ * the handler) — never the raw client object, never an admin token. Web 天梯已于
+ * 2026-08-10 冻结；pending 只保存 stats 审核所需字段，不再保存评分增量。
  *
  * `sessionKey` (the derived gameSessionHistoryKey) is REQUIRED — it salts the
  * deterministic id so a host's auto-sync retry overwrites the same entry. A
  * falsy key would collapse every session to one id and silently evict unreviewed
  * submissions, so we reject it loudly rather than swallow it.
  */
-export async function enqueuePendingSession({ handle, gameResult, sessionKey, ladderDelta }) {
+export async function enqueuePendingSession({ handle, gameResult, sessionKey }) {
   if (!sessionKey) {
     throw new Error('enqueuePendingSession requires a non-empty sessionKey');
   }
@@ -89,8 +88,6 @@ export async function enqueuePendingSession({ handle, gameResult, sessionKey, la
     summary: buildSummary(handle, gameResult || {}),
     submittedAt: new Date().toISOString()
   };
-  // Captured while the room is live; applied on approval if the room has expired.
-  if (Number.isFinite(ladderDelta)) record.ladderDelta = ladderDelta;
   await kv.set(`${PENDING_PREFIX}${id}`, JSON.stringify(record));
   return record;
 }

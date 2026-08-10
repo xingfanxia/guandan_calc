@@ -739,20 +739,21 @@ async function loadProfile(handle) {
 
       <div class="career-stats-section">
         <div class="stats-header">
-          <span class="stats-header-title">天梯分</span>
-          <span class="stats-header-meta">简化 ELO · 表现优先</span>
+          <span class="stats-header-title">旧版网页天梯</span>
+          <span class="stats-header-meta">与小程序不互通 · 已停更</span>
         </div>
+        <p class="ladder-freeze-note ladder-freeze-note--profile" role="note">以下分数停留在 2026-08-10 前的网页历史，仅作留档。</p>
         <div class="career-stats-grid career-stats-grid--ladder">
           <div class="career-stat-tile career-stat-tile--ladder">
-            <div class="tile-label">天梯分</div>
+            <div class="tile-label">历史分</div>
             <div class="tile-val">${formatInteger(player.stats.ladder?.rating, 1000)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">天梯峰值</div>
+            <div class="tile-label">历史峰值</div>
             <div class="tile-val">${formatInteger(player.stats.ladder?.peak, 1000)}</div>
           </div>
           <div class="career-stat-tile">
-            <div class="tile-label">天梯场次</div>
+            <div class="tile-label">历史场次</div>
             <div class="tile-val">${formatInteger(player.stats.ladder?.sessions, 0)}</div>
           </div>
         </div>
