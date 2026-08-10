@@ -60,9 +60,17 @@ function rankedHand(entry, roster, mode) {
   }
   if (ranked.length !== mode || ids.size !== mode) return null;
   const winKey = entry.winKey === 't1' || entry.winKey === 't2' ? entry.winKey : null;
+  const teamSize = mode / 2;
+  const rawRanks = Array.isArray(entry.ranks) ? entry.ranks.map(Number) : [];
+  const ranks = rawRanks.length === teamSize &&
+    rawRanks.every(rank => Number.isSafeInteger(rank) && rank >= 1 && rank <= mode) &&
+    new Set(rawRanks).size === teamSize
+    ? [...rawRanks].sort((a, b) => a - b)
+    : null;
   return {
     entry,
     ranked,
+    ranks,
     winKey,
     round: normalizeLevel(entry.round),
     prevRoundOwner: entry.prevRoundOwner === 't1' || entry.prevRoundOwner === 't2'
@@ -169,7 +177,8 @@ export function calculateSessionHonors(input = {}) {
     }
 
     const topTeam = hand.ranked[0]._teamKey;
-    const isDoubleDown = Boolean(hand.winKey) && hand.winKey === topTeam &&
+    const isDoubleDown = Boolean(hand.winKey) && hand.winKey === topTeam && Array.isArray(hand.ranks) &&
+      hand.ranks.every((rank, index) => rank === index + 1) &&
       hand.ranked.slice(0, teamSize).every(player => player._teamKey === topTeam) &&
       hand.ranked.slice(teamSize).every(player => player._teamKey === OTHER_TEAM[topTeam]);
     if (isDoubleDown) {
