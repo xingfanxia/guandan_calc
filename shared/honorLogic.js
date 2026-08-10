@@ -158,6 +158,9 @@ export function calculateSessionHonors(input = {}) {
   const parsedHands = historyEntries.map(entry => rankedHand(entry, roster, playerCount));
   const observationComplete = roster.length === playerCount && historyEntries.length > 0 && parsedHands.every(Boolean);
   const hands = parsedHands.filter(Boolean);
+  const finalHand = hands[hands.length - 1];
+  const completionConsistent = Boolean(ended) && Boolean(validWinnerKey) &&
+    Boolean(finalHand) && finalHand.winKey === validWinnerKey;
   const teamSize = playerCount / 2;
   const teamDd = { t1: 0, t2: 0 };
   const foeResets = { t1: 0, t2: 0 };
@@ -204,7 +207,7 @@ export function calculateSessionHonors(input = {}) {
       }
     }
 
-    if (Boolean(ended) && validWinnerKey) {
+    if (completionConsistent) {
       const opponentKey = OTHER_TEAM[validWinnerKey];
       const ownBefore = hand.entry[`prevT${validWinnerKey.slice(1)}Lvl`];
       const opponentBefore = hand.entry[`prevT${opponentKey.slice(1)}Lvl`];
@@ -302,14 +305,13 @@ export function calculateSessionHonors(input = {}) {
       teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `把对手打回原形 ${foeResets[teamKey]} 次`));
     }
   }
-  if (Boolean(ended) && validWinnerKey && comebackEvidence) {
+  if (completionConsistent && comebackEvidence) {
     const playerIds = roster.filter(player => player._teamKey === validWinnerKey).map(player => player.id);
     teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手到 A 时从 ${comebackEvidence.ownLevel} 级翻盘`));
   }
 
   const memorials = [];
-  const finalHand = hands[hands.length - 1];
-  if (Boolean(ended) && validWinnerKey && finalHand && finalHand.winKey === validWinnerKey) {
+  if (completionConsistent) {
     const finisherPlayer = hands[hands.length - 1].ranked[0];
     memorials.push({
       category: 'memorial', key: 'finisher', title: titleOf('finisher'),
