@@ -1,5 +1,5 @@
 import {
-  HONOR_ALL_TARGET,
+  CURRENT_HONOR_COUNT,
   HONOR_TITLES_BY_KEY,
   countCurrentHonors,
   normalizeHonorCounter
@@ -23,9 +23,9 @@ export const ACHIEVEMENTS = {
 
   // Honor Collection Achievements (4)
   honor_5: { name: '荣誉猎手', badge: '🎯', desc: '获得5种不同荣誉' },
-  honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: `获得${HONOR_ALL_TARGET}种不同荣誉` },
-  honor_all: { name: '全荣誉大师', badge: '💎', desc: '已退役；旧持有者永久保留' },
-  lubu_10: { name: '头游王常客', badge: '⚔️', desc: '获得头游王10次' },
+  honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: '获得10种不同荣誉' },
+  honor_all: { name: '全荣誉大师', badge: '💎', desc: `获得全部${CURRENT_HONOR_COUNT}种荣誉` },
+  lubu_10: { name: '吕布专业户', badge: '⚔️', desc: '获得吕布10次' },
 
   // Social/Team Achievements (3)
   social_butterfly: { name: '社交蝴蝶', badge: '🦋', desc: '与20+不同玩家对局' },
@@ -103,9 +103,9 @@ export function checkAchievements(playerStats = {}, lastSession = null) {
   const normalizedHonors = normalizeHonorCounter(playerStats.honors || {});
   const uniqueHonors = countCurrentHonors(normalizedHonors);
   if (uniqueHonors >= 5) earned.push('honor_5');
-  if (uniqueHonors >= HONOR_ALL_TARGET) earned.push('honor_10');
-  // honor_all 已退役，不再从当前计数新授予；旧持有者由 achievementsEver 并集保住。
-  if ((normalizedHonors[HONOR_TITLES_BY_KEY.first_king] || 0) >= 10) earned.push('lubu_10');
+  if (uniqueHonors >= 10) earned.push('honor_10');
+  if (uniqueHonors >= CURRENT_HONOR_COUNT) earned.push('honor_all');
+  if ((normalizedHonors[HONOR_TITLES_BY_KEY.mvp] || 0) >= 10) earned.push('lubu_10');
 
   // Social/team achievements
   if (countDistinctProfileRelations(playerStats) >= 20) {
@@ -121,12 +121,6 @@ export function checkAchievements(playerStats = {}, lastSession = null) {
     if (rounds < 15 && lastSession.teamWon) earned.push('quick_finish');
     if (avgRank <= 1.5) earned.push('perfect');
     if (lastSession.lastPlaces >= 5 && lastSession.teamWon) earned.push('unlucky');
-  }
-
-  for (const achievementId of Array.isArray(playerStats.achievementsEver) ? playerStats.achievementsEver : []) {
-    if (Object.prototype.hasOwnProperty.call(ACHIEVEMENTS, achievementId) && !earned.includes(achievementId)) {
-      earned.push(achievementId);
-    }
   }
 
   return earned;
