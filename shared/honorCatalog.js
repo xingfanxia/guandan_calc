@@ -4,6 +4,9 @@ export const PERSONAL_HONOR_KEYS = Object.freeze([
   'a_blocker',
   'streak_king',
   'first_king',
+  'opening_flash',
+  'bounce_back',
+  'rank_rainbow',
   'clean_sheet',
   'almost',
   'boom_bust'
@@ -11,6 +14,7 @@ export const PERSONAL_HONOR_KEYS = Object.freeze([
 
 export const TEAM_HONOR_KEYS = Object.freeze([
   'dd_night',
+  'all_firsts',
   'foe_reset',
   'comeback_a'
 ]);
@@ -27,10 +31,14 @@ export const HONOR_V2_TITLES_BY_KEY = Object.freeze({
   a_blocker: '拦路虎',
   streak_king: '火车头',
   first_king: '头游王',
+  opening_flash: '开局红',
+  bounce_back: '触底反弹',
+  rank_rainbow: '百变牌路',
   clean_sheet: '不倒翁',
   almost: '棋差一着',
   boom_bust: '大开大合',
   dd_night: '双下之夜',
+  all_firsts: '人人开花',
   foe_reset: '打回原形',
   comeback_a: '绝境翻盘',
   finisher: '通关手',
@@ -63,7 +71,7 @@ export const HONOR_TITLES_BY_KEY = Object.freeze({
   ...HONOR_V2_TITLES_BY_KEY
 });
 
-/** 收藏成就只看 8 个个人徽章 + 3 个队伍战果；场纪念另列，不进收藏。 */
+/** 收藏成就看个人徽章 + 队伍战果；场纪念另列，不进收藏。 */
 export const CURRENT_HONOR_TITLES = Object.freeze(
   [...PERSONAL_HONOR_KEYS, ...TEAM_HONOR_KEYS].map(key => HONOR_TITLES_BY_KEY[key])
 );

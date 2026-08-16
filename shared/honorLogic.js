@@ -4,14 +4,17 @@ import { resolvePlayerCountMode } from './playerCountMode.js';
 /** 事件荣誉没有统一场数门槛；保留导出名供旧 web adapter 编译。 */
 export const MIN_HONOR_GAMES = 0;
 
+/** 轻量趣味荣誉从第 5 局开始：先让玩家有内容可看，稀有事件仍保留更高门槛。 */
+export const EARLY_HONOR_HANDS = 5;
+
 export const HONOR_THRESHOLDS = Object.freeze({
-  4: Object.freeze({ ddNight: 6, streak: 4, first: 6, almost: 3, blitz: 8, marathon: 18 }),
-  6: Object.freeze({ ddNight: 4, streak: 4, first: 7, almost: 4, blitz: 10, marathon: 24 }),
-  8: Object.freeze({ ddNight: 2, streak: 3, first: 5, almost: 4, blitz: 10, marathon: 24 })
+  4: Object.freeze({ ddNight: 3, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 8, marathon: 18 }),
+  6: Object.freeze({ ddNight: 2, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 }),
+  8: Object.freeze({ ddNight: 1, streak: 2, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
 });
 
 /** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
-export const F1_FAMILY = Object.freeze(['streak_king', 'dd_opener', 'first_king']);
+export const F1_FAMILY = Object.freeze(['streak_king', 'dd_opener', 'first_king', 'opening_flash']);
 
 const TEAM_KEYS = Object.freeze(['t1', 't2']);
 const OTHER_TEAM = Object.freeze({ t1: 't2', t2: 't1' });
@@ -122,7 +125,7 @@ function teamHonor(key, teamKey, playerIds, score, caption) {
 }
 
 /**
- * 荣誉 v2 的唯一计算入口。输入只读，返回 8 个个人徽章、3 个队伍战果、
+ * 荣誉 v2 的唯一计算入口。输入只读，返回个人徽章、队伍战果、
  * 3 个场纪念的实际触发项，以及每位玩家 100% 覆盖的客观战报卡。
  */
 export function calculateSessionHonors(input = {}) {
@@ -151,7 +154,12 @@ export function calculateSessionHonors(input = {}) {
     teamDD: 0,
     aBlocks: 0,
     bestStreak: 0,
+    openingFirsts: 0,
+    bounceBacks: 0,
+    distinctRanks: 0,
     _streak: 0,
+    _previousRank: 0,
+    _seenRanks: new Set(),
     _player: player
   }]));
   const historyEntries = Array.isArray(history) ? history : [];
@@ -166,15 +174,21 @@ export function calculateSessionHonors(input = {}) {
   const foeResets = { t1: 0, t2: 0 };
   let comebackEvidence = null;
 
-  for (const hand of hands) {
+  for (let handIndex = 0; handIndex < hands.length; handIndex += 1) {
+    const hand = hands[handIndex];
     for (let i = 0; i < hand.ranked.length; i++) {
       const player = hand.ranked[i];
       const card = cards.get(player._idKey);
       const rank = i + 1;
       card.hands += 1;
       if (rank === 1) card.firsts += 1;
+      if (handIndex === 0 && rank === 1) card.openingFirsts = 1;
       if (rank === 2) card.seconds += 1;
       if (rank === playerCount) card.lasts += 1;
+      if (card._previousRank === playerCount && rank === 1) card.bounceBacks += 1;
+      card._previousRank = rank;
+      card._seenRanks.add(rank);
+      card.distinctRanks = card._seenRanks.size;
       card._streak = rank === 1 ? card._streak + 1 : 0;
       card.bestStreak = Math.max(card.bestStreak, card._streak);
     }
@@ -219,11 +233,12 @@ export function calculateSessionHonors(input = {}) {
 
   const cardList = [...cards.values()];
   for (const card of cardList) card.teamDD = teamDd[teamKeyOf(card.team)];
+  const reportCardEntries = cardList.map(card => {
+    const { _streak, _previousRank, _seenRanks, _player, ...publicCard } = card;
+    return [String(card.playerId), publicCard];
+  });
   if (!observationComplete) {
-    const reportCards = Object.fromEntries(cardList.map(card => {
-      const { _streak, _player, ...publicCard } = card;
-      return [String(card.playerId), publicCard];
-    }));
+    const reportCards = Object.fromEntries(reportCardEntries);
     return {
       mode: playerCount,
       hands: hands.length,
@@ -240,7 +255,8 @@ export function calculateSessionHonors(input = {}) {
   const personalHonors = [];
   for (const teamKey of TEAM_KEYS) {
     const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
-    const majority = Math.max(2, Math.ceil(0.6 * teamDd[teamKey]));
+    // 8 人局单次双下已经很罕见；该模式允许一次即记开门/关门，4/6 人仍要求多次主导。
+    const majority = Math.max(playerCount === 8 ? 1 : 2, Math.ceil(0.6 * teamDd[teamKey]));
     const opener = stableBest(teamCards, 'ddOpens', majority);
     if (opener) {
       personalHonors.push(personalHonor(
@@ -266,15 +282,24 @@ export function calculateSessionHonors(input = {}) {
     if (card.bestStreak >= thresholds.streak) {
       personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 局头游`));
     }
-    if (card.lasts === 0 && hands.length >= 2 * playerCount) {
-      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 局，一次没垫底`));
+    if (hands.length >= EARLY_HONOR_HANDS && card.openingFirsts > 0) {
+      personalHonors.push(personalHonor('opening_flash', card, { openingFirsts: card.openingFirsts }, '开局头游，今晚先声夺人'));
+    }
+    if (card.bounceBacks > 0) {
+      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `低位后下一局立刻头游 ${card.bounceBacks} 次`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.distinctRanks >= Math.min(4, playerCount)) {
+      personalHonors.push(personalHonor('rank_rainbow', card, { distinctRanks: card.distinctRanks }, `走过 ${card.distinctRanks} 种名次`));
+    }
+    if (card.lasts === 0 && hands.length >= thresholds.clean) {
+      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 局，全程站稳`));
     }
     if (card.firsts === 0 && card.seconds >= thresholds.almost) {
       personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次二游`));
     }
-    const swingThreshold = Math.max(3, Math.ceil(1.3 * hands.length / playerCount));
+    const swingThreshold = Math.max(2, Math.ceil(hands.length / playerCount));
     if (card.firsts >= swingThreshold && card.lasts >= swingThreshold) {
-      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `${card.firsts} 次头游，${card.lasts} 次末游`));
+      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `高低位来回切换 ${card.firsts + card.lasts} 次`));
     }
   }
 
@@ -297,9 +322,13 @@ export function calculateSessionHonors(input = {}) {
 
   const teamResults = [];
   for (const teamKey of TEAM_KEYS) {
+    const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
     const playerIds = roster.filter(player => player._teamKey === teamKey).map(player => player.id);
     if (teamDd[teamKey] >= thresholds.ddNight) {
       teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队 ${teamDd[teamKey]} 次双下`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && teamCards.every(card => card.firsts > 0)) {
+      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游`));
     }
     if (prefs && prefs.strictA === true && foeResets[teamKey] > 0) {
       teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `把对手打回原形 ${foeResets[teamKey]} 次`));
@@ -325,10 +354,7 @@ export function calculateSessionHonors(input = {}) {
     memorials.push({ category: 'memorial', key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `鏖战 ${hands.length} 局` });
   }
 
-  const reportCards = Object.fromEntries(cardList.map(card => {
-    const { _streak, _player, ...publicCard } = card;
-    return [String(card.playerId), publicCard];
-  }));
+  const reportCards = Object.fromEntries(reportCardEntries);
 
   return {
     mode: playerCount,
