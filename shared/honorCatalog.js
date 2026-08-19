@@ -9,7 +9,17 @@ export const PERSONAL_HONOR_KEYS = Object.freeze([
   'rank_rainbow',
   'clean_sheet',
   'almost',
-  'boom_bust'
+  'boom_bust',
+  'copy_paste',
+  'rocket_jump',
+  'clutch_first',
+  'solo_carry',
+  'front_row_streak',
+  'cut_line_master',
+  'late_engine',
+  'no_first',
+  'last_king',
+  'back_row_streak'
 ]);
 
 export const TEAM_HONOR_KEYS = Object.freeze([
@@ -37,6 +47,16 @@ export const HONOR_V2_TITLES_BY_KEY = Object.freeze({
   clean_sheet: '不倒翁',
   almost: '棋差一着',
   boom_bust: '大开大合',
+  copy_paste: '复制粘贴',
+  rocket_jump: '坐火箭',
+  clutch_first: '压哨头游',
+  solo_carry: '独苗 C 位',
+  front_row_streak: '前排钉子户',
+  cut_line_master: '卡线大师',
+  late_engine: '后程发动机',
+  no_first: '头游体验卡未到账',
+  last_king: '末游打卡王',
+  back_row_streak: '后排钉子户',
   dd_night: '双下之夜',
   all_firsts: '人人开花',
   foe_reset: '打回原形',
@@ -70,6 +90,61 @@ export const HONOR_TITLES_BY_KEY = Object.freeze({
   ...LEGACY_HONOR_TITLES_BY_KEY,
   ...HONOR_V2_TITLES_BY_KEY
 });
+
+export const HONOR_CATEGORIES = Object.freeze([
+  'personal_performance',
+  'personal_fun',
+  'personal_roast',
+  'team',
+  'memorial',
+  'social_vote'
+]);
+
+export const HONOR_CATEGORY_BY_KEY = Object.freeze({
+  dd_opener: 'personal_performance',
+  dd_closer: 'personal_performance',
+  a_blocker: 'personal_performance',
+  streak_king: 'personal_performance',
+  first_king: 'personal_performance',
+  clean_sheet: 'personal_performance',
+  clutch_first: 'personal_performance',
+  solo_carry: 'personal_performance',
+  front_row_streak: 'personal_performance',
+  late_engine: 'personal_performance',
+  opening_flash: 'personal_fun',
+  bounce_back: 'personal_fun',
+  rank_rainbow: 'personal_fun',
+  boom_bust: 'personal_fun',
+  copy_paste: 'personal_fun',
+  rocket_jump: 'personal_fun',
+  cut_line_master: 'personal_fun',
+  almost: 'personal_roast',
+  no_first: 'personal_roast',
+  last_king: 'personal_roast',
+  back_row_streak: 'personal_roast',
+  dd_night: 'team',
+  all_firsts: 'team',
+  foe_reset: 'team',
+  comeback_a: 'team',
+  finisher: 'memorial',
+  speed_run: 'memorial',
+  long_night: 'memorial'
+});
+
+export function honorCategoryForKey(key) {
+  return HONOR_CATEGORY_BY_KEY[key] || null;
+}
+
+export function honorKeyForTitle(title) {
+  const canonical = canonicalizeHonorTitle(title);
+  if (!canonical) return null;
+  return Object.keys(HONOR_TITLES_BY_KEY).find((key) => HONOR_TITLES_BY_KEY[key] === canonical) || null;
+}
+
+export function honorCategoryForTitle(title) {
+  const key = honorKeyForTitle(title);
+  return key ? honorCategoryForKey(key) : null;
+}
 
 /** 收藏成就看个人徽章 + 队伍战果；场纪念另列，不进收藏。 */
 export const CURRENT_HONOR_TITLES = Object.freeze(

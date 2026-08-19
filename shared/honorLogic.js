@@ -1,4 +1,4 @@
-import { HONOR_TITLES_BY_KEY } from './honorCatalog.js';
+import { HONOR_CATEGORY_BY_KEY, HONOR_TITLES_BY_KEY } from './honorCatalog.js';
 import { resolvePlayerCountMode } from './playerCountMode.js';
 
 /** 事件荣誉没有统一场数门槛；保留导出名供旧 web adapter 编译。 */
@@ -14,7 +14,7 @@ export const HONOR_THRESHOLDS = Object.freeze({
 });
 
 /** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
-export const F1_FAMILY = Object.freeze(['streak_king', 'dd_opener', 'first_king', 'opening_flash']);
+export const F1_FAMILY = Object.freeze(['streak_king', 'first_king']);
 
 const TEAM_KEYS = Object.freeze(['t1', 't2']);
 const OTHER_TEAM = Object.freeze({ t1: 't2', t2: 't1' });
@@ -86,6 +86,10 @@ function titleOf(key) {
   return HONOR_TITLES_BY_KEY[key] || key;
 }
 
+function fullSweepTerm(mode) {
+  return mode === 4 ? '双下' : mode === 6 ? '三下' : mode === 8 ? '四下' : '全贡';
+}
+
 function playerRef(player) {
   const { _idKey, _teamKey, ...publicPlayer } = player;
   return publicPlayer;
@@ -103,6 +107,7 @@ function stableBest(cards, field, threshold) {
 function personalHonor(key, card, score, caption) {
   return {
     category: 'personal',
+    subtype: HONOR_CATEGORY_BY_KEY[key] || 'personal_fun',
     key,
     title: titleOf(key),
     playerId: card.playerId,
@@ -115,6 +120,7 @@ function personalHonor(key, card, score, caption) {
 function teamHonor(key, teamKey, playerIds, score, caption) {
   return {
     category: 'team',
+    subtype: HONOR_CATEGORY_BY_KEY[key] || 'team',
     key,
     title: titleOf(key),
     team: Number(teamKey.slice(1)),
@@ -157,9 +163,21 @@ export function calculateSessionHonors(input = {}) {
     openingFirsts: 0,
     bounceBacks: 0,
     distinctRanks: 0,
+    copyPasteStreak: 0,
+    rocketJumps: 0,
+    soloCarries: 0,
+    frontRowStreak: 0,
+    backRowStreak: 0,
+    cutLineCount: 0,
+    lateLift: 0,
+    finalPreviousRank: 0,
     _streak: 0,
+    _sameRankStreak: 0,
+    _frontRowStreak: 0,
+    _backRowStreak: 0,
     _previousRank: 0,
     _seenRanks: new Set(),
+    _ranks: [],
     _player: player
   }]));
   const historyEntries = Array.isArray(history) ? history : [];
@@ -170,6 +188,7 @@ export function calculateSessionHonors(input = {}) {
   const completionConsistent = Boolean(ended) && Boolean(validWinnerKey) &&
     Boolean(finalHand) && finalHand.winKey === validWinnerKey;
   const teamSize = playerCount / 2;
+  const sweepTerm = fullSweepTerm(playerCount);
   const teamDd = { t1: 0, t2: 0 };
   const foeResets = { t1: 0, t2: 0 };
   let comebackEvidence = null;
@@ -181,12 +200,22 @@ export function calculateSessionHonors(input = {}) {
       const card = cards.get(player._idKey);
       const rank = i + 1;
       card.hands += 1;
+      const previousRank = card._previousRank;
       if (rank === 1) card.firsts += 1;
       if (handIndex === 0 && rank === 1) card.openingFirsts = 1;
       if (rank === 2) card.seconds += 1;
       if (rank === playerCount) card.lasts += 1;
-      if (card._previousRank === playerCount && rank === 1) card.bounceBacks += 1;
+      if (previousRank === playerCount && rank === 1) card.bounceBacks += 1;
+      if (previousRank > 0 && previousRank - rank >= teamSize) card.rocketJumps += 1;
+      card._sameRankStreak = previousRank === rank ? card._sameRankStreak + 1 : 1;
+      card.copyPasteStreak = Math.max(card.copyPasteStreak, card._sameRankStreak);
+      card._frontRowStreak = rank <= teamSize ? card._frontRowStreak + 1 : 0;
+      card.frontRowStreak = Math.max(card.frontRowStreak, card._frontRowStreak);
+      card._backRowStreak = rank > teamSize ? card._backRowStreak + 1 : 0;
+      card.backRowStreak = Math.max(card.backRowStreak, card._backRowStreak);
+      if (rank === teamSize) card.cutLineCount += 1;
       card._previousRank = rank;
+      card._ranks.push(rank);
       card._seenRanks.add(rank);
       card.distinctRanks = card._seenRanks.size;
       card._streak = rank === 1 ? card._streak + 1 : 0;
@@ -205,6 +234,14 @@ export function calculateSessionHonors(input = {}) {
     }
 
     const firstPlayer = hand.ranked[0];
+    const firstCard = cards.get(firstPlayer._idKey);
+    const firstTeam = firstPlayer._teamKey;
+    const teammateRanks = hand.ranked.flatMap((player, index) =>
+      player._teamKey === firstTeam && player._idKey !== firstPlayer._idKey ? [index + 1] : []
+    );
+    if (teammateRanks.length === teamSize - 1 && teammateRanks.every((rank) => rank > teamSize)) {
+      firstCard.soloCarries += 1;
+    }
     if (hand.round === 'A' && hand.winKey === firstPlayer._teamKey &&
         hand.prevRoundOwner === OTHER_TEAM[firstPlayer._teamKey]) {
       cards.get(firstPlayer._idKey).aBlocks += 1;
@@ -232,9 +269,19 @@ export function calculateSessionHonors(input = {}) {
   }
 
   const cardList = [...cards.values()];
-  for (const card of cardList) card.teamDD = teamDd[teamKeyOf(card.team)];
+  for (const card of cardList) {
+    card.teamDD = teamDd[teamKeyOf(card.team)];
+    card.finalPreviousRank = card._ranks.length >= 2 ? card._ranks[card._ranks.length - 2] : 0;
+    if (card._ranks.length >= 6) {
+      const segment = Math.max(2, Math.floor(card._ranks.length / 3));
+      const first = card._ranks.slice(0, segment);
+      const last = card._ranks.slice(-segment);
+      const beat = (ranks) => ranks.reduce((sum, rank) => sum + (playerCount - rank) / (playerCount - 1), 0) / ranks.length;
+      card.lateLift = Math.max(0, beat(last) - beat(first));
+    }
+  }
   const reportCardEntries = cardList.map(card => {
-    const { _streak, _previousRank, _seenRanks, _player, ...publicCard } = card;
+    const publicCard = Object.fromEntries(Object.entries(card).filter(([key]) => !key.startsWith('_')));
     return [String(card.playerId), publicCard];
   });
   if (!observationComplete) {
@@ -262,7 +309,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_opener', opener,
         { teamDD: teamDd[teamKey], ddOpens: opener.ddOpens },
-        `本队 ${teamDd[teamKey]} 次双下，你开门 ${opener.ddOpens} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你开门 ${opener.ddOpens} 次`
       ));
     }
     const closer = stableBest(teamCards, 'ddCloses', majority);
@@ -270,7 +317,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_closer', closer,
         { teamDD: teamDd[teamKey], ddCloses: closer.ddCloses },
-        `本队 ${teamDd[teamKey]} 次双下，你关门 ${closer.ddCloses} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你关门 ${closer.ddCloses} 次`
       ));
     }
   }
@@ -294,12 +341,51 @@ export function calculateSessionHonors(input = {}) {
     if (card.lasts === 0 && hands.length >= thresholds.clean) {
       personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 局，全程站稳`));
     }
-    if (card.firsts === 0 && card.seconds >= thresholds.almost) {
+    const almostTriggered = card.firsts === 0 && card.seconds >= thresholds.almost;
+    if (almostTriggered) {
       personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次二游`));
+    } else if (hands.length >= EARLY_HONOR_HANDS && card.firsts === 0) {
+      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `今晚 ${card.hands} 局，头游 0 次`));
     }
     const swingThreshold = Math.max(2, Math.ceil(hands.length / playerCount));
     if (card.firsts >= swingThreshold && card.lasts >= swingThreshold) {
       personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `高低位来回切换 ${card.firsts + card.lasts} 次`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.copyPasteStreak >= 3) {
+      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 局都是同一名次`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.rocketJumps > 0) {
+      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `单局跨越半桌名次 ${card.rocketJumps} 次`));
+    }
+    const ranks = card._ranks;
+    if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] !== 1) {
+      personalHonors.push(personalHonor('clutch_first', card, { finalPreviousRank: card.finalPreviousRank }, `最后一局从第 ${card.finalPreviousRank} 名冲到头游`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.soloCarries > 0) {
+      personalHonors.push(personalHonor('solo_carry', card, { soloCarries: card.soloCarries }, `你头游、队友全在后半区 ${card.soloCarries} 次`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.frontRowStreak >= 4) {
+      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 局站在前半区`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.cutLineCount >= 2) {
+      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次刚好排在前半区末位`));
+    }
+    if (card.lateLift >= 0.3) {
+      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后段领先比例提升 ${Math.round(card.lateLift * 100)} 个百分点`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.backRowStreak >= 3) {
+      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 局都在后半区`));
+    }
+  }
+
+  const mostLasts = Math.max(0, ...cardList.map((card) => card.lasts));
+  if (hands.length >= EARLY_HONOR_HANDS && mostLasts >= 2) {
+    for (const card of cardList.filter((candidate) => candidate.lasts === mostLasts)) {
+      personalHonors.push(personalHonor(
+        'last_king', card,
+        { lasts: mostLasts },
+        `末游 ${mostLasts} 次，${cardList.filter((candidate) => candidate.lasts === mostLasts).length > 1 ? '并列' : ''}全场最多`
+      ));
     }
   }
 
@@ -325,7 +411,7 @@ export function calculateSessionHonors(input = {}) {
     const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
     const playerIds = roster.filter(player => player._teamKey === teamKey).map(player => player.id);
     if (teamDd[teamKey] >= thresholds.ddNight) {
-      teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队 ${teamDd[teamKey]} 次双下`));
+      teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队 ${teamDd[teamKey]} 次${sweepTerm}`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && teamCards.every(card => card.firsts > 0)) {
       teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游`));
@@ -343,15 +429,15 @@ export function calculateSessionHonors(input = {}) {
   if (completionConsistent) {
     const finisherPlayer = hands[hands.length - 1].ranked[0];
     memorials.push({
-      category: 'memorial', key: 'finisher', title: titleOf('finisher'),
+      category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.finisher, key: 'finisher', title: titleOf('finisher'),
       playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关局头游'
     });
     if (hands.length <= thresholds.blitz) {
-      memorials.push({ category: 'memorial', key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 局通关` });
+      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 局通关` });
     }
   }
   if (hands.length >= thresholds.marathon) {
-    memorials.push({ category: 'memorial', key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `鏖战 ${hands.length} 局` });
+    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `鏖战 ${hands.length} 局` });
   }
 
   const reportCards = Object.fromEntries(reportCardEntries);
