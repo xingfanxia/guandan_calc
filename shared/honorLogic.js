@@ -309,7 +309,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_opener', opener,
         { teamDD: teamDd[teamKey], ddOpens: opener.ddOpens },
-        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你开门 ${opener.ddOpens} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你拿到头游 ${opener.ddOpens} 次`
       ));
     }
     const closer = stableBest(teamCards, 'ddCloses', majority);
@@ -317,45 +317,45 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_closer', closer,
         { teamDD: teamDd[teamKey], ddCloses: closer.ddCloses },
-        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你关门 ${closer.ddCloses} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你守住前半区最后一个位置 ${closer.ddCloses} 次`
       ));
     }
   }
 
   for (const card of cardList) {
     if (card.aBlocks >= 1) {
-      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A，被你拦下 ${card.aBlocks} 次`));
+      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止对手通关 ${card.aBlocks} 次`));
     }
     if (card.bestStreak >= thresholds.streak) {
-      personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 局头游`));
+      personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 个小局拿到头游`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.openingFirsts > 0) {
       personalHonors.push(personalHonor('opening_flash', card, { openingFirsts: card.openingFirsts }, '开局头游，今晚先声夺人'));
     }
     if (card.bounceBacks > 0) {
-      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `低位后下一局立刻头游 ${card.bounceBacks} 次`));
+      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `垫底后下一局立刻拿到头游 ${card.bounceBacks} 次`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.distinctRanks >= Math.min(4, playerCount)) {
       personalHonors.push(personalHonor('rank_rainbow', card, { distinctRanks: card.distinctRanks }, `走过 ${card.distinctRanks} 种名次`));
     }
     if (card.lasts === 0 && hands.length >= thresholds.clean) {
-      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 局，全程站稳`));
+      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 个小局，0 次垫底`));
     }
     const almostTriggered = card.firsts === 0 && card.seconds >= thresholds.almost;
     if (almostTriggered) {
-      personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次二游`));
+      personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次第二名，仍没有头游`));
     } else if (hands.length >= EARLY_HONOR_HANDS && card.firsts === 0) {
-      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `今晚 ${card.hands} 局，头游 0 次`));
+      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `本场 ${card.hands} 个小局，头游 0 次`));
     }
     const swingThreshold = Math.max(2, Math.ceil(hands.length / playerCount));
     if (card.firsts >= swingThreshold && card.lasts >= swingThreshold) {
-      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `高低位来回切换 ${card.firsts + card.lasts} 次`));
+      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `头游 ${card.firsts} 次，末游 ${card.lasts} 次`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.copyPasteStreak >= 3) {
-      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 局都是同一名次`));
+      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 个小局名次完全相同`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.rocketJumps > 0) {
-      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `单局跨越半桌名次 ${card.rocketJumps} 次`));
+      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `一个小局内名次跨过半桌 ${card.rocketJumps} 次`));
     }
     const ranks = card._ranks;
     if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] !== 1) {
@@ -365,16 +365,16 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor('solo_carry', card, { soloCarries: card.soloCarries }, `你头游、队友全在后半区 ${card.soloCarries} 次`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.frontRowStreak >= 4) {
-      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 局站在前半区`));
+      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 个小局都在前半区`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.cutLineCount >= 2) {
-      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次刚好排在前半区末位`));
+      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次正好排在前半区最后一名`));
     }
     if (card.lateLift >= 0.3) {
-      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后段领先比例提升 ${Math.round(card.lateLift * 100)} 个百分点`));
+      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后半段平均胜过同桌玩家的比例比开局高 ${Math.round(card.lateLift * 100)} 个百分点`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.backRowStreak >= 3) {
-      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 局都在后半区`));
+      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 个小局都在后半区`));
     }
   }
 
@@ -417,12 +417,12 @@ export function calculateSessionHonors(input = {}) {
       teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游`));
     }
     if (prefs && prefs.strictA === true && foeResets[teamKey] > 0) {
-      teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `把对手打回原形 ${foeResets[teamKey]} 次`));
+      teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `对手打 A 时，本队把对方打回 2 共 ${foeResets[teamKey]} 次`));
     }
   }
   if (completionConsistent && comebackEvidence) {
     const playerIds = roster.filter(player => player._teamKey === validWinnerKey).map(player => player.id);
-    teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手到 A 时从 ${comebackEvidence.ownLevel} 级翻盘`));
+    teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手已到 A 时，本队从 ${comebackEvidence.ownLevel} 级完成翻盘`));
   }
 
   const memorials = [];
@@ -430,14 +430,14 @@ export function calculateSessionHonors(input = {}) {
     const finisherPlayer = hands[hands.length - 1].ranked[0];
     memorials.push({
       category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.finisher, key: 'finisher', title: titleOf('finisher'),
-      playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关局头游'
+      playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关的最后一个小局拿到头游'
     });
     if (hands.length <= thresholds.blitz) {
-      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 局通关` });
+      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 个小局完成通关` });
     }
   }
   if (hands.length >= thresholds.marathon) {
-    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `鏖战 ${hands.length} 局` });
+    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `一共打了 ${hands.length} 个小局` });
   }
 
   const reportCards = Object.fromEntries(reportCardEntries);

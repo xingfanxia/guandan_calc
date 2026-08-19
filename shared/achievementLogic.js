@@ -10,35 +10,35 @@ const UNSAFE_RELATION_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 // Achievement definitions
 export const ACHIEVEMENTS = {
   // Milestone Achievements (4)
-  newbie: { name: '初来乍到', badge: '🐣', desc: '完成第一场游戏' },
-  started: { name: '小试牛刀', badge: '⭐', desc: '完成10场游戏' },
-  veteran: { name: '百战老兵', badge: '🎖️', desc: '完成100场游戏' },
-  legend: { name: '千场传奇', badge: '👑', desc: '完成1000场游戏' },
+  newbie: { name: '初来乍到', badge: '🐣', desc: '完成第一场正式牌局' },
+  started: { name: '小试牛刀', badge: '⭐', desc: '完成 10 场正式牌局' },
+  veteran: { name: '百战老兵', badge: '🎖️', desc: '完成 100 场正式牌局' },
+  legend: { name: '千场传奇', badge: '👑', desc: '完成 1000 场正式牌局' },
 
   // Performance Achievements (4)
-  first_win: { name: '首胜', badge: '🩸', desc: '赢得第一场游戏' },
-  streak_5: { name: '连胜达人', badge: '🔥', desc: '连胜5场' },
-  streak_10: { name: '十连胜', badge: '⚡', desc: '连胜10场' },
-  champion: { name: '常胜将军', badge: '🏅', desc: '胜率70%以上（至少20场）' },
+  first_win: { name: '首胜', badge: '🩸', desc: '赢下第一场正式牌局' },
+  streak_5: { name: '连胜达人', badge: '🔥', desc: '连续赢下 5 场牌局' },
+  streak_10: { name: '十连胜', badge: '⚡', desc: '连续赢下 10 场牌局' },
+  champion: { name: '常胜将军', badge: '🏅', desc: '至少打完 20 场，通关率达到 70%' },
 
   // Honor Collection Achievements (4)
-  honor_5: { name: '荣誉猎手', badge: '🎯', desc: '获得5种不同荣誉' },
-  honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: `获得${HONOR_ALL_TARGET}种不同荣誉` },
+  honor_5: { name: '荣誉猎手', badge: '🎯', desc: '获得 5 种不同荣誉' },
+  honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: `获得 ${HONOR_ALL_TARGET} 种不同荣誉` },
   honor_all: { name: '全荣誉大师', badge: '💎', desc: '已退役；旧持有者永久保留' },
-  lubu_10: { name: '头游王常客', badge: '⚔️', desc: '获得头游王10次' },
+  lubu_10: { name: '头游王常客', badge: '⚔️', desc: '累计获得 10 次头游王' },
 
   // Social/Team Achievements (3)
-  social_butterfly: { name: '社交蝴蝶', badge: '🦋', desc: '与20+不同玩家对局' },
-  marathon: { name: '马拉松战士', badge: '🏃', desc: '单场游戏超过50轮' },
-  quick_finish: { name: '闪电战', badge: '⚡', desc: '单场游戏少于15轮获胜' },
+  social_butterfly: { name: '社交蝴蝶', badge: '🦋', desc: '与至少 20 位不同玩家同桌' },
+  marathon: { name: '马拉松战士', badge: '🏃', desc: '一场牌局打了超过 50 个小局' },
+  quick_finish: { name: '闪电战', badge: '⚡', desc: '在 15 个小局内完成通关' },
 
   // Fun/Special Achievements (2 active — comeback/sweep/iron_will were
   // defined but never checked because their detection requires data the
   // session-sync flow doesn't currently track [mid-session level deltas,
   // opponent final levels, contextual loss-streak history]. Per SIMPLED
   // "Lean", removed rather than left as dead definitions.)
-  perfect: { name: '完美表现', badge: '✨', desc: '单场游戏场均排名1.5以内' },
-  unlucky: { name: '天选之子', badge: '🎲', desc: '单场5次以上垫底仍获胜' }
+  perfect: { name: '完美表现', badge: '✨', desc: '一场牌局的平均名次达到 1.5 以内' },
+  unlucky: { name: '天选之子', badge: '🎲', desc: '一场牌局垫底至少 5 次，最后仍然通关' }
 };
 
 export const ACHIEVEMENT_COUNT = Object.keys(ACHIEVEMENTS).length;
