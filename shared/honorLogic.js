@@ -309,7 +309,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_opener', opener,
         { teamDD: teamDd[teamKey], ddOpens: opener.ddOpens },
-        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你拿到头游 ${opener.ddOpens} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你带头拿下头游 ${opener.ddOpens} 次。开团全靠你撞碎对面的防线。`
       ));
     }
     const closer = stableBest(teamCards, 'ddCloses', majority);
@@ -317,64 +317,64 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'dd_closer', closer,
         { teamDD: teamDd[teamKey], ddCloses: closer.ddCloses },
-        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你守住前半区最后一个位置 ${closer.ddCloses} 次`
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你守住前半区最后一个位置 ${closer.ddCloses} 次。金牌安保建议直接涨薪。`
       ));
     }
   }
 
   for (const card of cardList) {
     if (card.aBlocks >= 1) {
-      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止对手通关 ${card.aBlocks} 次`));
+      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止通关 ${card.aBlocks} 次。对面的香槟当场被你一脚踢翻。`));
     }
     if (card.bestStreak >= thresholds.streak) {
-      personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 个小局拿到头游`));
+      personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 个小局拿到头游。发牌员是你家亲戚吧？`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.openingFirsts > 0) {
-      personalHonors.push(personalHonor('opening_flash', card, { openingFirsts: card.openingFirsts }, '开局头游，今晚先声夺人'));
+      personalHonors.push(personalHonor('opening_flash', card, { openingFirsts: card.openingFirsts }, '第一局就拿到头游，屁股还没坐热便先给全桌一点小震撼。'));
     }
     if (card.bounceBacks > 0) {
-      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `垫底后下一局立刻拿到头游 ${card.bounceBacks} 次`));
+      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `垫底后下一局立刻拿到头游 ${card.bounceBacks} 次。棺材板都快压不住这波反弹了。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.distinctRanks >= Math.min(4, playerCount)) {
-      personalHonors.push(personalHonor('rank_rainbow', card, { distinctRanks: card.distinctRanks }, `走过 ${card.distinctRanks} 种名次`));
+      personalHonors.push(personalHonor('rank_rainbow', card, { distinctRanks: card.distinctRanks }, `一晚走过 ${card.distinctRanks} 种名次。你不是来打牌的，你是来体验百态人生的。`));
     }
     if (card.lasts === 0 && hands.length >= thresholds.clean) {
-      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 个小局，0 次垫底`));
+      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 个小局，0 次垫底。只要你不崩，赛后清算就永远找不到你。`));
     }
     const almostTriggered = card.firsts === 0 && card.seconds >= thresholds.almost;
     if (almostTriggered) {
-      personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次第二名，仍没有头游`));
+      personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次第二名，头游仍是 0。一顿操作猛如虎，一看战绩全是苦。`));
     } else if (hands.length >= EARLY_HONOR_HANDS && card.firsts === 0) {
-      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `本场 ${card.hands} 个小局，头游 0 次`));
+      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `本场 ${card.hands} 个小局，头游 0 次。被全桌轮流上嘴脸，小丑竟是我自己。`));
     }
     const swingThreshold = Math.max(2, Math.ceil(hands.length / playerCount));
     if (card.firsts >= swingThreshold && card.lasts >= swingThreshold) {
-      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `头游 ${card.firsts} 次，末游 ${card.lasts} 次`));
+      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `头游 ${card.firsts} 次，末游 ${card.lasts} 次。一会儿天上飞，一会儿地下趴。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.copyPasteStreak >= 3) {
-      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 个小局名次完全相同`));
+      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 个小局名次完全相同。命运的齿轮卡得死死的。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.rocketJumps > 0) {
-      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `一个小局内名次跨过半桌 ${card.rocketJumps} 次`));
+      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `相邻小局间一脚油门跨过半张桌子 ${card.rocketJumps} 次，底牌里像是藏了推进器。`));
     }
     const ranks = card._ranks;
     if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] !== 1) {
-      personalHonors.push(personalHonor('clutch_first', card, { finalPreviousRank: card.finalPreviousRank }, `最后一局从第 ${card.finalPreviousRank} 名冲到头游`));
+      personalHonors.push(personalHonor('clutch_first', card, { finalPreviousRank: card.finalPreviousRank }, `最后一局从第 ${card.finalPreviousRank} 名冲到头游。主角光环一开，剧本都不敢这么写。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.soloCarries > 0) {
-      personalHonors.push(personalHonor('solo_carry', card, { soloCarries: card.soloCarries }, `你头游、队友全在后半区 ${card.soloCarries} 次`));
+      personalHonors.push(personalHonor('solo_carry', card, { soloCarries: card.soloCarries }, `你拿到头游、队友却全在后半区 ${card.soloCarries} 次。带不动，真的带不动。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.frontRowStreak >= 4) {
-      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 个小局都在前半区`));
+      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 个小局都在前半区。后面的朋友，听得到我说话吗？`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.cutLineCount >= 2) {
-      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次正好排在前半区最后一名`));
+      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次正好卡在前半区最后一名。多打一张嫌累，少打一张掉队，60 分万岁。`));
     }
     if (card.lateLift >= 0.3) {
-      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后半段平均胜过同桌玩家的比例比开局高 ${Math.round(card.lateLift * 100)} 个百分点`));
+      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后半段平均胜过同桌玩家的比例比开局高 ${Math.round(card.lateLift * 100)} 个百分点。前面疯狂加载，后面终于接管比赛。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.backRowStreak >= 3) {
-      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 个小局都在后半区`));
+      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 个小局都在后半区。外面的世界很精彩，你却在地下室坐牢。`));
     }
   }
 
@@ -384,14 +384,14 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor(
         'last_king', card,
         { lasts: mostLasts },
-        `末游 ${mostLasts} 次，${cardList.filter((candidate) => candidate.lasts === mostLasts).length > 1 ? '并列' : ''}全场最多`
+        `末游 ${mostLasts} 次，${cardList.filter((candidate) => candidate.lasts === mostLasts).length > 1 ? '并列' : ''}全场最多。椅子是不是已经开始发烫了？`
       ));
     }
   }
 
   const firstKing = stableBest(cardList, 'firsts', thresholds.first);
   if (firstKing) {
-    personalHonors.push(personalHonor('first_king', firstKing, { firsts: firstKing.firsts }, `${firstKing.firsts} 次头游，全场最多`));
+    personalHonors.push(personalHonor('first_king', firstKing, { firsts: firstKing.firsts }, `${firstKing.firsts} 次头游，全场最多。纯纯的降维打击，这就是满级人类的含金量。`));
   }
 
   const f1ChoiceByPlayer = new Map();
@@ -411,18 +411,18 @@ export function calculateSessionHonors(input = {}) {
     const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
     const playerIds = roster.filter(player => player._teamKey === teamKey).map(player => player.id);
     if (teamDd[teamKey] >= thresholds.ddNight) {
-      teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队 ${teamDd[teamKey]} 次${sweepTerm}`));
+      teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队完成 ${teamDd[teamKey]} 次${sweepTerm}，把对面安排得明明白白。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && teamCards.every(card => card.firsts > 0)) {
-      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游`));
+      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游。全员都能上嘴脸，对面根本不知道该防谁。`));
     }
     if (prefs && prefs.strictA === true && foeResets[teamKey] > 0) {
-      teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `对手打 A 时，本队把对方打回 2 共 ${foeResets[teamKey]} 次`));
+      teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `对手打 A 时，本队把对方打回 2 共 ${foeResets[teamKey]} 次。一夜回到解放前，杀人还要诛心。`));
     }
   }
   if (completionConsistent && comebackEvidence) {
     const playerIds = roster.filter(player => player._teamKey === validWinnerKey).map(player => player.id);
-    teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手已到 A 时，本队从 ${comebackEvidence.ownLevel} 级完成翻盘`));
+    teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手已到 A 时，本队从 ${comebackEvidence.ownLevel} 级完成翻盘。香槟先别开，这把我们接管比赛。`));
   }
 
   const memorials = [];
@@ -430,14 +430,14 @@ export function calculateSessionHonors(input = {}) {
     const finisherPlayer = hands[hands.length - 1].ranked[0];
     memorials.push({
       category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.finisher, key: 'finisher', title: titleOf('finisher'),
-      playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关的最后一个小局拿到头游'
+      playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关的最后一个小局拿到头游。重拳出击完成绝杀，今晚的聚光灯全打在你身上。'
     });
     if (hands.length <= thresholds.blitz) {
-      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 个小局完成通关` });
+      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 个小局完成通关。今晚的牌局比德芙还丝滑，可以提前打卡下班了。` });
     }
   }
   if (hands.length >= thresholds.marathon) {
-    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `一共打了 ${hands.length} 个小局` });
+    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `一共打了 ${hands.length} 个小局。超长膀胱局，打得手机都快包浆了。` });
   }
 
   const reportCards = Object.fromEntries(reportCardEntries);

@@ -25,7 +25,7 @@ export const ACHIEVEMENTS = {
   honor_5: { name: '荣誉猎手', badge: '🎯', desc: '获得 5 种不同荣誉' },
   honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: `获得 ${HONOR_ALL_TARGET} 种不同荣誉` },
   honor_all: { name: '全荣誉大师', badge: '💎', desc: '已退役；旧持有者永久保留' },
-  lubu_10: { name: '头游王常客', badge: '⚔️', desc: '累计获得 10 次头游王' },
+  lubu_10: { name: '满级人类常客', badge: '⚔️', desc: '累计获得 10 次满级人类' },
 
   // Social/Team Achievements (3)
   social_butterfly: { name: '社交蝴蝶', badge: '🦋', desc: '与至少 20 位不同玩家同桌' },
