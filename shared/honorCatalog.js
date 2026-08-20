@@ -156,6 +156,7 @@ export const ALL_HONOR_TITLES = Object.freeze([...CURRENT_HONOR_TITLES, ...MEMOR
 
 /** honor_10 的 key 为兼容存档保留，但 v2 的可达目标显式固定为 8，禁止跟数组长度联动。 */
 export const HONOR_ALL_TARGET = 8;
+export const HONOR_STORAGE_VERSION = 'honor-abstract-v1';
 
 export const LEGACY_HONOR_TITLE_ALIASES = Object.freeze({
   开门手: '开团大爹',
@@ -225,6 +226,46 @@ export function normalizeHonorCounter(honors = {}) {
   }
 
   return normalized;
+}
+
+/**
+ * 持久化迁移与读时 normalize 分离：正式 honors 只留下现行 title 和真正退役项，
+ * alias 原始计数移入只读 archive。这样重复迁移幂等，也不会在下一次读取时再次相加。
+ */
+export function migrateHonorStorage(honors = {}, legacyArchive = {}) {
+  const raw = honors && typeof honors === 'object' && !Array.isArray(honors) ? honors : {};
+  const previousArchive = legacyArchive && typeof legacyArchive === 'object' && !Array.isArray(legacyArchive)
+    ? legacyArchive
+    : {};
+  const migrated = {};
+  const archive = {};
+
+  for (const [title, value] of Object.entries(previousArchive)) {
+    if (!title || UNSAFE_COUNTER_KEYS.has(title.toLowerCase())) continue;
+    const count = safeCount(value);
+    if (count > 0) archive[title] = count;
+  }
+  for (const [title, value] of Object.entries(raw)) {
+    if (!title || UNSAFE_COUNTER_KEYS.has(title.toLowerCase())) continue;
+    const count = safeCount(value);
+    if (Object.prototype.hasOwnProperty.call(LEGACY_HONOR_TITLE_ALIASES, title)) {
+      const currentTitle = LEGACY_HONOR_TITLE_ALIASES[title];
+      migrated[currentTitle] = safeCount(migrated[currentTitle]) + count;
+      if (count > 0) archive[title] = Math.max(safeCount(archive[title]), count);
+      continue;
+    }
+    migrated[title] = safeCount(migrated[title]) + count;
+  }
+
+  return { version: HONOR_STORAGE_VERSION, honors: migrated, legacyArchive: archive };
+}
+
+export function migrateHonorTitles(titles = []) {
+  return [...new Set((Array.isArray(titles) ? titles : []).flatMap((title) => {
+    const raw = typeof title === 'string' ? title.trim() : '';
+    if (!raw || UNSAFE_COUNTER_KEYS.has(raw.toLowerCase())) return [];
+    return [canonicalizeHonorTitle(raw) || raw];
+  }))];
 }
 
 export function canonicalizeHonorTitle(title) {
