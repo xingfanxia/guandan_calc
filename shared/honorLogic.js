@@ -95,13 +95,12 @@ function playerRef(player) {
   return publicPlayer;
 }
 
-function stableBest(cards, field, threshold) {
-  let best = null;
-  for (const card of cards) {
-    if (card[field] < threshold) continue;
-    if (!best || card[field] > best[field]) best = card;
-  }
-  return best;
+/** 最高者称号不使用座位顺序裁决：达到门槛的最高值完全并列时全部返回。 */
+function bestTies(cards, field, threshold) {
+  const eligible = cards.filter(card => card[field] >= threshold);
+  if (eligible.length === 0) return [];
+  const best = Math.max(...eligible.map(card => card[field]));
+  return eligible.filter(card => card[field] === best);
 }
 
 function personalHonor(key, card, score, caption) {
@@ -304,16 +303,14 @@ export function calculateSessionHonors(input = {}) {
     const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
     // 8 人局单次双下已经很罕见；该模式允许一次即记开门/关门，4/6 人仍要求多次主导。
     const majority = Math.max(playerCount === 8 ? 1 : 2, Math.ceil(0.6 * teamDd[teamKey]));
-    const opener = stableBest(teamCards, 'ddOpens', majority);
-    if (opener) {
+    for (const opener of bestTies(teamCards, 'ddOpens', majority)) {
       personalHonors.push(personalHonor(
         'dd_opener', opener,
         { teamDD: teamDd[teamKey], ddOpens: opener.ddOpens },
         `本队 ${teamDd[teamKey]} 次${sweepTerm}，你带头拿下头游 ${opener.ddOpens} 次。开团全靠你撞碎对面的防线。`
       ));
     }
-    const closer = stableBest(teamCards, 'ddCloses', majority);
-    if (closer) {
+    for (const closer of bestTies(teamCards, 'ddCloses', majority)) {
       personalHonors.push(personalHonor(
         'dd_closer', closer,
         { teamDD: teamDd[teamKey], ddCloses: closer.ddCloses },
@@ -389,8 +386,7 @@ export function calculateSessionHonors(input = {}) {
     }
   }
 
-  const firstKing = stableBest(cardList, 'firsts', thresholds.first);
-  if (firstKing) {
+  for (const firstKing of bestTies(cardList, 'firsts', thresholds.first)) {
     personalHonors.push(personalHonor('first_king', firstKing, { firsts: firstKing.firsts }, `${firstKing.firsts} 次头游，全场最多。纯纯的降维打击，这就是满级人类的含金量。`));
   }
 
