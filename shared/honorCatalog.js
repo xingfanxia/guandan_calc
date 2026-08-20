@@ -36,7 +36,7 @@ export const MEMORIAL_KEYS = Object.freeze([
 ]);
 
 export const HONOR_V2_TITLES_BY_KEY = Object.freeze({
-  dd_opener: '开团大爹',
+  dd_opener: '救世主',
   dd_closer: '金牌保安',
   a_blocker: '香槟粉碎机',
   streak_king: '人形外挂',
@@ -49,7 +49,7 @@ export const HONOR_V2_TITLES_BY_KEY = Object.freeze({
   boom_bust: '牌桌蹦极人',
   copy_paste: '牌桌鬼打墙',
   rocket_jump: '油门踩断了',
-  clutch_first: '热血番男主',
+  clutch_first: '热血番主角',
   solo_carry: '纯纯孤勇者',
   front_row_streak: '上流体验卡',
   cut_line_master: '及格线战神',
@@ -159,7 +159,8 @@ export const HONOR_ALL_TARGET = 8;
 export const HONOR_STORAGE_VERSION = 'honor-abstract-v1';
 
 export const LEGACY_HONOR_TITLE_ALIASES = Object.freeze({
-  开门手: '开团大爹',
+  开门手: '救世主',
+  开团大爹: '救世主',
   关门手: '金牌保安',
   拦路虎: '香槟粉碎机',
   火车头: '人形外挂',
@@ -172,7 +173,8 @@ export const LEGACY_HONOR_TITLE_ALIASES = Object.freeze({
   大开大合: '牌桌蹦极人',
   复制粘贴: '牌桌鬼打墙',
   坐火箭: '油门踩断了',
-  压哨头游: '热血番男主',
+  压哨头游: '热血番主角',
+  热血番男主: '热血番主角',
   '独苗 C 位': '纯纯孤勇者',
   前排钉子户: '上流体验卡',
   卡线大师: '及格线战神',
