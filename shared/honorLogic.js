@@ -324,7 +324,7 @@ export function calculateSessionHonors(input = {}) {
 
   for (const card of cardList) {
     if (card.aBlocks >= 1) {
-      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止通关 ${card.aBlocks} 次。对面的香槟当场被你一脚踢翻。`));
+      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止对手通关 ${card.aBlocks} 次。对面的香槟当场被你一脚踢翻。`));
     }
     if (card.bestStreak >= thresholds.streak) {
       personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 个小局拿到头游。发牌员是你家亲戚吧？`));
