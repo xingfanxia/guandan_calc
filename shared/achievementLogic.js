@@ -125,14 +125,27 @@ function baseProgress(playerStats = {}) {
 }
 
 export function achievementProgress(playerStats = {}) {
-  const base = baseProgress(playerStats).map((row) => ({ ...ACHIEVEMENTS[row.id], ...row }));
+  const persisted = new Set(migrateAchievementStorage(playerStats.achievementsEver).achievementsEver);
+  const base = baseProgress(playerStats).map((row) => {
+    const permanentlyUnlocked = persisted.has(row.id);
+    return {
+      ...ACHIEVEMENTS[row.id],
+      ...row,
+      unlocked: row.unlocked || permanentlyUnlocked,
+      progressPct: permanentlyUnlocked ? 100 : row.progressPct,
+      progressText: permanentlyUnlocked && !row.unlocked ? '已永久解锁' : row.progressText
+    };
+  });
   const unlockedPrerequisites = base.filter((row) => row.unlocked).length;
+  const platinumPersisted = persisted.has('naoma_platinum');
   return [...base, {
     ...ACHIEVEMENTS.naoma_platinum,
     id: 'naoma_platinum',
-    unlocked: unlockedPrerequisites === base.length,
-    progressPct: Math.round(unlockedPrerequisites * 100 / base.length),
-    progressText: `已解锁 ${unlockedPrerequisites}/${base.length} 项前置奖杯`
+    unlocked: platinumPersisted || unlockedPrerequisites === base.length,
+    progressPct: platinumPersisted ? 100 : Math.round(unlockedPrerequisites * 100 / base.length),
+    progressText: platinumPersisted && unlockedPrerequisites !== base.length
+      ? '已永久解锁'
+      : `已解锁 ${unlockedPrerequisites}/${base.length} 项前置奖杯`
   }];
 }
 
