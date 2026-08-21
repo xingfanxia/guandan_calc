@@ -31,7 +31,7 @@ export const ACHIEVEMENTS = Object.freeze({
   naoma_platinum: { name: '闹麻全满贯', tier: 'platinum', badgeKey: 'naoma_platinum', desc: '解锁其余全部 12 项生涯奖杯' }
 });
 
-/** 1.0.34 及更早的低门槛/单场成就：只进历史 archive，不再作为现行奖杯展示。 */
+/** 1.0.34 及更早的低门槛/单场成就：仅用于识别并丢弃旧派生值。 */
 export const LEGACY_ACHIEVEMENTS = Object.freeze({
   newbie: { name: '初来乍到' }, started: { name: '小试牛刀' }, veteran: { name: '百战老兵' },
   legend: { name: '千场传奇' }, first_win: { name: '首胜' }, streak_5: { name: '连胜达人' },
@@ -146,11 +146,11 @@ const cleanIds = (ids) => [...new Set((Array.isArray(ids) ? ids : [])
 export function migrateAchievementStorage(achievementsEver = [], legacyArchive = []) {
   const active = new Set(Object.keys(ACHIEVEMENTS));
   const current = cleanIds(achievementsEver);
-  const archive = cleanIds(legacyArchive);
   return {
     version: ACHIEVEMENT_SCHEMA_VERSION,
     achievementsEver: current.filter((id) => active.has(id)),
-    legacyArchive: cleanIds([...archive, ...current.filter((id) => !active.has(id))])
+    // 旧版成就是可重算的派生值，不是权威牌局事实；V2 上线后直接取消，不保留影子奖杯。
+    legacyArchive: []
   };
 }
 
