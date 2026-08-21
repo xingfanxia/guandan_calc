@@ -1,139 +1,173 @@
-import {
-  CURRENT_HONOR_COUNT,
-  HONOR_TITLES_BY_KEY,
-  countCurrentHonors,
-  normalizeHonorCounter
-} from './honorCatalog.js';
+import { countCurrentHonors, normalizeHonorCounter } from './honorCatalog.js';
 
 const UNSAFE_RELATION_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
+const achievementSafeCount = (value) => Math.max(0, Math.floor(Number.isFinite(Number(value)) ? Number(value) : 0));
+const safeRatio = (value, target) => target > 0 ? Math.min(1, achievementSafeCount(value) / target) : 0;
+const percent = (...ratios) => Math.round(Math.min(...ratios) * 100);
 
-// Achievement definitions
-export const ACHIEVEMENTS = {
-  // Milestone Achievements (4)
-  newbie: { name: '初来乍到', badge: '🐣', desc: '完成第一场游戏' },
-  started: { name: '小试牛刀', badge: '⭐', desc: '完成10场游戏' },
-  veteran: { name: '百战老兵', badge: '🎖️', desc: '完成100场游戏' },
-  legend: { name: '千场传奇', badge: '👑', desc: '完成1000场游戏' },
+export const ACHIEVEMENT_SCHEMA_VERSION = 'career-trophies-v2';
 
-  // Performance Achievements (4)
-  first_win: { name: '首胜', badge: '🩸', desc: '赢得第一场游戏' },
-  streak_5: { name: '连胜达人', badge: '🔥', desc: '连胜5场' },
-  streak_10: { name: '十连胜', badge: '⚡', desc: '连胜10场' },
-  champion: { name: '常胜将军', badge: '🏅', desc: '胜率70%以上（至少20场）' },
+export const ACHIEVEMENT_TIERS = Object.freeze({
+  bronze: { label: '青铜奖杯', shortLabel: '青铜', order: 1 },
+  silver: { label: '白银奖杯', shortLabel: '白银', order: 2 },
+  gold: { label: '黄金奖杯', shortLabel: '黄金', order: 3 },
+  platinum: { label: '白金奖杯', shortLabel: '白金', order: 4 }
+});
 
-  // Honor Collection Achievements (4)
-  honor_5: { name: '荣誉猎手', badge: '🎯', desc: '获得5种不同荣誉' },
-  honor_10: { name: '荣誉收藏家', badge: '🏛️', desc: '获得10种不同荣誉' },
-  honor_all: { name: '全荣誉大师', badge: '💎', desc: `获得全部${CURRENT_HONOR_COUNT}种荣誉` },
-  lubu_10: { name: '吕布专业户', badge: '⚔️', desc: '获得吕布10次' },
+/** 生涯成就只描述难以一次偶然完成的长期目标；单场奇观和可重复事件属于荣誉。 */
+export const ACHIEVEMENTS = Object.freeze({
+  career_20: { name: '正式入编', tier: 'bronze', badgeKey: 'career_20', desc: '累计参与 20 场正式牌局，并记录 200 个小局' },
+  all_modes_1: { name: '三栖牌手', tier: 'bronze', badgeKey: 'all_modes_1', desc: '4 人、6 人和 8 人局各完成至少 1 场' },
+  win_streak_3: { name: '状态启动', tier: 'bronze', badgeKey: 'win_streak_3', desc: '生涯最长通关连胜达到 3 场' },
+  honors_12: { name: '荣誉收割机', tier: 'bronze', badgeKey: 'honors_12', desc: '解锁 12 种不同荣誉' },
+  career_500: { name: '牌桌常驻人口', tier: 'silver', badgeKey: 'career_500', desc: '累计记录 500 个小局，并跨越 30 个打牌日' },
+  win_streak_5: { name: '五连制霸', tier: 'silver', badgeKey: 'win_streak_5', desc: '生涯最长通关连胜达到 5 场' },
+  relations_15: { name: '牌圈显眼包', tier: 'silver', badgeKey: 'relations_15', desc: '与至少 15 位不同牌友同桌' },
+  all_modes_3: { name: '全模式毕业', tier: 'silver', badgeKey: 'all_modes_3', desc: '4 人、6 人和 8 人局各完成至少 3 场' },
+  win_streak_8: { name: '八连无人区', tier: 'gold', badgeKey: 'win_streak_8', desc: '生涯最长通关连胜达到 8 场' },
+  rank_gold: { name: '黄金时代', tier: 'gold', badgeKey: 'rank_gold', desc: '生涯最高 NaoRank 达到黄金段（1000 分）' },
+  mvp_10: { name: '民选牌桌之光', tier: 'gold', badgeKey: 'mvp_10', desc: '累计获得 10 张同桌匿名 MVP 票' },
+  career_1000: { name: '千局不灭', tier: 'gold', badgeKey: 'career_1000', desc: '累计记录 1000 个小局，并跨越 50 个打牌日' },
+  naoma_platinum: { name: '闹麻全满贯', tier: 'platinum', badgeKey: 'naoma_platinum', desc: '解锁其余全部 12 项生涯奖杯' }
+});
 
-  // Social/Team Achievements (3)
-  social_butterfly: { name: '社交蝴蝶', badge: '🦋', desc: '与20+不同玩家对局' },
-  marathon: { name: '马拉松战士', badge: '🏃', desc: '单场游戏超过50轮' },
-  quick_finish: { name: '闪电战', badge: '⚡', desc: '单场游戏少于15轮获胜' },
-
-  // Fun/Special Achievements (2 active — comeback/sweep/iron_will were
-  // defined but never checked because their detection requires data the
-  // session-sync flow doesn't currently track [mid-session level deltas,
-  // opponent final levels, contextual loss-streak history]. Per SIMPLED
-  // "Lean", removed rather than left as dead definitions.)
-  perfect: { name: '完美表现', badge: '✨', desc: '单场游戏场均排名1.5以内' },
-  unlucky: { name: '天选之子', badge: '🎲', desc: '单场5次以上垫底仍获胜' }
-};
+/** 1.0.34 及更早的低门槛/单场成就：仅用于识别并丢弃旧派生值。 */
+export const LEGACY_ACHIEVEMENTS = Object.freeze({
+  newbie: { name: '初来乍到' }, started: { name: '小试牛刀' }, veteran: { name: '百战老兵' },
+  legend: { name: '千场传奇' }, first_win: { name: '首胜' }, streak_5: { name: '连胜达人' },
+  streak_10: { name: '十连胜' }, champion: { name: '常胜将军' }, honor_5: { name: '荣誉猎手' },
+  honor_10: { name: '荣誉收藏家' }, honor_all: { name: '全荣誉大师' }, lubu_10: { name: '满级人类常客' },
+  social_butterfly: { name: '社交蝴蝶' }, marathon: { name: '马拉松战士' }, quick_finish: { name: '闪电战' },
+  perfect: { name: '完美表现' }, unlucky: { name: '天选之子' }
+});
 
 export const ACHIEVEMENT_COUNT = Object.keys(ACHIEVEMENTS).length;
 
 function relationKeyIsSafe(key) {
-  return typeof key === 'string' &&
-    key.trim().length > 0 &&
-    !UNSAFE_RELATION_KEYS.has(key.trim().toLowerCase());
+  return typeof key === 'string' && key.trim().length > 0 && !UNSAFE_RELATION_KEYS.has(key.trim().toLowerCase());
 }
 
 function relationHasGames(value) {
-  if (!value || typeof value !== 'object') return false;
-  if (!Object.prototype.hasOwnProperty.call(value, 'games')) return false;
+  return value && typeof value === 'object' && achievementSafeCount(value.games) > 0;
+}
 
-  const games = Number(value.games);
-  return Number.isFinite(games) && games > 0;
+function relationEntries(value) {
+  if (Array.isArray(value)) {
+    return value.flatMap((row) => {
+      const key = String(row?.handle || '').trim().toLowerCase();
+      return relationKeyIsSafe(key) && relationHasGames(row) ? [[key, row]] : [];
+    });
+  }
+  if (!value || typeof value !== 'object') return [];
+  return Object.entries(value).flatMap(([rawKey, row]) => {
+    const key = String(rawKey).trim().toLowerCase();
+    return relationKeyIsSafe(key) && relationHasGames(row) ? [[key, row]] : [];
+  });
 }
 
 export function countDistinctProfileRelations(playerStats = {}) {
-  const relationHandles = new Set();
-
-  for (const relationMap of [playerStats.partners, playerStats.opponents]) {
-    if (!relationMap || typeof relationMap !== 'object') continue;
-    for (const key of Object.keys(relationMap)) {
-      const normalized = key.trim().toLowerCase();
-      if (relationKeyIsSafe(normalized) && relationHasGames(relationMap[key])) {
-        relationHandles.add(normalized);
-      }
-    }
+  const source = playerStats.relations && typeof playerStats.relations === 'object' ? playerStats.relations : playerStats;
+  const handles = new Set();
+  for (const kind of ['partners', 'opponents']) {
+    for (const [handle] of relationEntries(source[kind])) handles.add(handle);
   }
-
-  return relationHandles.size;
+  return handles.size;
 }
 
-/**
- * Check which achievements a player has earned
- * @param {Object} playerStats - Player stats object
- * @param {Object} lastSession - Last session data (optional, for session-specific achievements)
- * @returns {Array} Array of achievement IDs earned
- */
-export function checkAchievements(playerStats = {}, lastSession = null) {
-  const earned = [];
-  const sessionsPlayed = playerStats.sessionsPlayed ?? playerStats.gamesPlayed ?? 0;
-  const sessionsWon = playerStats.sessionsWon ?? playerStats.wins ?? 0;
-  const winRate = playerStats.sessionWinRate ?? playerStats.winRate ?? 0;
-
-  // Milestone achievements
-  if (sessionsPlayed >= 1) earned.push('newbie');
-  if (sessionsPlayed >= 10) earned.push('started');
-  if (sessionsPlayed >= 100) earned.push('veteran');
-  if (sessionsPlayed >= 1000) earned.push('legend');
-
-  // Performance achievements
-  if (sessionsWon >= 1) earned.push('first_win');
-  if (playerStats.longestWinStreak >= 5) earned.push('streak_5');
-  if (playerStats.longestWinStreak >= 10) earned.push('streak_10');
-  if (sessionsPlayed >= 20 && winRate >= 0.7) {
-    earned.push('champion');
-  }
-
-  // Honor collection achievements
-  const normalizedHonors = normalizeHonorCounter(playerStats.honors || {});
-  const uniqueHonors = countCurrentHonors(normalizedHonors);
-  if (uniqueHonors >= 5) earned.push('honor_5');
-  if (uniqueHonors >= 10) earned.push('honor_10');
-  if (uniqueHonors >= CURRENT_HONOR_COUNT) earned.push('honor_all');
-  if ((normalizedHonors[HONOR_TITLES_BY_KEY.mvp] || 0) >= 10) earned.push('lubu_10');
-
-  // Social/team achievements
-  if (countDistinctProfileRelations(playerStats) >= 20) {
-    earned.push('social_butterfly');
-  }
-
-  // Session-specific achievements (if lastSession provided)
-  if (lastSession) {
-    const rounds = lastSession.gamesInSession || 0;
-    const avgRank = lastSession.ranking || 999;
-
-    if (rounds > 50) earned.push('marathon');
-    if (rounds < 15 && lastSession.teamWon) earned.push('quick_finish');
-    if (avgRank <= 1.5) earned.push('perfect');
-    if (lastSession.lastPlaces >= 5 && lastSession.teamWon) earned.push('unlucky');
-  }
-
-  return earned;
+function metricsFor(playerStats = {}) {
+  const mode = playerStats.modeBreakdown || {};
+  const ladder = playerStats.ladder && typeof playerStats.ladder === 'object' ? playerStats.ladder : {};
+  return {
+    matches: achievementSafeCount(playerStats.matchesTotal ?? playerStats.sessionsPlayed ?? playerStats.gamesPlayed),
+    hands: achievementSafeCount(playerStats.totalGames ?? playerStats.progress?.hands),
+    days: achievementSafeCount(playerStats.gameDays ?? playerStats.progress?.nights),
+    streak: achievementSafeCount(playerStats.longestWinStreak),
+    mvpVotes: achievementSafeCount(playerStats.mvpVotes),
+    honors: countCurrentHonors(normalizeHonorCounter(playerStats.honors || {})),
+    relations: countDistinctProfileRelations(playerStats),
+    mode4: achievementSafeCount(mode['4P']), mode6: achievementSafeCount(mode['6P']), mode8: achievementSafeCount(mode['8P']),
+    ladderPeak: achievementSafeCount(ladder.peak ?? ladder.rating ?? playerStats.ladderPeak)
+  };
 }
 
-/**
- * Get newly unlocked achievements
- * @param {Array} oldAchievements - Previously earned achievement IDs
- * @param {Array} newAchievements - Currently earned achievement IDs
- * @returns {Array} Newly unlocked achievement IDs
- */
+function baseProgress(playerStats = {}) {
+  const m = metricsFor(playerStats);
+  const modeMin = Math.min(m.mode4, m.mode6, m.mode8);
+  return [
+    { id: 'career_20', unlocked: m.matches >= 20 && m.hands >= 200,
+      progressPct: percent(safeRatio(m.matches, 20), safeRatio(m.hands, 200)),
+      progressText: `正式牌局 ${Math.min(m.matches, 20)}/20 · 小局 ${Math.min(m.hands, 200)}/200` },
+    { id: 'all_modes_1', unlocked: modeMin >= 1,
+      progressPct: percent(safeRatio(modeMin, 1)), progressText: `已完成模式 ${[m.mode4, m.mode6, m.mode8].filter((value) => value >= 1).length}/3` },
+    { id: 'win_streak_3', unlocked: m.streak >= 3,
+      progressPct: percent(safeRatio(m.streak, 3)), progressText: `最长连胜 ${Math.min(m.streak, 3)}/3` },
+    { id: 'honors_12', unlocked: m.honors >= 12,
+      progressPct: percent(safeRatio(m.honors, 12)), progressText: `不同荣誉 ${Math.min(m.honors, 12)}/12` },
+    { id: 'career_500', unlocked: m.hands >= 500 && m.days >= 30,
+      progressPct: percent(safeRatio(m.hands, 500), safeRatio(m.days, 30)),
+      progressText: `小局 ${Math.min(m.hands, 500)}/500 · 打牌日 ${Math.min(m.days, 30)}/30` },
+    { id: 'win_streak_5', unlocked: m.streak >= 5,
+      progressPct: percent(safeRatio(m.streak, 5)), progressText: `最长连胜 ${Math.min(m.streak, 5)}/5` },
+    { id: 'relations_15', unlocked: m.relations >= 15,
+      progressPct: percent(safeRatio(m.relations, 15)), progressText: `不同牌友 ${Math.min(m.relations, 15)}/15` },
+    { id: 'all_modes_3', unlocked: modeMin >= 3,
+      progressPct: percent(safeRatio(modeMin, 3)), progressText: `各模式最低完成 ${Math.min(modeMin, 3)}/3 场` },
+    { id: 'win_streak_8', unlocked: m.streak >= 8,
+      progressPct: percent(safeRatio(m.streak, 8)), progressText: `最长连胜 ${Math.min(m.streak, 8)}/8` },
+    { id: 'rank_gold', unlocked: m.ladderPeak >= 1000,
+      progressPct: percent(safeRatio(Math.max(0, m.ladderPeak - 400), 600)), progressText: `最高 NaoRank ${Math.min(m.ladderPeak, 1000)}/1000` },
+    { id: 'mvp_10', unlocked: m.mvpVotes >= 10,
+      progressPct: percent(safeRatio(m.mvpVotes, 10)), progressText: `累计 MVP 票 ${Math.min(m.mvpVotes, 10)}/10` },
+    { id: 'career_1000', unlocked: m.hands >= 1000 && m.days >= 50,
+      progressPct: percent(safeRatio(m.hands, 1000), safeRatio(m.days, 50)),
+      progressText: `小局 ${Math.min(m.hands, 1000)}/1000 · 打牌日 ${Math.min(m.days, 50)}/50` }
+  ];
+}
+
+export function achievementProgress(playerStats = {}) {
+  const persisted = new Set(migrateAchievementStorage(playerStats.achievementsEver).achievementsEver);
+  const base = baseProgress(playerStats).map((row) => {
+    const permanentlyUnlocked = persisted.has(row.id);
+    return {
+      ...ACHIEVEMENTS[row.id],
+      ...row,
+      unlocked: row.unlocked || permanentlyUnlocked,
+      progressPct: permanentlyUnlocked ? 100 : row.progressPct,
+      progressText: permanentlyUnlocked && !row.unlocked ? '已永久解锁' : row.progressText
+    };
+  });
+  const unlockedPrerequisites = base.filter((row) => row.unlocked).length;
+  const platinumPersisted = persisted.has('naoma_platinum');
+  return [...base, {
+    ...ACHIEVEMENTS.naoma_platinum,
+    id: 'naoma_platinum',
+    unlocked: platinumPersisted || unlockedPrerequisites === base.length,
+    progressPct: platinumPersisted ? 100 : Math.round(unlockedPrerequisites * 100 / base.length),
+    progressText: platinumPersisted && unlockedPrerequisites !== base.length
+      ? '已永久解锁'
+      : `已解锁 ${unlockedPrerequisites}/${base.length} 项前置奖杯`
+  }];
+}
+
+export function checkAchievements(playerStats = {}) {
+  return achievementProgress(playerStats).filter((row) => row.unlocked).map((row) => row.id);
+}
+
+const cleanIds = (ids) => [...new Set((Array.isArray(ids) ? ids : [])
+  .map((id) => String(id || '').trim()).filter((id) => /^[A-Za-z0-9_]{1,64}$/.test(id)))];
+
+export function migrateAchievementStorage(achievementsEver = [], legacyArchive = []) {
+  const active = new Set(Object.keys(ACHIEVEMENTS));
+  const current = cleanIds(achievementsEver);
+  return {
+    version: ACHIEVEMENT_SCHEMA_VERSION,
+    achievementsEver: current.filter((id) => active.has(id)),
+    // 旧版成就是可重算的派生值，不是权威牌局事实；V2 上线后直接取消，不保留影子奖杯。
+    legacyArchive: []
+  };
+}
+
 export function getNewAchievements(oldAchievements = [], newAchievements = []) {
-  const oldAchievementSet = new Set(Array.isArray(oldAchievements) ? oldAchievements : []);
-  const currentAchievements = Array.isArray(newAchievements) ? newAchievements : [];
-  return currentAchievements.filter(id => !oldAchievementSet.has(id));
+  const oldAchievementSet = new Set(cleanIds(oldAchievements));
+  return cleanIds(newAchievements).filter((id) => !oldAchievementSet.has(id));
 }

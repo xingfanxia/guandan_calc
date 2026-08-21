@@ -1,60 +1,455 @@
+import { HONOR_CATEGORY_BY_KEY, HONOR_TITLES_BY_KEY } from './honorCatalog.js';
 import { resolvePlayerCountMode } from './playerCountMode.js';
 
-export const MIN_HONOR_GAMES = 5;
+/** 事件荣誉没有统一场数门槛；保留导出名供旧 web adapter 编译。 */
+export const MIN_HONOR_GAMES = 0;
 
-/**
- * Anti-sweep cap: a single player may hold at most this many POSITIVE honors.
- * Without it, the session's strongest player tops nearly every positive metric
- * simultaneously (吕布 + 石佛 + 连段王 + 团队中轴 + 保底核心 + 节奏核心 + 抗压王…),
- * which makes the awards meaningless. Negatives (阿斗/翻车王/燃尽王) and neutral
- * quirks (波动王/赌徒/大满贯/棋差一着) stay uncapped — they're diagnostic, not a
- * sweep concern, and spreading "shame" honors would be less truthful.
- */
-export const MAX_POSITIVE_HONORS_PER_PLAYER = 2;
+/** 轻量趣味荣誉从第 5 局开始：先让玩家有内容可看，稀有事件仍保留更高门槛。 */
+export const EARLY_HONOR_HANDS = 5;
 
-/**
- * Honor algorithms — pure computation half of src/stats/honors.js (zero host deps,
- * vendored by the guandan-scorer-wxapp sibling repo). Rendering/meta stay in src/stats/.
- * 改荣誉算法改这里，改完让 wxapp repo 跑 npm run sync:shared。
- */
-/**
- * Calculate POPULATION variance (divides by N, not N-1).
- *
- * For n=1, the only datapoint equals the mean → variance is 0. That's
- * mathematically correct (no spread in a single observation) but
- * uninformative for volatility honors, where "this player has played one
- * game" should not classify them as stable. Honors globally require at least
- * 5 valid rankings before awarding, which keeps variance-based awards from
- * firing on small samples — DO NOT call calculateVariance from a context that
- * lacks a similar small-sample guard.
- *
- * Population (N) is intentional: we treat each player's session-level
- * rankings as a complete observed history, not a sample drawn from a
- * larger distribution. Bessel's correction (N-1) would be appropriate
- * if we were estimating population variance from a sample, but here
- * "the population" is "this player's actual games to date".
- *
- * @param {number[]} rankings
- * @returns {number} variance (0 if rankings empty/null)
- */
-function calculateVariance(rankings) {
-  if (!rankings || rankings.length === 0) return 0;
+export const HONOR_THRESHOLDS = Object.freeze({
+  4: Object.freeze({ ddNight: 3, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 8, marathon: 18 }),
+  6: Object.freeze({ ddNight: 2, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 }),
+  8: Object.freeze({ ddNight: 1, streak: 2, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
+});
 
-  const mean = rankings.reduce((sum, val) => sum + val, 0) / rankings.length;
-  const squaredDiffs = rankings.map(val => Math.pow(val - mean, 2));
-  return squaredDiffs.reduce((sum, val) => sum + val, 0) / rankings.length;
+/** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
+export const F1_FAMILY = Object.freeze(['streak_king', 'first_king']);
+
+const TEAM_KEYS = Object.freeze(['t1', 't2']);
+const OTHER_TEAM = Object.freeze({ t1: 't2', t2: 't1' });
+
+function teamKeyOf(team) {
+  const value = Number(team);
+  return value === 1 ? 't1' : value === 2 ? 't2' : null;
 }
 
-function normalizeRankings(rankings, totalPlayers) {
-  if (!Array.isArray(rankings)) return [];
+function normalizedPlayers(players, mode) {
+  const seen = new Set();
+  const result = [];
+  for (const player of Array.isArray(players) ? players : []) {
+    if (!player || typeof player !== 'object') continue;
+    const id = player.id;
+    const idKey = String(id ?? '');
+    const teamKey = teamKeyOf(player.team);
+    if (!idKey || seen.has(idKey) || !teamKey) continue;
+    seen.add(idKey);
+    result.push({ ...player, id, team: Number(player.team), _idKey: idKey, _teamKey: teamKey });
+  }
+  return result.slice(0, mode);
+}
 
-  return rankings
-    .map(rank => Number(rank))
-    .filter(rank =>
-      Number.isSafeInteger(rank) &&
-      rank >= 1 &&
-      rank <= totalPlayers
+function normalizeLevel(value) {
+  return value === undefined || value === null ? '' : String(value).trim().toUpperCase();
+}
+
+function atOrBelowNine(value) {
+  const level = Number(normalizeLevel(value));
+  return Number.isSafeInteger(level) && level >= 2 && level <= 9;
+}
+
+function rankedHand(entry, roster, mode) {
+  const rankings = entry && entry.playerRankings;
+  if (!rankings || typeof rankings !== 'object' || Array.isArray(rankings)) return null;
+  const rosterById = new Map(roster.map(player => [player._idKey, player]));
+  const ranked = [];
+  const ids = new Set();
+  for (let rank = 1; rank <= mode; rank++) {
+    const rawPlayer = rankings[rank] || rankings[String(rank)];
+    const player = rawPlayer && rosterById.get(String(rawPlayer.id ?? ''));
+    if (!player || ids.has(player._idKey)) return null;
+    ids.add(player._idKey);
+    ranked.push(player);
+  }
+  if (ranked.length !== mode || ids.size !== mode) return null;
+  const winKey = entry.winKey === 't1' || entry.winKey === 't2' ? entry.winKey : null;
+  const teamSize = mode / 2;
+  const rawRanks = Array.isArray(entry.ranks) ? entry.ranks.map(Number) : [];
+  const ranks = rawRanks.length === teamSize &&
+    rawRanks.every(rank => Number.isSafeInteger(rank) && rank >= 1 && rank <= mode) &&
+    new Set(rawRanks).size === teamSize
+    ? [...rawRanks].sort((a, b) => a - b)
+    : null;
+  return {
+    entry,
+    ranked,
+    ranks,
+    winKey,
+    round: normalizeLevel(entry.round),
+    prevRoundOwner: entry.prevRoundOwner === 't1' || entry.prevRoundOwner === 't2'
+      ? entry.prevRoundOwner
+      : null
+  };
+}
+
+function titleOf(key) {
+  return HONOR_TITLES_BY_KEY[key] || key;
+}
+
+function fullSweepTerm(mode) {
+  return mode === 4 ? '双下' : mode === 6 ? '三下' : mode === 8 ? '四下' : '全贡';
+}
+
+function playerRef(player) {
+  const { _idKey, _teamKey, ...publicPlayer } = player;
+  return publicPlayer;
+}
+
+/** 最高者称号不使用座位顺序裁决：达到门槛的最高值完全并列时全部返回。 */
+function bestTies(cards, field, threshold) {
+  const eligible = cards.filter(card => card[field] >= threshold);
+  if (eligible.length === 0) return [];
+  const best = Math.max(...eligible.map(card => card[field]));
+  return eligible.filter(card => card[field] === best);
+}
+
+function personalHonor(key, card, score, caption) {
+  return {
+    category: 'personal',
+    subtype: HONOR_CATEGORY_BY_KEY[key] || 'personal_fun',
+    key,
+    title: titleOf(key),
+    playerId: card.playerId,
+    team: card.team,
+    score,
+    caption
+  };
+}
+
+function teamHonor(key, teamKey, playerIds, score, caption) {
+  return {
+    category: 'team',
+    subtype: HONOR_CATEGORY_BY_KEY[key] || 'team',
+    key,
+    title: titleOf(key),
+    team: Number(teamKey.slice(1)),
+    playerIds,
+    score,
+    caption
+  };
+}
+
+/**
+ * 荣誉 v2 的唯一计算入口。输入只读，返回个人徽章、队伍战果、
+ * 3 个场纪念的实际触发项，以及每位玩家 100% 覆盖的客观战报卡。
+ */
+export function calculateSessionHonors(input = {}) {
+  const safeInput = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const {
+    history = [],
+    players = [],
+    mode,
+    ended = false,
+    winnerKey = null,
+    prefs = {}
+  } = safeInput;
+  const playerCount = resolvePlayerCountMode(mode, Array.isArray(players) ? players.length : 8);
+  const roster = normalizedPlayers(players, playerCount);
+  const thresholds = HONOR_THRESHOLDS[playerCount];
+  const validWinnerKey = winnerKey === 't1' || winnerKey === 't2' ? winnerKey : null;
+  const cards = new Map(roster.map(player => [player._idKey, {
+    playerId: player.id,
+    team: player.team,
+    hands: 0,
+    firsts: 0,
+    seconds: 0,
+    lasts: 0,
+    ddOpens: 0,
+    ddCloses: 0,
+    teamDD: 0,
+    aBlocks: 0,
+    bestStreak: 0,
+    openingFirsts: 0,
+    bounceBacks: 0,
+    distinctRanks: 0,
+    copyPasteStreak: 0,
+    rocketJumps: 0,
+    soloCarries: 0,
+    frontRowStreak: 0,
+    backRowStreak: 0,
+    cutLineCount: 0,
+    lateLift: 0,
+    finalPreviousRank: 0,
+    _streak: 0,
+    _sameRankStreak: 0,
+    _frontRowStreak: 0,
+    _backRowStreak: 0,
+    _previousRank: 0,
+    _seenRanks: new Set(),
+    _ranks: [],
+    _player: player
+  }]));
+  const historyEntries = Array.isArray(history) ? history : [];
+  const parsedHands = historyEntries.map(entry => rankedHand(entry, roster, playerCount));
+  const observationComplete = roster.length === playerCount && historyEntries.length > 0 && parsedHands.every(Boolean);
+  const hands = parsedHands.filter(Boolean);
+  const finalHand = hands[hands.length - 1];
+  const completionConsistent = Boolean(ended) && Boolean(validWinnerKey) &&
+    Boolean(finalHand) && finalHand.winKey === validWinnerKey;
+  const teamSize = playerCount / 2;
+  const sweepTerm = fullSweepTerm(playerCount);
+  const teamDd = { t1: 0, t2: 0 };
+  const foeResets = { t1: 0, t2: 0 };
+  let comebackEvidence = null;
+
+  for (let handIndex = 0; handIndex < hands.length; handIndex += 1) {
+    const hand = hands[handIndex];
+    for (let i = 0; i < hand.ranked.length; i++) {
+      const player = hand.ranked[i];
+      const card = cards.get(player._idKey);
+      const rank = i + 1;
+      card.hands += 1;
+      const previousRank = card._previousRank;
+      if (rank === 1) card.firsts += 1;
+      if (handIndex === 0 && rank === 1) card.openingFirsts = 1;
+      if (rank === 2) card.seconds += 1;
+      if (rank === playerCount) card.lasts += 1;
+      if (previousRank === playerCount && rank === 1) card.bounceBacks += 1;
+      if (previousRank > 0 && previousRank - rank >= teamSize) card.rocketJumps += 1;
+      card._sameRankStreak = previousRank === rank ? card._sameRankStreak + 1 : 1;
+      card.copyPasteStreak = Math.max(card.copyPasteStreak, card._sameRankStreak);
+      card._frontRowStreak = rank <= teamSize ? card._frontRowStreak + 1 : 0;
+      card.frontRowStreak = Math.max(card.frontRowStreak, card._frontRowStreak);
+      card._backRowStreak = rank > teamSize ? card._backRowStreak + 1 : 0;
+      card.backRowStreak = Math.max(card.backRowStreak, card._backRowStreak);
+      if (rank === teamSize) card.cutLineCount += 1;
+      card._previousRank = rank;
+      card._ranks.push(rank);
+      card._seenRanks.add(rank);
+      card.distinctRanks = card._seenRanks.size;
+      card._streak = rank === 1 ? card._streak + 1 : 0;
+      card.bestStreak = Math.max(card.bestStreak, card._streak);
+    }
+
+    const topTeam = hand.ranked[0]._teamKey;
+    const isDoubleDown = Boolean(hand.winKey) && hand.winKey === topTeam && Array.isArray(hand.ranks) &&
+      hand.ranks.every((rank, index) => rank === index + 1) &&
+      hand.ranked.slice(0, teamSize).every(player => player._teamKey === topTeam) &&
+      hand.ranked.slice(teamSize).every(player => player._teamKey === OTHER_TEAM[topTeam]);
+    if (isDoubleDown) {
+      teamDd[topTeam] += 1;
+      cards.get(hand.ranked[0]._idKey).ddOpens += 1;
+      cards.get(hand.ranked[teamSize - 1]._idKey).ddCloses += 1;
+    }
+
+    const firstPlayer = hand.ranked[0];
+    const firstCard = cards.get(firstPlayer._idKey);
+    const firstTeam = firstPlayer._teamKey;
+    const teammateRanks = hand.ranked.flatMap((player, index) =>
+      player._teamKey === firstTeam && player._idKey !== firstPlayer._idKey ? [index + 1] : []
     );
+    if (teammateRanks.length === teamSize - 1 && teammateRanks.every((rank) => rank > teamSize)) {
+      firstCard.soloCarries += 1;
+    }
+    if (hand.round === 'A' && hand.winKey === firstPlayer._teamKey &&
+        hand.prevRoundOwner === OTHER_TEAM[firstPlayer._teamKey]) {
+      cards.get(firstPlayer._idKey).aBlocks += 1;
+    }
+
+    if (prefs && prefs.strictA === true && hand.round === 'A') {
+      for (const teamKey of TEAM_KEYS) {
+        const opponentKey = OTHER_TEAM[teamKey];
+        const before = normalizeLevel(hand.entry[`prevT${opponentKey.slice(1)}Lvl`]);
+        const after = normalizeLevel(hand.entry[opponentKey]);
+        if (hand.prevRoundOwner === opponentKey && hand.winKey === teamKey && before === 'A' && after === '2') {
+          foeResets[teamKey] += 1;
+        }
+      }
+    }
+
+    if (completionConsistent) {
+      const opponentKey = OTHER_TEAM[validWinnerKey];
+      const ownBefore = hand.entry[`prevT${validWinnerKey.slice(1)}Lvl`];
+      const opponentBefore = hand.entry[`prevT${opponentKey.slice(1)}Lvl`];
+      if (normalizeLevel(opponentBefore) === 'A' && atOrBelowNine(ownBefore)) {
+        comebackEvidence = { ownLevel: normalizeLevel(ownBefore), opponentLevel: 'A' };
+      }
+    }
+  }
+
+  const cardList = [...cards.values()];
+  for (const card of cardList) {
+    card.teamDD = teamDd[teamKeyOf(card.team)];
+    card.finalPreviousRank = card._ranks.length >= 2 ? card._ranks[card._ranks.length - 2] : 0;
+    if (card._ranks.length >= 6) {
+      const segment = Math.max(2, Math.floor(card._ranks.length / 3));
+      const first = card._ranks.slice(0, segment);
+      const last = card._ranks.slice(-segment);
+      const beat = (ranks) => ranks.reduce((sum, rank) => sum + (playerCount - rank) / (playerCount - 1), 0) / ranks.length;
+      card.lateLift = Math.max(0, beat(last) - beat(first));
+    }
+  }
+  const reportCardEntries = cardList.map(card => {
+    const publicCard = Object.fromEntries(Object.entries(card).filter(([key]) => !key.startsWith('_')));
+    return [String(card.playerId), publicCard];
+  });
+  if (!observationComplete) {
+    const reportCards = Object.fromEntries(reportCardEntries);
+    return {
+      mode: playerCount,
+      hands: hands.length,
+      ended: Boolean(ended),
+      winnerKey: validWinnerKey,
+      observationComplete: false,
+      personalHonors: [],
+      teamResults: [],
+      memorials: [],
+      reportCards,
+      applicability: { foe_reset: prefs && prefs.strictA === true ? 'eligible' : 'not_applicable' }
+    };
+  }
+  const personalHonors = [];
+  for (const teamKey of TEAM_KEYS) {
+    const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
+    // 8 人局单次双下已经很罕见；该模式允许一次即记开门/关门，4/6 人仍要求多次主导。
+    const majority = Math.max(playerCount === 8 ? 1 : 2, Math.ceil(0.6 * teamDd[teamKey]));
+    for (const opener of bestTies(teamCards, 'ddOpens', majority)) {
+      personalHonors.push(personalHonor(
+        'dd_opener', opener,
+        { teamDD: teamDd[teamKey], ddOpens: opener.ddOpens },
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你带头拿下头游 ${opener.ddOpens} 次。开团全靠你撞碎对面的防线。`
+      ));
+    }
+    for (const closer of bestTies(teamCards, 'ddCloses', majority)) {
+      personalHonors.push(personalHonor(
+        'dd_closer', closer,
+        { teamDD: teamDd[teamKey], ddCloses: closer.ddCloses },
+        `本队 ${teamDd[teamKey]} 次${sweepTerm}，你守住前半区最后一个位置 ${closer.ddCloses} 次。金牌安保建议直接涨薪。`
+      ));
+    }
+  }
+
+  for (const card of cardList) {
+    if (card.aBlocks >= 1) {
+      personalHonors.push(personalHonor('a_blocker', card, { aBlocks: card.aBlocks }, `对手打 A 时，你拿到头游并阻止对手通关 ${card.aBlocks} 次。对面的香槟当场被你一脚踢翻。`));
+    }
+    if (card.bestStreak >= thresholds.streak) {
+      personalHonors.push(personalHonor('streak_king', card, { bestStreak: card.bestStreak }, `连续 ${card.bestStreak} 个小局拿到头游。发牌员是你家亲戚吧？`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.openingFirsts > 0) {
+      personalHonors.push(personalHonor('opening_flash', card, { openingFirsts: card.openingFirsts }, '第一局就拿到头游，屁股还没坐热便先给全桌一点小震撼。'));
+    }
+    if (card.bounceBacks > 0) {
+      personalHonors.push(personalHonor('bounce_back', card, { bounceBacks: card.bounceBacks }, `垫底后下一局立刻拿到头游 ${card.bounceBacks} 次。棺材板都快压不住这波反弹了。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.distinctRanks >= Math.min(4, playerCount)) {
+      personalHonors.push(personalHonor('rank_rainbow', card, { distinctRanks: card.distinctRanks }, `一晚走过 ${card.distinctRanks} 种名次。你不是来打牌的，你是来体验百态人生的。`));
+    }
+    if (card.lasts === 0 && hands.length >= thresholds.clean) {
+      personalHonors.push(personalHonor('clean_sheet', card, { hands: card.hands, lasts: card.lasts }, `${card.hands} 个小局，0 次垫底。只要你不崩，赛后清算就永远找不到你。`));
+    }
+    const almostTriggered = card.firsts === 0 && card.seconds >= thresholds.almost;
+    if (almostTriggered) {
+      personalHonors.push(personalHonor('almost', card, { seconds: card.seconds, firsts: card.firsts }, `${card.seconds} 次第二名，头游仍是 0。一顿操作猛如虎，一看战绩全是苦。`));
+    } else if (hands.length >= EARLY_HONOR_HANDS && card.firsts === 0) {
+      personalHonors.push(personalHonor('no_first', card, { hands: card.hands, firsts: 0 }, `本场 ${card.hands} 个小局，头游 0 次。被全桌轮流上嘴脸，小丑竟是我自己。`));
+    }
+    const swingThreshold = Math.max(2, Math.ceil(hands.length / playerCount));
+    if (card.firsts >= swingThreshold && card.lasts >= swingThreshold) {
+      personalHonors.push(personalHonor('boom_bust', card, { firsts: card.firsts, lasts: card.lasts }, `头游 ${card.firsts} 次，末游 ${card.lasts} 次。一会儿天上飞，一会儿地下趴。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.copyPasteStreak >= 3) {
+      personalHonors.push(personalHonor('copy_paste', card, { copyPasteStreak: card.copyPasteStreak }, `连续 ${card.copyPasteStreak} 个小局名次完全相同。命运的齿轮卡得死死的。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.rocketJumps > 0) {
+      personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `相邻小局间一脚油门跨过半张桌子 ${card.rocketJumps} 次，底牌里像是藏了推进器。`));
+    }
+    const ranks = card._ranks;
+    if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] !== 1) {
+      personalHonors.push(personalHonor('clutch_first', card, { finalPreviousRank: card.finalPreviousRank }, `最后一局从第 ${card.finalPreviousRank} 名冲到头游。主角光环一开，剧本都不敢这么写。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.soloCarries > 0) {
+      personalHonors.push(personalHonor('solo_carry', card, { soloCarries: card.soloCarries }, `你拿到头游、队友却全在后半区 ${card.soloCarries} 次。带不动，真的带不动。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.frontRowStreak >= 4) {
+      personalHonors.push(personalHonor('front_row_streak', card, { frontRowStreak: card.frontRowStreak }, `连续 ${card.frontRowStreak} 个小局都在前半区。后面的朋友，听得到我说话吗？`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.cutLineCount >= 2) {
+      personalHonors.push(personalHonor('cut_line_master', card, { cutLineCount: card.cutLineCount }, `${card.cutLineCount} 次正好卡在前半区最后一名。多打一张嫌累，少打一张掉队，60 分万岁。`));
+    }
+    if (card.lateLift >= 0.3) {
+      personalHonors.push(personalHonor('late_engine', card, { lateLift: Number(card.lateLift.toFixed(3)) }, `后半段平均胜过同桌玩家的比例比开局高 ${Math.round(card.lateLift * 100)} 个百分点。前面疯狂加载，后面终于接管比赛。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && card.backRowStreak >= 3) {
+      personalHonors.push(personalHonor('back_row_streak', card, { backRowStreak: card.backRowStreak }, `连续 ${card.backRowStreak} 个小局都在后半区。外面的世界很精彩，你却在地下室坐牢。`));
+    }
+  }
+
+  const mostLasts = Math.max(0, ...cardList.map((card) => card.lasts));
+  if (hands.length >= EARLY_HONOR_HANDS && mostLasts >= 2) {
+    for (const card of cardList.filter((candidate) => candidate.lasts === mostLasts)) {
+      personalHonors.push(personalHonor(
+        'last_king', card,
+        { lasts: mostLasts },
+        `末游 ${mostLasts} 次，${cardList.filter((candidate) => candidate.lasts === mostLasts).length > 1 ? '并列' : ''}全场最多。椅子是不是已经开始发烫了？`
+      ));
+    }
+  }
+
+  for (const firstKing of bestTies(cardList, 'firsts', thresholds.first)) {
+    personalHonors.push(personalHonor('first_king', firstKing, { firsts: firstKing.firsts }, `${firstKing.firsts} 次头游，全场最多。纯纯的降维打击，这就是满级人类的含金量。`));
+  }
+
+  const f1ChoiceByPlayer = new Map();
+  for (const key of F1_FAMILY) {
+    for (const honor of personalHonors) {
+      if (honor.key === key && !f1ChoiceByPlayer.has(String(honor.playerId))) {
+        f1ChoiceByPlayer.set(String(honor.playerId), key);
+      }
+    }
+  }
+  const foldedPersonalHonors = personalHonors.filter(honor =>
+    !F1_FAMILY.includes(honor.key) || f1ChoiceByPlayer.get(String(honor.playerId)) === honor.key
+  );
+
+  const teamResults = [];
+  for (const teamKey of TEAM_KEYS) {
+    const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
+    const playerIds = roster.filter(player => player._teamKey === teamKey).map(player => player.id);
+    if (teamDd[teamKey] >= thresholds.ddNight) {
+      teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队完成 ${teamDd[teamKey]} 次${sweepTerm}，把对面安排得明明白白。`));
+    }
+    if (hands.length >= EARLY_HONOR_HANDS && teamCards.every(card => card.firsts > 0)) {
+      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游。全员都能上嘴脸，对面根本不知道该防谁。`));
+    }
+    if (prefs && prefs.strictA === true && foeResets[teamKey] > 0) {
+      teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `对手打 A 时，本队把对方打回 2 共 ${foeResets[teamKey]} 次。一夜回到解放前，杀人还要诛心。`));
+    }
+  }
+  if (completionConsistent && comebackEvidence) {
+    const playerIds = roster.filter(player => player._teamKey === validWinnerKey).map(player => player.id);
+    teamResults.push(teamHonor('comeback_a', validWinnerKey, playerIds, comebackEvidence, `对手已到 A 时，本队从 ${comebackEvidence.ownLevel} 级完成翻盘。香槟先别开，这把我们接管比赛。`));
+  }
+
+  const memorials = [];
+  if (completionConsistent) {
+    const finisherPlayer = hands[hands.length - 1].ranked[0];
+    memorials.push({
+      category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.finisher, key: 'finisher', title: titleOf('finisher'),
+      playerId: finisherPlayer.id, score: { finalRank: 1 }, caption: '通关的最后一个小局拿到头游。重拳出击完成绝杀，今晚的聚光灯全打在你身上。'
+    });
+    if (hands.length <= thresholds.blitz) {
+      memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.speed_run, key: 'speed_run', title: titleOf('speed_run'), score: { hands: hands.length }, caption: `${hands.length} 个小局完成通关。今晚的牌局比德芙还丝滑，可以提前打卡下班了。` });
+    }
+  }
+  if (hands.length >= thresholds.marathon) {
+    memorials.push({ category: 'memorial', subtype: HONOR_CATEGORY_BY_KEY.long_night, key: 'long_night', title: titleOf('long_night'), score: { hands: hands.length }, caption: `一共打了 ${hands.length} 个小局。超长膀胱局，打得手机都快包浆了。` });
+  }
+
+  const reportCards = Object.fromEntries(reportCardEntries);
+
+  return {
+    mode: playerCount,
+    hands: hands.length,
+    ended: Boolean(ended),
+    winnerKey: validWinnerKey,
+    observationComplete: true,
+    personalHonors: foldedPersonalHonors,
+    teamResults,
+    memorials,
+    reportCards,
+    applicability: { foe_reset: prefs && prefs.strictA === true ? 'eligible' : 'not_applicable' }
+  };
 }
 
 export function resolveHonorPlayerCount(modeValue, fallbackCount = 8) {
@@ -62,556 +457,39 @@ export function resolveHonorPlayerCount(modeValue, fallbackCount = 8) {
 }
 
 /**
- * Calculate honors from explicit player/stat data.
- *
- * @param {object} [options]
- * @param {boolean} [options.applyCap=true] - When true (the default, what the UI
- *   renders), no player may hold more than MAX_POSITIVE_HONORS_PER_PLAYER positive
- *   honors — overflow redistributes to the next-best qualifier (anti-sweep). Pass
- *   false to get the raw, uncapped per-honor winners (each honor → its top scorer),
- *   e.g. to test scoring independent of assignment.
+ * 旧 web 调用点的编译期适配。它只能提供名次序列，因此只会得到可由名次重建的 v2 事件；
+ * HONOR-1 接线时应改为直接传服务端逐局快照并删除这个 adapter。
  */
-export function calculateHonorsFromData(players = [], allStats = {}, totalPlayers = 8, options = {}) {
-  // Match the null-tolerant contract of every other input (corrupted snapshots
-  // may pass null/garbage): the default param only substitutes for undefined.
-  const opts = options && typeof options === 'object' ? options : {};
-  const applyCap = opts.applyCap !== false;
-  const positiveHonorCap = applyCap ? MAX_POSITIVE_HONORS_PER_PLAYER : Infinity;
+export function calculateHonorsFromData(players = [], allStats = {}, totalPlayers = 8) {
+  const mode = resolveHonorPlayerCount(totalPlayers, Array.isArray(players) ? players.length : 8);
   const playerList = Array.isArray(players) ? players : [];
-  const statsByPlayer = allStats && typeof allStats === 'object' && !Array.isArray(allStats)
-    ? allStats
-    : {};
-
-  totalPlayers = resolveHonorPlayerCount(totalPlayers, playerList.length);
+  const maxHands = playerList.reduce((max, player) => {
+    const rankings = allStats && allStats[player && player.id] && allStats[player.id].rankings;
+    return Math.max(max, Array.isArray(rankings) ? rankings.length : 0);
+  }, 0);
+  const history = [];
+  for (let handIndex = 0; handIndex < maxHands; handIndex++) {
+    const playerRankings = {};
+    for (const player of playerList) {
+      const rank = Number(allStats && allStats[player.id] && allStats[player.id].rankings?.[handIndex]);
+      if (Number.isSafeInteger(rank) && rank >= 1 && rank <= mode && !playerRankings[rank]) {
+        playerRankings[rank] = player;
+      }
+    }
+    if (Object.keys(playerRankings).length !== mode) continue;
+    const first = playerRankings[1];
+    history.push({ playerRankings, winKey: teamKeyOf(first && first.team), mode: String(mode) });
+  }
+  const result = calculateSessionHonors({ history, players: playerList, mode });
   const honors = {};
-  const minGames = MIN_HONOR_GAMES;
-  const mid = Math.ceil(totalPlayers / 2);
-  const midRank = (totalPlayers + 1) / 2;
-  const topTierThreshold = Math.max(1, Math.ceil(totalPlayers / 3));
-  const bottomTierThreshold = totalPlayers - topTierThreshold + 1;
-
-  function average(values) {
-    return values.length > 0
-      ? values.reduce((sum, value) => sum + value, 0) / values.length
-      : null;
+  for (const honor of result.personalHonors) {
+    if (honors[honor.key]) continue;
+    const player = playerList.find(candidate => String(candidate.id) === String(honor.playerId));
+    honors[honor.key] = {
+      player: playerRef(normalizedPlayers([player], mode)[0] || { ...player, _idKey: '', _teamKey: '' }),
+      score: honor.caption,
+      stats: allStats && allStats[honor.playerId] ? allStats[honor.playerId] : {}
+    };
   }
-
-  function resolveTeamNumber(team) {
-    const value = Number(team);
-    return value === 1 || value === 2 ? value : null;
-  }
-
-  const playerRows = playerList
-    .map(player => {
-      if (!player || typeof player !== 'object') return null;
-
-      const stats = statsByPlayer[player.id];
-      const rankings = normalizeRankings(stats?.rankings, totalPlayers);
-      return { player, stats, rankings, team: resolveTeamNumber(player.team) };
-    })
-    .filter(Boolean);
-
-  const eligible = playerRows
-    .map(row => {
-      const { player, stats, rankings, team } = row;
-      if (!stats || rankings.length < minGames) {
-        return null;
-      }
-
-      const games = rankings.length;
-      const totalRank = rankings.reduce((sum, rank) => sum + rank, 0);
-      const firstCount = rankings.filter(rank => rank === 1).length;
-      const lastCount = rankings.filter(rank => rank === totalPlayers).length;
-      const avg = totalRank / games;
-      const variance = calculateVariance(rankings);
-      const firstRate = firstCount / games;
-      const lastRate = lastCount / games;
-      const topHalfRate = rankings.filter(rank => rank <= mid).length / games;
-      const bottomHalfRate = rankings.filter(rank => rank > mid).length / games;
-      const uniqueRanks = new Set(rankings);
-      const bestRank = Math.min(...rankings);
-      const worstRank = Math.max(...rankings);
-      const rankRange = worstRank - bestRank;
-      let movement = 0;
-      let changes = 0;
-      let topHalfStreak = 0;
-      let bestTopHalfStreak = 0;
-      let bottomHalfStreak = 0;
-      let bestBottomHalfStreak = 0;
-      let crashes = 0;
-      let leaps = 0;
-      let pressureRounds = 0;
-      let pressureRebounds = 0;
-
-      for (let i = 0; i < rankings.length; i++) {
-        const rank = rankings[i];
-        if (rank >= bottomTierThreshold) {
-          pressureRounds++;
-        }
-
-        if (rank <= mid) {
-          topHalfStreak++;
-          bottomHalfStreak = 0;
-        } else {
-          bottomHalfStreak++;
-          topHalfStreak = 0;
-        }
-        bestTopHalfStreak = Math.max(bestTopHalfStreak, topHalfStreak);
-        bestBottomHalfStreak = Math.max(bestBottomHalfStreak, bottomHalfStreak);
-
-        if (i === 0) continue;
-        const prev = rankings[i - 1];
-        movement += Math.abs(rank - prev);
-        if (rank !== prev) changes++;
-        if (prev <= topTierThreshold && rank >= bottomTierThreshold) crashes++;
-        if (prev >= bottomTierThreshold && rank <= topTierThreshold) leaps++;
-        if (prev >= bottomTierThreshold && rank <= mid) pressureRebounds++;
-      }
-
-      let teammateAvgTotal = 0;
-      let teammateContextRounds = 0;
-      let teammateLeadRounds = 0;
-      let supportFloorRounds = 0;
-      let teamAvgTotal = 0;
-      let opponentAvgTotal = 0;
-      let teamContextRounds = 0;
-      let teamEdgeRounds = 0;
-
-      if (team !== null) {
-        for (let i = 0; i < rankings.length; i++) {
-          const rank = rankings[i];
-          const teammateRanks = playerRows
-            .filter(other => other !== row && other.team === team)
-            .map(other => other.rankings[i])
-            .filter(Number.isFinite);
-          const teamRanks = playerRows
-            .filter(other => other.team === team)
-            .map(other => other.rankings[i])
-            .filter(Number.isFinite);
-          const opponentRanks = playerRows
-            .filter(other => other.team !== null && other.team !== team)
-            .map(other => other.rankings[i])
-            .filter(Number.isFinite);
-
-          const teammateRoundAvg = average(teammateRanks);
-          if (teammateRoundAvg !== null) {
-            teammateContextRounds++;
-            teammateAvgTotal += teammateRoundAvg;
-            if (rank < teammateRoundAvg) teammateLeadRounds++;
-            if (rank <= mid && teammateRoundAvg > mid) supportFloorRounds++;
-          }
-
-          const teamRoundAvg = average(teamRanks);
-          const opponentRoundAvg = average(opponentRanks);
-          if (teamRoundAvg !== null && opponentRoundAvg !== null) {
-            teamContextRounds++;
-            teamAvgTotal += teamRoundAvg;
-            opponentAvgTotal += opponentRoundAvg;
-            if (teamRoundAvg < opponentRoundAvg) teamEdgeRounds++;
-          }
-        }
-      }
-
-      const segmentSize = Math.max(2, Math.floor(rankings.length / 3));
-      const early = rankings.slice(0, segmentSize);
-      const late = rankings.slice(-segmentSize);
-      const earlyAvg = early.reduce((sum, rank) => sum + rank, 0) / early.length;
-      const lateAvg = late.reduce((sum, rank) => sum + rank, 0) / late.length;
-      const improvement = earlyAvg - lateAvg;
-      const decline = lateAvg - earlyAvg;
-      const lateBottomHalfRate = late.filter(rank => rank > mid).length / late.length;
-      const lateLastRate = late.filter(rank => rank === totalPlayers).length / late.length;
-      const secondCount = rankings.filter(rank => rank === 2).length;
-      const pressureRate = pressureRounds / games;
-      const pressureRecoveryRate = pressureRounds > 0 ? pressureRebounds / pressureRounds : 0;
-      const sustainedRecoveryRate = Math.max(0, topHalfRate - pressureRate);
-      const changeRate = games > 1 ? changes / (games - 1) : 0;
-      const teammateAvg = teammateContextRounds > 0 ? teammateAvgTotal / teammateContextRounds : null;
-      const teammateDelta = teammateAvg !== null ? teammateAvg - avg : 0;
-      const teammateLeadRate = teammateContextRounds > 0 ? teammateLeadRounds / teammateContextRounds : 0;
-      const supportFloorRate = teammateContextRounds > 0 ? supportFloorRounds / teammateContextRounds : 0;
-      const teamAvg = teamContextRounds > 0 ? teamAvgTotal / teamContextRounds : null;
-      const opponentAvg = teamContextRounds > 0 ? opponentAvgTotal / teamContextRounds : null;
-      const teamEdgeRate = teamContextRounds > 0 ? teamEdgeRounds / teamContextRounds : 0;
-      const dominanceScore = (firstRate * 2.2) + topHalfRate + ((totalPlayers + 1 - avg) / totalPlayers);
-      const burdenScore = (lastRate * 2.2) + bottomHalfRate + (avg / totalPlayers);
-      const stabilityScore = topHalfRate + ((totalPlayers + 1 - avg) / totalPlayers) - (variance / totalPlayers);
-      const volatilityScore = movement + (variance * 2) + rankRange;
-      const comebackArcScore = improvement + (leaps * 0.75) +
-        (earlyAvg >= bottomTierThreshold && lateAvg <= topTierThreshold ? 2 : 0);
-      const burnoutScore = (decline * 2) + (lateBottomHalfRate * 2) +
-        lateLastRate + (bestBottomHalfStreak / games);
-      const resilienceScore = (pressureRecoveryRate * 4) + (topHalfRate * 2) +
-        sustainedRecoveryRate + (Math.min(pressureRebounds, 3) * 0.25) -
-        Math.max(0, avg - midRank);
-      const fastAttackScore = (topHalfRate * 3) +
-        (changeRate * 1.5) +
-        (((totalPlayers + 1 - avg) / totalPlayers) * 2) +
-        (bestTopHalfStreak / games) +
-        Math.max(0, midRank - earlyAvg) -
-        (variance / totalPlayers) -
-        lastRate;
-      const globalImpactScore = dominanceScore +
-        (Math.max(0, teammateDelta) * 0.8) +
-        (teammateLeadRate * 0.8) +
-        (teamEdgeRate * 0.5);
-      const globalBurdenScore = burdenScore +
-        (Math.max(0, -teammateDelta) * 0.8) +
-        ((teammateContextRounds > 0 ? 1 - teammateLeadRate : 0) * 0.35);
-      const teamAnchorScore = (Math.max(0, teammateDelta) * 1.4) +
-        (teammateLeadRate * 1.2) +
-        (supportFloorRate * 1.4) +
-        (topHalfRate * 0.8) +
-        (teamEdgeRate * 0.5) -
-        (variance / totalPlayers) -
-        (Math.max(0, avg - midRank) * 0.25);
-      const floorCoreScore = (Math.max(0, teammateDelta) * 1.5) +
-        (supportFloorRate * 2) +
-        (1 - lastRate) +
-        ((totalPlayers + 1 - worstRank) / totalPlayers) +
-        (teamEdgeRate * 0.5) -
-        (Math.max(0, avg - midRank) * 0.2);
-      const tempoCoreScore = fastAttackScore +
-        (teammateLeadRate * 1.1) +
-        (teamEdgeRate * 1.1) +
-        (Math.max(0, teammateDelta) * 0.5);
-
-      return {
-        player,
-        stats,
-        rankings,
-        games,
-        firstCount,
-        lastCount,
-        avg,
-        variance,
-        firstRate,
-        lastRate,
-        topHalfRate,
-        bottomHalfRate,
-        uniqueRanks,
-        bestRank,
-        worstRank,
-        rankRange,
-        movement,
-        changes,
-        crashes,
-        leaps,
-        pressureRate,
-        pressureRounds,
-        pressureRebounds,
-        pressureRecoveryRate,
-        sustainedRecoveryRate,
-        changeRate,
-        bestTopHalfStreak,
-        bestBottomHalfStreak,
-        earlyAvg,
-        lateAvg,
-        improvement,
-        decline,
-        lateBottomHalfRate,
-        lateLastRate,
-        secondCount,
-        dominanceScore,
-        burdenScore,
-        stabilityScore,
-        volatilityScore,
-        comebackArcScore,
-        burnoutScore,
-        resilienceScore,
-        fastAttackScore,
-        teammateAvg,
-        teammateDelta,
-        teammateLeadRate,
-        supportFloorRate,
-        teamAvg,
-        opponentAvg,
-        teamEdgeRate,
-        globalImpactScore,
-        globalBurdenScore,
-        teamAnchorScore,
-        floorCoreScore,
-        tempoCoreScore
-      };
-    })
-    .filter(Boolean);
-
-  if (eligible.length === 0) return honors;
-
-  function bestBy(candidates, compare) {
-    return candidates.reduce((best, candidate) => {
-      if (!best) return candidate;
-      return compare(candidate, best) > 0 ? candidate : best;
-    }, null);
-  }
-
-  function assign(key, metric, score) {
-    if (metric) {
-      honors[key] = {
-        player: metric.player,
-        score,
-        stats: {
-          ...metric.stats,
-          games: metric.games,
-          totalRank: metric.avg * metric.games,
-          firstPlaceCount: metric.firstCount,
-          lastPlaceCount: metric.lastCount,
-          rankings: metric.rankings
-        }
-      };
-    }
-  }
-
-  // Honor specs — one per award. Each carries the SAME filter, comparator, and
-  // score string as the original independent bestBy(...) calls; the assignment
-  // loop below adds the anti-sweep cap on top without touching the scoring.
-  //
-  // `positive: true` marks an award subject to MAX_POSITIVE_HONORS_PER_PLAYER.
-  // Positive specs are ordered flagship-first (mvp — always truthful) then by
-  // descending filter strictness (节奏核心's 5-condition gate → 石佛's broad
-  // avg≤mid gate). Narrow honors claim their often-sole qualifier before broad
-  // honors exhaust a strong player's cap, which maximizes spread. Order among
-  // the uncapped (negative / neutral) specs is irrelevant — they're independent.
-  const honorSpecs = [
-    {
-      key: 'mvp', positive: true, flagship: true, // assigned first, always the genuine best
-      filter: () => true,
-      compare: (a, b) =>
-        (a.globalImpactScore - b.globalImpactScore) ||
-        (b.avg - a.avg) ||
-        (a.firstCount - b.firstCount),
-      score: m => m.globalImpactScore.toFixed(2)
-    },
-    {
-      key: 'frequent', positive: true,
-      filter: m =>
-        m.changes >= 2 &&
-        m.topHalfRate >= 0.75 &&
-        m.avg <= midRank &&
-        m.bestTopHalfStreak >= 3 &&
-        m.teamEdgeRate >= 0.5,
-      compare: (a, b) =>
-        (a.tempoCoreScore - b.tempoCoreScore) ||
-        (a.teamEdgeRate - b.teamEdgeRate) ||
-        (a.topHalfRate - b.topHalfRate) ||
-        (a.changeRate - b.changeRate) ||
-        (b.avg - a.avg),
-      score: m => `${Math.round(m.teamEdgeRate * 100)}%`
-    },
-    {
-      key: 'resilient', positive: true,
-      filter: m => m.pressureRebounds > 0 && m.topHalfRate >= 0.35,
-      compare: (a, b) =>
-        (a.resilienceScore - b.resilienceScore) ||
-        (a.pressureRecoveryRate - b.pressureRecoveryRate) ||
-        (a.sustainedRecoveryRate - b.sustainedRecoveryRate) ||
-        (b.pressureRate - a.pressureRate) ||
-        (a.pressureRebounds - b.pressureRebounds) ||
-        (b.avg - a.avg),
-      score: m => `${m.pressureRebounds}/${m.pressureRounds}`
-    },
-    {
-      key: 'carp', positive: true,
-      filter: m => m.comebackArcScore > 1.5 && m.lateAvg <= mid,
-      compare: (a, b) =>
-        (a.comebackArcScore - b.comebackArcScore) ||
-        (a.improvement - b.improvement) ||
-        (b.lateAvg - a.lateAvg),
-      score: m => `+${m.improvement.toFixed(1)}`
-    },
-    {
-      key: 'comeback', positive: true,
-      filter: m => m.improvement > 1 && m.lateAvg <= mid,
-      compare: (a, b) =>
-        (a.improvement - b.improvement) ||
-        (b.lateAvg - a.lateAvg) ||
-        (a.topHalfRate - b.topHalfRate),
-      score: m => `+${m.improvement.toFixed(1)}`
-    },
-    {
-      key: 'nonstick', positive: true,
-      filter: m => m.lastCount === 0 && m.teammateAvg !== null,
-      compare: (a, b) =>
-        (a.floorCoreScore - b.floorCoreScore) ||
-        (a.supportFloorRate - b.supportFloorRate) ||
-        (a.teammateDelta - b.teammateDelta) ||
-        (b.worstRank - a.worstRank) ||
-        (b.avg - a.avg),
-      score: m => `+${m.teammateDelta.toFixed(1)}`
-    },
-    {
-      key: 'median', positive: true,
-      filter: m => m.teammateAvg !== null && m.teammateDelta > 0,
-      compare: (a, b) =>
-        (a.teamAnchorScore - b.teamAnchorScore) ||
-        (a.teammateDelta - b.teammateDelta) ||
-        (a.teammateLeadRate - b.teammateLeadRate) ||
-        (b.avg - a.avg),
-      score: m => `+${m.teammateDelta.toFixed(1)}`
-    },
-    {
-      key: 'streak', positive: true,
-      filter: m => m.bestTopHalfStreak >= 3,
-      compare: (a, b) =>
-        (a.bestTopHalfStreak - b.bestTopHalfStreak) ||
-        (a.topHalfRate - b.topHalfRate) ||
-        (b.avg - a.avg),
-      score: m => m.bestTopHalfStreak
-    },
-    {
-      key: 'stable', positive: true,
-      filter: m => m.avg <= mid && m.variance <= totalPlayers,
-      compare: (a, b) =>
-        (a.stabilityScore - b.stabilityScore) ||
-        (b.variance - a.variance) ||
-        (b.avg - a.avg),
-      score: m => m.variance.toFixed(2)
-    },
-    {
-      key: 'burden', // flagship (negative) — uncapped, always the genuine worst
-      filter: () => true,
-      compare: (a, b) =>
-        (a.globalBurdenScore - b.globalBurdenScore) ||
-        (a.avg - b.avg) ||
-        (a.lastCount - b.lastCount),
-      score: m => m.globalBurdenScore.toFixed(2)
-    },
-    {
-      key: 'fanche',
-      filter: m => m.crashes > 0,
-      compare: (a, b) =>
-        (a.crashes - b.crashes) ||
-        (a.movement - b.movement) ||
-        (a.variance - b.variance),
-      score: m => m.crashes
-    },
-    {
-      key: 'burnout',
-      filter: m =>
-        m.decline > 1 &&
-        m.earlyAvg <= midRank &&
-        m.lateAvg > midRank &&
-        m.lateBottomHalfRate >= 0.5,
-      compare: (a, b) =>
-        (a.burnoutScore - b.burnoutScore) ||
-        (a.decline - b.decline) ||
-        (a.lateBottomHalfRate - b.lateBottomHalfRate) ||
-        (a.avg - b.avg),
-      score: m => `+${m.decline.toFixed(1)}`
-    },
-    {
-      key: 'rollercoaster',
-      filter: m => m.movement >= Math.max(4, m.games - 1),
-      compare: (a, b) =>
-        (a.volatilityScore - b.volatilityScore) ||
-        (a.movement - b.movement) ||
-        (a.variance - b.variance),
-      score: m => m.movement
-    },
-    {
-      key: 'gambler',
-      filter: m => m.firstCount > 0 && m.lastCount > 0,
-      compare: (a, b) => {
-        const scoreA = Math.sqrt(a.firstRate * a.lastRate) * (a.firstCount + a.lastCount);
-        const scoreB = Math.sqrt(b.firstRate * b.lastRate) * (b.firstCount + b.lastCount);
-        return (scoreA - scoreB) || (a.movement - b.movement);
-      },
-      score: m => `${m.firstCount}冠${m.lastCount}末`
-    },
-    {
-      key: 'complete',
-      filter: m => m.uniqueRanks.size >= totalPlayers,
-      compare: (a, b) =>
-        (a.uniqueRanks.size - b.uniqueRanks.size) ||
-        (a.uniqueRanks.size / a.games - b.uniqueRanks.size / b.games) ||
-        (a.movement - b.movement),
-      score: m => `${m.uniqueRanks.size}/${totalPlayers}`
-    },
-    {
-      key: 'almost',
-      filter: m => m.firstCount === 0 && m.secondCount > 0,
-      compare: (a, b) =>
-        (a.secondCount - b.secondCount) ||
-        (b.avg - a.avg) ||
-        (a.topHalfRate - b.topHalfRate),
-      score: m => `${m.secondCount}次第2`
-    }
-  ];
-
-  // Processing order for the anti-sweep cap:
-  //   1. flagship positives (mvp) first — assigned before any derived honor can
-  //      cap the genuine best player, so 吕布 is always truthful;
-  //   2. remaining positive honors most-constrained-first (fewest qualifiers —
-  //      the MRV heuristic) so a scarce honor claims its qualifier before a broad
-  //      honor exhausts that player's cap; ties broken by declared spec order;
-  //   3. uncapped (negative / neutral) honors, order irrelevant.
-  // Without (2), a narrow honor processed late can find all its qualifiers
-  // already capped and be needlessly deferred to pass 2 (over-capping a player),
-  // when claiming its scarce qualifier first would have spread it cleanly.
-  const qualifierCount = new Map(
-    honorSpecs.map(spec => [spec.key, eligible.filter(spec.filter).length])
-  );
-  const positiveSpecs = honorSpecs.filter(spec => spec.positive);
-  const otherSpecs = honorSpecs.filter(spec => !spec.positive);
-  const assignmentOrder = [
-    ...positiveSpecs.filter(spec => spec.flagship),
-    ...positiveSpecs
-      .filter(spec => !spec.flagship)
-      .map(spec => ({ spec, index: honorSpecs.indexOf(spec) }))
-      .sort((a, b) =>
-        (qualifierCount.get(a.spec.key) - qualifierCount.get(b.spec.key)) ||
-        (a.index - b.index)
-      )
-      .map(entry => entry.spec),
-    ...otherSpecs
-  ];
-
-  // Two-pass assignment so the cap SPREADS without ever producing a false
-  // "本场无人" on an honor that real players earned:
-  //
-  //   Pass 1 — assign each honor to its best UNCAPPED qualifier. Once a player
-  //     holds the cap they're skipped, so positive honors spread across players.
-  //     A positive honor whose every qualifier is already capped is DEFERRED.
-  //   Pass 2 — award each deferred honor to its best qualifier, ignoring the
-  //     cap. This only fires when a roster can't fill an honor within the cap
-  //     (e.g. a 4-player two-pair game where all five "strength" honors resolve
-  //     to the same two players) — there, a real already-decorated winner beats
-  //     a misleading empty card. In a healthy 8-player session pass 2 never
-  //     fires and the cap holds strictly.
-  //
-  // With applyCap === false the cap is Infinity, so nothing is ever deferred and
-  // each honor simply goes to its top scorer — identical to the pre-cap behavior.
-  const positiveHonorsHeld = new Map();
-  const heldCount = id => positiveHonorsHeld.get(id) || 0;
-  const recordHonor = id => positiveHonorsHeld.set(id, heldCount(id) + 1);
-  const deferredPositives = [];
-
-  for (const spec of assignmentOrder) {
-    const qualified = eligible.filter(spec.filter);
-    if (qualified.length === 0) continue;
-
-    if (!spec.positive) {
-      const winner = bestBy(qualified, spec.compare);
-      assign(spec.key, winner, spec.score(winner));
-      continue;
-    }
-
-    const uncapped = qualified.filter(m => heldCount(m.player.id) < positiveHonorCap);
-    if (uncapped.length === 0) {
-      deferredPositives.push({ spec, qualified }); // every qualifier capped — fill in pass 2
-      continue;
-    }
-    const winner = bestBy(uncapped, spec.compare);
-    recordHonor(winner.player.id);
-    assign(spec.key, winner, spec.score(winner));
-  }
-
-  for (const { spec, qualified } of deferredPositives) {
-    const winner = bestBy(qualified, spec.compare);
-    recordHonor(winner.player.id);
-    assign(spec.key, winner, spec.score(winner));
-  }
-
   return honors;
 }
-
