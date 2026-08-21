@@ -1,8 +1,8 @@
 import { countCurrentHonors, normalizeHonorCounter } from './honorCatalog.js';
 
 const UNSAFE_RELATION_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
-const safeCount = (value) => Math.max(0, Math.floor(Number.isFinite(Number(value)) ? Number(value) : 0));
-const safeRatio = (value, target) => target > 0 ? Math.min(1, safeCount(value) / target) : 0;
+const achievementSafeCount = (value) => Math.max(0, Math.floor(Number.isFinite(Number(value)) ? Number(value) : 0));
+const safeRatio = (value, target) => target > 0 ? Math.min(1, achievementSafeCount(value) / target) : 0;
 const percent = (...ratios) => Math.round(Math.min(...ratios) * 100);
 
 export const ACHIEVEMENT_SCHEMA_VERSION = 'career-trophies-v2';
@@ -48,7 +48,7 @@ function relationKeyIsSafe(key) {
 }
 
 function relationHasGames(value) {
-  return value && typeof value === 'object' && safeCount(value.games) > 0;
+  return value && typeof value === 'object' && achievementSafeCount(value.games) > 0;
 }
 
 function relationEntries(value) {
@@ -78,15 +78,15 @@ function metricsFor(playerStats = {}) {
   const mode = playerStats.modeBreakdown || {};
   const ladder = playerStats.ladder && typeof playerStats.ladder === 'object' ? playerStats.ladder : {};
   return {
-    matches: safeCount(playerStats.matchesTotal ?? playerStats.sessionsPlayed ?? playerStats.gamesPlayed),
-    hands: safeCount(playerStats.totalGames ?? playerStats.progress?.hands),
-    days: safeCount(playerStats.gameDays ?? playerStats.progress?.nights),
-    streak: safeCount(playerStats.longestWinStreak),
-    mvpVotes: safeCount(playerStats.mvpVotes),
+    matches: achievementSafeCount(playerStats.matchesTotal ?? playerStats.sessionsPlayed ?? playerStats.gamesPlayed),
+    hands: achievementSafeCount(playerStats.totalGames ?? playerStats.progress?.hands),
+    days: achievementSafeCount(playerStats.gameDays ?? playerStats.progress?.nights),
+    streak: achievementSafeCount(playerStats.longestWinStreak),
+    mvpVotes: achievementSafeCount(playerStats.mvpVotes),
     honors: countCurrentHonors(normalizeHonorCounter(playerStats.honors || {})),
     relations: countDistinctProfileRelations(playerStats),
-    mode4: safeCount(mode['4P']), mode6: safeCount(mode['6P']), mode8: safeCount(mode['8P']),
-    ladderPeak: safeCount(ladder.peak ?? ladder.rating ?? playerStats.ladderPeak)
+    mode4: achievementSafeCount(mode['4P']), mode6: achievementSafeCount(mode['6P']), mode8: achievementSafeCount(mode['8P']),
+    ladderPeak: achievementSafeCount(ladder.peak ?? ladder.rating ?? playerStats.ladderPeak)
   };
 }
 
