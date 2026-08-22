@@ -10,7 +10,7 @@ export const EARLY_HONOR_HANDS = 5;
 export const HONOR_THRESHOLDS = Object.freeze({
   4: Object.freeze({ ddNight: 3, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 8, marathon: 18 }),
   6: Object.freeze({ ddNight: 2, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 }),
-  8: Object.freeze({ ddNight: 1, streak: 2, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
+  8: Object.freeze({ ddNight: 2, streak: 2, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
 });
 
 /** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
@@ -301,8 +301,8 @@ export function calculateSessionHonors(input = {}) {
   const personalHonors = [];
   for (const teamKey of TEAM_KEYS) {
     const teamCards = cardList.filter(card => teamKeyOf(card.team) === teamKey);
-    // 8 人局单次双下已经很罕见；该模式允许一次即记开门/关门，4/6 人仍要求多次主导。
-    const majority = Math.max(playerCount === 8 ? 1 : 2, Math.ceil(0.6 * teamDd[teamKey]));
+    // 全贡是客观战报；个人/团队荣誉必须由至少两次同类事件证明，避免首局偶发包揽直接发奖。
+    const majority = Math.max(2, Math.ceil(0.6 * teamDd[teamKey]));
     for (const opener of bestTies(teamCards, 'ddOpens', majority)) {
       personalHonors.push(personalHonor(
         'dd_opener', opener,
