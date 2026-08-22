@@ -10,8 +10,13 @@ export const EARLY_HONOR_HANDS = 5;
 export const HONOR_THRESHOLDS = Object.freeze({
   4: Object.freeze({ ddNight: 3, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 8, marathon: 18 }),
   6: Object.freeze({ ddNight: 2, streak: 3, first: 4, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 }),
-  8: Object.freeze({ ddNight: 2, streak: 2, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
+  8: Object.freeze({ ddNight: 2, streak: 3, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
 });
+
+/** 赛后颁奖预算；战报卡中的客观计数不受这些上限影响。 */
+export const MAX_PERSONAL_HONORS_BY_MODE = Object.freeze({ 4: 3, 6: 4, 8: 5 });
+export const MAX_PERSONAL_HONORS_PER_PLAYER = 2;
+export const MAX_TEAM_HONORS_PER_SESSION = 2;
 
 /** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
 export const F1_FAMILY = Object.freeze(['streak_king', 'first_king']);
@@ -36,7 +41,7 @@ function normalizedPlayers(players, mode) {
     seen.add(idKey);
     result.push({ ...player, id, team: Number(player.team), _idKey: idKey, _teamKey: teamKey });
   }
-  return result.slice(0, mode);
+  return result;
 }
 
 function normalizeLevel(value) {
@@ -129,6 +134,106 @@ function teamHonor(key, teamKey, playerIds, score, caption) {
   };
 }
 
+const PERSONAL_HONOR_PRIORITY = Object.freeze([
+  'a_blocker', 'dd_opener', 'dd_closer', 'clutch_first', 'late_engine',
+  'streak_king', 'solo_carry', 'bounce_back', 'first_king', 'clean_sheet',
+  'rocket_jump', 'boom_bust', 'front_row_streak', 'copy_paste', 'rank_rainbow',
+  'cut_line_master', 'opening_flash', 'almost', 'back_row_streak', 'no_first', 'last_king'
+]);
+
+const PERSONAL_PRIMARY_FIELD = Object.freeze({
+  dd_opener: 'ddOpens', dd_closer: 'ddCloses', a_blocker: 'aBlocks',
+  streak_king: 'bestStreak', opening_flash: 'openingFirsts', bounce_back: 'bounceBacks',
+  rank_rainbow: 'distinctRanks', clean_sheet: 'hands', almost: 'seconds', no_first: 'hands',
+  boom_bust: 'firsts', copy_paste: 'copyPasteStreak', rocket_jump: 'rocketJumps',
+  clutch_first: 'finalPreviousRank', solo_carry: 'soloCarries', front_row_streak: 'frontRowStreak',
+  cut_line_master: 'cutLineCount', late_engine: 'lateLift', back_row_streak: 'backRowStreak',
+  last_king: 'lasts', first_king: 'firsts'
+});
+
+function compareVector(left, right) {
+  const width = Math.max(left.length, right.length);
+  for (let index = 0; index < width; index += 1) {
+    const delta = Number(right[index] || 0) - Number(left[index] || 0);
+    if (Math.abs(delta) > 1e-9) return delta;
+  }
+  return 0;
+}
+
+function personalEvidenceVector(honor, card) {
+  const primary = Number(card?.[PERSONAL_PRIMARY_FIELD[honor.key]] || 0);
+  const beatRate = Number(card?._beatRate || 0);
+  const volatility = Number(card?._rankVariance || 0);
+  if (honor.subtype === 'personal_roast') return [primary, 1 - beatRate, volatility];
+  if (honor.subtype === 'personal_fun') return [primary, volatility, beatRate];
+  return [primary, beatRate, volatility];
+}
+
+/**
+ * 先按称号挑唯一、证据最强的候选，再按稀有度与单人/全场预算颁奖。
+ * 完全并列时不使用数组顺序、名字或 id 破局：该称号本场不发。
+ */
+function selectPersonalHonors(candidates, cards, mode) {
+  const cardByPlayer = new Map(cards.map(card => [String(card.playerId), card]));
+  const byKey = new Map();
+  for (const honor of candidates) {
+    if (!byKey.has(honor.key)) byKey.set(honor.key, []);
+    byKey.get(honor.key).push(honor);
+  }
+  const unique = [];
+  for (const [key, honors] of byKey) {
+    const ranked = honors.slice().sort((left, right) => compareVector(
+      personalEvidenceVector(left, cardByPlayer.get(String(left.playerId))),
+      personalEvidenceVector(right, cardByPlayer.get(String(right.playerId)))
+    ));
+    if (ranked.length > 1 && compareVector(
+      personalEvidenceVector(ranked[0], cardByPlayer.get(String(ranked[0].playerId))),
+      personalEvidenceVector(ranked[1], cardByPlayer.get(String(ranked[1].playerId)))
+    ) === 0) continue;
+    unique.push(ranked[0]);
+  }
+  unique.sort((left, right) => PERSONAL_HONOR_PRIORITY.indexOf(left.key) - PERSONAL_HONOR_PRIORITY.indexOf(right.key));
+  const cap = MAX_PERSONAL_HONORS_BY_MODE[mode] || MAX_PERSONAL_HONORS_BY_MODE[8];
+  const perPlayer = new Map();
+  const selected = [];
+  for (const honor of unique) {
+    if (selected.length >= cap) break;
+    const playerKey = String(honor.playerId);
+    const count = perPlayer.get(playerKey) || 0;
+    if (count >= MAX_PERSONAL_HONORS_PER_PLAYER) continue;
+    selected.push(honor);
+    perPlayer.set(playerKey, count + 1);
+  }
+  return selected;
+}
+
+const TEAM_HONOR_PRIORITY = Object.freeze(['comeback_a', 'foe_reset', 'dd_night', 'all_firsts']);
+
+function teamEvidenceVector(honor) {
+  const score = honor.score || {};
+  return [
+    Number(score.foeResets || score.teamDD || score.totalFirsts || 0),
+    Number(score.firstScorers || 0)
+  ];
+}
+
+function selectTeamHonors(candidates) {
+  const byKey = new Map();
+  for (const honor of candidates) {
+    if (!byKey.has(honor.key)) byKey.set(honor.key, []);
+    byKey.get(honor.key).push(honor);
+  }
+  const unique = [];
+  for (const honors of byKey.values()) {
+    const ranked = honors.slice().sort((left, right) => compareVector(teamEvidenceVector(left), teamEvidenceVector(right)));
+    if (ranked.length > 1 && compareVector(teamEvidenceVector(ranked[0]), teamEvidenceVector(ranked[1])) === 0) continue;
+    unique.push(ranked[0]);
+  }
+  return unique
+    .sort((left, right) => TEAM_HONOR_PRIORITY.indexOf(left.key) - TEAM_HONOR_PRIORITY.indexOf(right.key))
+    .slice(0, MAX_TEAM_HONORS_PER_SESSION);
+}
+
 /**
  * 荣誉 v2 的唯一计算入口。输入只读，返回个人徽章、队伍战果、
  * 3 个场纪念的实际触发项，以及每位玩家 100% 覆盖的客观战报卡。
@@ -181,7 +286,10 @@ export function calculateSessionHonors(input = {}) {
   }]));
   const historyEntries = Array.isArray(history) ? history : [];
   const parsedHands = historyEntries.map(entry => rankedHand(entry, roster, playerCount));
-  const observationComplete = roster.length === playerCount && historyEntries.length > 0 && parsedHands.every(Boolean);
+  const observationComplete = roster.length === playerCount &&
+    roster.filter(player => player._teamKey === 't1').length === playerCount / 2 &&
+    roster.filter(player => player._teamKey === 't2').length === playerCount / 2 &&
+    historyEntries.length > 0 && parsedHands.every(Boolean);
   const hands = parsedHands.filter(Boolean);
   const finalHand = hands[hands.length - 1];
   const completionConsistent = Boolean(ended) && Boolean(validWinnerKey) &&
@@ -271,6 +379,15 @@ export function calculateSessionHonors(input = {}) {
   for (const card of cardList) {
     card.teamDD = teamDd[teamKeyOf(card.team)];
     card.finalPreviousRank = card._ranks.length >= 2 ? card._ranks[card._ranks.length - 2] : 0;
+    card._beatRate = card._ranks.length > 0
+      ? card._ranks.reduce((sum, rank) => sum + (playerCount - rank) / (playerCount - 1), 0) / card._ranks.length
+      : 0;
+    const averageRank = card._ranks.length > 0
+      ? card._ranks.reduce((sum, rank) => sum + rank, 0) / card._ranks.length
+      : 0;
+    card._rankVariance = card._ranks.length > 0
+      ? card._ranks.reduce((sum, rank) => sum + (rank - averageRank) ** 2, 0) / card._ranks.length
+      : 0;
     if (card._ranks.length >= 6) {
       const segment = Math.max(2, Math.floor(card._ranks.length / 3));
       const first = card._ranks.slice(0, segment);
@@ -294,6 +411,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors: [],
       teamResults: [],
       memorials: [],
+      awardCandidates: { personal: [], team: [] },
       reportCards,
       applicability: { foe_reset: prefs && prefs.strictA === true ? 'eligible' : 'not_applicable' }
     };
@@ -355,7 +473,7 @@ export function calculateSessionHonors(input = {}) {
       personalHonors.push(personalHonor('rocket_jump', card, { rocketJumps: card.rocketJumps }, `相邻小局间一脚油门跨过半张桌子 ${card.rocketJumps} 次，底牌里像是藏了推进器。`));
     }
     const ranks = card._ranks;
-    if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] !== 1) {
+    if (hands.length >= EARLY_HONOR_HANDS && ranks.length >= 2 && ranks[ranks.length - 1] === 1 && ranks[ranks.length - 2] > teamSize) {
       personalHonors.push(personalHonor('clutch_first', card, { finalPreviousRank: card.finalPreviousRank }, `最后一局从第 ${card.finalPreviousRank} 名冲到头游。主角光环一开，剧本都不敢这么写。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && card.soloCarries > 0) {
@@ -410,7 +528,10 @@ export function calculateSessionHonors(input = {}) {
       teamResults.push(teamHonor('dd_night', teamKey, playerIds, { teamDD: teamDd[teamKey] }, `本队完成 ${teamDd[teamKey]} 次${sweepTerm}，把对面安排得明明白白。`));
     }
     if (hands.length >= EARLY_HONOR_HANDS && teamCards.every(card => card.firsts > 0)) {
-      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, { firstScorers: teamCards.length }, `本队 ${teamCards.length} 人都拿过头游。全员都能上嘴脸，对面根本不知道该防谁。`));
+      teamResults.push(teamHonor('all_firsts', teamKey, playerIds, {
+        firstScorers: teamCards.length,
+        totalFirsts: teamCards.reduce((sum, card) => sum + card.firsts, 0)
+      }, `本队 ${teamCards.length} 人都拿过头游。全员都能上嘴脸，对面根本不知道该防谁。`));
     }
     if (prefs && prefs.strictA === true && foeResets[teamKey] > 0) {
       teamResults.push(teamHonor('foe_reset', teamKey, playerIds, { foeResets: foeResets[teamKey] }, `对手打 A 时，本队把对方打回 2 共 ${foeResets[teamKey]} 次。一夜回到解放前，杀人还要诛心。`));
@@ -437,6 +558,8 @@ export function calculateSessionHonors(input = {}) {
   }
 
   const reportCards = Object.fromEntries(reportCardEntries);
+  const selectedPersonalHonors = selectPersonalHonors(foldedPersonalHonors, cardList, playerCount);
+  const selectedTeamResults = selectTeamHonors(teamResults);
 
   return {
     mode: playerCount,
@@ -444,9 +567,11 @@ export function calculateSessionHonors(input = {}) {
     ended: Boolean(ended),
     winnerKey: validWinnerKey,
     observationComplete: true,
-    personalHonors: foldedPersonalHonors,
-    teamResults,
+    personalHonors: selectedPersonalHonors,
+    teamResults: selectedTeamResults,
     memorials,
+    // 供标定和规则回归审计；产品展示只读取上面的最终颁奖结果。
+    awardCandidates: { personal: foldedPersonalHonors, team: teamResults },
     reportCards,
     applicability: { foe_reset: prefs && prefs.strictA === true ? 'eligible' : 'not_applicable' }
   };
