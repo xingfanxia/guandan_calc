@@ -13,10 +13,13 @@ export const HONOR_THRESHOLDS = Object.freeze({
   8: Object.freeze({ ddNight: 2, streak: 3, first: 3, almost: 2, clean: EARLY_HONOR_HANDS, blitz: 10, marathon: 24 })
 });
 
-/** 赛后颁奖预算；战报卡中的客观计数不受这些上限影响。 */
-export const MAX_PERSONAL_HONORS_BY_MODE = Object.freeze({ 4: 3, 6: 4, 8: 5 });
-export const MAX_PERSONAL_HONORS_PER_PLAYER = 2;
-export const MAX_TEAM_HONORS_PER_SESSION = 2;
+/**
+ * 旧适配器仍会导入这三个名字；Infinity 明确表示 v3 不再做全场/单人/团队数量裁剪。
+ * 个人荣誉只在同 key 内竞争唯一最强者，团队荣誉则让每个满足条件的队伍都获得。
+ */
+export const MAX_PERSONAL_HONORS_BY_MODE = Object.freeze({ 4: Infinity, 6: Infinity, 8: Infinity });
+export const MAX_PERSONAL_HONORS_PER_PLAYER = Infinity;
+export const MAX_TEAM_HONORS_PER_SESSION = Infinity;
 
 /** 同人时只留最稀有的一项；顺序就是稀有度优先级，不向其他玩家顺延。 */
 export const F1_FAMILY = Object.freeze(['streak_king', 'first_king']);
@@ -170,10 +173,10 @@ function personalEvidenceVector(honor, card) {
 }
 
 /**
- * 先按称号挑唯一、证据最强的候选，再按稀有度与单人/全场预算颁奖。
+ * 每个称号只挑唯一、证据最强的候选；不同称号互不挤占名额。
  * 完全并列时不使用数组顺序、名字或 id 破局：该称号本场不发。
  */
-function selectPersonalHonors(candidates, cards, mode) {
+function selectPersonalHonors(candidates, cards) {
   const cardByPlayer = new Map(cards.map(card => [String(card.playerId), card]));
   const byKey = new Map();
   for (const honor of candidates) {
@@ -193,45 +196,21 @@ function selectPersonalHonors(candidates, cards, mode) {
     unique.push(ranked[0]);
   }
   unique.sort((left, right) => PERSONAL_HONOR_PRIORITY.indexOf(left.key) - PERSONAL_HONOR_PRIORITY.indexOf(right.key));
-  const cap = MAX_PERSONAL_HONORS_BY_MODE[mode] || MAX_PERSONAL_HONORS_BY_MODE[8];
-  const perPlayer = new Map();
-  const selected = [];
-  for (const honor of unique) {
-    if (selected.length >= cap) break;
-    const playerKey = String(honor.playerId);
-    const count = perPlayer.get(playerKey) || 0;
-    if (count >= MAX_PERSONAL_HONORS_PER_PLAYER) continue;
-    selected.push(honor);
-    perPlayer.set(playerKey, count + 1);
-  }
-  return selected;
+  return unique;
 }
 
 const TEAM_HONOR_PRIORITY = Object.freeze(['comeback_a', 'foe_reset', 'dd_night', 'all_firsts']);
 
-function teamEvidenceVector(honor) {
-  const score = honor.score || {};
-  return [
-    Number(score.foeResets || score.teamDD || score.totalFirsts || 0),
-    Number(score.firstScorers || 0)
-  ];
-}
-
 function selectTeamHonors(candidates) {
-  const byKey = new Map();
+  const exact = new Map();
   for (const honor of candidates) {
-    if (!byKey.has(honor.key)) byKey.set(honor.key, []);
-    byKey.get(honor.key).push(honor);
+    const identity = `${honor.key}:${honor.team}`;
+    if (!exact.has(identity)) exact.set(identity, honor);
   }
-  const unique = [];
-  for (const honors of byKey.values()) {
-    const ranked = honors.slice().sort((left, right) => compareVector(teamEvidenceVector(left), teamEvidenceVector(right)));
-    if (ranked.length > 1 && compareVector(teamEvidenceVector(ranked[0]), teamEvidenceVector(ranked[1])) === 0) continue;
-    unique.push(ranked[0]);
-  }
-  return unique
-    .sort((left, right) => TEAM_HONOR_PRIORITY.indexOf(left.key) - TEAM_HONOR_PRIORITY.indexOf(right.key))
-    .slice(0, MAX_TEAM_HONORS_PER_SESSION);
+  return [...exact.values()].sort((left, right) =>
+    TEAM_HONOR_PRIORITY.indexOf(left.key) - TEAM_HONOR_PRIORITY.indexOf(right.key) ||
+    Number(left.team) - Number(right.team)
+  );
 }
 
 /**
@@ -558,7 +537,7 @@ export function calculateSessionHonors(input = {}) {
   }
 
   const reportCards = Object.fromEntries(reportCardEntries);
-  const selectedPersonalHonors = selectPersonalHonors(foldedPersonalHonors, cardList, playerCount);
+  const selectedPersonalHonors = selectPersonalHonors(foldedPersonalHonors, cardList);
   const selectedTeamResults = selectTeamHonors(teamResults);
 
   return {
