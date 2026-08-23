@@ -4,6 +4,7 @@
   "description": "A comprehensive web-based scoring calculator for Guandan (掼蛋) card game",
   "type": "module",
   "scripts": {
+    "test": "node --test test/*.test.mjs",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
