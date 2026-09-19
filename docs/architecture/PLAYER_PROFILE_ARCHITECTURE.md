@@ -1056,7 +1056,7 @@ wxapp sibling). Applied **server-side inside the per-player session PUT**
 (`api/players/[handle].js applyLadderForSession`) for real-room games — reads
 every participant's frozen pre-session rating for the team average, writes only
 the one profile. Surfaced as a 天梯榜 leaderboard (`GET /api/players/list?sort=ladder`)
-on `players.html` + tiles on `player-profile.html`. Full design: root `CLAUDE.md`
+on `players.html` + tiles on `player-profile.html`. Full design: root `AGENTS.md`
 → "Ladder System".
 
 ## Testing

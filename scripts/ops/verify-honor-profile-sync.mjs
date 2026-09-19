@@ -80,7 +80,7 @@ assert.equal(
 );
 
 const docsByPath = {
-  'CLAUDE.md': readProjectFile('CLAUDE.md'),
+  'AGENTS.md': readProjectFile('AGENTS.md'),
   'README.md': readProjectFile('README.md'),
   'docs/FEATURE_STATUS.md': readProjectFile('docs/FEATURE_STATUS.md'),
   'docs/features/PLAYER_PROFILE_SPEC.md': readProjectFile('docs/features/PLAYER_PROFILE_SPEC.md'),
@@ -140,9 +140,9 @@ assert.equal(
   'technical implementation notes should not document the removed 辅助王 algorithm'
 );
 assert.equal(
-  docsByPath['CLAUDE.md'].includes('小丑'),
+  docsByPath['AGENTS.md'].includes('小丑'),
   false,
-  'CLAUDE.md should document the current 抗压王 honor, not the legacy 小丑 title'
+  'AGENTS.md should document the current 抗压王 honor, not the legacy 小丑 title'
 );
 assert.equal(
   /<div class="honor__name">🤡<\/div>|The Clown|无冠最菜/.test(docsByPath['docs/design/demos/demo-broadcast-v3.html']),

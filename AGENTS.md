@@ -1,6 +1,13 @@
-# CLAUDE.md
+# guandan_calc — agent guide
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Project scale and verification
+
+**Profile: social scoring app.** Guandan scoring, room sharing and persistent player statistics. Rule changes need focused scoring examples; UI changes need a relevant visual check. Profile ownership, vote/admin actions and result updates need targeted authorization/idempotency tests. Keep configured visual CI without adding a universal full-suite gate.
+
+- The requested behavior/questions define completion. Reviews are read-only unless fixes are requested; report unrelated findings briefly without adding tasks or test backfill.
+- Use the smallest existing check that proves the change. Add tests for a concrete regression or consequential boundary; do not impose blanket TDD, new coverage targets, full suites, plans or reviewers. Preserve configured CI and actual release gates; reuse still-valid results.
+- Keep the existing structure. Internal contract errors should be clear; add retries, fallbacks or compatibility layers only for an observed external failure or supported contract. Keep secrets private and inspect security only at boundaries changed by this task.
+- This section owns task scope and local verification effort; historical goals and broad test lists below do not automatically activate a workflow.
 
 ## Project Overview
 
@@ -19,8 +26,8 @@ Guandan (掼蛋) Calculator - A comprehensive web-based scoring and progression 
 
 **Legacy Reference**: `src/app.js` (1,947 lines)
 - Original monolithic IIFE preserved for reference
-- Contains all original game logic
-- Useful for understanding complex A-level rules
+- Historical implementation only; it does not override current rules or authorize a fallback deployment
+- Current rule authority is `shared/aLevelLogic.js`, `shared/honorLogic.js`, `shared/ladderLogic.js`, and `src/game/calculator.js`; `src/game/rules.js` owns stateful web orchestration
 
 ### Module Organization (40 modules):
 
@@ -154,7 +161,7 @@ light/dark token architecture. Source of truth: root `DESIGN.md` (ported from si
 
 **Achievement toast notifications shipped 2026-05-06** (`d24d9f6`) — `src/ui/toast.js` provides a generic stack-based toast manager (max 3 visible, queue overflow, auto-dismiss 5s, click-to-dismiss). Rules in `src/style.css` reference TOKEN_SPEC vars so both modes inherit. XSS-safe by construction (createElement + textContent only — no innerHTML). `src/api/playerApi.js` `syncProfileStats()` consumes `result.newAchievements` per player (server returns this from `api/players/[handle].js`) and stages a toast per unlock with 600ms stagger. Server-side `displayName` length cap (40 chars) in `api/players/_utils.js` prevents layout abuse via long names.
 
-**Image generation routing**: per the project memory `feedback_image_gen_routing.md`, default to `gpt-image` for ANY image generation task on this project (and AX's other projects unless overridden). Overrides the global routing in `~/.claude/CLAUDE.md` that sends illustration / hand-drawn / Chinese ink-brush style to nanobanana. Only fall back to nanobanana for multi-image reference editing (gpt-image doesn't support that surface).
+**Image generation routing**: in Codex, use the built-in `imagegen` skill/tool for ordinary image generation and editing. Explicit provider/model or CLI/API requests use the requested path.
 
 **Entry Point (1 module)**: Application orchestration
 - `main.js` - Initialization, event binding, module coordination
@@ -250,19 +257,21 @@ light/dark token architecture. Source of truth: root `DESIGN.md` (ported from si
 ## Development Commands
 
 ```bash
-# Modular version development (USE WITH CAUTION - may have issues)
-npm run dev        # Port 5173 with Vite HMR
+# Current modular runtime with Vite HMR
+npm run dev        # Configured port 3000; use the actual URL printed by Vite
 
-# Production build (deploys modular version)
+# Production build of the current modular version (does not deploy)
 npm run build
 npm run preview
 
-# Legacy single-file development (KNOWN WORKING)
+# Optional historical single-file reference only; not a production fallback
 python -m http.server 8000
 # Then open http://localhost:8000/guodan_calc.html
 ```
 
-## Key Implementation Details (from working src/app.js)
+## Key Implementation Details (current modular runtime)
+
+Read the owning modules below and their tests. `src/app.js` and the legacy HTML are historical references, not current rule authorities or automatic deployment fallbacks.
 
 ### Game Rules Engine
 
@@ -273,7 +282,7 @@ python -m http.server 8000
 - Point difference between teams → 1, 2, or 3 level upgrades
 - Configurable thresholds via settings
 
-**A-Level Logic** (lines 1533-1592 in src/app.js):
+**A-Level Logic** (`shared/aLevelLogic.js`, called by the thin `src/game/rules.js` wrapper):
 - Clear condition in every mode: must win at own A-level round (`ST.roundOwner === aTeam`) with no last-place winner
 - Lenient mode: own-A failures do not increment counters or demote; it does not allow away-level A clears
 - Failure tracking: in strict mode, 3 own-A failures = reset that team to level 2 across 4/6/8-player modes
@@ -286,7 +295,7 @@ python -m http.server 8000
 - In strict mode, verify both `ST.roundLevel === 'A'` AND `ST.roundOwner === aTeam`
 - When both teams are at A, `roundOwner` is the only authoritative way to know whose A round is being played
 
-**8-Player Sweep Bonus** (lines 1442-1444):
+**8-Player Sweep Bonus** (`src/game/calculator.js`):
 - Positions 1,2,3,4 grant 4-level upgrade
 
 ### Real-Time Room Sync System
@@ -353,7 +362,7 @@ it has zero qualifiers — the cap never starves a qualified honor.
 - `gd_v9_theme` - Theme preference: `'auto'` | `'light'` | `'dark'` (`'auto'` + legacy 5-theme values fall back to system preference)
 - `gd_admin_token` - (admin device only) admin token saved via `admin.html` 信任此设备; when present, `updatePlayerStats` includes it so the owner's own real-room syncs bypass the review queue. See `docs/SECURITY.md`.
 
-### Drag and Drop System (lines 188-599 in src/app.js)
+### Drag and Drop System (`src/player/dragDrop.js` and `src/player/touchHandler.js`)
 
 **Desktop**: HTML5 native drag/drop API
 - `dragstart`, `dragover`, `drop` events
@@ -367,7 +376,7 @@ it has zero qualifiers — the cap never starves a qualified honor.
 
 ## Critical Testing Areas
 
-1. **A-Level Logic** (src/app.js:1533-1592):
+1. **A-Level Logic** (`shared/aLevelLogic.js` + the `src/game/rules.js` wrapper):
    - Strict mode victory at own A-level round
    - `ST.roundOwner` tracking and validation
    - Failure counter incrementing only on own round
@@ -391,12 +400,12 @@ it has zero qualifiers — the cap never starves a qualified honor.
    - TTL extension to 1 year
    - Browse modal with room previews
 
-6. **Mobile Touch** (src/app.js:188-381):
+6. **Mobile Touch** (`src/player/touchHandler.js`):
    - Long-press drag initiation
    - Touch clone cleanup
    - Drop zone detection on iOS/Android
 
-7. **Canvas Export** (src/app.js:1818-1893):
+7. **Canvas Export** (`src/export/exportHandlers.js` and its renderer imports):
    - PNG long image generation
    - UTF-8 Chinese character rendering
    - Team color visualization
@@ -405,7 +414,7 @@ it has zero qualifiers — the cap never starves a qualified honor.
 
 Two browser MCPs are installed at user scope (`chrome-devtools` + `claude-in-chrome`). Full disambiguation table lives in `~/.claude/CLAUDE.md` → "Frontend Inspection & Testing Tooling Routing". Project-specific call-outs:
 
-- **Mobile QC before declaring done** (root cause of the 2026-05-04 multi-commit failure pattern): always run `chrome-devtools-mcp emulate_device` against BOTH light and dark modes + the championship state. Standard sweep: iPhone 14 Pro, Pixel 7, iPad. "Looks fine on desktop" is not mobile QC.
+- **Mobile QC for affected UI**: inspect the changed viewport/state with an available browser tool. A shared theme/championship change needs its relevant light/dark or championship states; ordinary edits do not require an iPhone/Pixel/iPad sweep.
 - **Perf characterization**: when "feels slow on phone" surfaces, use `chrome-devtools-mcp performance_start_trace` for wall-clock paint/composite numbers — not vibes. (The webfont-loading and fixed-background suspects died with the 5-theme system; the current design is system-font + flat surfaces.)
 - **Live Chrome interaction** (tap-to-rank flow, voting submission UX, room-share QR scan, victory-modal championship dialog): `claude-in-chrome` MCP attaches to the running Chrome profile and can record GIFs for handoff docs.
 - **Visual baselines remain Playwright-based**: `scripts/visual/capture-redesign.mjs` + `capture-png-exports.mjs` writing `docs/reports/redesign/` + `docs/reports/png-export/` are the source of truth. chrome-devtools-mcp is for ad-hoc inspection, NOT for regenerating baselines.
@@ -422,22 +431,22 @@ Two browser MCPs are installed at user scope (`chrome-devtools` + `claude-in-chr
 **Production Deployment Status**:
 - Check if `npm run build` completes successfully
 - Verify modular version works in production
-- Consider falling back to `guodan_calc.html` if issues persist
+- Diagnose failures against the current modular runtime; a historical HTML file is not a validated rollback. Any deployment or rollback must remain within the requested release scope and use a known-good version of the current application.
 
 ## Development Workflow
 
 **When Making Changes**:
-1. **Reference**: Consult `src/app.js` (1,947 lines) for working implementation
-2. **Modify**: Update modular files in `src/` directory
-3. **Test Locally**: Run `npm run dev` and test thoroughly
-4. **Verify Build**: Run `npm run build` and check for errors
-5. **Fallback**: If issues occur, `guodan_calc.html` is the working baseline
+1. **Reference**: Consult the current owning `shared/` algorithm, `src/game/calculator.js`, or `src/` orchestrator and its callers/tests
+2. **Modify**: Update the owning `shared/` or `src/` modules; preserve the wxapp vendor-sync contract when changing shared algorithms
+3. **Verify the change**: use the affected existing test or local rendered flow; documentation needs a focused read.
+4. **Build when relevant**: run `npm run build` for build/routing changes, broad edits or a release; do not add it after every focused check.
+5. **Failures**: Investigate the affected contract; do not substitute historical monolithic code for the maintained runtime
 
 **When Debugging**:
-- `src/app.js` contains all working game logic as single reference
+- Trace the current module imports. Pure A-level/honor/ladder algorithms live in `shared/`; stateful web coordination lives in `src/game/rules.js` and the controllers. The legacy monolith is only historical context.
 - Check console logs for state transitions and ranking updates
 - Verify LocalStorage keys for state persistence
-- Test drag/drop on both desktop and mobile devices
+- Test drag/drop on the affected supported input types when that interaction changes.
 
 ## Documentation
 
@@ -453,7 +462,7 @@ Comprehensive documentation in `docs/`:
 ## Important Notes
 
 - **Always test modular version before assuming it works**
-- **src/app.js is the source of truth for game logic**
+- **Current shared algorithms and their modular callers are the source of truth; do not modify or redeploy legacy `src/app.js` as a substitute**
 - **Mobile touch handling requires careful testing on actual devices**
 - **A-level logic is complex - verify roundOwner tracking carefully**
 - **Room sync requires Vercel KV environment variables configured**
@@ -620,20 +629,69 @@ hard-deleted on 2026-06-13 (`scripts/ops/delete-test-players.mjs`).
 
 **Cleanup script** — hard-delete `test_*` fixtures from KV (mirrors
 `api/players/delete.js`; needs KV creds, not the admin token):
+
+This connects to the selected KV service even in dry-run mode. Confirm the
+repository's existing Vercel project link/account and the intended environment
+without displaying credentials. Production fixture cleanup requires that exact
+target and deletion scope to be authorized; a `test_` prefix alone is not proof
+that a record is disposable. Keep pulled env files private and short-lived:
+
 ```bash
-vercel env pull --environment=production /tmp/gd.env   # get KV_REST_API_URL/TOKEN
-set -a; . /tmp/gd.env; set +a
-node scripts/ops/delete-test-players.mjs            # dry-run (lists, deletes nothing)
-node scripts/ops/delete-test-players.mjs --apply    # delete
+(
+  set -e
+  umask 077
+  gd_task_dir="$(mktemp -d "${TMPDIR:-/tmp}/guandan-kv.XXXXXX")"
+  trap 'rm -f "$gd_task_dir/production.env"; rmdir "$gd_task_dir"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  vercel env pull "$gd_task_dir/production.env" --environment=production
+  set -a
+  . "$gd_task_dir/production.env"
+  set +a
+  node scripts/ops/delete-test-players.mjs  # live KV reads; no deletion
+  # Add --apply only for the requested cleanup after reviewing the exact targets.
+)
 ```
 
-**Test Commands**:
-```bash
-# Create test player
-curl -X POST https://gd.ax0x.ai/api/players/create -d '{...}'
+Do not print or commit the env file, enable shell tracing, or clean up another
+process's files. The subshell confines exported credentials; its cleanup only
+removes the file/directory this invocation created. No service restart or broad
+process termination is part of this recipe.
 
-# Reset a test_ player's stats (admin token required)
-curl -X POST https://gd.ax0x.ai/api/players/reset-stats -d '{"handle":"test_hao","adminToken":"<ADMIN_TOKEN>"}'
+**Mutating integration examples** (not offline tests):
+
+Use the authorized API destination and disposable fixture account. Creating a
+player or resetting stats changes persisted data; do not run either action for
+a read-only diagnosis. The reset endpoint expects JSON `{handle, adminToken}`.
+Load `ADMIN_TOKEN` through the operator's secure environment first, never by
+pasting it into the command. Keep the token out of curl arguments and logs:
+
+```bash
+(
+  set -e
+  umask 077
+  gd_task_dir="$(mktemp -d "${TMPDIR:-/tmp}/guandan-reset.XXXXXX")"
+  trap 'rm -f "$gd_task_dir/request.json"; rmdir "$gd_task_dir"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  export GD_RESET_BODY="$gd_task_dir/request.json"
+  GD_RESET_HANDLE=test_hao node --input-type=module <<'JS'
+import fs from 'node:fs';
+const token = process.env.ADMIN_TOKEN;
+const handle = process.env.GD_RESET_HANDLE;
+if (!token || !handle?.startsWith('test_')) {
+  throw new Error('Secure admin environment and explicit test fixture required');
+}
+fs.writeFileSync(process.env.GD_RESET_BODY, JSON.stringify({ handle, adminToken: token }),
+  { flag: 'wx', mode: 0o600 });
+JS
+  # Production destination: run only when this exact reset is authorized.
+  # No redirects, verbose tracing, or inline token arguments.
+  curl --disable --fail --silent --show-error --proto '=https' \
+    --header 'Content-Type: application/json' \
+    --data-binary "@$GD_RESET_BODY" \
+    https://gd.ax0x.ai/api/players/reset-stats
+)
 ```
 
 ### Common Issues

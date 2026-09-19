@@ -20,7 +20,7 @@
 ├── vite.config.js          # Multi-page build configuration
 ├── vercel.json             # Deployment settings
 ├── TODO.md                 # Implementation tracker (v10.0 updated)
-├── CLAUDE.md               # AI coding instructions (v10.0 updated)
+├── AGENTS.md               # AI coding instructions (v10.0 updated)
 └── README.md               # Project overview (v10.0)
 ```
 

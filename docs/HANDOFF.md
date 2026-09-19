@@ -375,7 +375,7 @@
 
 ### Primary Docs (Essential Reading)
 1. **`TODO.md`** - Current priorities and task list
-2. **`CLAUDE.md`** - Project overview, architecture, critical details
+2. **`AGENTS.md`** - Project overview, architecture, critical details
 3. **`README.md`** - User-facing features and quick start
 
 ### Architecture Docs
