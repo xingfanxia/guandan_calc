@@ -1,8 +1,8 @@
 // Service Worker for Guandan Calculator PWA
 // Provides offline support and fast loading
 
-const CACHE_NAME = 'guandan-calc-v10.1';
-const RUNTIME_CACHE = 'guandan-runtime-v10.1';
+const CACHE_NAME = 'guandan-calc-v10.2';
+const RUNTIME_CACHE = 'guandan-runtime-v10.2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
